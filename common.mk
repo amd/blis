@@ -566,8 +566,11 @@ ifeq ($(MK_ENABLE_STATIC),no)
 LIBBLIS_L      := $(LIBBLIS_SO)
 LIBBLIS_LINK   := $(LIBBLIS_SO_PATH)
 ifeq ($(IS_WIN),no)
+BLIS_SET_RPATH ?= yes
+ifeq ($(LIBBLIS_SET_RPATH),yes)
 # For Linux and OS X: set rpath property of shared object.
 LDFLAGS        += -Wl,-rpath,$(BASE_LIB_PATH)
+endif
 endif
 endif
 # On windows, use the shared library even if static is created.
