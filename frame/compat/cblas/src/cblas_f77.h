@@ -163,5 +163,38 @@
 #define F77_zsyr2k zsyr2k_
 #define F77_ztrmm  ztrmm_
 #define F77_ztrsm  ztrsm_
+#define F77_dgemmt  dgemmt_
+#define F77_sgemmt  sgemmt_
+#define F77_cgemmt  cgemmt_
+#define F77_zgemmt  zgemmt_
+
+/*
+* Aux Function
+*/
+#define F77_scabs1 scabs1_
+#define F77_dcabs1 dcabs1_
+
+/*
+ * -- BLAS Extension APIs --
+ */
+
+#define F77_saxpby     saxpby_
+#define F77_daxpby     daxpby_
+#define F77_caxpby     caxpby_
+#define F77_zaxpby     zaxpby_
+#define F77_cgemm3m    cgemm3m_
+#define F77_zgemm3m    zgemm3m_
+
+#define F77_isamin_sub isaminsub_
+#define F77_idamin_sub idaminsub_
+#define F77_icamin_sub icaminsub_
+#define F77_izamin_sub izaminsub_
+
+// -- Batch APIs --
+#define F77_sgemm_batch  sgemm_batch_
+#define F77_dgemm_batch  dgemm_batch_
+#define F77_cgemm_batch  cgemm_batch_
+#define F77_zgemm_batch  zgemm_batch_
+
 
 #endif /*  CBLAS_F77_H */

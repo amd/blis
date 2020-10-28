@@ -194,6 +194,12 @@
 #include "bla_syr2k_check.h"
 #include "bla_trmm_check.h"
 #include "bla_trsm_check.h"
+#include "bla_gemmt_check.h"
+
+// -- Batch Extension prototypes --
+#include "bla_gemm_batch.h"
+#include "bla_gemm3m.h"
+#include "bla_gemm3m_check.h"
 
 // -- Fortran-compatible APIs to BLIS functions --
 

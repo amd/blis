@@ -181,7 +181,9 @@ blis: \
        test_herk_blis.x \
        test_her2k_blis.x \
        test_trmm_blis.x \
-       test_trsm_blis.x
+       test_trsm_blis.x \
+       test_gemm_batch_blis.x \
+       test_gemm3m_blis.x
 
 openblas: \
       test_dotv_openblas.x \
@@ -199,7 +201,9 @@ openblas: \
       test_herk_openblas.x \
       test_her2k_openblas.x \
       test_trmm_openblas.x \
-      test_trsm_openblas.x
+      test_trsm_openblas.x \
+      test_gemm_batch_openblas.x \
+      test_gemm3m_openblas.x
 
 atlas: \
       test_dotv_atlas.x \
@@ -234,7 +238,9 @@ mkl:  test_dotv_mkl.x \
       test_herk_mkl.x \
       test_her2k_mkl.x \
       test_trmm_mkl.x \
-      test_trsm_mkl.x
+      test_trsm_mkl.x \
+      test_gemm_batch_mkl.x \
+      test_gemm3m_mkl.x
 
 essl: test_dotv_essl.x \
       test_axpyv_essl.x \
