@@ -3046,7 +3046,7 @@ main()
 		enable_aocl_zen='yes'
 		enable_aocl_zen_01=1
 	else
-		enable_aocl_zen = 'no';
+		enable_aocl_zen='no';
 		enable_aocl_zen_01=0;
 	fi
 
