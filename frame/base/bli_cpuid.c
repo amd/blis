@@ -516,7 +516,7 @@ bool bli_cpuid_is_avx_supported( void )
 	return is_avx_supported;
 }
 
-#elif defined(__aarch64__) || defined(__arm__) || defined(_M_ARM)
+#elif defined(__aarch64__) || defined(__arm__) || defined(_M_ARM) || defined(_ARCH_PPC)
 
 arch_t bli_cpuid_query_id( void )
 {
@@ -571,9 +571,14 @@ arch_t bli_cpuid_query_id( void )
 			return BLIS_ARCH_GENERIC;
 		}
 	}
-	else if ( vendor == VENDOR_UNKNOWN )
+	else if ( vendor == VENDOR_IBM )
 	{
-		return BLIS_ARCH_GENERIC;
+		if ( model == MODEL_POWER7)
+			return BLIS_ARCH_POWER7;
+		else if ( model == MODEL_POWER9)
+			return BLIS_ARCH_POWER9;
+		else if ( model == MODEL_POWER10)
+			return BLIS_ARCH_POWER10;
 	}
 
 	return BLIS_ARCH_GENERIC;
@@ -1072,7 +1077,7 @@ int vpu_count( void )
 	}
 }
 
-#elif defined(__aarch64__) || defined(__arm__) || defined(_M_ARM)
+#elif defined(__aarch64__) || defined(__arm__) || defined(_M_ARM) || defined(_ARCH_PPC)
 
 #define TEMP_BUFFER_SIZE 200
 
@@ -1093,6 +1098,20 @@ uint32_t bli_cpuid_query
 	char  ptno_str[ TEMP_BUFFER_SIZE ];
 	char  feat_str[ TEMP_BUFFER_SIZE ];
 	char* r_val;
+
+#ifdef _ARCH_PPC
+	r_val = find_string_in( "cpu", proc_str, TEMP_BUFFER_SIZE, pci_str );
+	if ( r_val == NULL ) return VENDOR_IBM;
+
+	if ( strstr( proc_str, "POWER7" ) != NULL )
+		*model = MODEL_POWER7;
+	else if ( strstr( proc_str, "POWER9" ) != NULL )
+		*model = MODEL_POWER9;
+	else if ( strstr( proc_str, "POWER10" ) != NULL )
+		*model = MODEL_POWER10;
+
+	return VENDOR_IBM;
+#endif
 
 	//printf( "bli_cpuid_query(): beginning search\n" );
 
