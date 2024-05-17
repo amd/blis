@@ -474,7 +474,7 @@ static dim_t bli_soMatCopy_ct(dim_t rows,dim_t cols,const float alpha,const floa
  dim_t i,j;
  const float* aptr;
  float* bptr;
- if ( rows <= 0 || cols <= 0 || a == NULL || b == NULL || lda < rows || ldb < rows )
+ if ( rows <= 0 || cols <= 0 || a == NULL || b == NULL || lda < rows || ldb < cols )
  //if ( rows <= 0 || cols <= 0 || a == NULL || b == NULL || lda < cols || ldb < rows )
  {
   bli_print_msg( " Invalid function parameter in bli_soMatCopy_ct() .", __FILE__, __LINE__ );
@@ -531,7 +531,7 @@ static dim_t bli_doMatCopy_ct(dim_t rows,dim_t cols,const double alpha,const dou
  dim_t i,j;
  const double* aptr;
  double* bptr;
- if ( rows <= 0 || cols <= 0 || a == NULL || b == NULL || lda < rows || ldb < rows )
+ if ( rows <= 0 || cols <= 0 || a == NULL || b == NULL || lda < rows || ldb < cols )
  {
   bli_print_msg( " Invalid function parameter in bli_doMatCopy_ct() .", __FILE__, __LINE__ );
   AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_2, "Invalid function parameters");
@@ -589,7 +589,7 @@ static dim_t bli_coMatCopy_ct(dim_t rows,dim_t cols,const scomplex alpha,const s
  const scomplex* aptr;
  scomplex* bptr;
 
- if ( rows <= 0 || cols <= 0 || a == NULL || b == NULL || lda < rows || ldb < rows )
+ if ( rows <= 0 || cols <= 0 || a == NULL || b == NULL || lda < rows || ldb < cols )
  {
   bli_print_msg( " Invalid function parameter in bli_coMatCopy_ct() .", __FILE__, __LINE__ );
   AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_2, "Invalid function parameters");
@@ -647,7 +647,7 @@ static dim_t bli_zoMatCopy_ct(dim_t rows,dim_t cols,const dcomplex alpha,const d
  dim_t i,j;
  const dcomplex* aptr;
  dcomplex* bptr;
- if ( rows <= 0 || cols <= 0 || a == NULL || b == NULL || lda < rows || ldb < rows )
+ if ( rows <= 0 || cols <= 0 || a == NULL || b == NULL || lda < rows || ldb < cols )
  {
   bli_print_msg( " Invalid function parameter in bli_zoMatCopy_ct() .", __FILE__, __LINE__ );
   AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_2, "Invalid function parameters");
