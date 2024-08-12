@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2022 - 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2022 - 2024, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -53,20 +53,22 @@ LPGEMM_M_FRINGE_KERN(uint8_t,int8_t,int32_t,u8s8s32o32_5x64)
 						  &&POST_OPS_GELU_TANH_5x64,
 						  &&POST_OPS_GELU_ERF_5x64,
 						  &&POST_OPS_CLIP_5x64,
-						  &&POST_OPS_DOWNSCALE_5x64
+						  &&POST_OPS_DOWNSCALE_5x64,
+						  &&POST_OPS_MATRIX_ADD_5x64,
+						  &&POST_OPS_SWISH_5x64
 						};
 	dim_t k_full_pieces = k0 / 4;
 	dim_t k_partial_pieces = k0 % 4;
 
 	// B matrix storage.
-	__m512i b0;
-	__m512i b1;
-	__m512i b2;
-	__m512i b3;
+	__m512i b0 = _mm512_setzero_epi32();
+	__m512i b1 = _mm512_setzero_epi32();
+	__m512i b2 = _mm512_setzero_epi32();
+	__m512i b3 = _mm512_setzero_epi32();
 
 	// A matrix storage.
-	__m512i a_int32_0;
-	__m512i a_int32_1;
+	__m512i a_int32_0 = _mm512_setzero_epi32();
+	__m512i a_int32_1 = _mm512_setzero_epi32();
 	
 	// Registers to use for accumulating C.
 	__m512i c_int32_0p0 = _mm512_setzero_epi32();
@@ -737,37 +739,68 @@ POST_OPS_CLIP_5x64:
 
 		POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
 	}
-
 POST_OPS_DOWNSCALE_5x64:
 	{
-		selector1 =
-			_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
-							post_ops_attr.post_op_c_j + ( 0 * 16 ) );
-		selector2 =
-			_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
-							post_ops_attr.post_op_c_j + ( 1 * 16 ) );
-		a_int32_0 =
-			_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
-							post_ops_attr.post_op_c_j + ( 2 * 16 ) );
-		a_int32_1 =
-			_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
-							post_ops_attr.post_op_c_j + ( 3 * 16 ) );
-		__m128i zero_point0 =
-			_mm_loadu_si128( ( __m128i const* )
-					( ( int8_t* )post_ops_list_temp->op_args1 +
-					post_ops_attr.post_op_c_j + ( 0 * 16 ) ) );
-		__m128i zero_point1 =
-			_mm_loadu_si128( ( __m128i const* )
-					( ( int8_t* )post_ops_list_temp->op_args1 +
-					post_ops_attr.post_op_c_j + ( 1 * 16 ) ) );
-		__m128i zero_point2 =
-			_mm_loadu_si128( ( __m128i const* )
-					( ( int8_t* )post_ops_list_temp->op_args1 +
-					post_ops_attr.post_op_c_j + ( 2 * 16 ) ) );
-		__m128i zero_point3 =
-			_mm_loadu_si128( ( __m128i const* )
-					( ( int8_t* )post_ops_list_temp->op_args1 +
-					post_ops_attr.post_op_c_j + ( 3 * 16 ) ) );
+		if ( post_ops_list_temp->scale_factor_len > 1 )
+		{
+			selector1 =
+				_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
+								post_ops_attr.post_op_c_j + ( 0 * 16 ) );
+			selector2 =
+				_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
+								post_ops_attr.post_op_c_j + ( 1 * 16 ) );
+			a_int32_0 =
+				_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
+								post_ops_attr.post_op_c_j + ( 2 * 16 ) );
+			a_int32_1 =
+				_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
+								post_ops_attr.post_op_c_j + ( 3 * 16 ) );
+		}
+		else if ( post_ops_list_temp->scale_factor_len == 1 )
+		{
+			selector1 =
+				( __m512i )_mm512_set1_ps( *( ( float* )post_ops_list_temp->scale_factor ) );
+			selector2 =
+				( __m512i )_mm512_set1_ps( *( ( float* )post_ops_list_temp->scale_factor ) );
+			a_int32_0 =
+				( __m512i )_mm512_set1_ps( *( ( float* )post_ops_list_temp->scale_factor ) );
+			a_int32_1 =
+				( __m512i )_mm512_set1_ps( *( ( float* )post_ops_list_temp->scale_factor ) );
+		}
+
+		// Need to ensure sse not used to avoid avx512 -> sse transition.
+		__m128i zero_point0 = _mm512_castsi512_si128( _mm512_setzero_si512() );
+		__m128i zero_point1 = _mm512_castsi512_si128( _mm512_setzero_si512() );
+		__m128i zero_point2 = _mm512_castsi512_si128( _mm512_setzero_si512() );
+		__m128i zero_point3 = _mm512_castsi512_si128( _mm512_setzero_si512() );
+
+		// int8_t zero point value.
+		if ( *( ( dim_t* )post_ops_list_temp->op_args3 ) > 1 )
+		{
+			zero_point0 = _mm_loadu_si128( ( __m128i const* )
+							( ( int8_t* )post_ops_list_temp->op_args1 +
+							post_ops_attr.post_op_c_j + ( 0 * 16 ) ) );
+			zero_point1 = _mm_loadu_si128( ( __m128i const* )
+							( ( int8_t* )post_ops_list_temp->op_args1 +
+							post_ops_attr.post_op_c_j + ( 1 * 16 ) ) );
+			zero_point2 = _mm_loadu_si128( ( __m128i const* )
+							( ( int8_t* )post_ops_list_temp->op_args1 +
+							post_ops_attr.post_op_c_j + ( 2 * 16 ) ) );
+			zero_point3 = _mm_loadu_si128( ( __m128i const* )
+							( ( int8_t* )post_ops_list_temp->op_args1 +
+							post_ops_attr.post_op_c_j + ( 3 * 16 ) ) );
+		}
+		else if ( *( ( dim_t* )post_ops_list_temp->op_args3 ) == 1 )
+		{
+			zero_point0 = _mm_maskz_set1_epi8( 0xFFFF,
+							*( ( int8_t* )post_ops_list_temp->op_args1 ) );
+			zero_point1 = _mm_maskz_set1_epi8( 0xFFFF,
+							*( ( int8_t* )post_ops_list_temp->op_args1 ) );
+			zero_point2 = _mm_maskz_set1_epi8( 0xFFFF,
+							*( ( int8_t* )post_ops_list_temp->op_args1 ) );
+			zero_point3 = _mm_maskz_set1_epi8( 0xFFFF,
+							*( ( int8_t* )post_ops_list_temp->op_args1 ) );
+		}
 
 		// c[0, 0-15]
 		CVT_MULRND_CVT32(c_int32_0p0,selector1,zero_point0);
@@ -828,6 +861,120 @@ POST_OPS_DOWNSCALE_5x64:
 
 		// c[4, 48-63]
 		CVT_MULRND_CVT32(c_int32_4p3,a_int32_1,zero_point3);
+
+		POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+	}
+POST_OPS_MATRIX_ADD_5x64:
+	{
+		dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+		if ( post_ops_attr.c_stor_type == S8 )
+		{
+			int8_t* matptr = ( int8_t* )post_ops_list_temp->op_args1;
+
+			// c[0:0-15,16-31,32-47,48-63]
+			S8_S32_MATRIX_ADD_4COL(selector1,selector2,a_int32_0,a_int32_1,0);
+
+			// c[1:0-15,16-31,32-47,48-63]
+			S8_S32_MATRIX_ADD_4COL(selector1,selector2,a_int32_0,a_int32_1,1);
+
+			// c[2:0-15,16-31,32-47,48-63]
+			S8_S32_MATRIX_ADD_4COL(selector1,selector2,a_int32_0,a_int32_1,2);
+
+			// c[3:0-15,16-31,32-47,48-63]
+			S8_S32_MATRIX_ADD_4COL(selector1,selector2,a_int32_0,a_int32_1,3);
+
+			// c[4:0-15,16-31,32-47,48-63]
+			S8_S32_MATRIX_ADD_4COL(selector1,selector2,a_int32_0,a_int32_1,4);
+		}
+		else
+		{
+			int32_t* matptr = ( int32_t* )post_ops_list_temp->op_args1;
+
+			// c[0:0-15,16-31,32-47,48-63]
+			S32_S32_MATRIX_ADD_4COL(selector1,selector2,a_int32_0,a_int32_1,0);
+
+			// c[1:0-15,16-31,32-47,48-63]
+			S32_S32_MATRIX_ADD_4COL(selector1,selector2,a_int32_0,a_int32_1,1);
+
+			// c[2:0-15,16-31,32-47,48-63]
+			S32_S32_MATRIX_ADD_4COL(selector1,selector2,a_int32_0,a_int32_1,2);
+
+			// c[3:0-15,16-31,32-47,48-63]
+			S32_S32_MATRIX_ADD_4COL(selector1,selector2,a_int32_0,a_int32_1,3);
+
+			// c[4:0-15,16-31,32-47,48-63]
+			S32_S32_MATRIX_ADD_4COL(selector1,selector2,a_int32_0,a_int32_1,4);
+		}
+
+		POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+	}
+POST_OPS_SWISH_5x64:
+	{
+		selector1 =
+			_mm512_set1_epi32( *( ( int32_t* )post_ops_list_temp->op_args2 ) );
+		__m512 al = _mm512_cvtepi32_ps( selector1 );
+
+		__m512 fl_reg, al_in, r, r2, z, dn;
+
+		// c[0, 0-15]
+		SWISH_S32_AVX512(c_int32_0p0, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[0, 16-31]
+		SWISH_S32_AVX512(c_int32_0p1, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[0, 32-47]
+		SWISH_S32_AVX512(c_int32_0p2, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[0, 48-63]
+		SWISH_S32_AVX512(c_int32_0p3, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[1, 0-15]
+		SWISH_S32_AVX512(c_int32_1p0, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[1, 16-31]
+		SWISH_S32_AVX512(c_int32_1p1, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[1, 32-47]
+		SWISH_S32_AVX512(c_int32_1p2, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[1, 48-63]
+		SWISH_S32_AVX512(c_int32_1p3, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[2, 0-15]
+		SWISH_S32_AVX512(c_int32_2p0, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[2, 16-31]
+		SWISH_S32_AVX512(c_int32_2p1, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[2, 32-47]
+		SWISH_S32_AVX512(c_int32_2p2, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[2, 48-63]
+		SWISH_S32_AVX512(c_int32_2p3, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[3, 0-15]
+		SWISH_S32_AVX512(c_int32_3p0, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[3, 16-31]
+		SWISH_S32_AVX512(c_int32_3p1, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[3, 32-47]
+		SWISH_S32_AVX512(c_int32_3p2, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[3, 48-63]
+		SWISH_S32_AVX512(c_int32_3p3, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[4, 0-15]
+		SWISH_S32_AVX512(c_int32_4p0, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[4, 16-31]
+		SWISH_S32_AVX512(c_int32_4p1, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[4, 32-47]
+		SWISH_S32_AVX512(c_int32_4p2, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[4, 48-63]
+		SWISH_S32_AVX512(c_int32_4p3, fl_reg, al, al_in, r, r2, z, dn, selector2);
 
 		POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
 	}
@@ -979,20 +1126,22 @@ LPGEMM_M_FRINGE_KERN(uint8_t,int8_t,int32_t,u8s8s32o32_4x64)
 						  &&POST_OPS_GELU_TANH_4x64,
 						  &&POST_OPS_GELU_ERF_4x64,
 						  &&POST_OPS_CLIP_4x64,
-						  &&POST_OPS_DOWNSCALE_4x64
+						  &&POST_OPS_DOWNSCALE_4x64,
+						  &&POST_OPS_MATRIX_ADD_4x64,
+						  &&POST_OPS_SWISH_4x64
 						};
 	dim_t k_full_pieces = k0 / 4;
 	dim_t k_partial_pieces = k0 % 4;
 
 	// B matrix storage.
-	__m512i b0;
-	__m512i b1;
-	__m512i b2;
-	__m512i b3;
+	__m512i b0 = _mm512_setzero_epi32();
+	__m512i b1 = _mm512_setzero_epi32();
+	__m512i b2 = _mm512_setzero_epi32();
+	__m512i b3 = _mm512_setzero_epi32();
 
 	// A matrix storage.
-	__m512i a_int32_0;
-	__m512i a_int32_1;
+	__m512i a_int32_0 = _mm512_setzero_epi32();
+	__m512i a_int32_1 = _mm512_setzero_epi32();
 
 	// Registers to use for accumulating C.
 	__m512i c_int32_0p0 = _mm512_setzero_epi32();
@@ -1015,16 +1164,29 @@ LPGEMM_M_FRINGE_KERN(uint8_t,int8_t,int32_t,u8s8s32o32_4x64)
 	__m512i c_int32_3p2 = _mm512_setzero_epi32();
 	__m512i c_int32_3p3 = _mm512_setzero_epi32();
 
-	for ( dim_t kr = 0; kr < k_full_pieces; kr += 1 )
+	//gcc compiler (atleast 11.2 to 13.1) avoid loading B into
+	// registers while generating the code. A dummy shuffle instruction
+	// is used on b data to explicitly specify to gcc compiler
+ 	// b data needs to be kept in registers to reuse across FMA's
+	__m512i dsmask = _mm512_set_epi64(
+					0x0F0E0D0C0B0A0908, 0x0706050403020100,
+					0x0F0E0D0C0B0A0908, 0x0706050403020100,
+					0x0F0E0D0C0B0A0908, 0x0706050403020100,
+					0x0F0E0D0C0B0A0908, 0x0706050403020100);
+
+	for (dim_t kr = 0; kr < k_full_pieces; kr += 1)
 	{
 		b0 = _mm512_loadu_si512( b + ( rs_b * kr ) + ( cs_b * 0 ) );
 
 		// Broadcast a[0,kr:kr+4].
 		a_int32_0 = _mm512_set1_epi32( *( uint32_t* )( a + ( rs_a * 0 ) + ( cs_a * kr ) ) );
-
+		b0 = _mm512_shuffle_epi8(b0, dsmask);
 		b1 = _mm512_loadu_si512( b + ( rs_b * kr ) + ( cs_b * 1 ) );
+		b1 = _mm512_shuffle_epi8(b1, dsmask);
 		b2 = _mm512_loadu_si512( b + ( rs_b * kr ) + ( cs_b * 2 ) );
+		b2 = _mm512_shuffle_epi8(b2, dsmask);
 		b3 = _mm512_loadu_si512( b + ( rs_b * kr ) + ( cs_b * 3 ) );
+		b3 = _mm512_shuffle_epi8(b3, dsmask);
 
 		// Perform column direction mat-mul with k = 4.
 		// c[0,0-63] = a[0,kr:kr+4]*b[kr:kr+4,0-63]
@@ -1073,7 +1235,6 @@ LPGEMM_M_FRINGE_KERN(uint8_t,int8_t,int32_t,u8s8s32o32_4x64)
 		__mmask16 load_mask = _cvtu32_mask16( 0xFFFF >> ( 16 - k_partial_pieces ) );
 
 		b0 = _mm512_loadu_si512( b + ( rs_b * k_full_pieces ) + ( cs_b * 0 ) );
-
 		// Broadcast a[0,kr:kr+4].
 		a_kfringe_buf = _mm_maskz_loadu_epi8
 		(
@@ -1548,37 +1709,68 @@ POST_OPS_CLIP_4x64:
 
 		POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
 	}
-
 POST_OPS_DOWNSCALE_4x64:
 	{
-		selector1 =
-			_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
-							post_ops_attr.post_op_c_j + ( 0 * 16 ) );
-		selector2 =
-			_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
-							post_ops_attr.post_op_c_j + ( 1 * 16 ) );
-		a_int32_0 =
-			_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
-							post_ops_attr.post_op_c_j + ( 2 * 16 ) );
-		a_int32_1 =
-			_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
-							post_ops_attr.post_op_c_j + ( 3 * 16 ) );
-		__m128i zero_point0 =
-			_mm_loadu_si128( ( __m128i const* )
-					( ( int8_t* )post_ops_list_temp->op_args1 +
-					post_ops_attr.post_op_c_j + ( 0 * 16 ) ) );
-		__m128i zero_point1 =
-			_mm_loadu_si128( ( __m128i const* )
-					( ( int8_t* )post_ops_list_temp->op_args1 +
-					post_ops_attr.post_op_c_j + ( 1 * 16 ) ) );
-		__m128i zero_point2 =
-			_mm_loadu_si128( ( __m128i const* )
-					( ( int8_t* )post_ops_list_temp->op_args1 +
-					post_ops_attr.post_op_c_j + ( 2 * 16 ) ) );
-		__m128i zero_point3 =
-			_mm_loadu_si128( ( __m128i const* )
-					( ( int8_t* )post_ops_list_temp->op_args1 +
-					post_ops_attr.post_op_c_j + ( 3 * 16 ) ) );
+		if ( post_ops_list_temp->scale_factor_len > 1 )
+		{
+			selector1 =
+				_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
+								post_ops_attr.post_op_c_j + ( 0 * 16 ) );
+			selector2 =
+				_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
+								post_ops_attr.post_op_c_j + ( 1 * 16 ) );
+			a_int32_0 =
+				_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
+								post_ops_attr.post_op_c_j + ( 2 * 16 ) );
+			a_int32_1 =
+				_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
+								post_ops_attr.post_op_c_j + ( 3 * 16 ) );
+		}
+		else if ( post_ops_list_temp->scale_factor_len == 1 )
+		{
+			selector1 =
+				( __m512i )_mm512_set1_ps( *( ( float* )post_ops_list_temp->scale_factor ) );
+			selector2 =
+				( __m512i )_mm512_set1_ps( *( ( float* )post_ops_list_temp->scale_factor ) );
+			a_int32_0 =
+				( __m512i )_mm512_set1_ps( *( ( float* )post_ops_list_temp->scale_factor ) );
+			a_int32_1 =
+				( __m512i )_mm512_set1_ps( *( ( float* )post_ops_list_temp->scale_factor ) );
+		}
+
+		// Need to ensure sse not used to avoid avx512 -> sse transition.
+		__m128i zero_point0 = _mm512_castsi512_si128( _mm512_setzero_si512() );
+		__m128i zero_point1 = _mm512_castsi512_si128( _mm512_setzero_si512() );
+		__m128i zero_point2 = _mm512_castsi512_si128( _mm512_setzero_si512() );
+		__m128i zero_point3 = _mm512_castsi512_si128( _mm512_setzero_si512() );
+
+		// int8_t zero point value.
+		if ( *( ( dim_t* )post_ops_list_temp->op_args3 ) > 1 )
+		{
+			zero_point0 = _mm_loadu_si128( ( __m128i const* )
+							( ( int8_t* )post_ops_list_temp->op_args1 +
+							post_ops_attr.post_op_c_j + ( 0 * 16 ) ) );
+			zero_point1 = _mm_loadu_si128( ( __m128i const* )
+							( ( int8_t* )post_ops_list_temp->op_args1 +
+							post_ops_attr.post_op_c_j + ( 1 * 16 ) ) );
+			zero_point2 = _mm_loadu_si128( ( __m128i const* )
+							( ( int8_t* )post_ops_list_temp->op_args1 +
+							post_ops_attr.post_op_c_j + ( 2 * 16 ) ) );
+			zero_point3 = _mm_loadu_si128( ( __m128i const* )
+							( ( int8_t* )post_ops_list_temp->op_args1 +
+							post_ops_attr.post_op_c_j + ( 3 * 16 ) ) );
+		}
+		else if ( *( ( dim_t* )post_ops_list_temp->op_args3 ) == 1 )
+		{
+			zero_point0 = _mm_maskz_set1_epi8( 0xFFFF,
+							*( ( int8_t* )post_ops_list_temp->op_args1 ) );
+			zero_point1 = _mm_maskz_set1_epi8( 0xFFFF,
+							*( ( int8_t* )post_ops_list_temp->op_args1 ) );
+			zero_point2 = _mm_maskz_set1_epi8( 0xFFFF,
+							*( ( int8_t* )post_ops_list_temp->op_args1 ) );
+			zero_point3 = _mm_maskz_set1_epi8( 0xFFFF,
+							*( ( int8_t* )post_ops_list_temp->op_args1 ) );
+		}
 
 		// c[0, 0-15]
 		CVT_MULRND_CVT32(c_int32_0p0,selector1,zero_point0);
@@ -1627,6 +1819,102 @@ POST_OPS_DOWNSCALE_4x64:
 
 		// c[3, 48-63]
 		CVT_MULRND_CVT32(c_int32_3p3,a_int32_1,zero_point3);
+
+		POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+	}
+POST_OPS_MATRIX_ADD_4x64:
+	{
+		dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+		if ( post_ops_attr.c_stor_type == S8 )
+		{
+			int8_t* matptr = ( int8_t* )post_ops_list_temp->op_args1;
+
+			// c[0:0-15,16-31,32-47,48-63]
+			S8_S32_MATRIX_ADD_4COL(selector1,selector2,a_int32_0,a_int32_1,0);
+
+			// c[1:0-15,16-31,32-47,48-63]
+			S8_S32_MATRIX_ADD_4COL(selector1,selector2,a_int32_0,a_int32_1,1);
+
+			// c[2:0-15,16-31,32-47,48-63]
+			S8_S32_MATRIX_ADD_4COL(selector1,selector2,a_int32_0,a_int32_1,2);
+
+			// c[3:0-15,16-31,32-47,48-63]
+			S8_S32_MATRIX_ADD_4COL(selector1,selector2,a_int32_0,a_int32_1,3);
+		}
+		else
+		{
+			int32_t* matptr = ( int32_t* )post_ops_list_temp->op_args1;
+
+			// c[0:0-15,16-31,32-47,48-63]
+			S32_S32_MATRIX_ADD_4COL(selector1,selector2,a_int32_0,a_int32_1,0);
+
+			// c[1:0-15,16-31,32-47,48-63]
+			S32_S32_MATRIX_ADD_4COL(selector1,selector2,a_int32_0,a_int32_1,1);
+
+			// c[2:0-15,16-31,32-47,48-63]
+			S32_S32_MATRIX_ADD_4COL(selector1,selector2,a_int32_0,a_int32_1,2);
+
+			// c[3:0-15,16-31,32-47,48-63]
+			S32_S32_MATRIX_ADD_4COL(selector1,selector2,a_int32_0,a_int32_1,3);
+		}
+
+		POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+	}
+POST_OPS_SWISH_4x64:
+	{
+		selector1 =
+			_mm512_set1_epi32( *( ( int32_t* )post_ops_list_temp->op_args2 ) );
+		__m512 al = _mm512_cvtepi32_ps( selector1 );
+
+		__m512 fl_reg, al_in, r, r2, z, dn;
+
+		// c[0, 0-15]
+		SWISH_S32_AVX512(c_int32_0p0, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[0, 16-31]
+		SWISH_S32_AVX512(c_int32_0p1, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[0, 32-47]
+		SWISH_S32_AVX512(c_int32_0p2, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[0, 48-63]
+		SWISH_S32_AVX512(c_int32_0p3, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[1, 0-15]
+		SWISH_S32_AVX512(c_int32_1p0, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[1, 16-31]
+		SWISH_S32_AVX512(c_int32_1p1, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[1, 32-47]
+		SWISH_S32_AVX512(c_int32_1p2, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[1, 48-63]
+		SWISH_S32_AVX512(c_int32_1p3, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[2, 0-15]
+		SWISH_S32_AVX512(c_int32_2p0, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[2, 16-31]
+		SWISH_S32_AVX512(c_int32_2p1, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[2, 32-47]
+		SWISH_S32_AVX512(c_int32_2p2, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[2, 48-63]
+		SWISH_S32_AVX512(c_int32_2p3, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[3, 0-15]
+		SWISH_S32_AVX512(c_int32_3p0, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[3, 16-31]
+		SWISH_S32_AVX512(c_int32_3p1, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[3, 32-47]
+		SWISH_S32_AVX512(c_int32_3p2, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[3, 48-63]
+		SWISH_S32_AVX512(c_int32_3p3, fl_reg, al, al_in, r, r2, z, dn, selector2);
 
 		POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
 	}
@@ -1754,20 +2042,22 @@ LPGEMM_M_FRINGE_KERN(uint8_t,int8_t,int32_t,u8s8s32o32_3x64)
 						  &&POST_OPS_GELU_TANH_3x64,
 						  &&POST_OPS_GELU_ERF_3x64,
 						  &&POST_OPS_CLIP_3x64,
-						  &&POST_OPS_DOWNSCALE_3x64
+						  &&POST_OPS_DOWNSCALE_3x64,
+						  &&POST_OPS_MATRIX_ADD_3x64,
+						  &&POST_OPS_SWISH_3x64
 						};
 	dim_t k_full_pieces = k0 / 4;
 	dim_t k_partial_pieces = k0 % 4;
 
 	// B matrix storage.
-	__m512i b0;
-	__m512i b1;
-	__m512i b2;
-	__m512i b3;
+	__m512i b0 = _mm512_setzero_epi32();
+	__m512i b1 = _mm512_setzero_epi32();
+	__m512i b2 = _mm512_setzero_epi32();
+	__m512i b3 = _mm512_setzero_epi32();
 
 	// A matrix storage.
-	__m512i a_int32_0;
-	__m512i a_int32_1;
+	__m512i a_int32_0 = _mm512_setzero_epi32();
+	__m512i a_int32_1 = _mm512_setzero_epi32();
 
 	// Registers to use for accumulating C.
 	__m512i c_int32_0p0 = _mm512_setzero_epi32();
@@ -1785,16 +2075,29 @@ LPGEMM_M_FRINGE_KERN(uint8_t,int8_t,int32_t,u8s8s32o32_3x64)
 	__m512i c_int32_2p2 = _mm512_setzero_epi32();
 	__m512i c_int32_2p3 = _mm512_setzero_epi32();
 
+	// gcc compiler (atleast 11.2 to 13.1) avoid loading B into
+	//  registers while generating the code. A dummy shuffle instruction
+	//  is used on b data to explicitly specify to gcc compiler
+	//  b data needs to be kept in registers to reuse across FMA's
+	__m512i dsmask = _mm512_set_epi64(
+					0x0F0E0D0C0B0A0908, 0x0706050403020100,
+					0x0F0E0D0C0B0A0908, 0x0706050403020100,
+					0x0F0E0D0C0B0A0908, 0x0706050403020100,
+					0x0F0E0D0C0B0A0908, 0x0706050403020100);
+
 	for ( dim_t kr = 0; kr < k_full_pieces; kr += 1 )
 	{
 		b0 = _mm512_loadu_si512( b + ( rs_b * kr ) + ( cs_b * 0 ) );
-
+		b0 = _mm512_shuffle_epi8(b0, dsmask);
 		// Broadcast a[0,kr:kr+4].
 		a_int32_0 = _mm512_set1_epi32( *( uint32_t* )( a + ( rs_a *  0 ) + ( cs_a * kr ) ) );
 
 		b1 = _mm512_loadu_si512( b + ( rs_b * kr ) + ( cs_b * 1 ) );
+		b1 = _mm512_shuffle_epi8(b1, dsmask);
 		b2 = _mm512_loadu_si512( b + ( rs_b * kr ) + ( cs_b * 2 ) );
+		b2 = _mm512_shuffle_epi8(b2, dsmask);
 		b3 = _mm512_loadu_si512( b + ( rs_b * kr ) + ( cs_b * 3 ) );
+		b3 = _mm512_shuffle_epi8(b3, dsmask);
 
 		// Perform column direction mat-mul with k = 4.
 		// c[0,0-63] = a[0,kr:kr+4]*b[kr:kr+4,0-63]
@@ -2208,37 +2511,68 @@ POST_OPS_CLIP_3x64:
 
 		POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
 	}
-
 POST_OPS_DOWNSCALE_3x64:
 	{
-		selector1 =
-			_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
-							post_ops_attr.post_op_c_j + ( 0 * 16 ) );
-		selector2 =
-			_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
-							post_ops_attr.post_op_c_j + ( 1 * 16 ) );
-		a_int32_0 =
-			_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
-							post_ops_attr.post_op_c_j + ( 2 * 16 ) );
-		a_int32_1 =
-			_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
-							post_ops_attr.post_op_c_j + ( 3 * 16 ) );
-		__m128i zero_point0 =
-			_mm_loadu_si128( ( __m128i const* )
-					( ( int8_t* )post_ops_list_temp->op_args1 +
-					post_ops_attr.post_op_c_j + ( 0 * 16 ) ) );
-		__m128i zero_point1 =
-			_mm_loadu_si128( ( __m128i const* )
-					( ( int8_t* )post_ops_list_temp->op_args1 +
-					post_ops_attr.post_op_c_j + ( 1 * 16 ) ) );
-		__m128i zero_point2 =
-			_mm_loadu_si128( ( __m128i const* )
-					( ( int8_t* )post_ops_list_temp->op_args1 +
-					post_ops_attr.post_op_c_j + ( 2 * 16 ) ) );
-		__m128i zero_point3 =
-			_mm_loadu_si128( ( __m128i const* )
-					( ( int8_t* )post_ops_list_temp->op_args1 +
-					post_ops_attr.post_op_c_j + ( 3 * 16 ) ) );
+		if ( post_ops_list_temp->scale_factor_len > 1 )
+		{
+			selector1 =
+				_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
+								post_ops_attr.post_op_c_j + ( 0 * 16 ) );
+			selector2 =
+				_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
+								post_ops_attr.post_op_c_j + ( 1 * 16 ) );
+			a_int32_0 =
+				_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
+								post_ops_attr.post_op_c_j + ( 2 * 16 ) );
+			a_int32_1 =
+				_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
+								post_ops_attr.post_op_c_j + ( 3 * 16 ) );
+		}
+		else if ( post_ops_list_temp->scale_factor_len == 1 )
+		{
+			selector1 =
+				( __m512i )_mm512_set1_ps( *( ( float* )post_ops_list_temp->scale_factor ) );
+			selector2 =
+				( __m512i )_mm512_set1_ps( *( ( float* )post_ops_list_temp->scale_factor ) );
+			a_int32_0 =
+				( __m512i )_mm512_set1_ps( *( ( float* )post_ops_list_temp->scale_factor ) );
+			a_int32_1 =
+				( __m512i )_mm512_set1_ps( *( ( float* )post_ops_list_temp->scale_factor ) );
+		}
+
+		// Need to ensure sse not used to avoid avx512 -> sse transition.
+		__m128i zero_point0 = _mm512_castsi512_si128( _mm512_setzero_si512() );
+		__m128i zero_point1 = _mm512_castsi512_si128( _mm512_setzero_si512() );
+		__m128i zero_point2 = _mm512_castsi512_si128( _mm512_setzero_si512() );
+		__m128i zero_point3 = _mm512_castsi512_si128( _mm512_setzero_si512() );
+
+		// int8_t zero point value.
+		if ( *( ( dim_t* )post_ops_list_temp->op_args3 ) > 1 )
+		{
+			zero_point0 = _mm_loadu_si128( ( __m128i const* )
+							( ( int8_t* )post_ops_list_temp->op_args1 +
+							post_ops_attr.post_op_c_j + ( 0 * 16 ) ) );
+			zero_point1 = _mm_loadu_si128( ( __m128i const* )
+							( ( int8_t* )post_ops_list_temp->op_args1 +
+							post_ops_attr.post_op_c_j + ( 1 * 16 ) ) );
+			zero_point2 = _mm_loadu_si128( ( __m128i const* )
+							( ( int8_t* )post_ops_list_temp->op_args1 +
+							post_ops_attr.post_op_c_j + ( 2 * 16 ) ) );
+			zero_point3 = _mm_loadu_si128( ( __m128i const* )
+							( ( int8_t* )post_ops_list_temp->op_args1 +
+							post_ops_attr.post_op_c_j + ( 3 * 16 ) ) );
+		}
+		else if ( *( ( dim_t* )post_ops_list_temp->op_args3 ) == 1 )
+		{
+			zero_point0 = _mm_maskz_set1_epi8( 0xFFFF,
+							*( ( int8_t* )post_ops_list_temp->op_args1 ) );
+			zero_point1 = _mm_maskz_set1_epi8( 0xFFFF,
+							*( ( int8_t* )post_ops_list_temp->op_args1 ) );
+			zero_point2 = _mm_maskz_set1_epi8( 0xFFFF,
+							*( ( int8_t* )post_ops_list_temp->op_args1 ) );
+			zero_point3 = _mm_maskz_set1_epi8( 0xFFFF,
+							*( ( int8_t* )post_ops_list_temp->op_args1 ) );
+		}
 
 		// c[0, 0-15]
 		CVT_MULRND_CVT32(c_int32_0p0,selector1,zero_point0);
@@ -2275,6 +2609,84 @@ POST_OPS_DOWNSCALE_3x64:
 
 		// c[2, 48-63]
 		CVT_MULRND_CVT32(c_int32_2p3,a_int32_1,zero_point3);
+
+		POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+	}
+POST_OPS_MATRIX_ADD_3x64:
+	{
+		dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+		if ( post_ops_attr.c_stor_type == S8 )
+		{
+			int8_t* matptr = ( int8_t* )post_ops_list_temp->op_args1;
+
+			// c[0:0-15,16-31,32-47,48-63]
+			S8_S32_MATRIX_ADD_4COL(selector1,selector2,a_int32_0,a_int32_1,0);
+
+			// c[1:0-15,16-31,32-47,48-63]
+			S8_S32_MATRIX_ADD_4COL(selector1,selector2,a_int32_0,a_int32_1,1);
+
+			// c[2:0-15,16-31,32-47,48-63]
+			S8_S32_MATRIX_ADD_4COL(selector1,selector2,a_int32_0,a_int32_1,2);
+		}
+		else
+		{
+			int32_t* matptr = ( int32_t* )post_ops_list_temp->op_args1;
+
+			// c[0:0-15,16-31,32-47,48-63]
+			S32_S32_MATRIX_ADD_4COL(selector1,selector2,a_int32_0,a_int32_1,0);
+
+			// c[1:0-15,16-31,32-47,48-63]
+			S32_S32_MATRIX_ADD_4COL(selector1,selector2,a_int32_0,a_int32_1,1);
+
+			// c[2:0-15,16-31,32-47,48-63]
+			S32_S32_MATRIX_ADD_4COL(selector1,selector2,a_int32_0,a_int32_1,2);
+		}
+
+		POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+	}
+POST_OPS_SWISH_3x64:
+	{
+		selector1 =
+			_mm512_set1_epi32( *( ( int32_t* )post_ops_list_temp->op_args2 ) );
+		__m512 al = _mm512_cvtepi32_ps( selector1 );
+
+		__m512 fl_reg, al_in, r, r2, z, dn;
+
+		// c[0, 0-15]
+		SWISH_S32_AVX512(c_int32_0p0, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[0, 16-31]
+		SWISH_S32_AVX512(c_int32_0p1, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[0, 32-47]
+		SWISH_S32_AVX512(c_int32_0p2, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[0, 48-63]
+		SWISH_S32_AVX512(c_int32_0p3, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[1, 0-15]
+		SWISH_S32_AVX512(c_int32_1p0, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[1, 16-31]
+		SWISH_S32_AVX512(c_int32_1p1, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[1, 32-47]
+		SWISH_S32_AVX512(c_int32_1p2, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[1, 48-63]
+		SWISH_S32_AVX512(c_int32_1p3, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[2, 0-15]
+		SWISH_S32_AVX512(c_int32_2p0, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[2, 16-31]
+		SWISH_S32_AVX512(c_int32_2p1, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[2, 32-47]
+		SWISH_S32_AVX512(c_int32_2p2, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[2, 48-63]
+		SWISH_S32_AVX512(c_int32_2p3, fl_reg, al, al_in, r, r2, z, dn, selector2);
 
 		POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
 	}
@@ -2378,20 +2790,22 @@ LPGEMM_M_FRINGE_KERN(uint8_t,int8_t,int32_t,u8s8s32o32_2x64)
 						  &&POST_OPS_GELU_TANH_2x64,
 						  &&POST_OPS_GELU_ERF_2x64,
 						  &&POST_OPS_CLIP_2x64,
-						  &&POST_OPS_DOWNSCALE_2x64
+						  &&POST_OPS_DOWNSCALE_2x64,
+						  &&POST_OPS_MATRIX_ADD_2x64,
+						  &&POST_OPS_SWISH_2x64
 						};
 	dim_t k_full_pieces = k0 / 4;
 	dim_t k_partial_pieces = k0 % 4;
 
 	// B matrix storage.
-	__m512i b0;
-	__m512i b1;
-	__m512i b2;
-	__m512i b3;
+	__m512i b0 = _mm512_setzero_epi32();
+	__m512i b1 = _mm512_setzero_epi32();
+	__m512i b2 = _mm512_setzero_epi32();
+	__m512i b3 = _mm512_setzero_epi32();
 
 	// A matrix storage.
-	__m512i a_int32_0;
-	__m512i a_int32_1;
+	__m512i a_int32_0 = _mm512_setzero_epi32();
+	__m512i a_int32_1 = _mm512_setzero_epi32();
 
 	// Registers to use for accumulating C.
 	__m512i c_int32_0p0 = _mm512_setzero_epi32();
@@ -2404,16 +2818,29 @@ LPGEMM_M_FRINGE_KERN(uint8_t,int8_t,int32_t,u8s8s32o32_2x64)
 	__m512i c_int32_1p2 = _mm512_setzero_epi32();
 	__m512i c_int32_1p3 = _mm512_setzero_epi32();
 
+	// gcc compiler (atleast 11.2 to 13.1) avoid loading B into
+	//  registers while generating the code. A dummy shuffle instruction
+	//  is used on b data to explicitly specify to gcc compiler
+	//  b data needs to be kept in registers to reuse across FMA's
+	__m512i dsmask = _mm512_set_epi64(
+					0x0F0E0D0C0B0A0908, 0x0706050403020100,
+					0x0F0E0D0C0B0A0908, 0x0706050403020100,
+					0x0F0E0D0C0B0A0908, 0x0706050403020100,
+					0x0F0E0D0C0B0A0908, 0x0706050403020100);
+
 	for ( dim_t kr = 0; kr < k_full_pieces; kr += 1 )
 	{
 		b0 = _mm512_loadu_si512( b + ( rs_b * kr ) + ( cs_b * 0 ) );
-
+		b0 = _mm512_shuffle_epi8(b0, dsmask);
 		// Broadcast a[0,kr:kr+4].
 		a_int32_0 = _mm512_set1_epi32( *( uint32_t* )( a + ( rs_a * 0 ) + ( cs_a * kr ) ) );
 
-		b1 = _mm512_loadu_si512( b + ( rs_b * kr ) + ( cs_b * 1 ) );
-		b2 = _mm512_loadu_si512( b + ( rs_b * kr ) + ( cs_b * 2 ) );
-		b3 = _mm512_loadu_si512( b + ( rs_b * kr ) + ( cs_b * 3 ) );
+		b1 = _mm512_loadu_si512( b + (rs_b * kr) + (cs_b * 1));
+		b1 = _mm512_shuffle_epi8( b1, dsmask);
+		b2 = _mm512_loadu_si512( b + (rs_b * kr) + (cs_b * 2));
+		b2 = _mm512_shuffle_epi8( b2, dsmask);
+		b3 = _mm512_loadu_si512( b + (rs_b * kr) + (cs_b * 3));
+		b3 = _mm512_shuffle_epi8( b3, dsmask);
 
 		// Perform column direction mat-mul with k = 4.
 		// c[0,0-63] = a[0,kr:kr+4]*b[kr:kr+4,0-63]
@@ -2718,37 +3145,68 @@ POST_OPS_CLIP_2x64:
 
 		POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
 	}
-
 POST_OPS_DOWNSCALE_2x64:
 	{
-		selector1 =
-			_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
-							post_ops_attr.post_op_c_j + ( 0 * 16 ) );
-		selector2 =
-			_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
-							post_ops_attr.post_op_c_j + ( 1 * 16 ) );
-		a_int32_0 =
-			_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
-							post_ops_attr.post_op_c_j + ( 2 * 16 ) );
-		a_int32_1 =
-			_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
-							post_ops_attr.post_op_c_j + ( 3 * 16 ) );
-		__m128i zero_point0 =
-			_mm_loadu_si128( ( __m128i const* )
-					( ( int8_t* )post_ops_list_temp->op_args1 +
-					post_ops_attr.post_op_c_j + ( 0 * 16 ) ) );
-		__m128i zero_point1 =
-			_mm_loadu_si128( ( __m128i const* )
-					( ( int8_t* )post_ops_list_temp->op_args1 +
-					post_ops_attr.post_op_c_j + ( 1 * 16 ) ) );
-		__m128i zero_point2 =
-			_mm_loadu_si128( ( __m128i const* )
-					( ( int8_t* )post_ops_list_temp->op_args1 +
-					post_ops_attr.post_op_c_j + ( 2 * 16 ) ) );
-		__m128i zero_point3 =
-			_mm_loadu_si128( ( __m128i const* )
-					( ( int8_t* )post_ops_list_temp->op_args1 +
-					post_ops_attr.post_op_c_j + ( 3 * 16 ) ) );
+		if ( post_ops_list_temp->scale_factor_len > 1 )
+		{
+			selector1 =
+				_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
+								post_ops_attr.post_op_c_j + ( 0 * 16 ) );
+			selector2 =
+				_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
+								post_ops_attr.post_op_c_j + ( 1 * 16 ) );
+			a_int32_0 =
+				_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
+								post_ops_attr.post_op_c_j + ( 2 * 16 ) );
+			a_int32_1 =
+				_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
+								post_ops_attr.post_op_c_j + ( 3 * 16 ) );
+		}
+		else if ( post_ops_list_temp->scale_factor_len == 1 )
+		{
+			selector1 =
+				( __m512i )_mm512_set1_ps( *( ( float* )post_ops_list_temp->scale_factor ) );
+			selector2 =
+				( __m512i )_mm512_set1_ps( *( ( float* )post_ops_list_temp->scale_factor ) );
+			a_int32_0 =
+				( __m512i )_mm512_set1_ps( *( ( float* )post_ops_list_temp->scale_factor ) );
+			a_int32_1 =
+				( __m512i )_mm512_set1_ps( *( ( float* )post_ops_list_temp->scale_factor ) );
+		}
+
+		// Need to ensure sse not used to avoid avx512 -> sse transition.
+		__m128i zero_point0 = _mm512_castsi512_si128( _mm512_setzero_si512() );
+		__m128i zero_point1 = _mm512_castsi512_si128( _mm512_setzero_si512() );
+		__m128i zero_point2 = _mm512_castsi512_si128( _mm512_setzero_si512() );
+		__m128i zero_point3 = _mm512_castsi512_si128( _mm512_setzero_si512() );
+
+		// int8_t zero point value.
+		if ( *( ( dim_t* )post_ops_list_temp->op_args3 ) > 1 )
+		{
+			zero_point0 = _mm_loadu_si128( ( __m128i const* )
+							( ( int8_t* )post_ops_list_temp->op_args1 +
+							post_ops_attr.post_op_c_j + ( 0 * 16 ) ) );
+			zero_point1 = _mm_loadu_si128( ( __m128i const* )
+							( ( int8_t* )post_ops_list_temp->op_args1 +
+							post_ops_attr.post_op_c_j + ( 1 * 16 ) ) );
+			zero_point2 = _mm_loadu_si128( ( __m128i const* )
+							( ( int8_t* )post_ops_list_temp->op_args1 +
+							post_ops_attr.post_op_c_j + ( 2 * 16 ) ) );
+			zero_point3 = _mm_loadu_si128( ( __m128i const* )
+							( ( int8_t* )post_ops_list_temp->op_args1 +
+							post_ops_attr.post_op_c_j + ( 3 * 16 ) ) );
+		}
+		else if ( *( ( dim_t* )post_ops_list_temp->op_args3 ) == 1 )
+		{
+			zero_point0 = _mm_maskz_set1_epi8( 0xFFFF,
+							*( ( int8_t* )post_ops_list_temp->op_args1 ) );
+			zero_point1 = _mm_maskz_set1_epi8( 0xFFFF,
+							*( ( int8_t* )post_ops_list_temp->op_args1 ) );
+			zero_point2 = _mm_maskz_set1_epi8( 0xFFFF,
+							*( ( int8_t* )post_ops_list_temp->op_args1 ) );
+			zero_point3 = _mm_maskz_set1_epi8( 0xFFFF,
+							*( ( int8_t* )post_ops_list_temp->op_args1 ) );
+		}
 
 		// c[0, 0-15]
 		CVT_MULRND_CVT32(c_int32_0p0,selector1,zero_point0);
@@ -2773,6 +3231,66 @@ POST_OPS_DOWNSCALE_2x64:
 
 		// c[1, 48-63]
 		CVT_MULRND_CVT32(c_int32_1p3,a_int32_1,zero_point3);
+
+		POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+	}
+POST_OPS_MATRIX_ADD_2x64:
+	{
+		dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+		if ( post_ops_attr.c_stor_type == S8 )
+		{
+			int8_t* matptr = ( int8_t* )post_ops_list_temp->op_args1;
+
+			// c[0:0-15,16-31,32-47,48-63]
+			S8_S32_MATRIX_ADD_4COL(selector1,selector2,a_int32_0,a_int32_1,0);
+
+			// c[1:0-15,16-31,32-47,48-63]
+			S8_S32_MATRIX_ADD_4COL(selector1,selector2,a_int32_0,a_int32_1,1);
+		}
+		else
+		{
+			int32_t* matptr = ( int32_t* )post_ops_list_temp->op_args1;
+
+			// c[0:0-15,16-31,32-47,48-63]
+			S32_S32_MATRIX_ADD_4COL(selector1,selector2,a_int32_0,a_int32_1,0);
+
+			// c[1:0-15,16-31,32-47,48-63]
+			S32_S32_MATRIX_ADD_4COL(selector1,selector2,a_int32_0,a_int32_1,1);
+		}
+
+		POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+	}
+POST_OPS_SWISH_2x64:
+	{
+		selector1 =
+			_mm512_set1_epi32( *( ( int32_t* )post_ops_list_temp->op_args2 ) );
+		__m512 al = _mm512_cvtepi32_ps( selector1 );
+
+		__m512 fl_reg, al_in, r, r2, z, dn;
+
+		// c[0, 0-15]
+		SWISH_S32_AVX512(c_int32_0p0, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[0, 16-31]
+		SWISH_S32_AVX512(c_int32_0p1, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[0, 32-47]
+		SWISH_S32_AVX512(c_int32_0p2, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[0, 48-63]
+		SWISH_S32_AVX512(c_int32_0p3, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[1, 0-15]
+		SWISH_S32_AVX512(c_int32_1p0, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[1, 16-31]
+		SWISH_S32_AVX512(c_int32_1p1, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[1, 32-47]
+		SWISH_S32_AVX512(c_int32_1p2, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[1, 48-63]
+		SWISH_S32_AVX512(c_int32_1p3, fl_reg, al, al_in, r, r2, z, dn, selector2);
 
 		POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
 	}
@@ -2852,20 +3370,22 @@ LPGEMM_M_FRINGE_KERN(uint8_t,int8_t,int32_t,u8s8s32o32_1x64)
 						  &&POST_OPS_GELU_TANH_1x64,
 						  &&POST_OPS_GELU_ERF_1x64,
 						  &&POST_OPS_CLIP_1x64,
-						  &&POST_OPS_DOWNSCALE_1x64
+						  &&POST_OPS_DOWNSCALE_1x64,
+						  &&POST_OPS_MATRIX_ADD_1x64,
+						  &&POST_OPS_SWISH_1x64
 						};
 	dim_t k_full_pieces = k0 / 4;
 	dim_t k_partial_pieces = k0 % 4;
 
 	// B matrix storage.
-	__m512i b0;
-	__m512i b1;
-	__m512i b2;
-	__m512i b3;
+	__m512i b0 = _mm512_setzero_epi32();
+	__m512i b1 = _mm512_setzero_epi32();
+	__m512i b2 = _mm512_setzero_epi32();
+	__m512i b3 = _mm512_setzero_epi32();
 
 	// A matrix storage.
-	__m512i a_int32_0;
-	__m512i a_int32_1;
+	__m512i a_int32_0 = _mm512_setzero_epi32();
+	__m512i a_int32_1 = _mm512_setzero_epi32();
 
 	//  Registers to use for accumulating C.
 	__m512i c_int32_0p0 = _mm512_setzero_epi32();
@@ -3076,37 +3596,68 @@ POST_OPS_CLIP_1x64:
 
 		POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
 	}
-
 POST_OPS_DOWNSCALE_1x64:
 	{
-		selector1 =
-			_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
-							post_ops_attr.post_op_c_j + ( 0 * 16 ) );
-		selector2 =
-			_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
-							post_ops_attr.post_op_c_j + ( 1 * 16 ) );
-		a_int32_0 =
-			_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
-							post_ops_attr.post_op_c_j + ( 2 * 16 ) );
-		a_int32_1 =
-			_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
-							post_ops_attr.post_op_c_j + ( 3 * 16 ) );
-		__m128i zero_point0 =
-			_mm_loadu_si128( ( __m128i const* )
-					( ( int8_t* )post_ops_list_temp->op_args1 +
-					post_ops_attr.post_op_c_j + ( 0 * 16 ) ) );
-		__m128i zero_point1 =
-			_mm_loadu_si128( ( __m128i const* )
-					( ( int8_t* )post_ops_list_temp->op_args1 +
-					post_ops_attr.post_op_c_j + ( 1 * 16 ) ) );
-		__m128i zero_point2 =
-			_mm_loadu_si128( ( __m128i const* )
-					( ( int8_t* )post_ops_list_temp->op_args1 +
-					post_ops_attr.post_op_c_j + ( 2 * 16 ) ) );
-		__m128i zero_point3 =
-			_mm_loadu_si128( ( __m128i const* )
-					( ( int8_t* )post_ops_list_temp->op_args1 +
-					post_ops_attr.post_op_c_j + ( 3 * 16 ) ) );
+		if ( post_ops_list_temp->scale_factor_len > 1 )
+		{
+			selector1 =
+				_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
+								post_ops_attr.post_op_c_j + ( 0 * 16 ) );
+			selector2 =
+				_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
+								post_ops_attr.post_op_c_j + ( 1 * 16 ) );
+			a_int32_0 =
+				_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
+								post_ops_attr.post_op_c_j + ( 2 * 16 ) );
+			a_int32_1 =
+				_mm512_loadu_si512( ( float* )post_ops_list_temp->scale_factor +
+								post_ops_attr.post_op_c_j + ( 3 * 16 ) );
+		}
+		else if ( post_ops_list_temp->scale_factor_len == 1 )
+		{
+			selector1 =
+				( __m512i )_mm512_set1_ps( *( ( float* )post_ops_list_temp->scale_factor ) );
+			selector2 =
+				( __m512i )_mm512_set1_ps( *( ( float* )post_ops_list_temp->scale_factor ) );
+			a_int32_0 =
+				( __m512i )_mm512_set1_ps( *( ( float* )post_ops_list_temp->scale_factor ) );
+			a_int32_1 =
+				( __m512i )_mm512_set1_ps( *( ( float* )post_ops_list_temp->scale_factor ) );
+		}
+
+		// Need to ensure sse not used to avoid avx512 -> sse transition.
+		__m128i zero_point0 = _mm512_castsi512_si128( _mm512_setzero_si512() );
+		__m128i zero_point1 = _mm512_castsi512_si128( _mm512_setzero_si512() );
+		__m128i zero_point2 = _mm512_castsi512_si128( _mm512_setzero_si512() );
+		__m128i zero_point3 = _mm512_castsi512_si128( _mm512_setzero_si512() );
+
+		// int8_t zero point value.
+		if ( *( ( dim_t* )post_ops_list_temp->op_args3 ) > 1 )
+		{
+			zero_point0 = _mm_loadu_si128( ( __m128i const* )
+							( ( int8_t* )post_ops_list_temp->op_args1 +
+							post_ops_attr.post_op_c_j + ( 0 * 16 ) ) );
+			zero_point1 = _mm_loadu_si128( ( __m128i const* )
+							( ( int8_t* )post_ops_list_temp->op_args1 +
+							post_ops_attr.post_op_c_j + ( 1 * 16 ) ) );
+			zero_point2 = _mm_loadu_si128( ( __m128i const* )
+							( ( int8_t* )post_ops_list_temp->op_args1 +
+							post_ops_attr.post_op_c_j + ( 2 * 16 ) ) );
+			zero_point3 = _mm_loadu_si128( ( __m128i const* )
+							( ( int8_t* )post_ops_list_temp->op_args1 +
+							post_ops_attr.post_op_c_j + ( 3 * 16 ) ) );
+		}
+		else if ( *( ( dim_t* )post_ops_list_temp->op_args3 ) == 1 )
+		{
+			zero_point0 = _mm_maskz_set1_epi8( 0xFFFF,
+							*( ( int8_t* )post_ops_list_temp->op_args1 ) );
+			zero_point1 = _mm_maskz_set1_epi8( 0xFFFF,
+							*( ( int8_t* )post_ops_list_temp->op_args1 ) );
+			zero_point2 = _mm_maskz_set1_epi8( 0xFFFF,
+							*( ( int8_t* )post_ops_list_temp->op_args1 ) );
+			zero_point3 = _mm_maskz_set1_epi8( 0xFFFF,
+							*( ( int8_t* )post_ops_list_temp->op_args1 ) );
+		}
 
 		// c[0, 0-15]
 		CVT_MULRND_CVT32(c_int32_0p0,selector1,zero_point0);
@@ -3119,6 +3670,48 @@ POST_OPS_DOWNSCALE_1x64:
 
 		// c[0, 48-63]
 		CVT_MULRND_CVT32(c_int32_0p3,a_int32_1,zero_point3);
+
+		POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+	}
+POST_OPS_MATRIX_ADD_1x64:
+	{
+		dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+		if ( post_ops_attr.c_stor_type == S8 )
+		{
+			int8_t* matptr = ( int8_t* )post_ops_list_temp->op_args1;
+
+			// c[0:0-15,16-31,32-47,48-63]
+			S8_S32_MATRIX_ADD_4COL(selector1,selector2,a_int32_0,a_int32_1,0);
+		}
+		else
+		{
+			int32_t* matptr = ( int32_t* )post_ops_list_temp->op_args1;
+
+			// c[0:0-15,16-31,32-47,48-63]
+			S32_S32_MATRIX_ADD_4COL(selector1,selector2,a_int32_0,a_int32_1,0);
+		}
+
+		POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+	}
+POST_OPS_SWISH_1x64:
+	{
+		selector1 =
+			_mm512_set1_epi32( *( ( int32_t* )post_ops_list_temp->op_args2 ) );
+		__m512 al = _mm512_cvtepi32_ps( selector1 );
+
+		__m512 fl_reg, al_in, r, r2, z, dn;
+
+		// c[0, 0-15]
+		SWISH_S32_AVX512(c_int32_0p0, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[0, 16-31]
+		SWISH_S32_AVX512(c_int32_0p1, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[0, 32-47]
+		SWISH_S32_AVX512(c_int32_0p2, fl_reg, al, al_in, r, r2, z, dn, selector2);
+
+		// c[0, 48-63]
+		SWISH_S32_AVX512(c_int32_0p3, fl_reg, al, al_in, r, r2, z, dn, selector2);
 
 		POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
 	}

@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-  Copyright (C) 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2024, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -49,7 +49,11 @@ LPGEMM_M_FRINGE_KERN(float,float,float,f32f32f32of32_5x16)
               &&POST_OPS_RELU_SCALE_5x16F,
               &&POST_OPS_GELU_TANH_5x16F,
               &&POST_OPS_GELU_ERF_5x16F,
-              &&POST_OPS_CLIP_5x16F
+              &&POST_OPS_CLIP_5x16F,
+              NULL, // Virtual node for downscale, else segfault
+              &&POST_OPS_MATRIX_ADD_5x16F,
+              &&POST_OPS_SWISH_5x16F,
+              &&POST_OPS_MATRIX_MUL_5x16F
             };
     // Typecast local copies of integers in case dim_t and inc_t are a
     // different size than is expected by load instructions.
@@ -415,6 +419,89 @@ POST_OPS_CLIP_5x16F:
 
       POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
     }
+POST_OPS_MATRIX_ADD_5x16F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-15]
+        F32_F32_MATRIX_ADD_2COL(ymm1,ymm2,0,4,5);
+
+        // c[1:0-15]
+        F32_F32_MATRIX_ADD_2COL(ymm1,ymm2,1,6,7);
+
+        // c[2:0-15]
+        F32_F32_MATRIX_ADD_2COL(ymm1,ymm2,2,8,9);
+
+        // c[3:0-15]
+        F32_F32_MATRIX_ADD_2COL(ymm1,ymm2,3,10,11);
+
+        // c[4:0-15]
+        F32_F32_MATRIX_ADD_2COL(ymm1,ymm2,4,12,13);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
+POST_OPS_MATRIX_MUL_5x16F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-15]
+        F32_F32_MATRIX_MUL_2COL(ymm1,ymm2,0,4,5);
+
+        // c[1:0-15]
+        F32_F32_MATRIX_MUL_2COL(ymm1,ymm2,1,6,7);
+
+        // c[2:0-15]
+        F32_F32_MATRIX_MUL_2COL(ymm1,ymm2,2,8,9);
+
+        // c[3:0-15]
+        F32_F32_MATRIX_MUL_2COL(ymm1,ymm2,3,10,11);
+
+        // c[4:0-15]
+        F32_F32_MATRIX_MUL_2COL(ymm1,ymm2,4,12,13);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }    
+POST_OPS_SWISH_5x16F:
+    {
+        ymm0 =
+          _mm256_broadcast_ss( ( float* )post_ops_list_temp->op_args2 );
+        __m256 z, dn;
+        __m256i ex_out;
+
+        // c[0,0-7]
+        SWISH_F32_AVX2_DEF(ymm4, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        // c[0,8-15]
+        SWISH_F32_AVX2_DEF(ymm5, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        // c[1,0-7]
+        SWISH_F32_AVX2_DEF(ymm6, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        // c[1,8-15]
+        SWISH_F32_AVX2_DEF(ymm7, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        // c[2,0-7]
+        SWISH_F32_AVX2_DEF(ymm8, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        // c[2,8-15]
+        SWISH_F32_AVX2_DEF(ymm9, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        // c[3,0-7]
+        SWISH_F32_AVX2_DEF(ymm10, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        // c[3,8-15]
+        SWISH_F32_AVX2_DEF(ymm11, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        // c[4,0-7]
+        SWISH_F32_AVX2_DEF(ymm12, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        // c[4,8-15]
+        SWISH_F32_AVX2_DEF(ymm13, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
 POST_OPS_5x16F_DISABLE:
     ;
 
@@ -444,7 +531,11 @@ LPGEMM_M_FRINGE_KERN(float,float,float,f32f32f32of32_4x16)
               &&POST_OPS_RELU_SCALE_4x16F,
               &&POST_OPS_GELU_TANH_4x16F,
               &&POST_OPS_GELU_ERF_4x16F,
-              &&POST_OPS_CLIP_4x16F
+              &&POST_OPS_CLIP_4x16F,
+              NULL, // Virtual node for downscale, else segfault
+              &&POST_OPS_MATRIX_ADD_4x16F,
+              &&POST_OPS_SWISH_4x16F,
+              &&POST_OPS_MATRIX_MUL_4x16F
             };
     // Typecast local copies of integers in case dim_t and inc_t are a
     // different size than is expected by load instructions.
@@ -754,6 +845,77 @@ POST_OPS_CLIP_4x16F:
 
       POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
     }
+POST_OPS_MATRIX_ADD_4x16F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-15]
+        F32_F32_MATRIX_ADD_2COL(ymm1,ymm2,0,4,5);
+
+        // c[1:0-15]
+        F32_F32_MATRIX_ADD_2COL(ymm1,ymm2,1,6,7);
+
+        // c[2:0-15]
+        F32_F32_MATRIX_ADD_2COL(ymm1,ymm2,2,8,9);
+
+        // c[3:0-15]
+        F32_F32_MATRIX_ADD_2COL(ymm1,ymm2,3,10,11);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
+POST_OPS_MATRIX_MUL_4x16F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-15]
+        F32_F32_MATRIX_MUL_2COL(ymm1,ymm2,0,4,5);
+
+        // c[1:0-15]
+        F32_F32_MATRIX_MUL_2COL(ymm1,ymm2,1,6,7);
+
+        // c[2:0-15]
+        F32_F32_MATRIX_MUL_2COL(ymm1,ymm2,2,8,9);
+
+        // c[3:0-15]
+        F32_F32_MATRIX_MUL_2COL(ymm1,ymm2,3,10,11);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }    
+POST_OPS_SWISH_4x16F:
+    {
+        ymm0 =
+          _mm256_broadcast_ss( ( float* )post_ops_list_temp->op_args2 );
+        __m256 z, dn;
+        __m256i ex_out;
+
+        // c[0,0-7]
+        SWISH_F32_AVX2_DEF(ymm4, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        // c[0,8-15]
+        SWISH_F32_AVX2_DEF(ymm5, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        // c[1,0-7]
+        SWISH_F32_AVX2_DEF(ymm6, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        // c[1,8-15]
+        SWISH_F32_AVX2_DEF(ymm7, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        // c[2,0-7]
+        SWISH_F32_AVX2_DEF(ymm8, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        // c[2,8-15]
+        SWISH_F32_AVX2_DEF(ymm9, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        // c[3,0-7]
+        SWISH_F32_AVX2_DEF(ymm10, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        // c[3,8-15]
+        SWISH_F32_AVX2_DEF(ymm11, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
 POST_OPS_4x16F_DISABLE:
     ;
 
@@ -780,7 +942,11 @@ LPGEMM_M_FRINGE_KERN(float,float,float,f32f32f32of32_3x16)
               &&POST_OPS_RELU_SCALE_3x16F,
               &&POST_OPS_GELU_TANH_3x16F,
               &&POST_OPS_GELU_ERF_3x16F,
-              &&POST_OPS_CLIP_3x16F
+              &&POST_OPS_CLIP_3x16F,
+              NULL, // Virtual node for downscale, else segfault
+              &&POST_OPS_MATRIX_ADD_3x16F,
+              &&POST_OPS_SWISH_3x16F,
+              &&POST_OPS_MATRIX_MUL_3x16F
             };
     // Typecast local copies of integers in case dim_t and inc_t are a
     // different size than is expected by load instructions.
@@ -1039,6 +1205,65 @@ POST_OPS_CLIP_3x16F:
 
       POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
     }
+POST_OPS_MATRIX_ADD_3x16F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-15]
+        F32_F32_MATRIX_ADD_2COL(ymm1,ymm2,0,4,5);
+
+        // c[1:0-15]
+        F32_F32_MATRIX_ADD_2COL(ymm1,ymm2,1,6,7);
+
+        // c[2:0-15]
+        F32_F32_MATRIX_ADD_2COL(ymm1,ymm2,2,8,9);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
+POST_OPS_MATRIX_MUL_3x16F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-15]
+        F32_F32_MATRIX_MUL_2COL(ymm1,ymm2,0,4,5);
+
+        // c[1:0-15]
+        F32_F32_MATRIX_MUL_2COL(ymm1,ymm2,1,6,7);
+
+        // c[2:0-15]
+        F32_F32_MATRIX_MUL_2COL(ymm1,ymm2,2,8,9);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }    
+POST_OPS_SWISH_3x16F:
+    {
+        ymm0 =
+          _mm256_broadcast_ss( ( float* )post_ops_list_temp->op_args2 );
+        __m256 z, dn;
+        __m256i ex_out;
+
+        // c[0,0-7]
+        SWISH_F32_AVX2_DEF(ymm4, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        // c[0,8-15]
+        SWISH_F32_AVX2_DEF(ymm5, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        // c[1,0-7]
+        SWISH_F32_AVX2_DEF(ymm6, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        // c[1,8-15]
+        SWISH_F32_AVX2_DEF(ymm7, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        // c[2,0-7]
+        SWISH_F32_AVX2_DEF(ymm8, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        // c[2,8-15]
+        SWISH_F32_AVX2_DEF(ymm9, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
 POST_OPS_3x16F_DISABLE:
     ;
 
@@ -1062,7 +1287,11 @@ LPGEMM_M_FRINGE_KERN(float,float,float,f32f32f32of32_2x16)
               &&POST_OPS_RELU_SCALE_2x16F,
               &&POST_OPS_GELU_TANH_2x16F,
               &&POST_OPS_GELU_ERF_2x16F,
-              &&POST_OPS_CLIP_2x16F
+              &&POST_OPS_CLIP_2x16F,
+              NULL, // Virtual node for downscale, else segfault
+              &&POST_OPS_MATRIX_ADD_2x16F,
+              &&POST_OPS_SWISH_2x16F,
+              &&POST_OPS_MATRIX_MUL_2x16F
             };
     // Typecast local copies of integers in case dim_t and inc_t are a
     // different size than is expected by load instructions.
@@ -1265,6 +1494,53 @@ POST_OPS_CLIP_2x16F:
 
       POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
     }
+POST_OPS_MATRIX_ADD_2x16F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-15]
+        F32_F32_MATRIX_ADD_2COL(ymm1,ymm2,0,4,5);
+
+        // c[1:0-15]
+        F32_F32_MATRIX_ADD_2COL(ymm1,ymm2,1,6,7);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
+POST_OPS_MATRIX_MUL_2x16F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-15]
+        F32_F32_MATRIX_MUL_2COL(ymm1,ymm2,0,4,5);
+
+        // c[1:0-15]
+        F32_F32_MATRIX_MUL_2COL(ymm1,ymm2,1,6,7);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }    
+POST_OPS_SWISH_2x16F:
+    {
+        ymm0 =
+          _mm256_broadcast_ss( ( float* )post_ops_list_temp->op_args2 );
+        __m256 z, dn;
+        __m256i ex_out;
+
+        // c[0,0-7]
+        SWISH_F32_AVX2_DEF(ymm4, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        // c[0,8-15]
+        SWISH_F32_AVX2_DEF(ymm5, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        // c[1,0-7]
+        SWISH_F32_AVX2_DEF(ymm6, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        // c[1,8-15]
+        SWISH_F32_AVX2_DEF(ymm7, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
 POST_OPS_2x16F_DISABLE:
     ;
 
@@ -1285,7 +1561,11 @@ LPGEMM_M_FRINGE_KERN(float,float,float,f32f32f32of32_1x16)
               &&POST_OPS_RELU_SCALE_1x16F,
               &&POST_OPS_GELU_TANH_1x16F,
               &&POST_OPS_GELU_ERF_1x16F,
-              &&POST_OPS_CLIP_1x16F
+              &&POST_OPS_CLIP_1x16F,
+              NULL, // Virtual node for downscale, else segfault
+              &&POST_OPS_MATRIX_ADD_1x16F,
+              &&POST_OPS_SWISH_1x16F,
+              &&POST_OPS_MATRIX_MUL_1x16F
             };
     // Typecast local copies of integers in case dim_t and inc_t are a
     // different size than is expected by load instructions.
@@ -1437,6 +1717,41 @@ POST_OPS_CLIP_1x16F:
 
       POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
     }
+POST_OPS_MATRIX_ADD_1x16F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-15]
+        F32_F32_MATRIX_ADD_2COL(ymm1,ymm2,0,4,5);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
+POST_OPS_MATRIX_MUL_1x16F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-15]
+        F32_F32_MATRIX_MUL_2COL(ymm1,ymm2,0,4,5);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }    
+POST_OPS_SWISH_1x16F:
+    {
+        ymm0 =
+          _mm256_broadcast_ss( ( float* )post_ops_list_temp->op_args2 );
+        __m256 z, dn;
+        __m256i ex_out;
+
+        // c[0,0-7]
+        SWISH_F32_AVX2_DEF(ymm4, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        // c[0,8-15]
+        SWISH_F32_AVX2_DEF(ymm5, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
 POST_OPS_1x16F_DISABLE:
     ;
 
@@ -1454,7 +1769,11 @@ LPGEMM_M_FRINGE_KERN(float,float,float,f32f32f32of32_5x8)
               &&POST_OPS_RELU_SCALE_5x8F,
               &&POST_OPS_GELU_TANH_5x8F,
               &&POST_OPS_GELU_ERF_5x8F,
-              &&POST_OPS_CLIP_5x8F
+              &&POST_OPS_CLIP_5x8F,
+              NULL, // Virtual node for downscale, else segfault
+              &&POST_OPS_MATRIX_ADD_5x8F,
+              &&POST_OPS_SWISH_5x8F,
+              &&POST_OPS_MATRIX_MUL_5x8F
             };
     // Typecast local copies of integers in case dim_t and inc_t are a
     // different size than is expected by load instructions.
@@ -1699,6 +2018,74 @@ POST_OPS_CLIP_5x8F:
 
       POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
     }
+POST_OPS_MATRIX_ADD_5x8F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-7]
+        F32_F32_MATRIX_ADD_1COL(ymm1,0,4);
+
+        // c[1:0-7]
+        F32_F32_MATRIX_ADD_1COL(ymm1,1,6);
+
+        // c[2:0-7]
+        F32_F32_MATRIX_ADD_1COL(ymm1,2,8);
+
+        // c[3:0-7]
+        F32_F32_MATRIX_ADD_1COL(ymm1,3,10);
+
+        // c[4:0-7]
+        F32_F32_MATRIX_ADD_1COL(ymm1,4,12);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
+POST_OPS_MATRIX_MUL_5x8F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-7]
+        F32_F32_MATRIX_MUL_1COL(ymm1,0,4);
+
+        // c[1:0-7]
+        F32_F32_MATRIX_MUL_1COL(ymm1,1,6);
+
+        // c[2:0-7]
+        F32_F32_MATRIX_MUL_1COL(ymm1,2,8);
+
+        // c[3:0-7]
+        F32_F32_MATRIX_MUL_1COL(ymm1,3,10);
+
+        // c[4:0-7]
+        F32_F32_MATRIX_MUL_1COL(ymm1,4,12);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }    
+POST_OPS_SWISH_5x8F:
+    {
+        ymm0 =
+          _mm256_broadcast_ss( ( float* )post_ops_list_temp->op_args2 );
+        __m256 z, dn;
+        __m256i ex_out;
+
+        // c[0,0-7]
+        SWISH_F32_AVX2_DEF(ymm4, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        // c[1,0-7]
+        SWISH_F32_AVX2_DEF(ymm6, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        // c[2,0-7]
+        SWISH_F32_AVX2_DEF(ymm8, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        // c[3,0-7]
+        SWISH_F32_AVX2_DEF(ymm10, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        // c[4,0-7]
+        SWISH_F32_AVX2_DEF(ymm12, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
 POST_OPS_5x8F_DISABLE:
     ;
 
@@ -1723,7 +2110,11 @@ LPGEMM_M_FRINGE_KERN(float,float,float,f32f32f32of32_4x8)
               &&POST_OPS_RELU_SCALE_4x8F,
               &&POST_OPS_GELU_TANH_4x8F,
               &&POST_OPS_GELU_ERF_4x8F,
-              &&POST_OPS_CLIP_4x8F
+              &&POST_OPS_CLIP_4x8F,
+              NULL, // Virtual node for downscale, else segfault
+              &&POST_OPS_MATRIX_ADD_4x8F,
+              &&POST_OPS_SWISH_4x8F,
+              &&POST_OPS_MATRIX_MUL_4x8F
             };
     // Typecast local copies of integers in case dim_t and inc_t are a
     // different size than is expected by load instructions.
@@ -1935,6 +2326,65 @@ POST_OPS_CLIP_4x8F:
 
       POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
     }
+POST_OPS_MATRIX_ADD_4x8F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-7]
+        F32_F32_MATRIX_ADD_1COL(ymm1,0,4);
+
+        // c[1:0-7]
+        F32_F32_MATRIX_ADD_1COL(ymm1,1,6);
+
+        // c[2:0-7]
+        F32_F32_MATRIX_ADD_1COL(ymm1,2,8);
+
+        // c[3:0-7]
+        F32_F32_MATRIX_ADD_1COL(ymm1,3,10);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
+POST_OPS_MATRIX_MUL_4x8F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-7]
+        F32_F32_MATRIX_MUL_1COL(ymm1,0,4);
+
+        // c[1:0-7]
+        F32_F32_MATRIX_MUL_1COL(ymm1,1,6);
+
+        // c[2:0-7]
+        F32_F32_MATRIX_MUL_1COL(ymm1,2,8);
+
+        // c[3:0-7]
+        F32_F32_MATRIX_MUL_1COL(ymm1,3,10);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }    
+POST_OPS_SWISH_4x8F:
+    {
+        ymm0 =
+          _mm256_broadcast_ss( ( float* )post_ops_list_temp->op_args2 );
+        __m256 z, dn;
+        __m256i ex_out;
+
+        // c[0,0-7]
+        SWISH_F32_AVX2_DEF(ymm4, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        // c[1,0-7]
+        SWISH_F32_AVX2_DEF(ymm6, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        // c[2,0-7]
+        SWISH_F32_AVX2_DEF(ymm8, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        // c[3,0-7]
+        SWISH_F32_AVX2_DEF(ymm10, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
 POST_OPS_4x8F_DISABLE:
     ;
 
@@ -1957,7 +2407,11 @@ LPGEMM_M_FRINGE_KERN(float,float,float,f32f32f32of32_3x8)
               &&POST_OPS_RELU_SCALE_3x8F,
               &&POST_OPS_GELU_TANH_3x8F,
               &&POST_OPS_GELU_ERF_3x8F,
-              &&POST_OPS_CLIP_3x8F
+              &&POST_OPS_CLIP_3x8F,
+              NULL, // Virtual node for downscale, else segfault
+              &&POST_OPS_MATRIX_ADD_3x8F,
+              &&POST_OPS_SWISH_3x8F,
+              &&POST_OPS_MATRIX_MUL_3x8F
             };
     // Typecast local copies of integers in case dim_t and inc_t are a
     // different size than is expected by load instructions.
@@ -2140,6 +2594,56 @@ POST_OPS_CLIP_3x8F:
 
       POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
     }
+POST_OPS_MATRIX_ADD_3x8F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-7]
+        F32_F32_MATRIX_ADD_1COL(ymm1,0,4);
+
+        // c[1:0-7]
+        F32_F32_MATRIX_ADD_1COL(ymm1,1,6);
+
+        // c[2:0-7]
+        F32_F32_MATRIX_ADD_1COL(ymm1,2,8);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
+POST_OPS_MATRIX_MUL_3x8F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-7]
+        F32_F32_MATRIX_MUL_1COL(ymm1,0,4);
+
+        // c[1:0-7]
+        F32_F32_MATRIX_MUL_1COL(ymm1,1,6);
+
+        // c[2:0-7]
+        F32_F32_MATRIX_MUL_1COL(ymm1,2,8);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }    
+POST_OPS_SWISH_3x8F:
+    {
+        ymm0 =
+          _mm256_broadcast_ss( ( float* )post_ops_list_temp->op_args2 );
+        __m256 z, dn;
+        __m256i ex_out;
+
+        // c[0,0-7]
+        SWISH_F32_AVX2_DEF(ymm4, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        // c[1,0-7]
+        SWISH_F32_AVX2_DEF(ymm6, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        // c[2,0-7]
+        SWISH_F32_AVX2_DEF(ymm8, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
 POST_OPS_3x8F_DISABLE:
     ;
 
@@ -2160,7 +2664,11 @@ LPGEMM_M_FRINGE_KERN(float,float,float,f32f32f32of32_2x8)
               &&POST_OPS_RELU_SCALE_2x8F,
               &&POST_OPS_GELU_TANH_2x8F,
               &&POST_OPS_GELU_ERF_2x8F,
-              &&POST_OPS_CLIP_2x8F
+              &&POST_OPS_CLIP_2x8F,
+              NULL, // Virtual node for downscale, else segfault
+              &&POST_OPS_MATRIX_ADD_2x8F,
+              &&POST_OPS_SWISH_2x8F,
+              &&POST_OPS_MATRIX_MUL_2x8F
             };
     // Typecast local copies of integers in case dim_t and inc_t are a
     // different size than is expected by load instructions.
@@ -2315,6 +2823,47 @@ POST_OPS_CLIP_2x8F:
 
       POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
     }
+POST_OPS_MATRIX_ADD_2x8F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-7]
+        F32_F32_MATRIX_ADD_1COL(ymm1,0,4);
+
+        // c[1:0-7]
+        F32_F32_MATRIX_ADD_1COL(ymm1,1,6);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
+POST_OPS_MATRIX_MUL_2x8F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-7]
+        F32_F32_MATRIX_MUL_1COL(ymm1,0,4);
+
+        // c[1:0-7]
+        F32_F32_MATRIX_MUL_1COL(ymm1,1,6);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }    
+POST_OPS_SWISH_2x8F:
+    {
+        ymm0 =
+          _mm256_broadcast_ss( ( float* )post_ops_list_temp->op_args2 );
+        __m256 z, dn;
+        __m256i ex_out;
+
+        // c[0,0-7]
+        SWISH_F32_AVX2_DEF(ymm4, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        // c[1,0-7]
+        SWISH_F32_AVX2_DEF(ymm6, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
 POST_OPS_2x8F_DISABLE:
     ;
 
@@ -2333,7 +2882,11 @@ LPGEMM_M_FRINGE_KERN(float,float,float,f32f32f32of32_1x8)
               &&POST_OPS_RELU_SCALE_1x8F,
               &&POST_OPS_GELU_TANH_1x8F,
               &&POST_OPS_GELU_ERF_1x8F,
-              &&POST_OPS_CLIP_1x8F
+              &&POST_OPS_CLIP_1x8F,
+              NULL, // Virtual node for downscale, else segfault
+              &&POST_OPS_MATRIX_ADD_1x8F,
+              &&POST_OPS_SWISH_1x8F,
+              &&POST_OPS_MATRIX_MUL_1x8F
             };
     // Typecast local copies of integers in case dim_t and inc_t are a
     // different size than is expected by load instructions.
@@ -2455,6 +3008,38 @@ POST_OPS_CLIP_1x8F:
 
       POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
     }
+POST_OPS_MATRIX_ADD_1x8F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-7]
+        F32_F32_MATRIX_ADD_1COL(ymm1,0,4);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
+POST_OPS_MATRIX_MUL_1x8F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-7]
+        F32_F32_MATRIX_MUL_1COL(ymm1,0,4);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }    
+POST_OPS_SWISH_1x8F:
+    {
+        ymm0 =
+          _mm256_broadcast_ss( ( float* )post_ops_list_temp->op_args2 );
+        __m256 z, dn;
+        __m256i ex_out;
+
+        // c[0,0-7]
+        SWISH_F32_AVX2_DEF(ymm4, ymm0, ymm1, ymm2, ymm3, z, dn, ex_out)
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
 POST_OPS_1x8F_DISABLE:
     ;
 
@@ -2471,7 +3056,11 @@ LPGEMM_M_FRINGE_KERN(float,float,float,f32f32f32of32_5x4)
               &&POST_OPS_RELU_SCALE_5x4F,
               &&POST_OPS_GELU_TANH_5x4F,
               &&POST_OPS_GELU_ERF_5x4F,
-              &&POST_OPS_CLIP_5x4F
+              &&POST_OPS_CLIP_5x4F,
+              NULL, // Virtual node for downscale, else segfault
+              &&POST_OPS_MATRIX_ADD_5x4F,
+              &&POST_OPS_SWISH_5x4F,
+              &&POST_OPS_MATRIX_MUL_5x4F
             };
     // Typecast local copies of integers in case dim_t and inc_t are a
     // different size than is expected by load instructions.
@@ -2714,6 +3303,74 @@ POST_OPS_CLIP_5x4F:
 
       POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
     }
+POST_OPS_MATRIX_ADD_5x4F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-3]
+        F32_F32_MATRIX_ADD_1COL_XMM(xmm1,0,4);
+
+        // c[1:0-3]
+        F32_F32_MATRIX_ADD_1COL_XMM(xmm1,1,5);
+
+        // c[2:0-3]
+        F32_F32_MATRIX_ADD_1COL_XMM(xmm1,2,6);
+
+        // c[3:0-3]
+        F32_F32_MATRIX_ADD_1COL_XMM(xmm1,3,7);
+
+        // c[4:0-3]
+        F32_F32_MATRIX_ADD_1COL_XMM(xmm1,4,8);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
+POST_OPS_MATRIX_MUL_5x4F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-3]
+        F32_F32_MATRIX_MUL_1COL_XMM(xmm1,0,4);
+
+        // c[1:0-3]
+        F32_F32_MATRIX_MUL_1COL_XMM(xmm1,1,5);
+
+        // c[2:0-3]
+        F32_F32_MATRIX_MUL_1COL_XMM(xmm1,2,6);
+
+        // c[3:0-3]
+        F32_F32_MATRIX_MUL_1COL_XMM(xmm1,3,7);
+
+        // c[4:0-3]
+        F32_F32_MATRIX_MUL_1COL_XMM(xmm1,4,8);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }    
+POST_OPS_SWISH_5x4F:
+    {
+        xmm0 =
+          _mm_broadcast_ss( ( float* )post_ops_list_temp->op_args2 );
+        __m128 z, dn;
+        __m128i ex_out;
+
+        // c[0,0-3]
+        SWISH_F32_SSE_DEF(xmm4, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        // c[1,0-3]
+        SWISH_F32_SSE_DEF(xmm5, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        // c[2,0-3]
+        SWISH_F32_SSE_DEF(xmm6, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        // c[3,0-3]
+        SWISH_F32_SSE_DEF(xmm7, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        // c[4,0-3]
+        SWISH_F32_SSE_DEF(xmm8, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
 POST_OPS_5x4F_DISABLE:
     ;
 
@@ -2738,7 +3395,11 @@ LPGEMM_M_FRINGE_KERN(float,float,float,f32f32f32of32_4x4)
               &&POST_OPS_RELU_SCALE_4x4F,
               &&POST_OPS_GELU_TANH_4x4F,
               &&POST_OPS_GELU_ERF_4x4F,
-              &&POST_OPS_CLIP_4x4F
+              &&POST_OPS_CLIP_4x4F,
+              NULL, // Virtual node for downscale, else segfault
+              &&POST_OPS_MATRIX_ADD_4x4F,
+              &&POST_OPS_SWISH_4x4F,
+              &&POST_OPS_MATRIX_MUL_4x4F
             };
     // Typecast local copies of integers in case dim_t and inc_t are a
     // different size than is expected by load instructions.
@@ -2949,6 +3610,65 @@ POST_OPS_CLIP_4x4F:
 
       POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
     }
+POST_OPS_MATRIX_ADD_4x4F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-3]
+        F32_F32_MATRIX_ADD_1COL_XMM(xmm1,0,4);
+
+        // c[1:0-3]
+        F32_F32_MATRIX_ADD_1COL_XMM(xmm1,1,5);
+
+        // c[2:0-3]
+        F32_F32_MATRIX_ADD_1COL_XMM(xmm1,2,6);
+
+        // c[3:0-3]
+        F32_F32_MATRIX_ADD_1COL_XMM(xmm1,3,7);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
+POST_OPS_MATRIX_MUL_4x4F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-3]
+        F32_F32_MATRIX_MUL_1COL_XMM(xmm1,0,4);
+
+        // c[1:0-3]
+        F32_F32_MATRIX_MUL_1COL_XMM(xmm1,1,5);
+
+        // c[2:0-3]
+        F32_F32_MATRIX_MUL_1COL_XMM(xmm1,2,6);
+
+        // c[3:0-3]
+        F32_F32_MATRIX_MUL_1COL_XMM(xmm1,3,7);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }    
+POST_OPS_SWISH_4x4F:
+    {
+        xmm0 =
+          _mm_broadcast_ss( ( float* )post_ops_list_temp->op_args2 );
+        __m128 z, dn;
+        __m128i ex_out;
+
+        // c[0,0-3]
+        SWISH_F32_SSE_DEF(xmm4, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        // c[1,0-3]
+        SWISH_F32_SSE_DEF(xmm5, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        // c[2,0-3]
+        SWISH_F32_SSE_DEF(xmm6, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        // c[3,0-3]
+        SWISH_F32_SSE_DEF(xmm7, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
 POST_OPS_4x4F_DISABLE:
     ;
 
@@ -2971,7 +3691,11 @@ LPGEMM_M_FRINGE_KERN(float,float,float,f32f32f32of32_3x4)
               &&POST_OPS_RELU_SCALE_3x4F,
               &&POST_OPS_GELU_TANH_3x4F,
               &&POST_OPS_GELU_ERF_3x4F,
-              &&POST_OPS_CLIP_3x4F
+              &&POST_OPS_CLIP_3x4F,
+              NULL, // Virtual node for downscale, else segfault
+              &&POST_OPS_MATRIX_ADD_3x4F,
+              &&POST_OPS_SWISH_3x4F,
+              &&POST_OPS_MATRIX_MUL_3x4F
             };
     // Typecast local copies of integers in case dim_t and inc_t are a
     // different size than is expected by load instructions.
@@ -3151,6 +3875,56 @@ POST_OPS_CLIP_3x4F:
 
       POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
     }
+POST_OPS_MATRIX_ADD_3x4F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-3]
+        F32_F32_MATRIX_ADD_1COL_XMM(xmm1,0,4);
+
+        // c[1:0-3]
+        F32_F32_MATRIX_ADD_1COL_XMM(xmm1,1,5);
+
+        // c[2:0-3]
+        F32_F32_MATRIX_ADD_1COL_XMM(xmm1,2,6);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
+POST_OPS_MATRIX_MUL_3x4F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-3]
+        F32_F32_MATRIX_MUL_1COL_XMM(xmm1,0,4);
+
+        // c[1:0-3]
+        F32_F32_MATRIX_MUL_1COL_XMM(xmm1,1,5);
+
+        // c[2:0-3]
+        F32_F32_MATRIX_MUL_1COL_XMM(xmm1,2,6);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }    
+POST_OPS_SWISH_3x4F:
+    {
+        xmm0 =
+          _mm_broadcast_ss( ( float* )post_ops_list_temp->op_args2 );
+        __m128 z, dn;
+        __m128i ex_out;
+
+        // c[0,0-3]
+        SWISH_F32_SSE_DEF(xmm4, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        // c[1,0-3]
+        SWISH_F32_SSE_DEF(xmm5, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        // c[2,0-3]
+        SWISH_F32_SSE_DEF(xmm6, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
 POST_OPS_3x4F_DISABLE:
     ;
 
@@ -3171,7 +3945,11 @@ LPGEMM_M_FRINGE_KERN(float,float,float,f32f32f32of32_2x4)
               &&POST_OPS_RELU_SCALE_2x4F,
               &&POST_OPS_GELU_TANH_2x4F,
               &&POST_OPS_GELU_ERF_2x4F,
-              &&POST_OPS_CLIP_2x4F
+              &&POST_OPS_CLIP_2x4F,
+              NULL, // Virtual node for downscale, else segfault
+              &&POST_OPS_MATRIX_ADD_2x4F,
+              &&POST_OPS_SWISH_2x4F,
+              &&POST_OPS_MATRIX_MUL_2x4F
             };
     // Typecast local copies of integers in case dim_t and inc_t are a
     // different size than is expected by load instructions.
@@ -3325,6 +4103,47 @@ POST_OPS_CLIP_2x4F:
 
       POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
     }
+POST_OPS_MATRIX_ADD_2x4F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-3]
+        F32_F32_MATRIX_ADD_1COL_XMM(xmm1,0,4);
+
+        // c[1:0-3]
+        F32_F32_MATRIX_ADD_1COL_XMM(xmm1,1,5);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
+POST_OPS_MATRIX_MUL_2x4F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-3]
+        F32_F32_MATRIX_MUL_1COL_XMM(xmm1,0,4);
+
+        // c[1:0-3]
+        F32_F32_MATRIX_MUL_1COL_XMM(xmm1,1,5);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }    
+POST_OPS_SWISH_2x4F:
+    {
+        xmm0 =
+          _mm_broadcast_ss( ( float* )post_ops_list_temp->op_args2 );
+        __m128 z, dn;
+        __m128i ex_out;
+
+        // c[0,0-3]
+        SWISH_F32_SSE_DEF(xmm4, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        // c[1,0-3]
+        SWISH_F32_SSE_DEF(xmm5, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
 POST_OPS_2x4F_DISABLE:
     ;
 
@@ -3343,7 +4162,11 @@ LPGEMM_M_FRINGE_KERN(float,float,float,f32f32f32of32_1x4)
               &&POST_OPS_RELU_SCALE_1x4F,
               &&POST_OPS_GELU_TANH_1x4F,
               &&POST_OPS_GELU_ERF_1x4F,
-              &&POST_OPS_CLIP_1x4F
+              &&POST_OPS_CLIP_1x4F,
+              NULL, // Virtual node for downscale, else segfault
+              &&POST_OPS_MATRIX_ADD_1x4F,
+              &&POST_OPS_SWISH_1x4F,
+              &&POST_OPS_MATRIX_MUL_1x4F
             };
     // Typecast local copies of integers in case dim_t and inc_t are a
     // different size than is expected by load instructions.
@@ -3462,6 +4285,38 @@ POST_OPS_CLIP_1x4F:
 
       POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
     }
+POST_OPS_MATRIX_ADD_1x4F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-3]
+        F32_F32_MATRIX_ADD_1COL_XMM(xmm1,0,4);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
+POST_OPS_MATRIX_MUL_1x4F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-3]
+        F32_F32_MATRIX_MUL_1COL_XMM(xmm1,0,4);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }    
+POST_OPS_SWISH_1x4F:
+    {
+        xmm0 =
+          _mm_broadcast_ss( ( float* )post_ops_list_temp->op_args2 );
+        __m128 z, dn;
+        __m128i ex_out;
+
+        // c[0,0-3]
+        SWISH_F32_SSE_DEF(xmm4, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
 POST_OPS_1x4F_DISABLE:
     ;
 
@@ -3478,7 +4333,11 @@ LPGEMM_M_FRINGE_KERN(float,float,float,f32f32f32of32_5x2)
               &&POST_OPS_RELU_SCALE_5x2F,
               &&POST_OPS_GELU_TANH_5x2F,
               &&POST_OPS_GELU_ERF_5x2F,
-              &&POST_OPS_CLIP_5x2F
+              &&POST_OPS_CLIP_5x2F,
+              NULL, // Virtual node for downscale, else segfault
+              &&POST_OPS_MATRIX_ADD_5x2F,
+              &&POST_OPS_SWISH_5x2F,
+              &&POST_OPS_MATRIX_MUL_5x2F
             };
     // Typecast local copies of integers in case dim_t and inc_t are a
     // different size than is expected by load instructions.
@@ -3559,8 +4418,9 @@ POST_OPS_BIAS_5x2F:
       if ( ( *( char* )post_ops_list_temp->op_args2 == 'r' ) ||
            ( *( char* )post_ops_list_temp->op_args2 == 'R' ) )
       {
-        xmm0 = _mm_loadu_ps( ( float* )post_ops_list_temp->op_args1 +
-            post_ops_attr.post_op_c_j + ( 0 * 8 ) );
+        xmm0 = (__m128)_mm_load_sd((const double *)
+              ((float * )post_ops_list_temp->op_args1 +
+              post_ops_attr.post_op_c_j + (0 * 8)));
 
         // c[0,0-3]
         xmm4 = _mm_add_ps( xmm4, xmm0 );
@@ -3721,6 +4581,74 @@ POST_OPS_CLIP_5x2F:
 
       POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
     }
+POST_OPS_MATRIX_ADD_5x2F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-1]
+        F32_F32_MATRIX_ADD_1COL_XMM_2ELE(xmm1,0,4);
+
+        // c[1:0-1]
+        F32_F32_MATRIX_ADD_1COL_XMM_2ELE(xmm1,1,5);
+
+        // c[2:0-1]
+        F32_F32_MATRIX_ADD_1COL_XMM_2ELE(xmm1,2,6);
+
+        // c[3:0-1]
+        F32_F32_MATRIX_ADD_1COL_XMM_2ELE(xmm1,3,7);
+
+        // c[4:0-1]
+        F32_F32_MATRIX_ADD_1COL_XMM_2ELE(xmm1,4,8);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
+POST_OPS_MATRIX_MUL_5x2F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-1]
+        F32_F32_MATRIX_MUL_1COL_XMM_2ELE(xmm1,0,4);
+
+        // c[1:0-1]
+        F32_F32_MATRIX_MUL_1COL_XMM_2ELE(xmm1,1,5);
+
+        // c[2:0-1]
+        F32_F32_MATRIX_MUL_1COL_XMM_2ELE(xmm1,2,6);
+
+        // c[3:0-1]
+        F32_F32_MATRIX_MUL_1COL_XMM_2ELE(xmm1,3,7);
+
+        // c[4:0-1]
+        F32_F32_MATRIX_MUL_1COL_XMM_2ELE(xmm1,4,8);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }    
+POST_OPS_SWISH_5x2F:
+    {
+        xmm0 =
+          _mm_broadcast_ss( ( float* )post_ops_list_temp->op_args2 );
+        __m128 z, dn;
+        __m128i ex_out;
+
+        // c[0,0-1]
+        SWISH_F32_SSE_DEF(xmm4, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        // c[1,0-1]
+        SWISH_F32_SSE_DEF(xmm5, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        // c[2,0-1]
+        SWISH_F32_SSE_DEF(xmm6, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        // c[3,0-1]
+        SWISH_F32_SSE_DEF(xmm7, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        // c[4,0-1]
+        SWISH_F32_SSE_DEF(xmm8, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
 POST_OPS_5x2F_DISABLE:
     ;
 
@@ -3745,7 +4673,11 @@ LPGEMM_M_FRINGE_KERN(float,float,float,f32f32f32of32_4x2)
               &&POST_OPS_RELU_SCALE_4x2F,
               &&POST_OPS_GELU_TANH_4x2F,
               &&POST_OPS_GELU_ERF_4x2F,
-              &&POST_OPS_CLIP_4x2F
+              &&POST_OPS_CLIP_4x2F,
+              NULL, // Virtual node for downscale, else segfault
+              &&POST_OPS_MATRIX_ADD_4x2F,
+              &&POST_OPS_SWISH_4x2F,
+              &&POST_OPS_MATRIX_MUL_4x2F
             };
     // Typecast local copies of integers in case dim_t and inc_t are a
     // different size than is expected by load instructions.
@@ -3818,8 +4750,9 @@ POST_OPS_BIAS_4x2F:
       if ( ( *( char* )post_ops_list_temp->op_args2 == 'r' ) ||
            ( *( char* )post_ops_list_temp->op_args2 == 'R' ) )
       {
-        xmm0 = _mm_loadu_ps( ( float* )post_ops_list_temp->op_args1 +
-            post_ops_attr.post_op_c_j + ( 0 * 8 ) );
+        xmm0 = (__m128)_mm_load_sd((const double *)
+              ((float *)post_ops_list_temp->op_args1 +
+              post_ops_attr.post_op_c_j + (0 * 8)));
 
         // c[0,0-3]
         xmm4 = _mm_add_ps( xmm4, xmm0 );
@@ -3956,6 +4889,65 @@ POST_OPS_CLIP_4x2F:
 
       POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
     }
+POST_OPS_MATRIX_ADD_4x2F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-1]
+        F32_F32_MATRIX_ADD_1COL_XMM_2ELE(xmm1,0,4);
+
+        // c[1:0-1]
+        F32_F32_MATRIX_ADD_1COL_XMM_2ELE(xmm1,1,5);
+
+        // c[2:0-1]
+        F32_F32_MATRIX_ADD_1COL_XMM_2ELE(xmm1,2,6);
+
+        // c[3:0-1]
+        F32_F32_MATRIX_ADD_1COL_XMM_2ELE(xmm1,3,7);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
+POST_OPS_MATRIX_MUL_4x2F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-1]
+        F32_F32_MATRIX_MUL_1COL_XMM_2ELE(xmm1,0,4);
+
+        // c[1:0-1]
+        F32_F32_MATRIX_MUL_1COL_XMM_2ELE(xmm1,1,5);
+
+        // c[2:0-1]
+        F32_F32_MATRIX_MUL_1COL_XMM_2ELE(xmm1,2,6);
+
+        // c[3:0-1]
+        F32_F32_MATRIX_MUL_1COL_XMM_2ELE(xmm1,3,7);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }    
+POST_OPS_SWISH_4x2F:
+    {
+        xmm0 =
+          _mm_broadcast_ss( ( float* )post_ops_list_temp->op_args2 );
+        __m128 z, dn;
+        __m128i ex_out;
+
+        // c[0,0-1]
+        SWISH_F32_SSE_DEF(xmm4, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        // c[1,0-1]
+        SWISH_F32_SSE_DEF(xmm5, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        // c[2,0-1]
+        SWISH_F32_SSE_DEF(xmm6, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        // c[3,0-1]
+        SWISH_F32_SSE_DEF(xmm7, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
 POST_OPS_4x2F_DISABLE:
     ;
 
@@ -3978,7 +4970,11 @@ LPGEMM_M_FRINGE_KERN(float,float,float,f32f32f32of32_3x2)
               &&POST_OPS_RELU_SCALE_3x2F,
               &&POST_OPS_GELU_TANH_3x2F,
               &&POST_OPS_GELU_ERF_3x2F,
-              &&POST_OPS_CLIP_3x2F
+              &&POST_OPS_CLIP_3x2F,
+              NULL, // Virtual node for downscale, else segfault
+              &&POST_OPS_MATRIX_ADD_3x2F,
+              &&POST_OPS_SWISH_3x2F,
+              &&POST_OPS_MATRIX_MUL_3x2F
             };
     // Typecast local copies of integers in case dim_t and inc_t are a
     // different size than is expected by load instructions.
@@ -4043,8 +5039,9 @@ POST_OPS_BIAS_3x2F:
       if ( ( *( char* )post_ops_list_temp->op_args2 == 'r' ) ||
            ( *( char* )post_ops_list_temp->op_args2 == 'R' ) )
       {
-        xmm0 = _mm_loadu_ps( ( float* )post_ops_list_temp->op_args1 +
-            post_ops_attr.post_op_c_j + ( 0 * 8 ) );
+        xmm0 = (__m128)_mm_load_sd( (const double *)
+              ((float *) post_ops_list_temp->op_args1 +
+              post_ops_attr.post_op_c_j + (0 * 8)));
 
         // c[0,0-3]
         xmm4 = _mm_add_ps( xmm4, xmm0 );
@@ -4158,6 +5155,56 @@ POST_OPS_CLIP_3x2F:
 
       POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
     }
+POST_OPS_MATRIX_ADD_3x2F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-1]
+        F32_F32_MATRIX_ADD_1COL_XMM_2ELE(xmm1,0,4);
+
+        // c[1:0-1]
+        F32_F32_MATRIX_ADD_1COL_XMM_2ELE(xmm1,1,5);
+
+        // c[2:0-1]
+        F32_F32_MATRIX_ADD_1COL_XMM_2ELE(xmm1,2,6);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
+POST_OPS_MATRIX_MUL_3x2F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-1]
+        F32_F32_MATRIX_MUL_1COL_XMM_2ELE(xmm1,0,4);
+
+        // c[1:0-1]
+        F32_F32_MATRIX_MUL_1COL_XMM_2ELE(xmm1,1,5);
+
+        // c[2:0-1]
+        F32_F32_MATRIX_MUL_1COL_XMM_2ELE(xmm1,2,6);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }    
+POST_OPS_SWISH_3x2F:
+    {
+        xmm0 =
+          _mm_broadcast_ss( ( float* )post_ops_list_temp->op_args2 );
+        __m128 z, dn;
+        __m128i ex_out;
+
+        // c[0,0-1]
+        SWISH_F32_SSE_DEF(xmm4, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        // c[1,0-1]
+        SWISH_F32_SSE_DEF(xmm5, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        // c[2,0-1]
+        SWISH_F32_SSE_DEF(xmm6, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
 POST_OPS_3x2F_DISABLE:
     ;
 
@@ -4178,7 +5225,11 @@ LPGEMM_M_FRINGE_KERN(float,float,float,f32f32f32of32_2x2)
               &&POST_OPS_RELU_SCALE_2x2F,
               &&POST_OPS_GELU_TANH_2x2F,
               &&POST_OPS_GELU_ERF_2x2F,
-              &&POST_OPS_CLIP_2x2F
+              &&POST_OPS_CLIP_2x2F,
+              NULL, // Virtual node for downscale, else segfault
+              &&POST_OPS_MATRIX_ADD_2x2F,
+              &&POST_OPS_SWISH_2x2F,
+              &&POST_OPS_MATRIX_MUL_2x2F
             };
     // Typecast local copies of integers in case dim_t and inc_t are a
     // different size than is expected by load instructions.
@@ -4240,8 +5291,9 @@ POST_OPS_BIAS_2x2F:
       if ( ( *( char* )post_ops_list_temp->op_args2 == 'r' ) ||
            ( *( char* )post_ops_list_temp->op_args2 == 'R' ) )
       {
-        xmm0 = _mm_loadu_ps( ( float* )post_ops_list_temp->op_args1 +
-            post_ops_attr.post_op_c_j + ( 0 * 8 ) );
+        xmm0 = (__m128)_mm_load_sd((const double *)
+              ((float *)post_ops_list_temp->op_args1 +
+              post_ops_attr.post_op_c_j + (0 * 8)));
 
         // c[0,0-3]
         xmm4 = _mm_add_ps( xmm4, xmm0 );
@@ -4332,6 +5384,47 @@ POST_OPS_CLIP_2x2F:
 
       POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
     }
+POST_OPS_MATRIX_ADD_2x2F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-1]
+        F32_F32_MATRIX_ADD_1COL_XMM_2ELE(xmm1,0,4);
+
+        // c[1:0-1]
+        F32_F32_MATRIX_ADD_1COL_XMM_2ELE(xmm1,1,5);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
+POST_OPS_MATRIX_MUL_2x2F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-1]
+        F32_F32_MATRIX_MUL_1COL_XMM_2ELE(xmm1,0,4);
+
+        // c[1:0-1]
+        F32_F32_MATRIX_MUL_1COL_XMM_2ELE(xmm1,1,5);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }    
+POST_OPS_SWISH_2x2F:
+    {
+        xmm0 =
+          _mm_broadcast_ss( ( float* )post_ops_list_temp->op_args2 );
+        __m128 z, dn;
+        __m128i ex_out;
+
+        // c[0,0-1]
+        SWISH_F32_SSE_DEF(xmm4, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        // c[1,0-1]
+        SWISH_F32_SSE_DEF(xmm5, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
 POST_OPS_2x2F_DISABLE:
     ;
 
@@ -4350,7 +5443,11 @@ LPGEMM_M_FRINGE_KERN(float,float,float,f32f32f32of32_1x2)
               &&POST_OPS_RELU_SCALE_1x2F,
               &&POST_OPS_GELU_TANH_1x2F,
               &&POST_OPS_GELU_ERF_1x2F,
-              &&POST_OPS_CLIP_1x2F
+              &&POST_OPS_CLIP_1x2F,
+              NULL, // Virtual node for downscale, else segfault
+              &&POST_OPS_MATRIX_ADD_1x2F,
+              &&POST_OPS_SWISH_1x2F,
+              &&POST_OPS_MATRIX_MUL_1x2F
             };
     // Typecast local copies of integers in case dim_t and inc_t are a
     // different size than is expected by load instructions.
@@ -4400,8 +5497,9 @@ POST_OPS_BIAS_1x2F:
       if ( ( *( char* )post_ops_list_temp->op_args2 == 'r' ) ||
            ( *( char* )post_ops_list_temp->op_args2 == 'R' ) )
       {
-        xmm0 = _mm_loadu_ps( ( float* )post_ops_list_temp->op_args1 +
-            post_ops_attr.post_op_c_j + ( 0 * 8 ) );
+        xmm0 = (__m128)_mm_load_sd((const double *)
+              ((float*)post_ops_list_temp->op_args1 +
+              post_ops_attr.post_op_c_j + (0 * 8)));
 
         // c[0,0-3]
         xmm4 = _mm_add_ps( xmm4, xmm0 );
@@ -4469,6 +5567,38 @@ POST_OPS_CLIP_1x2F:
 
       POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
     }
+POST_OPS_MATRIX_ADD_1x2F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-1]
+        F32_F32_MATRIX_ADD_1COL_XMM_2ELE(xmm1,0,4);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
+POST_OPS_MATRIX_MUL_1x2F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-1]
+        F32_F32_MATRIX_MUL_1COL_XMM_2ELE(xmm1,0,4);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }    
+POST_OPS_SWISH_1x2F:
+    {
+        xmm0 =
+          _mm_broadcast_ss( ( float* )post_ops_list_temp->op_args2 );
+        __m128 z, dn;
+        __m128i ex_out;
+
+        // c[0,0-1]
+        SWISH_F32_SSE_DEF(xmm4, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
 POST_OPS_1x2F_DISABLE:
     ;
 
@@ -4485,7 +5615,11 @@ LPGEMM_M_FRINGE_KERN(float,float,float,f32f32f32of32_5x1)
               &&POST_OPS_RELU_SCALE_5x1F,
               &&POST_OPS_GELU_TANH_5x1F,
               &&POST_OPS_GELU_ERF_5x1F,
-              &&POST_OPS_CLIP_5x1F
+              &&POST_OPS_CLIP_5x1F,
+              NULL, // Virtual node for downscale, else segfault
+              &&POST_OPS_MATRIX_ADD_5x1F,
+              &&POST_OPS_SWISH_5x1F,
+              &&POST_OPS_MATRIX_MUL_5x1F
             };
     // Typecast local copies of integers in case dim_t and inc_t are a
     // different size than is expected by load instructions.
@@ -4566,7 +5700,7 @@ POST_OPS_BIAS_5x1F:
       if ( ( *( char* )post_ops_list_temp->op_args2 == 'r' ) ||
            ( *( char* )post_ops_list_temp->op_args2 == 'R' ) )
       {
-        xmm0 = _mm_loadu_ps( ( float* )post_ops_list_temp->op_args1 +
+        xmm0 = ( __m128 )_mm_load_ss( ( float* )post_ops_list_temp->op_args1 +
             post_ops_attr.post_op_c_j + ( 0 * 8 ) );
 
         // c[0,0-3]
@@ -4728,6 +5862,74 @@ POST_OPS_CLIP_5x1F:
 
       POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
     }
+POST_OPS_MATRIX_ADD_5x1F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-0]
+        F32_F32_MATRIX_ADD_1COL_XMM_1ELE(xmm1,0,4);
+
+        // c[1:0-0]
+        F32_F32_MATRIX_ADD_1COL_XMM_1ELE(xmm1,1,5);
+
+        // c[2:0-0]
+        F32_F32_MATRIX_ADD_1COL_XMM_1ELE(xmm1,2,6);
+
+        // c[3:0-0]
+        F32_F32_MATRIX_ADD_1COL_XMM_1ELE(xmm1,3,7);
+
+        // c[4:0-0]
+        F32_F32_MATRIX_ADD_1COL_XMM_1ELE(xmm1,4,8);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
+POST_OPS_MATRIX_MUL_5x1F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-0]
+        F32_F32_MATRIX_MUL_1COL_XMM_1ELE(xmm1,0,4);
+
+        // c[1:0-0]
+        F32_F32_MATRIX_MUL_1COL_XMM_1ELE(xmm1,1,5);
+
+        // c[2:0-0]
+        F32_F32_MATRIX_MUL_1COL_XMM_1ELE(xmm1,2,6);
+
+        // c[3:0-0]
+        F32_F32_MATRIX_MUL_1COL_XMM_1ELE(xmm1,3,7);
+
+        // c[4:0-0]
+        F32_F32_MATRIX_MUL_1COL_XMM_1ELE(xmm1,4,8);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }    
+POST_OPS_SWISH_5x1F:
+    {
+        xmm0 =
+          _mm_broadcast_ss( ( float* )post_ops_list_temp->op_args2 );
+        __m128 z, dn;
+        __m128i ex_out;
+
+        // c[0,0-0]
+        SWISH_F32_SSE_DEF(xmm4, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        // c[1,0-0]
+        SWISH_F32_SSE_DEF(xmm5, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        // c[2,0-0]
+        SWISH_F32_SSE_DEF(xmm6, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        // c[3,0-0]
+        SWISH_F32_SSE_DEF(xmm7, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        // c[4,0-0]
+        SWISH_F32_SSE_DEF(xmm8, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
 POST_OPS_5x1F_DISABLE:
     ;
 
@@ -4752,7 +5954,11 @@ LPGEMM_M_FRINGE_KERN(float,float,float,f32f32f32of32_4x1)
               &&POST_OPS_RELU_SCALE_4x1F,
               &&POST_OPS_GELU_TANH_4x1F,
               &&POST_OPS_GELU_ERF_4x1F,
-              &&POST_OPS_CLIP_4x1F
+              &&POST_OPS_CLIP_4x1F,
+              NULL, // Virtual node for downscale, else segfault
+              &&POST_OPS_MATRIX_ADD_4x1F,
+              &&POST_OPS_SWISH_4x1F,
+              &&POST_OPS_MATRIX_MUL_4x1F
             };
     // Typecast local copies of integers in case dim_t and inc_t are a
     // different size than is expected by load instructions.
@@ -4825,7 +6031,7 @@ POST_OPS_BIAS_4x1F:
       if ( ( *( char* )post_ops_list_temp->op_args2 == 'r' ) ||
            ( *( char* )post_ops_list_temp->op_args2 == 'R' ) )
       {
-        xmm0 = _mm_loadu_ps( ( float* )post_ops_list_temp->op_args1 +
+        xmm0 = ( __m128 )_mm_load_ss( ( float* )post_ops_list_temp->op_args1 +
             post_ops_attr.post_op_c_j + ( 0 * 8 ) );
 
         // c[0,0-3]
@@ -4963,6 +6169,65 @@ POST_OPS_CLIP_4x1F:
 
       POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
     }
+POST_OPS_MATRIX_ADD_4x1F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-0]
+        F32_F32_MATRIX_ADD_1COL_XMM_1ELE(xmm1,0,4);
+
+        // c[1:0-0]
+        F32_F32_MATRIX_ADD_1COL_XMM_1ELE(xmm1,1,5);
+
+        // c[2:0-0]
+        F32_F32_MATRIX_ADD_1COL_XMM_1ELE(xmm1,2,6);
+
+        // c[3:0-0]
+        F32_F32_MATRIX_ADD_1COL_XMM_1ELE(xmm1,3,7);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
+POST_OPS_MATRIX_MUL_4x1F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-0]
+        F32_F32_MATRIX_MUL_1COL_XMM_1ELE(xmm1,0,4);
+
+        // c[1:0-0]
+        F32_F32_MATRIX_MUL_1COL_XMM_1ELE(xmm1,1,5);
+
+        // c[2:0-0]
+        F32_F32_MATRIX_MUL_1COL_XMM_1ELE(xmm1,2,6);
+
+        // c[3:0-0]
+        F32_F32_MATRIX_MUL_1COL_XMM_1ELE(xmm1,3,7);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }    
+POST_OPS_SWISH_4x1F:
+    {
+        xmm0 =
+          _mm_broadcast_ss( ( float* )post_ops_list_temp->op_args2 );
+        __m128 z, dn;
+        __m128i ex_out;
+
+        // c[0,0-0]
+        SWISH_F32_SSE_DEF(xmm4, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        // c[1,0-0]
+        SWISH_F32_SSE_DEF(xmm5, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        // c[2,0-0]
+        SWISH_F32_SSE_DEF(xmm6, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        // c[3,0-0]
+        SWISH_F32_SSE_DEF(xmm7, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
 POST_OPS_4x1F_DISABLE:
     ;
 
@@ -4985,7 +6250,11 @@ LPGEMM_M_FRINGE_KERN(float,float,float,f32f32f32of32_3x1)
               &&POST_OPS_RELU_SCALE_3x1F,
               &&POST_OPS_GELU_TANH_3x1F,
               &&POST_OPS_GELU_ERF_3x1F,
-              &&POST_OPS_CLIP_3x1F
+              &&POST_OPS_CLIP_3x1F,
+              NULL, // Virtual node for downscale, else segfault
+              &&POST_OPS_MATRIX_ADD_3x1F,
+              &&POST_OPS_SWISH_3x1F,
+              &&POST_OPS_MATRIX_MUL_3x1F
             };
     // Typecast local copies of integers in case dim_t and inc_t are a
     // different size than is expected by load instructions.
@@ -5050,7 +6319,7 @@ POST_OPS_BIAS_3x1F:
       if ( ( *( char* )post_ops_list_temp->op_args2 == 'r' ) ||
            ( *( char* )post_ops_list_temp->op_args2 == 'R' ) )
       {
-        xmm0 = _mm_loadu_ps( ( float* )post_ops_list_temp->op_args1 +
+        xmm0 = ( __m128 )_mm_load_ss( ( float* )post_ops_list_temp->op_args1 +
             post_ops_attr.post_op_c_j + ( 0 * 8 ) );
 
         // c[0,0-3]
@@ -5165,6 +6434,56 @@ POST_OPS_CLIP_3x1F:
 
       POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
     }
+POST_OPS_MATRIX_ADD_3x1F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-0]
+        F32_F32_MATRIX_ADD_1COL_XMM_1ELE(xmm1,0,4);
+
+        // c[1:0-0]
+        F32_F32_MATRIX_ADD_1COL_XMM_1ELE(xmm1,1,5);
+
+        // c[2:0-0]
+        F32_F32_MATRIX_ADD_1COL_XMM_1ELE(xmm1,2,6);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
+POST_OPS_MATRIX_MUL_3x1F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-0]
+        F32_F32_MATRIX_MUL_1COL_XMM_1ELE(xmm1,0,4);
+
+        // c[1:0-0]
+        F32_F32_MATRIX_MUL_1COL_XMM_1ELE(xmm1,1,5);
+
+        // c[2:0-0]
+        F32_F32_MATRIX_MUL_1COL_XMM_1ELE(xmm1,2,6);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }    
+POST_OPS_SWISH_3x1F:
+    {
+        xmm0 =
+          _mm_broadcast_ss( ( float* )post_ops_list_temp->op_args2 );
+        __m128 z, dn;
+        __m128i ex_out;
+
+        // c[0,0-0]
+        SWISH_F32_SSE_DEF(xmm4, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        // c[1,0-0]
+        SWISH_F32_SSE_DEF(xmm5, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        // c[2,0-0]
+        SWISH_F32_SSE_DEF(xmm6, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
 POST_OPS_3x1F_DISABLE:
     ;
 
@@ -5185,7 +6504,11 @@ LPGEMM_M_FRINGE_KERN(float,float,float,f32f32f32of32_2x1)
               &&POST_OPS_RELU_SCALE_2x1F,
               &&POST_OPS_GELU_TANH_2x1F,
               &&POST_OPS_GELU_ERF_2x1F,
-              &&POST_OPS_CLIP_2x1F
+              &&POST_OPS_CLIP_2x1F,
+              NULL, // Virtual node for downscale, else segfault
+              &&POST_OPS_MATRIX_ADD_2x1F,
+              &&POST_OPS_SWISH_2x1F,
+              &&POST_OPS_MATRIX_MUL_2x1F
             };
     // Typecast local copies of integers in case dim_t and inc_t are a
     // different size than is expected by load instructions.
@@ -5247,7 +6570,7 @@ POST_OPS_BIAS_2x1F:
       if ( ( *( char* )post_ops_list_temp->op_args2 == 'r' ) ||
            ( *( char* )post_ops_list_temp->op_args2 == 'R' ) )
       {
-        xmm0 = _mm_loadu_ps( ( float* )post_ops_list_temp->op_args1 +
+        xmm0 = ( __m128 )_mm_load_ss( ( float* )post_ops_list_temp->op_args1 +
             post_ops_attr.post_op_c_j + ( 0 * 8 ) );
 
         // c[0,0-3]
@@ -5339,6 +6662,47 @@ POST_OPS_CLIP_2x1F:
 
       POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
     }
+POST_OPS_MATRIX_ADD_2x1F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-0]
+        F32_F32_MATRIX_ADD_1COL_XMM_1ELE(xmm1,0,4);
+
+        // c[1:0-0]
+        F32_F32_MATRIX_ADD_1COL_XMM_1ELE(xmm1,1,5);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
+POST_OPS_MATRIX_MUL_2x1F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-0]
+        F32_F32_MATRIX_MUL_1COL_XMM_1ELE(xmm1,0,4);
+
+        // c[1:0-0]
+        F32_F32_MATRIX_MUL_1COL_XMM_1ELE(xmm1,1,5);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }    
+POST_OPS_SWISH_2x1F:
+    {
+        xmm0 =
+          _mm_broadcast_ss( ( float* )post_ops_list_temp->op_args2 );
+        __m128 z, dn;
+        __m128i ex_out;
+
+        // c[0,0-0]
+        SWISH_F32_SSE_DEF(xmm4, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        // c[1,0-0]
+        SWISH_F32_SSE_DEF(xmm5, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
 POST_OPS_2x1F_DISABLE:
     ;
 
@@ -5357,7 +6721,11 @@ LPGEMM_M_FRINGE_KERN(float,float,float,f32f32f32of32_1x1)
               &&POST_OPS_RELU_SCALE_1x1F,
               &&POST_OPS_GELU_TANH_1x1F,
               &&POST_OPS_GELU_ERF_1x1F,
-              &&POST_OPS_CLIP_1x1F
+              &&POST_OPS_CLIP_1x1F,
+              NULL, // Virtual node for downscale, else segfault
+              &&POST_OPS_MATRIX_ADD_1x1F,
+              &&POST_OPS_SWISH_1x1F,
+              &&POST_OPS_MATRIX_MUL_1x1F
             };
     // Typecast local copies of integers in case dim_t and inc_t are a
     // different size than is expected by load instructions.
@@ -5407,7 +6775,7 @@ POST_OPS_BIAS_1x1F:
       if ( ( *( char* )post_ops_list_temp->op_args2 == 'r' ) ||
            ( *( char* )post_ops_list_temp->op_args2 == 'R' ) )
       {
-        xmm0 = _mm_loadu_ps( ( float* )post_ops_list_temp->op_args1 +
+        xmm0 = ( __m128 )_mm_load_ss( ( float* )post_ops_list_temp->op_args1 +
             post_ops_attr.post_op_c_j + ( 0 * 8 ) );
 
         // c[0,0-3]
@@ -5475,6 +6843,38 @@ POST_OPS_CLIP_1x1F:
       CLIP_F32S_SSE(xmm4, xmm0, xmm1)
 
       POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
+POST_OPS_MATRIX_ADD_1x1F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-0]
+        F32_F32_MATRIX_ADD_1COL_XMM_1ELE(xmm1,0,4);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }
+POST_OPS_MATRIX_MUL_1x1F:
+    {
+        dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+        float* matptr = ( float* )post_ops_list_temp->op_args1;
+
+        // c[0:0-0]
+        F32_F32_MATRIX_MUL_1COL_XMM_1ELE(xmm1,0,4);
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+    }    
+POST_OPS_SWISH_1x1F:
+    {
+        xmm0 =
+          _mm_broadcast_ss( ( float* )post_ops_list_temp->op_args2 );
+        __m128 z, dn;
+        __m128i ex_out;
+
+        // c[0,0-0]
+        SWISH_F32_SSE_DEF(xmm4, xmm0, xmm1, xmm2, xmm3, z, dn, ex_out)
+
+        POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
     }
 POST_OPS_1x1F_DISABLE:
     ;

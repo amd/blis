@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2022 - 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2022 - 2024, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -52,6 +52,7 @@ void reorderb_nr64_u8s8s32o32
 	dim_t NR = lcntx->blksz.NR;
 
 	dim_t rs_b = b->rs;
+	dim_t cs_b = b->cs;
 	dim_t rs_b_reorder;
 	dim_t cs_b_reorder;
 
@@ -145,17 +146,14 @@ void reorderb_nr64_u8s8s32o32
 				// st = ( jc_cur_loop * k )    <traverse blocks 1,2,3,4>
 				//    + ( n_sub_updated * pc ) <traverse block 5>
 				//    + ( NC' * kc0_updated)   <traverse block 6>
-				( ( packb_s32 )lcntx->packb_fun_ptr )
-				(
-				  ( ( ( int8_t* )b_reorder->storage.aligned_buffer ) +
-					( jc_cur_loop * k_updated ) + ( n_sub_updated * pc ) +
-					( jc_cur_loop_rem * kc0_updated ) ),
-				  ( ( ( int8_t* )b->storage.aligned_buffer ) +
-					( rs_b * pc ) + jc ),
-				  rs_b, nc0, kc0, &rs_b_reorder, &cs_b_reorder
-				);
+				((packb_s32)lcntx->packb_fun_ptr)(
+					(((int8_t *)b_reorder->storage.aligned_buffer) +
+					 (jc_cur_loop * k_updated) + (n_sub_updated * pc) +
+					 (jc_cur_loop_rem * kc0_updated)),
+					(((int8_t *)b->storage.aligned_buffer) +
+					 (rs_b * pc) + jc * cs_b),
+					rs_b, cs_b, nc0, kc0, &rs_b_reorder, &cs_b_reorder);
 			}
-
 			adjust_B_panel_reordered_jc( &jc, jc_cur_loop );
 		}
 	}
@@ -177,6 +175,7 @@ void reordera_mr6_u8s8s32o32
 	dim_t KC = lcntx->blksz.KC;
 
 	dim_t rs_a = a->rs;
+	dim_t cs_a = a->cs;
 	dim_t rs_a_reorder;
 	dim_t cs_a_reorder;
 
@@ -202,7 +201,7 @@ void reordera_mr6_u8s8s32o32
 			  ( ( ( uint8_t* )a_reorder->storage.aligned_buffer ) + ( pc * m ) +
 				( ic * kc0_updated ) ),
 			  ( ( ( uint8_t* )a->storage.aligned_buffer ) + ( rs_a * ic ) + pc ),
-			  rs_a, mc0, kc0, &rs_a_reorder, &cs_a_reorder
+			  rs_a, cs_a, mc0, kc0, &rs_a_reorder, &cs_a_reorder
 			);
 		}
 	}

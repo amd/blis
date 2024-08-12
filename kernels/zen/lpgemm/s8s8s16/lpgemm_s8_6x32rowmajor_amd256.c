@@ -4,19 +4,19 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2024, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
    met:
-	- Redistributions of source code must retain the above copyright
-	  notice, this list of conditions and the following disclaimer.
-	- Redistributions in binary form must reproduce the above copyright
-	  notice, this list of conditions and the following disclaimer in the
-	  documentation and/or other materials provided with the distribution.
-	- Neither the name(s) of the copyright holder(s) nor the names of its
-	  contributors may be used to endorse or promote products derived
-	  from this software without specific prior written permission.
+    - Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+    - Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
+      documentation and/or other materials provided with the distribution.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -50,7 +50,9 @@ LPGEMM_MAIN_KERN(int8_t,int8_t,int16_t,s8s8s16o16_6x32)
 			&&POST_OPS_GELU_TANH_6x32,
 			&&POST_OPS_GELU_ERF_6x32,
 			&&POST_OPS_CLIP_6x32,
-			&&POST_OPS_DOWNSCALE_6x32
+			&&POST_OPS_DOWNSCALE_6x32,
+			&&POST_OPS_MATRIX_ADD_6x32,
+			&&POST_OPS_SWISH_6x32
 		};
 
 	dim_t MR = 6;
@@ -107,7 +109,7 @@ LPGEMM_MAIN_KERN(int8_t,int8_t,int16_t,s8s8s16o16_6x32)
 		return;
 	}
 
-    uint8_t cvt_uint8 = 128;
+	uint8_t cvt_uint8 = 128;
 	__m256i vec_uint8 = _mm256_set1_epi8 (cvt_uint8);
 
 	for (dim_t ir = 0; ir < m_full_pieces_loop_limit; ir += MR)
@@ -146,9 +148,9 @@ LPGEMM_MAIN_KERN(int8_t,int8_t,int16_t,s8s8s16o16_6x32)
             //convert signed int8 to uint8 for u8s8s16 FMA ops
 			a_int32_0 = _mm256_add_epi8( a_int32_0, vec_uint8 );
 
-			__m256i b0 = 
+			__m256i b0 =
 					_mm256_loadu_si256((__m256i const *)(b + (64 * kr) + (NR * 0)));
-			__m256i b1 = 
+			__m256i b1 =
 					_mm256_loadu_si256((__m256i const *)(b + (64 * kr) + (NR * 1)));
 
 			// Separate register for intermediate op
@@ -166,7 +168,7 @@ LPGEMM_MAIN_KERN(int8_t,int8_t,int16_t,s8s8s16o16_6x32)
 				_mm256_set1_epi16(*(int16_t *)(a + (rs_a * 1) + (cs_a * offset)));
 
             //convert signed int8 to uint8 for u8s8s16 FMA ops
-			a_int32_0 = _mm256_add_epi8( a_int32_0, vec_uint8 );    
+			a_int32_0 = _mm256_add_epi8( a_int32_0, vec_uint8 );
 
 			// Separate register for intermediate op
 			inter_vec = _mm256_maddubs_epi16(a_int32_0, b0);
@@ -179,11 +181,11 @@ LPGEMM_MAIN_KERN(int8_t,int8_t,int16_t,s8s8s16o16_6x32)
 			c_int16_1p1 = _mm256_add_epi16(inter_vec, c_int16_1p1);
 
 			// Broadcast a[2,kr:kr+2].
-			a_int32_0 = 
+			a_int32_0 =
 				_mm256_set1_epi16(*(int16_t *)(a + (rs_a * 2) + (cs_a * offset)));
 
             //convert signed int8 to uint8 for u8s8s16 FMA ops
-			a_int32_0 = _mm256_add_epi8( a_int32_0, vec_uint8 );    
+			a_int32_0 = _mm256_add_epi8( a_int32_0, vec_uint8 );
 
 			// Separate register for intermediate op
 			inter_vec = _mm256_maddubs_epi16(a_int32_0, b0);
@@ -195,11 +197,11 @@ LPGEMM_MAIN_KERN(int8_t,int8_t,int16_t,s8s8s16o16_6x32)
 			c_int16_2p1 = _mm256_add_epi16(inter_vec, c_int16_2p1);
 
 			// Broadcast a[3,kr:kr+2].
-			a_int32_0 = 
+			a_int32_0 =
 				_mm256_set1_epi16(*(int16_t *)(a + (rs_a * 3) + (cs_a * offset)));
 
             //convert signed int8 to uint8 for u8s8s16 FMA ops
-			a_int32_0 = _mm256_add_epi8( a_int32_0, vec_uint8 );    
+			a_int32_0 = _mm256_add_epi8( a_int32_0, vec_uint8 );
 
 			// Separate register for intermediate op
 			inter_vec = _mm256_maddubs_epi16(a_int32_0, b0);
@@ -216,7 +218,7 @@ LPGEMM_MAIN_KERN(int8_t,int8_t,int16_t,s8s8s16o16_6x32)
 				_mm256_set1_epi16(*(int16_t *)(a + (rs_a * 4) + (cs_a * offset)));
 
             //convert signed int8 to uint8 for u8s8s16 FMA ops
-			a_int32_0 = _mm256_add_epi8( a_int32_0, vec_uint8 );    
+			a_int32_0 = _mm256_add_epi8( a_int32_0, vec_uint8 );
 
 			// Separate register for intermediate op
 			inter_vec = _mm256_maddubs_epi16(a_int32_0, b0);
@@ -230,11 +232,11 @@ LPGEMM_MAIN_KERN(int8_t,int8_t,int16_t,s8s8s16o16_6x32)
 			c_int16_4p1 = _mm256_add_epi16(inter_vec, c_int16_4p1);
 
 			// Broadcast a[5,kr:kr+2].
-			a_int32_0 = 
+			a_int32_0 =
 				_mm256_set1_epi16(*(int16_t *)(a + (rs_a * 5) + (cs_a * offset)));
 
             //convert signed int8 to uint8 for u8s8s16 FMA ops
-			a_int32_0 = _mm256_add_epi8( a_int32_0, vec_uint8 );    
+			a_int32_0 = _mm256_add_epi8( a_int32_0, vec_uint8 );
 
 			// Separate register for intermediate op
 			inter_vec = _mm256_maddubs_epi16(a_int32_0, b0);
@@ -355,7 +357,7 @@ LPGEMM_MAIN_KERN(int8_t,int8_t,int16_t,s8s8s16o16_6x32)
 		}
         if ( post_ops_attr.is_last_k == 1 )
 		{
-            //Subtract B matrix sum column values to compensate 
+            //Subtract B matrix sum column values to compensate
 			//for addition of 128 to A matrix elements
 
             int16_t* bsumptr = post_ops_attr.b_col_sum_vec_s16 + post_ops_attr.b_sum_offset;
@@ -762,25 +764,44 @@ POST_OPS_DOWNSCALE_6x32:
 			__m128i temp[2];
 			__m256i temp_32[2];
 			__m256 temp_float[2];
-			__m256 scale_1, scale_2;
+			__m256 scale_1 = _mm256_setzero_ps();
+			__m256 scale_2 = _mm256_setzero_ps();
 			__m256 res_1, res_2;
 
-			/* Load the scale vector values into the register*/
-			scale_1 =
-				_mm256_loadu_ps(
-				(float *)post_ops_list_temp->scale_factor +
-				post_ops_attr.post_op_c_j + (0 * 8));
-			scale_2 =
-				_mm256_loadu_ps(
-				(float *)post_ops_list_temp->scale_factor +
-				post_ops_attr.post_op_c_j + (1 * 8));
+			if ( post_ops_list_temp->scale_factor_len > 1 )
+			{
+				/* Load the scale vector values into the register*/
+				scale_1 = _mm256_loadu_ps(
+					( float* )post_ops_list_temp->scale_factor +
+					post_ops_attr.post_op_c_j + ( 0 * 8 ) );
+				scale_2 = _mm256_loadu_ps(
+					( float* )post_ops_list_temp->scale_factor +
+					post_ops_attr.post_op_c_j + ( 1 * 8 ) );
+			}
+			else if ( post_ops_list_temp->scale_factor_len == 1 )
+			{
+				/* Broadcast scale factor. */
+				scale_1 =
+					_mm256_set1_ps( *( ( float* )post_ops_list_temp->scale_factor ) );
+				scale_2 =
+					_mm256_set1_ps( *( ( float* )post_ops_list_temp->scale_factor ) );
+			}
 
-			// Load zero points (2 byte values).
-			__m128i _zero_point_0 =
-				_mm_loadu_si128(
-				( __m128i const* )( ( int8_t* )post_ops_list_temp->op_args1 +
-				post_ops_attr.post_op_c_j + ( 0 * 16 ) ) );
+			__m128i _zero_point_0 = _mm_setzero_si128();
 			__m256i zero_point_0 = _mm256_setzero_si256();
+			if ( *( ( dim_t* )post_ops_list_temp->op_args3 ) > 1 )
+			{
+				// Load zero points (2 byte values).
+				_zero_point_0 = _mm_loadu_si128(
+					( __m128i const* )( ( int8_t* )post_ops_list_temp->op_args1 +
+					post_ops_attr.post_op_c_j + ( 0 * 16 ) ) );
+			}
+			else if ( *( ( dim_t* )post_ops_list_temp->op_args3 ) == 1 )
+			{
+				// Broadcast zero point.
+				_zero_point_0 = _mm_set1_epi8(
+						*( ( int8_t* )post_ops_list_temp->op_args1 ) );
+			}
 			if ( post_ops_attr.c_stor_type == S8 )
 			{
 				zero_point_0 = _mm256_cvtepi8_epi16( _zero_point_0 );
@@ -798,19 +819,38 @@ POST_OPS_DOWNSCALE_6x32:
 			CVT_MULRND_CVT16(c_int16_4p0, scale_1, scale_2, zero_point_0)
 			CVT_MULRND_CVT16(c_int16_5p0, scale_1, scale_2, zero_point_0)
 
-			scale_1 =
-				_mm256_loadu_ps(
-				(float *)post_ops_list_temp->scale_factor +
-				post_ops_attr.post_op_c_j + (2 * 8));
-			scale_2 =
-				_mm256_loadu_ps(
-				(float *)post_ops_list_temp->scale_factor +
-				post_ops_attr.post_op_c_j + (3 * 8));
+			if ( post_ops_list_temp->scale_factor_len > 1 )
+			{
+				/* Load the scale vector values into the register*/
+				scale_1 = _mm256_loadu_ps(
+					( float* )post_ops_list_temp->scale_factor +
+					post_ops_attr.post_op_c_j + ( 2 * 8 ) );
+				scale_2 = _mm256_loadu_ps(
+					( float* )post_ops_list_temp->scale_factor +
+					post_ops_attr.post_op_c_j + ( 3 * 8 ) );
+			}
+			else if ( post_ops_list_temp->scale_factor_len == 1 )
+			{
+				/* Broadcast scale factor. */
+				scale_1 =
+					_mm256_set1_ps( *( ( float* )post_ops_list_temp->scale_factor ) );
+				scale_2 =
+					_mm256_set1_ps( *( ( float* )post_ops_list_temp->scale_factor ) );
+			}
 
-			_zero_point_0 =
-				_mm_loadu_si128(
-				( __m128i const* )( ( int8_t* )post_ops_list_temp->op_args1 +
-				post_ops_attr.post_op_c_j + ( 1 * 16 ) ) );
+			if ( *( ( dim_t* )post_ops_list_temp->op_args3 ) > 1 )
+			{
+				// Load zero points (2 byte values).
+				_zero_point_0 = _mm_loadu_si128(
+					( __m128i const* )( ( int8_t* )post_ops_list_temp->op_args1 +
+					post_ops_attr.post_op_c_j + ( 1 * 16 ) ) );
+			}
+			else if ( *( ( dim_t* )post_ops_list_temp->op_args3 ) == 1 )
+			{
+				// Broadcast zero point.
+				_zero_point_0 = _mm_set1_epi8(
+						*( ( int8_t* )post_ops_list_temp->op_args1 ) );
+			}
 			if ( post_ops_attr.c_stor_type == S8 )
 			{
 				zero_point_0 = _mm256_cvtepi8_epi16( _zero_point_0 );
@@ -827,6 +867,128 @@ POST_OPS_DOWNSCALE_6x32:
 			CVT_MULRND_CVT16(c_int16_3p1, scale_1, scale_2, zero_point_0)
 			CVT_MULRND_CVT16(c_int16_4p1, scale_1, scale_2, zero_point_0)
 			CVT_MULRND_CVT16(c_int16_5p1, scale_1, scale_2, zero_point_0)
+
+			POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+		}
+POST_OPS_MATRIX_ADD_6x32:
+		{
+			__m256i selector1, selector2;
+			dim_t ldm = *( dim_t* )post_ops_list_temp->op_args3;
+
+			if ( post_ops_attr.c_stor_type == S8 )
+			{
+				int8_t* matptr = ( int8_t* )post_ops_list_temp->op_args1;
+
+				// c[0:0-15,16-31]
+				S8_S16_MATRIX_ADD_2COL(selector1,selector2,0);
+
+				// c[1:0-15,16-31]
+				S8_S16_MATRIX_ADD_2COL(selector1,selector2,1);
+
+				// c[2:0-15,16-31]
+				S8_S16_MATRIX_ADD_2COL(selector1,selector2,2);
+
+				// c[3:0-15,16-31]
+				S8_S16_MATRIX_ADD_2COL(selector1,selector2,3);
+
+				// c[4:0-15,16-31]
+				S8_S16_MATRIX_ADD_2COL(selector1,selector2,4);
+
+				// c[5:0-15,16-31]
+				S8_S16_MATRIX_ADD_2COL(selector1,selector2,5);
+			}
+			else if ( post_ops_attr.c_stor_type == U8 )
+			{
+				uint8_t* matptr = ( uint8_t* )post_ops_list_temp->op_args1;
+
+				// c[0:0-15,16-31]
+				U8_S16_MATRIX_ADD_2COL(selector1,selector2,0);
+
+				// c[1:0-15,16-31]
+				U8_S16_MATRIX_ADD_2COL(selector1,selector2,1);
+
+				// c[2:0-15,16-31]
+				U8_S16_MATRIX_ADD_2COL(selector1,selector2,2);
+
+				// c[3:0-15,16-31]
+				U8_S16_MATRIX_ADD_2COL(selector1,selector2,3);
+
+				// c[4:0-15,16-31]
+				U8_S16_MATRIX_ADD_2COL(selector1,selector2,4);
+
+				// c[5:0-15,16-31]
+				U8_S16_MATRIX_ADD_2COL(selector1,selector2,5);
+			}
+			else
+			{
+				int16_t* matptr = ( int16_t* )post_ops_list_temp->op_args1;
+
+				// c[0:0-15,16-31]
+				S16_S16_MATRIX_ADD_2COL(selector1,selector2,0);
+
+				// c[1:0-15,16-31]
+				S16_S16_MATRIX_ADD_2COL(selector1,selector2,1);
+
+				// c[2:0-15,16-31]
+				S16_S16_MATRIX_ADD_2COL(selector1,selector2,2);
+
+				// c[3:0-15,16-31]
+				S16_S16_MATRIX_ADD_2COL(selector1,selector2,3);
+
+				// c[4:0-15,16-31]
+				S16_S16_MATRIX_ADD_2COL(selector1,selector2,4);
+
+				// c[5:0-15,16-31]
+				S16_S16_MATRIX_ADD_2COL(selector1,selector2,5);
+			}
+
+			POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
+		}
+POST_OPS_SWISH_6x32:
+		{
+			alphav =
+				_mm256_set1_epi16( *( ( int16_t* )post_ops_list_temp->op_args2 ) );
+			__m256 al = _mm256_cvtepi32_ps( _mm256_cvtepi16_epi32( \
+							_mm256_extractf128_si256( alphav, 0 ) ) );
+
+			__m256 al_in, tmp_reg1, tmp_reg2, r, r2, z, dn;
+			__m256i ex_out;
+
+			// c[0,0-15]
+			SWISH_S16_AVX2(c_int16_0p0, al, al_in, tmp_reg1, tmp_reg2, r, r2, z, dn, ex_out);
+
+			// c[0,16-31]
+			SWISH_S16_AVX2(c_int16_0p1, al, al_in, tmp_reg1, tmp_reg2, r, r2, z, dn, ex_out);
+
+			// c[1,0-15]
+			SWISH_S16_AVX2(c_int16_1p0, al, al_in, tmp_reg1, tmp_reg2, r, r2, z, dn, ex_out);
+
+			// c[1,16-31]
+			SWISH_S16_AVX2(c_int16_1p1, al, al_in, tmp_reg1, tmp_reg2, r, r2, z, dn, ex_out);
+
+			// c[2,0-15]
+			SWISH_S16_AVX2(c_int16_2p0, al, al_in, tmp_reg1, tmp_reg2, r, r2, z, dn, ex_out);
+
+			// c[2,16-31]
+			SWISH_S16_AVX2(c_int16_2p1, al, al_in, tmp_reg1, tmp_reg2, r, r2, z, dn, ex_out);
+
+			// c[3,0-15]
+			SWISH_S16_AVX2(c_int16_3p0, al, al_in, tmp_reg1, tmp_reg2, r, r2, z, dn, ex_out);
+
+			// c[3,16-31]
+			SWISH_S16_AVX2(c_int16_3p1, al, al_in, tmp_reg1, tmp_reg2, r, r2, z, dn, ex_out);
+
+			// c[4,0-15]
+			SWISH_S16_AVX2(c_int16_4p0, al, al_in, tmp_reg1, tmp_reg2, r, r2, z, dn, ex_out);
+
+			// c[4,16-31]
+			SWISH_S16_AVX2(c_int16_4p1, al, al_in, tmp_reg1, tmp_reg2, r, r2, z, dn, ex_out);
+
+			// c[5,0-15]
+			SWISH_S16_AVX2(c_int16_5p0, al, al_in, tmp_reg1, tmp_reg2, r, r2, z, dn, ex_out);
+
+			// c[5,16-31]
+			SWISH_S16_AVX2(c_int16_5p1, al, al_in, tmp_reg1, tmp_reg2, r, r2, z, dn, ex_out);
 
 			POST_OP_LABEL_LASTK_SAFE_JUMP_WITH_NEXT_PTR
 		}
@@ -898,7 +1060,7 @@ POST_OPS_6x32_DISABLE:
 			// c[5,16-31]
 			_mm256_storeu_si256( (__m256i *)(c + ( rs_c * ( ir + 5 ) ) + ( 1*16 )), c_int16_5p1 );
 		}
-		
+
 		a = a + ( MR * ps_a );
 		post_ops_attr.post_op_c_i += MR;
 	}

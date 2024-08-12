@@ -4,19 +4,19 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2024, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
    met:
-	- Redistributions of source code must retain the above copyright
-	  notice, this list of conditions and the following disclaimer.
-	- Redistributions in binary form must reproduce the above copyright
-	  notice, this list of conditions and the following disclaimer in the
-	  documentation and/or other materials provided with the distribution.
-	- Neither the name(s) of the copyright holder(s) nor the names of its
-	  contributors may be used to endorse or promote products derived
-	  from this software without specific prior written permission.
+    - Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+    - Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
+      documentation and/or other materials provided with the distribution.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -39,6 +39,7 @@
 #include "lpgemm_utils_s8.h"
 #include "lpgemm_config.h"
 #include "lpgemm_thrinfo_utils.h"
+#include "lpgemm_packa_s16.h"
 
 // Kernel function prototypes
 typedef void (*lpgemm_rowvar_s16_s8)
@@ -62,6 +63,146 @@ typedef void (*lpgemm_rowvar_s16_s8)
        lpgemm_post_op_attr
      );
 
+
+
+LPGEMV(int8_t,int8_t,int16_t,s8s8s16os16)
+{
+	dim_t KC = lcntx->blksz.KC;
+	dim_t MC = lcntx->blksz.MC;
+
+	// Strides are updated based on matrix packing/reordering.
+	int8_t* a_use = ( int8_t* )a;
+	inc_t rs_a_use = rs_a;
+	inc_t cs_a_use = cs_a;
+
+	int8_t* b_use = ( int8_t* )b;
+	inc_t rs_b_use = rs_b;
+	inc_t cs_b_use = cs_b;
+
+	int16_t *c_use = NULL;
+
+	lpgemm_post_op_attr post_ops_attr;
+	post_ops_attr.c_stor_type = c_downscale;
+	if (c_downscale < S16) post_ops_attr.buf_downscale = c;
+	else  post_ops_attr.buf_downscale = NULL;
+
+	siz_t mem_a_size_req = 0;
+	siz_t mem_b_size_req = 0;
+
+	mem_t mem_a = BLIS_MEM_INITIALIZER;
+	mem_t mem_b = BLIS_MEM_INITIALIZER;
+
+	int8_t* pack_a_buffer;
+	int8_t* pack_b_buffer;
+
+	// Generate thrinfo objects for jc and ic loops from lpgemm_thrinfo_t.
+	thrinfo_t thread_jc;
+	thrinfo_t thread_ic;
+
+	lpgemm_gen_thrinfo( thread, &thread_jc, &thread_ic );
+
+	// Increased MR from 6 to 8 to make use of 16 ymm regs
+	dim_t MR = 8;
+
+	// Pack B matrix if rs_b > 1
+	if( ( mtag_b == PACK ) )
+	{
+		mem_b_size_req = sizeof( int8_t ) * k + sizeof( int16_t );
+
+		lpgemm_alloc_mem_panel
+		(
+		  mem_b_size_req, BLIS_BUFFER_FOR_GEN_USE,
+		  &mem_b, rntm
+		);
+
+		pack_b_buffer = ( int8_t* ) bli_mem_buffer( &mem_b );
+
+		int16_t* pack_b_column_sum = ( int16_t* ) ( pack_b_buffer +
+		                                     ( sizeof( int8_t ) * k ));
+
+		*pack_b_column_sum =  0;
+
+		for( dim_t k0 = 0; k0 < k; k0++ )
+		{
+			pack_b_buffer[k0] = b[ k0*rs_b ];
+			*pack_b_column_sum += pack_b_buffer[k0];
+		}
+		*pack_b_column_sum *= 128;
+		post_ops_attr.b_col_sum_vec_s16 = pack_b_column_sum;
+
+		b_use = pack_b_buffer;
+		rs_b_use = 1;
+		cs_b_use = 1;
+	}
+	else if ( mtag_b == REORDERED )
+	{
+		post_ops_attr.b_col_sum_vec_s16 = ( int16_t* ) ( b + k );
+	}
+
+	// Compute the IC loop thread range for the current thread.
+	dim_t ic_start, ic_end;
+	bli_thread_range_sub(&thread_ic, m, MR, FALSE, &ic_start, &ic_end);
+
+	for (dim_t ic = ic_start; ic < ic_end; ic += MC)
+	{
+		dim_t mc0 = bli_min((ic_end - ic), MC);
+
+		a_use = (int8_t*)a + ic * rs_a;
+
+		c_use = c + ic * rs_c;
+
+		post_ops_attr.post_op_c_i = ic;
+		post_ops_attr.post_op_c_j = 0;
+		post_ops_attr.rs_c_downscale = rs_c;
+
+		if( mtag_a == PACK )
+		{
+			mem_a_size_req = sizeof( int8_t ) * mc0 * k;
+
+			lpgemm_alloc_mem_panel
+			(
+			  mem_a_size_req, BLIS_BUFFER_FOR_GEN_USE,
+			  &mem_a, rntm
+			);
+
+			pack_a_buffer = ( int8_t* ) bli_mem_buffer( &mem_a );
+
+			( ( packa_s16 ) lcntx->packa_fun_ptr )
+			(
+			  ( uint8_t* )pack_a_buffer,
+			  ( uint8_t* )( a + ( rs_a * ic )), rs_a, cs_a,
+			  mc0, k,
+			  &rs_a_use, &cs_a_use
+			);
+			a_use = pack_a_buffer;
+		}
+
+		// Call lpgemv_n_one kernel
+		lpgemv_n_one_s8s8s16os16
+		(
+		  mc0, k,
+		  a_use, rs_a_use, cs_a_use, mtag_a,
+		  b_use, rs_b_use, cs_b_use, mtag_b,
+		  c_use, rs_c, cs_c,
+		  alpha, beta,
+		  MR, KC,
+		  post_op_list,
+		  &post_ops_attr
+		);
+	}
+
+	// Release pack buffers
+	if( mtag_a == PACK && bli_mem_is_alloc( &mem_a ) )
+	{
+		bli_pba_release(rntm, &mem_a);
+	}
+	if( mtag_b == PACK && bli_mem_is_alloc( &mem_b ) )
+	{
+		bli_pba_release(rntm, &mem_b);
+	}
+}
+
+
 // B should always be packed.
 LPGEMM_5LOOP(int8_t,int8_t,int16_t,s8s8s16o16)
 {
@@ -79,10 +220,29 @@ LPGEMM_5LOOP(int8_t,int8_t,int16_t,s8s8s16o16)
 		return;
 	}
 
+
+	if( n == 1 )
+	{
+		lpgemv_rowvar_s8s8s16os16( m, n, k,
+		                          a, rs_a, cs_a, mtag_a,
+		                          b, rs_b, cs_b, mtag_b,
+		                          c, rs_c, cs_c,
+		                          alpha,
+		                          beta,
+		                          rntm,
+		                          thread,
+		                          lcntx,
+		                          post_op_list,
+		                          c_downscale );
+		return;
+	}
+
+
 	const int8_t *b_use;
 	const int8_t *a_use;
 	dim_t rs_a_use = rs_a;
 	dim_t cs_a_use = cs_a;
+	dim_t a_block_stride = 0;
 
 	dim_t rs_b_use = rs_b;
 	dim_t cs_b_use = cs_b;
@@ -91,6 +251,11 @@ LPGEMM_5LOOP(int8_t,int8_t,int16_t,s8s8s16o16)
 	int16_t *c_use_ic = NULL;
 	dim_t rs_c_use = rs_c;
 	dim_t rs_c_downscale = rs_c;
+
+	// Pack buffer for A.
+	int8_t* pack_a_buffer_s8s8s16o16;
+	mem_t mem_a = BLIS_MEM_INITIALIZER;
+	siz_t mem_a_size_req = 0;
 
 	// Pack buffer for B.
 	int8_t *pack_b_buffer_s8s8s16o16;
@@ -280,7 +445,7 @@ LPGEMM_5LOOP(int8_t,int8_t,int16_t,s8s8s16o16)
 					(
 					  pack_b_buffer_s8s8s16o16 +
 					  (jc_packb_start * kc0_updated),
-					  pack_b_column_sum + ( cs_b * jc_packb_start ), 
+					  pack_b_column_sum + ( cs_b * jc_packb_start ),
 					  (b + (rs_b * pc) + (cs_b * jc) +
 					  (cs_b * jc_packb_start)),
 					  rs_b,
@@ -339,10 +504,48 @@ LPGEMM_5LOOP(int8_t,int8_t,int16_t,s8s8s16o16)
 					c_use_ic = c_use_jc + ( rs_c_use * ic );
 				}
 
-				a_use = a + (rs_a * ic) + (cs_a * pc);
-				cs_a_use = 1;
+				// Matrix A packed and reordered code path is not triggerred
+				// currently for row-major inputs since we do not support it yet.
+				// Pack is enabled for column-major inputs to transform into
+				// row-major inputs as kernel expects row storage format.
+				if ( mtag_a == PACK )
+				{
+					mem_a_size_req = sizeof( uint8_t ) * mc0 * kc0_updated;
 
-				dim_t a_block_stride = rs_a;
+					lpgemm_alloc_mem_panel
+					(
+					  mem_a_size_req, BLIS_BUFFER_FOR_A_BLOCK,
+					  &mem_a, rntm
+					);
+					pack_a_buffer_s8s8s16o16 = ( int8_t* )bli_mem_buffer( &mem_a );
+
+					( ( packa_s16 )lcntx->packa_fun_ptr )
+					(
+					  ( uint8_t* )pack_a_buffer_s8s8s16o16,
+					  ( uint8_t* )( a + ( rs_a * ic ) + ( cs_a * pc ) ), rs_a, cs_a,
+					  mc0, kc0,
+					  &rs_a_use, &cs_a_use
+					);
+					a_use = pack_a_buffer_s8s8s16o16;
+
+					if( cs_a == 1 )
+					{
+						a_block_stride = kc0_updated;
+					}
+
+					else
+					{
+						a_block_stride = rs_a_use;
+					}
+
+				}
+
+				else
+				{
+					a_use = a + ( rs_a * ic ) + ( cs_a * pc );
+					cs_a_use = 1;
+					a_block_stride = rs_a;
+				}
 
 				post_ops_attr.b_sum_offset = 0;
 

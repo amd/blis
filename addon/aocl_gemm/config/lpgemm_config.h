@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2022 - 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2022 - 2024, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -37,15 +37,19 @@
 
 #include "lpgemm_types.h"
 
-// equals to number of ops in enum AOCL_OPERATION_TYPE.
-extern lpgemm_cntx_t lpgemm_global_cntx_t_list[AOCL_OPERATION_TYPE_LEN];
-extern lpgemm_cntx_t lpgemm_util_global_cntx_t_list[AOCL_UTIL_OPERATION_TYPE_LEN];
+#define LPGEMM_BF16_MR 6
+#define LPGEMM_BF16_NR 64
+// num_f32_elems_per_zmm = zmm_width / sizeof( float )
+#define NUM_F32_ELEMS_PER_ZMM ( 64 / sizeof(float) )
 
 void aocl_lpgemm_init_global_cntx();
 
 lpgemm_cntx_t* lpgemm_get_global_cntx_obj( AOCL_OPERATION_TYPE op );
 
 lpgemm_util_cntx_t* lpgemm_util_get_global_cntx_obj( AOCL_UTIL_OPERATION_TYPE op );
+
+lpgemm_eltwise_ops_cntx_t* lpgemm_eltwise_ops_get_global_cntx_obj
+							( AOCL_ELTWISE_OPS_OPERATION_TYPE op );
 
 dim_t lpgemm_get_block_size_MC_global_cntx( AOCL_OPERATION_TYPE op_type );
 
@@ -60,6 +64,10 @@ dim_t lpgemm_get_block_size_MR_global_cntx( AOCL_OPERATION_TYPE op_type );
 void lpgemm_get_packa_strides( lpgemm_cntx_t* lcntx, dim_t* rs, dim_t* cs );
 
 void lpgemm_get_packb_strides( lpgemm_cntx_t* lcntx, dim_t* rs, dim_t* cs );
+
+void lpgemm_set_jit_kernel( void* kernel_fp, dim_t m_index, dim_t n_index );
+
+void* lpgemm_get_jit_kernel( dim_t m_index, dim_t n_index );
 
 void lpgemm_mod_block_size_s16
      (

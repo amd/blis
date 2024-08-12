@@ -4,19 +4,19 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2022 - 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2022 - 2024, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
    met:
-	- Redistributions of source code must retain the above copyright
-	  notice, this list of conditions and the following disclaimer.
-	- Redistributions in binary form must reproduce the above copyright
-	  notice, this list of conditions and the following disclaimer in the
-	  documentation and/or other materials provided with the distribution.
-	- Neither the name(s) of the copyright holder(s) nor the names of its
-	  contributors may be used to endorse or promote products derived
-	  from this software without specific prior written permission.
+    - Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+    - Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
+      documentation and/or other materials provided with the distribution.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -36,6 +36,7 @@
 #define LPGEMM_S16_KERN_MACROS_H
 
 #include "../gelu_avx2.h"
+#include "../silu_avx2.h"
 #include "../math_utils_avx2.h"
 
 #define S8_MIN  (-128)
@@ -129,7 +130,7 @@
 
 #define U8_S16_BETA_NLT16_MEMCP_UTIL(buf_,m_ind,bytes) \
 	US8_S16_BETA_NLT16_MEMCP_HELPER(buf_,m_ind,bytes,uint8_t) \
- 
+
 // Downscale macro
 #define CVT_MULRND_CVT16(reg, scale0, scale1, zero_point_0) \
  \
@@ -349,5 +350,133 @@
 #define CLIP_S16_AVX2(reg, min, max) \
 \
 	reg = _mm256_min_epi16( _mm256_max_epi16( reg, min ), max ); \
+
+// Matrix Add post-ops helper macros
+#define S16_MATRIX_ADD_1COL(scr0,m_ind) \
+	c_int16_ ## m_ind ## p0 = _mm256_add_epi16( scr0, c_int16_ ## m_ind ## p0 ); \
+
+#define S16_MATRIX_ADD_2COL(scr0,scr1,m_ind) \
+	c_int16_ ## m_ind ## p0 = _mm256_add_epi16( scr0, c_int16_ ## m_ind ## p0 ); \
+	c_int16_ ## m_ind ## p1 = _mm256_add_epi16( scr1, c_int16_ ## m_ind ## p1 ); \
+
+#define S8_S16_MATRIX_ADD_LOAD(scr,m_ind,n_ind) \
+	scr = _mm256_cvtepi8_epi16 \
+			( \
+			  _mm_loadu_si128 \
+			  ( \
+				( __m128i const* ) \
+				( matptr + ( ( post_ops_attr.post_op_c_i + m_ind ) * ldm ) + \
+				post_ops_attr.post_op_c_j + ( n_ind * 16 ) ) \
+			  ) \
+			); \
+
+#define S8_S16_MATRIX_ADD_1COL_PAR(buf,scr0,m_ind,n_rem,OTYPE) \
+	memcpy \
+	( \
+	  ( OTYPE* )buf, \
+	  matptr + ( ( post_ops_attr.post_op_c_i + m_ind ) * ldm ) + \
+	  post_ops_attr.post_op_c_j + ( 0 * 16 ), \
+	  ( n_rem ) * sizeof(OTYPE) \
+	); \
+	scr0 = _mm256_cvtepi8_epi16 \
+			( \
+			  _mm_loadu_si128( ( __m128i const* )buf ) \
+			); \
+	S16_MATRIX_ADD_1COL(scr0,m_ind); \
+
+#define S8_S16_MATRIX_ADD_1COL(scr0,m_ind) \
+	S8_S16_MATRIX_ADD_LOAD(scr0,m_ind,0); \
+	S16_MATRIX_ADD_1COL(scr0,m_ind); \
+
+#define S8_S16_MATRIX_ADD_2COL(scr0,scr1,m_ind) \
+	S8_S16_MATRIX_ADD_LOAD(scr0,m_ind,0); \
+	S8_S16_MATRIX_ADD_LOAD(scr1,m_ind,1); \
+	S16_MATRIX_ADD_2COL(scr0,scr1,m_ind); \
+
+#define U8_S16_MATRIX_ADD_LOAD(scr,m_ind,n_ind) \
+	scr = _mm256_cvtepu8_epi16 \
+			( \
+			  _mm_loadu_si128 \
+			  ( \
+				( __m128i const* ) \
+				( matptr + ( ( post_ops_attr.post_op_c_i + m_ind ) * ldm ) + \
+				post_ops_attr.post_op_c_j + ( n_ind * 16 ) ) \
+			  ) \
+			); \
+
+#define U8_S16_MATRIX_ADD_1COL_PAR(buf,scr0,m_ind,n_rem,OTYPE) \
+	memcpy \
+	( \
+	  ( OTYPE* )buf, \
+	  matptr + ( ( post_ops_attr.post_op_c_i + m_ind ) * ldm ) + \
+	  post_ops_attr.post_op_c_j + ( 0 * 16 ), \
+	  ( n_rem ) * sizeof(OTYPE) \
+	); \
+	scr0 = _mm256_cvtepu8_epi16 \
+			( \
+			  _mm_loadu_si128( ( __m128i const* )buf ) \
+			); \
+	S16_MATRIX_ADD_1COL(scr0,m_ind); \
+
+#define U8_S16_MATRIX_ADD_1COL(scr0,m_ind) \
+	U8_S16_MATRIX_ADD_LOAD(scr0,m_ind,0); \
+	S16_MATRIX_ADD_1COL(scr0,m_ind); \
+
+#define U8_S16_MATRIX_ADD_2COL(scr0,scr1,m_ind) \
+	U8_S16_MATRIX_ADD_LOAD(scr0,m_ind,0); \
+	U8_S16_MATRIX_ADD_LOAD(scr1,m_ind,1); \
+	S16_MATRIX_ADD_2COL(scr0,scr1,m_ind); \
+
+#define S16_S16_MATRIX_ADD_LOAD(scr,m_ind,n_ind) \
+	scr = _mm256_loadu_si256 \
+			( \
+			  (__m256i const *) \
+			  ( matptr + ( ( post_ops_attr.post_op_c_i + m_ind ) * ldm ) + \
+			  post_ops_attr.post_op_c_j + ( n_ind * 16 ) ) \
+			); \
+
+#define S16_S16_MATRIX_ADD_1COL_PAR(buf,scr0,m_ind,n_rem,OTYPE) \
+	memcpy \
+	( \
+	  ( OTYPE* )buf, \
+	  matptr + ( ( post_ops_attr.post_op_c_i + m_ind ) * ldm ) + \
+	  post_ops_attr.post_op_c_j + ( 0 * 16 ), \
+	  ( n_rem ) * sizeof(OTYPE) \
+	); \
+	scr0 = _mm256_loadu_si256( ( __m256i const* )buf ); \
+	S16_MATRIX_ADD_1COL(scr0,m_ind); \
+
+#define S16_S16_MATRIX_ADD_1COL(scr0,m_ind) \
+	S16_S16_MATRIX_ADD_LOAD(scr0,m_ind,0); \
+	S16_MATRIX_ADD_1COL(scr0,m_ind); \
+
+#define S16_S16_MATRIX_ADD_2COL(scr0,scr1,m_ind) \
+	S16_S16_MATRIX_ADD_LOAD(scr0,m_ind,0); \
+	S16_S16_MATRIX_ADD_LOAD(scr1,m_ind,1); \
+	S16_MATRIX_ADD_2COL(scr0,scr1,m_ind); \
+
+// SiLU utility macros. al1, al2 register expected to contain floats.
+#define SWISH_S16_AVX2(in_reg, al, al_in, tmp_reg1, tmp_reg2, r, r2, z, dn, ex_out) \
+\
+	tmp_reg1 = _mm256_cvtepi32_ps( _mm256_cvtepi16_epi32( \
+							_mm256_extractf128_si256( in_reg, 0 ) ) ); \
+	tmp_reg2 = _mm256_cvtepi32_ps( _mm256_cvtepi16_epi32( \
+							_mm256_extractf128_si256( in_reg, 1 ) ) ); \
+\
+	SWISH_F32_AVX2_DEF(tmp_reg1, al, al_in, r, r2, z, dn, ex_out); \
+\
+	SWISH_F32_AVX2_DEF(tmp_reg2, al, al_in, r, r2, z, dn, ex_out); \
+\
+	in_reg = _mm256_packs_epi32(_mm256_cvtps_epi32(tmp_reg1), _mm256_cvtps_epi32(tmp_reg2));\
+	in_reg = _mm256_permute4x64_epi64(in_reg, 0XD8);\
+
+
+//Zero-out the given YMM accumulator registers
+#define ZERO_ACC_YMM_4_REG(ymm0,ymm1,ymm2,ymm3) \
+	ymm0 = _mm256_setzero_si256 (); \
+	ymm1 = _mm256_setzero_si256 (); \
+	ymm2 = _mm256_setzero_si256 (); \
+	ymm3 = _mm256_setzero_si256 ();
+
 
 #endif //LPGEMM_S16_KERN_MACROS_H

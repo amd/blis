@@ -4,19 +4,19 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2024, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
    met:
-	- Redistributions of source code must retain the above copyright
-	  notice, this list of conditions and the following disclaimer.
-	- Redistributions in binary form must reproduce the above copyright
-	  notice, this list of conditions and the following disclaimer in the
-	  documentation and/or other materials provided with the distribution.
-	- Neither the name(s) of the copyright holder(s) nor the names of its
-	  contributors may be used to endorse or promote products derived
-	  from this software without specific prior written permission.
+    - Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+    - Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
+      documentation and/or other materials provided with the distribution.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -68,18 +68,33 @@ AOCL_GEMM_GET_REORDER_BUF_SIZE(s8s8s16os16)
 		return 0; // A reorder not supported.
 	}
 
-	// Extra space since packing does width in multiples of 16. The vpmaddubsw
-	// instruction can be used as long as atleast one ymm register can be fully
-	// loaded; and since k_dim needs to be at least 2, having n_dim atleast 16
-	// should give 2x16=32 elements, enough for 1 ymm register.The padding is
-	// not rounded to NR (=16), since that would result in memory wastage.
-	dim_t n_reorder = make_multiple_of_n(n, 16);
 
-	// Extra space since packing does length in multiples of 2.
-	dim_t k_reorder = make_multiple_of_n(k, 2);
+	dim_t n_reorder;
+	if( n == 1 )
+	{
+		n_reorder = 1;
+	}
+	else
+	{
+		n_reorder = make_multiple_of_n( n, 16 );
 
-	// Extra memory of n_reorder * sizeof( int16_t ) to store sum of every column of B matrix buffer
-    siz_t size_req = sizeof(int8_t) * k_reorder * n_reorder + ( n_reorder * sizeof( int16_t ));
+	}
+
+	// Extra space since packing does length in multiples of 4.
+	dim_t k_reorder;
+	if( n == 1 )
+	{
+		k_reorder = k;
+	}
+	else
+	{
+		k_reorder = make_multiple_of_n( k, 4 );
+	}
+
+	// Extra memory of n_reorder * sizeof( int16_t )
+	// to store sum of every column of B matrix buffer
+    siz_t size_req = sizeof(int8_t) * k_reorder * n_reorder
+	                 + ( n_reorder * sizeof( int16_t ));
 
 	return size_req;
 }
@@ -92,6 +107,16 @@ AOCL_GEMM_REORDER(int8_t,s8s8s16os16)
 		return; // Error.
 	}
 
+	trans_t blis_trans;
+	/* Map BLAS chars to their corresponding BLIS enumerated type value. */
+	bli_param_map_netlib_to_blis_trans(trans, &blis_trans);
+
+	if( bli_is_trans( blis_trans ) )
+	{
+		bli_print_msg(" Transpose of matrix is not supported in "
+		                     "s8s8s16 gemm.", __FILE__, __LINE__ );
+		return; // Error.
+	}
 	// Check if AVX2 ISA is supported, lpgemm s8s8s16os16 matmul only works with it.
 	if ( bli_cpuid_is_avx2fma3_supported() == FALSE )
 	{
@@ -112,6 +137,22 @@ AOCL_GEMM_REORDER(int8_t,s8s8s16os16)
 	if (input_mat_type == A_MATRIX)
 	{
 		return; // A reorder not supported.
+	}
+
+	if( n == 1 )
+	{
+		int16_t* pack_b_column_sum = ( int16_t* ) ( reorder_buf_addr +
+		                               ( sizeof( int8_t ) * n * k ));
+
+		*pack_b_column_sum =  0;
+
+		for( dim_t k0 = 0; k0 < k; k0++ )
+		{
+			reorder_buf_addr[k0] = input_buf_addr[ k0 * ldb ];
+			*pack_b_column_sum += reorder_buf_addr[k0];
+		}
+		*pack_b_column_sum *= 128;
+		return;
 	}
 
 	// Initialize a local runtime with global settings if necessary. Note
