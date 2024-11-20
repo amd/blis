@@ -41,4 +41,3 @@ Here are the steps to follow to create a new release (version) of BLIS:
    $ git push --tag
 
 10. Send finalized announcement to blis-devel.
-
