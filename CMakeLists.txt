@@ -1336,3 +1336,4 @@ add_custom_target(check
 add_subdirectory(bench EXCLUDE_FROM_ALL)
 
 add_subdirectory(test EXCLUDE_FROM_ALL)
+
