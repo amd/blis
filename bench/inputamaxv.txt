@@ -8,6 +8,7 @@ idamax_:183: D 200 1
 idamax_:183: D 300 350
 idamax_:183: D 400 1
 idamax_:183: D 500 1
+idamax_:183: D 500 100
 icamax_:183: C 100 1
 icamax_:183: C 200 10
 icamax_:183: C 300 1
