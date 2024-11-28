@@ -18,3 +18,4 @@ izamax_:183: Z 200 1
 izamax_:183: Z 300 100
 izamax_:183: Z 400 1
 izamax_:183: Z 500 1
+izamax_:183: Z 500 2
