@@ -17,6 +17,7 @@ import os
 import shutil
 import subprocess
 import sys
+import locale
 
 
 def create_folder(path):
@@ -63,18 +64,18 @@ def execute_and_check(cmd):
                             stderr=subprocess.PIPE)
     output, err = proc.communicate()
 
+    enc = locale.getpreferredencoding()
     if not proc.returncode:
         print('********************************************************')
         print('Execution of command : {} - was successful'.format(cmd))
-        print('command {} output: {}'.format(cmd,
-                                             output.decode('ASCII')))
+        print('command {} output: {}'.format(cmd,output.decode(enc)))
         print('********************************************************')
-        return output.decode('ASCII')
+        return output.decode(enc)
     else:
         print('########################################################')
         print('Execution of command : {} - was failed'.format(cmd))
         print('command {} output: {}\n{}\n'.format(cmd, output.decode(
-            'ASCII'), err.decode('ASCII')))
+            enc), err.decode(enc)))
         exit(1)
 
 
