@@ -32,7 +32,7 @@
 
 ]=]
 
-cmake_minimum_required(VERSION 3.22.0)
+cmake_minimum_required(VERSION 3.26.0)
 if(WIN32)
     project(AOCL-LibBlis LANGUAGES C CXX)
 else()
