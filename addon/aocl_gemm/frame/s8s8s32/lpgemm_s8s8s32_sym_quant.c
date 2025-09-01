@@ -346,6 +346,7 @@ LPGEMV2(int8_t,int8_t,int32_t,s8s8s32o32_sym_quant)
 // B should always be packed.
 LPGEMM_5LOOP2(int8_t,int8_t,int32_t,s8s8s32o32_sym_quant)
 {
+#ifdef BLIS_KERNELS_ZEN4
 	dim_t NC = lcntx->blksz.NC;
 	dim_t KC = lcntx->blksz.KC;
 	dim_t MC = lcntx->blksz.MC;
@@ -367,7 +368,6 @@ LPGEMM_5LOOP2(int8_t,int8_t,int32_t,s8s8s32o32_sym_quant)
 		return;
 	}
 
-#ifdef BLIS_KERNELS_ZEN4
     // Invoke gemv kernels for m = 1 or n = 1.
 	if ( ( ( m == 1 ) || ( n == 1 ) ) && ( mtag_b == REORDERED) )
 	{
@@ -397,8 +397,6 @@ LPGEMM_5LOOP2(int8_t,int8_t,int32_t,s8s8s32o32_sym_quant)
 
 		return;
 	}
-
-#endif
 
 	// Strides are updated based on matrix packing/reordering.
 	const int8_t* a_use = NULL;
@@ -901,4 +899,5 @@ LPGEMM_5LOOP2(int8_t,int8_t,int32_t,s8s8s32o32_sym_quant)
 			bli_pba_release( rntm, &mem_scale_c );
 		}
 	}
+#endif
 }
