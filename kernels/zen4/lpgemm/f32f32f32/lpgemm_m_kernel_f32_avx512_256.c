@@ -793,16 +793,16 @@ POST_OPS_MATRIX_ADD_6x32F:
                 {
                     scl_fctr1 =
                     _mm256_loadu_ps( ( float* )post_ops_list_temp->scale_factor +
-                        post_ops_attr.post_op_c_j + ( 0 * 16 ) );
+                        post_ops_attr.post_op_c_j + ( 0 * 8 ) );
                     scl_fctr2 =
                     _mm256_loadu_ps( ( float* )post_ops_list_temp->scale_factor +
-                        post_ops_attr.post_op_c_j + ( 1 * 16 ) );
+                        post_ops_attr.post_op_c_j + ( 1 * 8 ) );
                     scl_fctr3 =
                     _mm256_loadu_ps( ( float* )post_ops_list_temp->scale_factor +
-                        post_ops_attr.post_op_c_j + ( 2 * 16 ) );
+                        post_ops_attr.post_op_c_j + ( 2 * 8 ) );
                     scl_fctr4 =
                     _mm256_loadu_ps( ( float* )post_ops_list_temp->scale_factor +
-                        post_ops_attr.post_op_c_j + ( 3 * 16 ) );
+                        post_ops_attr.post_op_c_j + ( 3 * 8 ) );
                 }
                 else
                 {
@@ -963,16 +963,16 @@ POST_OPS_MATRIX_MUL_6x32F:
                 {
                     scl_fctr1 =
                     _mm256_loadu_ps( ( float* )post_ops_list_temp->scale_factor +
-                        post_ops_attr.post_op_c_j + ( 0 * 16 ) );
+                        post_ops_attr.post_op_c_j + ( 0 * 8 ) );
                     scl_fctr2 =
                     _mm256_loadu_ps( ( float* )post_ops_list_temp->scale_factor +
-                        post_ops_attr.post_op_c_j + ( 1 * 16 ) );
+                        post_ops_attr.post_op_c_j + ( 1 * 8 ) );
                     scl_fctr3 =
                     _mm256_loadu_ps( ( float* )post_ops_list_temp->scale_factor +
-                        post_ops_attr.post_op_c_j + ( 2 * 16 ) );
+                        post_ops_attr.post_op_c_j + ( 2 * 8 ) );
                     scl_fctr4 =
                     _mm256_loadu_ps( ( float* )post_ops_list_temp->scale_factor +
-                        post_ops_attr.post_op_c_j + ( 3 * 16 ) );
+                        post_ops_attr.post_op_c_j + ( 3 * 8 ) );
                 }
                 else
                 {
