@@ -484,6 +484,7 @@ err_t bli_dgemm_tiny
 {
     // Query the architecture ID
     arch_t arch_id = bli_arch_query_id();
+    bool is_mt = bli_thread_get_is_parallel();
     {
         // Pick the kernel based on the architecture ID
         switch (arch_id)
@@ -496,7 +497,8 @@ err_t bli_dgemm_tiny
               ((m + k-n) < 1500) && ((n + k-m) < 1500) ) ||
               ((n <= 100) && (k <=100)))))
               {
-                  if(bli_dgemm_single_threaded(m, n, k, 24/*MR*/, 8/*NR*/, 60/*Core's Gflops*/, 15/*Threading_overhead*/) == true)
+                  if( (is_mt == FALSE) ||
+                  ( bli_dgemm_single_threaded(m, n, k, 24/*MR*/, 8/*NR*/, 60/*Core's Gflops*/, 15/*Threading_overhead*/) == TRUE ) )
                   {
                       /* single threaded execution */
                       return bli_dgemm_tiny_zen4_24x8
@@ -522,7 +524,7 @@ err_t bli_dgemm_tiny
           case BLIS_ARCH_ZEN:
           case BLIS_ARCH_ZEN2:
           case BLIS_ARCH_ZEN3:
-              if( FALSE == bli_thread_get_is_parallel() )
+              if( is_mt == FALSE )
               {
                   if( ( (m <= 8)  || ( (m <= 1000) && (n <= 24) && (k >= 4) ) ) && (k <= 1500) )
                   {

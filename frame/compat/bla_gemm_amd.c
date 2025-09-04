@@ -819,58 +819,63 @@ void dgemm_blis_impl
 
     /* Boolean to track the entry to small path */
     bool entry_to_small = false;
+    /* AVX512 GEMM tiny path is performant enough to handle small skinny inputs on ZEN4/5 */
+    /* AVX2 gemm_small path is invoked on ZEN/2/3 only */
+    arch_t arch_id = bli_arch_query_id();
 
-    if ( m0 == n0 )
+    if( arch_id == BLIS_ARCH_ZEN3 || arch_id == BLIS_ARCH_ZEN2 || arch_id == BLIS_ARCH_ZEN )
     {
-        if ( (m0 < 400) && (k0 < 1000) )
-            entry_to_small = true;
-    }
-    else
-    {
-        if ( (n0 <= 100) && (k0 <=100) )
-            entry_to_small = true;
-        else if ( ((m0 + n0 - k0) < 1500) &&
-                  ((m0 + k0 - n0) < 1500) &&
-                  ((n0 + k0 - m0) < 1500) )
-            entry_to_small = true;
-    }
-
-    if ( entry_to_small )
-    {
-        err_t small_status = BLIS_FAILURE;
-        if (bli_is_notrans(blis_transa))
+        if ( m0 == n0 )
         {
-            small_status = bli_dgemm_small( &alphao,
-                                            &ao,
-                                            &bo,
-                                            &betao,
-                                            &co,
-                                            NULL, //cntx,
-                                            NULL
-                                          );
+            if ( (m0 < 400) && (k0 < 1000) )
+                entry_to_small = true;
         }
         else
         {
-            small_status = bli_dgemm_small_At( &alphao,
-                                               &ao,
-                                               &bo,
-                                               &betao,
-                                               &co,
-                                               NULL, //cntx,
-                                               NULL
-                                             );
+            if ( (n0 <= 100) && (k0 <=100) )
+                entry_to_small = true;
+            else if ( ((m0 + n0 - k0) < 1500) &&
+                    ((m0 + k0 - n0) < 1500) &&
+                    ((n0 + k0 - m0) < 1500) )
+                entry_to_small = true;
         }
 
-        if ( small_status == BLIS_SUCCESS )
+        if ( entry_to_small )
         {
-            AOCL_DTL_LOG_GEMM_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(d), *m, *n, *k);
-            AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
-            /* Finalize BLIS. */
-            bli_finalize_auto();
-            return;
+            err_t small_status = BLIS_FAILURE;
+            if (bli_is_notrans(blis_transa))
+            {
+                small_status = bli_dgemm_small( &alphao,
+                                                &ao,
+                                                &bo,
+                                                &betao,
+                                                &co,
+                                                NULL, //cntx,
+                                                NULL
+                                            );
+            }
+            else
+            {
+                small_status = bli_dgemm_small_At( &alphao,
+                                                &ao,
+                                                &bo,
+                                                &betao,
+                                                &co,
+                                                NULL, //cntx,
+                                                NULL
+                                                );
+            }
+
+            if ( small_status == BLIS_SUCCESS )
+            {
+                AOCL_DTL_LOG_GEMM_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(d), *m, *n, *k);
+                AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+                /* Finalize BLIS. */
+                bli_finalize_auto();
+                return;
+            }
         }
     }
-
 #endif // End of BLIS_ENABLE_SMALL_MATRIX
 
 #ifdef BLIS_ENABLE_SUP_HANDLING
