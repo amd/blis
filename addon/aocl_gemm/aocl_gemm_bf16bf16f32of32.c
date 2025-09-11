@@ -131,7 +131,7 @@ AOCL_GEMM_MATMUL(bfloat16,bfloat16,float,float,bf16bf16f32of32)
 	{
 		bli_print_msg(" Could not generate bf16bf16f32of32 "
 			" kernels using JIT.", __FILE__, __LINE__ );
-			return;
+		goto err_hndl;
 	}
 #endif
 
@@ -256,7 +256,7 @@ AOCL_GEMM_MATMUL(bfloat16,bfloat16,float,float,bf16bf16f32of32)
 		  lcntx_g,
 		  post_op_list, F32
 		);
-		return;
+		goto err_hndl;
 	}
 #endif
 

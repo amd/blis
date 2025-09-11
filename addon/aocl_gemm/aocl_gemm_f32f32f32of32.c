@@ -338,7 +338,7 @@ AOCL_GEMM_MATMUL(float,float,float,float,f32f32f32of32)
 			  post_op_list, F32
 			);
 
-			return;
+			goto err_hndl;
 		}
 	}
 

@@ -76,6 +76,14 @@ LPGEMV_TINY(bfloat16, bfloat16, float, bf16bf16f32of32)
 
 	lpgemm_post_op_attr post_ops_attr;
 	post_ops_attr.c_stor_type = c_downscale;
+    post_ops_attr.rs_c_downscale    = rs_c;
+    post_ops_attr.cs_c_downscale    = cs_c;
+    post_ops_attr.is_first_k        = TRUE;
+    post_ops_attr.is_last_k         = TRUE;
+    post_ops_attr.b_sum_offset      = 0;
+    post_ops_attr.b_col_sum_vec     = NULL;
+    post_ops_attr.b_col_sum_vec_s16 = NULL;
+
 	if (c_downscale < F32)
 	{
 		post_ops_attr.buf_downscale = c;
@@ -210,6 +218,12 @@ LPGEMM_TINY(bfloat16,bfloat16,float,bf16bf16f32of32)
 
 	lpgemm_post_op_attr post_ops_attr;
 	post_ops_attr.c_stor_type = c_downscale;
+    post_ops_attr.rs_c_downscale    = rs_c;
+    post_ops_attr.cs_c_downscale    = cs_c;
+    post_ops_attr.b_sum_offset      = 0;
+    post_ops_attr.b_col_sum_vec     = NULL;
+    post_ops_attr.b_col_sum_vec_s16 = NULL;
+
 	if ( c_downscale < F32 )
 	{
 		post_ops_attr.buf_downscale = c;

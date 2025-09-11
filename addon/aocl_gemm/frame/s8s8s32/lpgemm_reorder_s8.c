@@ -137,8 +137,8 @@ void reorderb_nr64_s8s8s32o32
 
 	dim_t rs_b = b->rs;
 	dim_t cs_b = b->cs;
-	dim_t rs_b_reorder;
-	dim_t cs_b_reorder;
+	dim_t rs_b_reorder = rs_b;
+	dim_t cs_b_reorder = cs_b;
 
 	dim_t n = b->width;
 	dim_t k = b->length;
@@ -287,8 +287,8 @@ void reorderb_nr64_s8s8s32o32_sym_quant
 
 	dim_t rs_b = b->rs;
 	dim_t cs_b = b->cs;
-	dim_t rs_b_reorder;
-	dim_t cs_b_reorder;
+	dim_t rs_b_reorder = rs_b;
+	dim_t cs_b_reorder = cs_b;
 
 	dim_t n = b->width;
 	dim_t k = b->length;
@@ -471,8 +471,8 @@ void reordera_mr6_s8s8s32o32
 	dim_t KC = lcntx->blksz.KC;
 
 	dim_t rs_a = a->rs;
-	dim_t rs_a_reorder;
-	dim_t cs_a_reorder;
+	dim_t rs_a_reorder = rs_a;
+	dim_t cs_a_reorder = a->cs;
 
 	dim_t k = a->width;
 	dim_t m = a->length;

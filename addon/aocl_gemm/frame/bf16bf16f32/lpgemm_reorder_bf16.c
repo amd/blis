@@ -57,8 +57,8 @@ void reorderb_nr64_bf16bf16f32of32_reference
 	dim_t n = b->width;
 	dim_t k = b->length;
 
-	dim_t rs_b_reorder;
-	dim_t cs_b_reorder;
+	dim_t rs_b_reorder = rs_b;
+	dim_t cs_b_reorder = cs_b;
 
 	// k needs to be a multiple of 2 so that it can be used with dpbf
 	// instruction. Padding is added in cases this condition is not
@@ -273,8 +273,8 @@ void reorderb_nr64_bf16bf16f32of32
 	dim_t n = b->width;
 	dim_t k = b->length;
 
-	dim_t rs_b_reorder;
-	dim_t cs_b_reorder;
+	dim_t rs_b_reorder = rs_b;
+	dim_t cs_b_reorder = cs_b;
 
 	// k needs to be a multiple of 2 so that it can be used with dpbf
 	// instruction. Padding is added in cases this condition is not
@@ -490,8 +490,8 @@ void reorderb_nr64_bf16s4f32of32
 	dim_t k = b->length;
 	AOCL_MATRIX_TYPE mat_type = b->mat_type;
 
-	dim_t rs_b_reorder;
-	dim_t cs_b_reorder;
+	dim_t rs_b_reorder = rs_b;
+	dim_t cs_b_reorder = cs_b;
 
 	// k needs to be a multiple of 2 so that it can be used with dpbf
 	// instruction. Padding is added in cases this condition is not
@@ -619,8 +619,8 @@ void reorderb_mxp_nr64_f32obf16
 	dim_t n = b->width;
 	dim_t k = b->length;
 
-	dim_t rs_b_reorder;
-	dim_t cs_b_reorder;
+	dim_t rs_b_reorder = rs_b;
+	dim_t cs_b_reorder = cs_b;
 
 	// k needs to be a multiple of 2 so that it can be used with dpbf
 	// instruction. Padding is added in cases this condition is not

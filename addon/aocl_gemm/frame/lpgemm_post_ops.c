@@ -184,28 +184,33 @@ err_t lpgemm_translate_to_group_postops_list
 		AOCL_STORAGE_TYPE tmp_zp_stor_type = NONE; //get_stor_type( ( post_op_unparsed->a_zp )->zero_point_type );
 
 		// At this point we are sure that sf and zp types of both matrices match.
-		AOCL_STORAGE_TYPE tmp_sf_stor_type = get_stor_type( ( post_op_unparsed->a_scl )->scale_factor_type );
+		AOCL_STORAGE_TYPE tmp_sf_stor_type = NONE;
+		if ( post_op_unparsed->a_scl != NULL )
+		{
+			tmp_sf_stor_type =
+				get_stor_type( ( post_op_unparsed->a_scl )->scale_factor_type );
+		}
 
 		lpgemm_set_group_post_ops_node_params
 		(
 			post_op_list,
 			group_size,
 			// A zero-point
-			post_op_unparsed->a_zp == NULL ? NULL : ( post_op_unparsed->a_zp )->zero_point,
+			( post_op_unparsed->a_zp == NULL ) ? NULL : ( post_op_unparsed->a_zp )->zero_point,
 			// A scale factor
-			( post_op_unparsed->a_scl )->scale_factor,
+			( post_op_unparsed->a_scl == NULL ) ? NULL : ( post_op_unparsed->a_scl )->scale_factor,
 			// A zero-point length
-			post_op_unparsed->a_zp == NULL ? 0 : ( post_op_unparsed->a_zp )->zero_point_len,
+			( post_op_unparsed->a_zp == NULL ) ? 0 : ( post_op_unparsed->a_zp )->zero_point_len,
 			// A scale factor length
-			( post_op_unparsed->a_scl )->scale_factor_len,
+			( post_op_unparsed->a_scl == NULL ) ? 0 : ( post_op_unparsed->a_scl )->scale_factor_len,
 			// B zero-point
-			post_op_unparsed->b_zp == NULL ? NULL : ( post_op_unparsed->b_zp )->zero_point,
+			( post_op_unparsed->b_zp == NULL ) ? NULL : ( post_op_unparsed->b_zp )->zero_point,
 			// B scale factor
-			( post_op_unparsed->b_scl )->scale_factor,
+			( post_op_unparsed->b_scl == NULL ) ? NULL : ( post_op_unparsed->b_scl )->scale_factor,
 			// B zero-point length
-			post_op_unparsed->b_zp == NULL ? 0 : ( post_op_unparsed->b_zp )->zero_point_len,
+			( post_op_unparsed->b_zp == NULL ) ? 0 : ( post_op_unparsed->b_zp )->zero_point_len,
 			// B scale factor length
-			( post_op_unparsed->b_scl )->scale_factor_len,
+			( post_op_unparsed->b_scl == NULL ) ? 0 : ( post_op_unparsed->b_scl )->scale_factor_len,
 			tmp_sf_stor_type,
 			tmp_zp_stor_type
 		);
@@ -282,11 +287,12 @@ err_t lpgemm_translate_to_pre_ops_list
 		(
 			pre_op_list,
 			group_size,
-			pre_op_unparsed->b_zp==NULL? NULL: (pre_op_unparsed->b_zp)->zero_point,
-			(pre_op_unparsed->b_scl)->scale_factor,
-			pre_op_unparsed->b_zp==NULL? 0: (pre_op_unparsed->b_zp)->zero_point_len,
-			(pre_op_unparsed->b_scl)->scale_factor_len,
-			(pre_op_unparsed->b_scl)->scale_factor_type == AOCL_GEMM_BF16 ? BF16 : F32
+			(pre_op_unparsed->b_zp == NULL) ? NULL: (pre_op_unparsed->b_zp)->zero_point,
+			(pre_op_unparsed->b_scl == NULL) ? NULL : (pre_op_unparsed->b_scl)->scale_factor,
+			(pre_op_unparsed->b_zp == NULL) ? 0: (pre_op_unparsed->b_zp)->zero_point_len,
+			(pre_op_unparsed->b_scl == NULL) ? 0 : (pre_op_unparsed->b_scl)->scale_factor_len,
+			(pre_op_unparsed->b_scl == NULL) ? NULLTYPE :
+				(((pre_op_unparsed->b_scl)->scale_factor_type == AOCL_GEMM_BF16) ? BF16 : F32)
 		);
 
 		// Simulating linked link using an array.
