@@ -221,7 +221,9 @@ void PASTEF77S(ch,blasname) \
     diag_t  blis_diaga; \
     dim_t   m0, n0; \
     ftype   a_conj; \
+IF_BLIS_ENABLE_MNK1_MATRIX(\
     conj_t  conja = BLIS_NO_CONJUGATE ; \
+) /* End of IF_BLIS_ENABLE_MNK1_MATRIX */ \
 \
     /* Perform BLAS parameter checking. */ \
     PASTEBLACHK(blasname) \
@@ -528,7 +530,9 @@ void strsm_blis_impl
     trans_t blis_transa;
     diag_t  blis_diaga;
     dim_t   m0, n0;
-    conj_t  conja = BLIS_NO_CONJUGATE ;
+#ifdef BLIS_ENABLE_MNK1_MATRIX
+    conj_t  conja = BLIS_NO_CONJUGATE;
+#endif
 
     /* Perform BLAS parameter checking. */
     PASTEBLACHK(trsm)
@@ -877,7 +881,9 @@ void dtrsm_blis_impl
     trans_t blis_transa;
     diag_t  blis_diaga;
     dim_t   m0, n0;
-    conj_t  conja = BLIS_NO_CONJUGATE ;
+#ifdef BLIS_ENABLE_MNK1_MATRIX
+    conj_t  conja = BLIS_NO_CONJUGATE;
+#endif
 
     /* Perform BLAS parameter checking. */
     PASTEBLACHK(trsm)
@@ -1380,7 +1386,9 @@ void ztrsm_blis_impl
     trans_t blis_transa;
     diag_t  blis_diaga;
     dim_t   m0, n0;
+#ifdef BLIS_ENABLE_MNK1_MATRIX
     conj_t  conja = BLIS_NO_CONJUGATE;
+#endif
 
     /* Perform BLAS parameter checking. */
     PASTEBLACHK(trsm)
@@ -1922,7 +1930,9 @@ void ctrsm_blis_impl
     trans_t blis_transa;
     diag_t  blis_diaga;
     dim_t   m0, n0;
+#ifdef BLIS_ENABLE_MNK1_MATRIX
     conj_t  conja = BLIS_NO_CONJUGATE;
+#endif
 
     /* Perform BLAS parameter checking. */
     PASTEBLACHK(trsm)

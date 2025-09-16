@@ -28,8 +28,10 @@
  * pthread_once() is guaranteed to execute exactly once among all threads that
  * pass in this control object (until/unless the variable is reset).
  */
+#ifdef AOCL_DTL_INITIALIZE_ENABLE
 static bli_pthread_once_t dtl_once_init     = BLIS_PTHREAD_ONCE_INIT;
 static bli_pthread_once_t dtl_once_finalize = BLIS_PTHREAD_ONCE_INIT;
+#endif
 
 #if (AOCL_DTL_LOG_ENABLE || AOCL_DTL_DUMP_ENABLE)
 

@@ -1768,13 +1768,12 @@ void cgemm_blis_impl
 
 #ifdef BLIS_ENABLE_TINY_MATRIX
 
-    bool is_parallel = bli_thread_get_is_parallel(); // Check if parallel cgemm is invoked.
-
     // Tiny gemm dispatch
     // NOTE : The tiny gemm interface is intended to be built for zen4/zen5 configurations
     //        In case of fat-binary build, the optimizations will be used on zen4 and zen5
     //        machines.
 #if defined(BLIS_FAMILY_ZEN4) || defined(BLIS_FAMILY_ZEN5) || defined(BLIS_FAMILY_AMDZEN)
+    bool is_parallel = bli_thread_get_is_parallel(); // Check if parallel cgemm is invoked.
     err_t tiny_status = BLIS_FAILURE;
     tiny_status = bli_cgemm_tiny
                   (
