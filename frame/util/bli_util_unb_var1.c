@@ -322,8 +322,8 @@ void bli_cnormfv_unb_var1
     inc_t incx_buf = incx;
 
     // Querying the architecture ID to deploy the appropriate kernel
-    arch_t id = bli_arch_query_id();
-    switch ( id )
+    arch_t arch_id = bli_arch_query_id();
+    switch ( arch_id )
     {
         case BLIS_ARCH_ZEN5:
         case BLIS_ARCH_ZEN4:
@@ -460,8 +460,8 @@ void bli_znormfv_unb_var1
     dim_t simd_factor = 1;
 #endif
 
-    arch_t id = bli_arch_query_id();
-    switch ( id )
+    arch_t arch_id = bli_arch_query_id();
+    switch ( arch_id )
     {
         case BLIS_ARCH_ZEN5:
         case BLIS_ARCH_ZEN4:
@@ -547,7 +547,7 @@ void bli_znormfv_unb_var1
         #if defined( AOCL_DYNAMIC )
             aocl_znormfv_dynamic
             (
-                id,
+                arch_id,
                 n,
                 &nt_ideal
             );
@@ -913,8 +913,8 @@ void bli_snormfv_unb_var1
     inc_t incx_buf = incx;
 
     // Querying the architecture ID to deploy the appropriate kernel
-    arch_t id = bli_arch_query_id();
-    switch ( id )
+    arch_t arch_id = bli_arch_query_id();
+    switch ( arch_id )
     {
         case BLIS_ARCH_ZEN5:
         case BLIS_ARCH_ZEN4:
@@ -1058,8 +1058,8 @@ void bli_dnormfv_unb_var1
     dim_t nt_ideal = -1;
 #endif
 
-    arch_t id = bli_arch_query_id();
-    switch ( id )
+    arch_t arch_id = bli_arch_query_id();
+    switch ( arch_id )
     {
         case BLIS_ARCH_ZEN5:
 #if defined(BLIS_KERNELS_ZEN4)
@@ -1177,7 +1177,7 @@ void bli_dnormfv_unb_var1
         #if defined( AOCL_DYNAMIC )
             aocl_dnormfv_dynamic
             (
-                id,
+                arch_id,
                 n,
                 &nt_ideal
             );

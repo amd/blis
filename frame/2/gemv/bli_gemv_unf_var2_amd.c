@@ -271,7 +271,7 @@ void bli_dgemv_unf_var2 (
       the support of AVX512 or AVX2, if AVX512 - arch_id will be zen4
       or for AVX2 it will be zen3.
     */
-    arch_t id = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id();
 
     // b_fuse stores the fusing factor for AXPYF kernel.
     dim_t b_fuse;
@@ -280,12 +280,12 @@ void bli_dgemv_unf_var2 (
       Function pointer declaration for the functions
       that will be used by this API
     */
-    daxpyf_ker_ft   axpyf_kr_ptr;   // DAXPYF
-    dscal2v_ker_ft  scal2v_kr_ptr;  // DSCAL2V
-    dscalv_ker_ft   scalv_kr_ptr;   // DSCALV
-    dcopyv_ker_ft   copyv_kr_ptr;   // DCOPYV
+    daxpyf_ker_ft   axpyf_kr_ptr = NULL;   // DAXPYF
+    dscal2v_ker_ft  scal2v_kr_ptr = NULL;  // DSCAL2V
+    dscalv_ker_ft   scalv_kr_ptr = NULL;   // DSCALV
+    dcopyv_ker_ft   copyv_kr_ptr = NULL;   // DCOPYV
 
-    switch (id)
+    switch ( arch_id )
     {
         case BLIS_ARCH_ZEN5:
 #if defined(BLIS_KERNELS_ZEN4)
@@ -713,17 +713,17 @@ void bli_zgemv_unf_var2
   conja = bli_extract_conj(transa);
 
   // Query the architecture ID
-  arch_t id = bli_arch_query_id();
+  arch_t arch_id = bli_arch_query_id();
 
   /*
     Function pointer declaration for the functions
     that will be used by this API
   */
-  zaxpyf_ker_ft   axpyf_kr_ptr;  // ZAXPYF
-  zscal2v_ker_ft  scal2v_kr_ptr; // ZSCAL2V
-  zscalv_ker_ft   scalv_kr_ptr;  // ZSCALV
-  zcopyv_ker_ft   copyv_kr_ptr;  // ZCOPYV
-  zsetv_ker_ft    setv_kr_ptr;   // ZSETV
+  zaxpyf_ker_ft   axpyf_kr_ptr = NULL;  // ZAXPYF
+  zscal2v_ker_ft  scal2v_kr_ptr = NULL; // ZSCAL2V
+  zscalv_ker_ft   scalv_kr_ptr = NULL;  // ZSCALV
+  zcopyv_ker_ft   copyv_kr_ptr = NULL;  // ZCOPYV
+  zsetv_ker_ft    setv_kr_ptr = NULL;   // ZSETV
 
   /*
     Boolean to check if the y has been packed
@@ -731,7 +731,7 @@ void bli_zgemv_unf_var2
   */
   bool is_y_temp_buf_created = FALSE;
 
-  switch (id)
+  switch ( arch_id )
   {
     case BLIS_ARCH_ZEN5:
     case BLIS_ARCH_ZEN4:

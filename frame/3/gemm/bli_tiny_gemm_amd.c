@@ -487,7 +487,7 @@ err_t bli_dgemm_tiny
     bool is_mt = bli_thread_get_is_parallel();
     {
         // Pick the kernel based on the architecture ID
-        switch (arch_id)
+        switch ( arch_id )
         {
           case BLIS_ARCH_ZEN5:
           case BLIS_ARCH_ZEN4:

@@ -1,7 +1,7 @@
 /*===================================================================
  * File Name :  aoclflist.h
  *
- * Description : Linked list of open files assocaited with
+ * Description : Linked list of open files associated with
  *               each thread. This is used to log the deta
  *               to correct file as per the current thread id.
  *

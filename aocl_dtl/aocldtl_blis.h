@@ -1,7 +1,7 @@
 /*===================================================================
  * File Name :  aocldtl_blis.h
  *
- * Description : BLIS library specific debug helpes.
+ * Description : BLIS library specific debug helpers.
  *
  * Copyright (C) 2020 - 2025, Advanced Micro Devices, Inc. All rights reserved.
  *

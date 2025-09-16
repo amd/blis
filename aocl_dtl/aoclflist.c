@@ -1,7 +1,7 @@
 /*===================================================================
  * File Name :  aoclflist.c
  *
- * Description : Linked list of open files assocaited with
+ * Description : Linked list of open files associated with
  *               each thread. This is used to log the data
  *               to correct file as per the current thread id.
  *
@@ -190,7 +190,7 @@ void AOCL_FLIST_CloseAll(AOCL_FLIST_Node *plist)
 
     temp = plist;
 
-    /* if list is not iterate over all nodes and close the assocaited files*/
+    /* if list is not iterate over all nodes and close the associated files*/
     while (temp != NULL)
     {
         AOCL_FAL_Close(temp->fp);

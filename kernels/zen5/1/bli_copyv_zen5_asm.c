@@ -92,8 +92,8 @@ void bli_dcopyv_zen5_asm
     uint64_t n0 = (uint64_t)n;
 
     /* Function pointer declaration for the function
-	   that will be used by this API. */
-	dcopyv_ker_ft copyv_ker_ptr;    // DCOPYV kernel function pointer
+       that will be used by this API. */
+    dcopyv_ker_ft copyv_ker_ptr = NULL;    // DCOPYV kernel function pointer
 
     // Selecting the kernel based on the vector length
     if ( n0 <= KER_THRESHOLD )

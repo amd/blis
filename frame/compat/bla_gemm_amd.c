@@ -42,8 +42,8 @@
 
     #define GEMM_BLIS_IMPL(ch, blasname) \
         PASTEF77S(ch,blasname) ( transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc ); \
-        arch_t id = bli_arch_query_id(); \
-        if (id == BLIS_ARCH_ZEN5 || id == BLIS_ARCH_ZEN4) \
+        arch_t arch_id = bli_arch_query_id(); \
+        if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4) \
         { \
             bli_zero_zmm(); \
         } \
@@ -929,8 +929,8 @@ void dgemm_
 {
     dgemm_blis_impl(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
 #if defined(BLIS_KERNELS_ZEN4)
-    arch_t id = bli_arch_query_id();
-    if (id == BLIS_ARCH_ZEN5 || id == BLIS_ARCH_ZEN4)
+    arch_t arch_id = bli_arch_query_id();
+    if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
     {
         bli_zero_zmm();
     }
@@ -1352,7 +1352,7 @@ void zgemm_blis_impl
        current ZGEMM small path is based on the AVX2 ISA. The thresholds
        are subject to further tuning post introducing an AVX512 code-path
        for tiny/small sizes. */
-    switch( arch_id )
+    switch ( arch_id )
     {
     #if defined(BLIS_KERNELS_ZEN4)
         case BLIS_ARCH_ZEN5:
@@ -1491,8 +1491,8 @@ void zgemm_
 {
     zgemm_blis_impl(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
 #if defined(BLIS_KERNELS_ZEN4)
-    arch_t id = bli_arch_query_id();
-    if (id == BLIS_ARCH_ZEN5 || id == BLIS_ARCH_ZEN4)
+    arch_t arch_id = bli_arch_query_id();
+    if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
     {
         bli_zero_zmm();
     }
@@ -1887,8 +1887,8 @@ void cgemm_
 {
     cgemm_blis_impl(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
 #if defined(BLIS_KERNELS_ZEN4)
-    arch_t id = bli_arch_query_id();
-    if (id == BLIS_ARCH_ZEN5 || id == BLIS_ARCH_ZEN4)
+    arch_t arch_id = bli_arch_query_id();
+    if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
     {
         bli_zero_zmm();
     }
@@ -2058,8 +2058,8 @@ void dzgemm_
 {
     dzgemm_blis_impl( transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc );
 #if defined(BLIS_KERNELS_ZEN4)
-    arch_t id = bli_arch_query_id();
-    if (id == BLIS_ARCH_ZEN5 || id == BLIS_ARCH_ZEN4)
+    arch_t arch_id = bli_arch_query_id();
+    if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
     {
         bli_zero_zmm();
     }

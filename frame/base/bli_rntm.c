@@ -556,10 +556,10 @@ void bli_nthreads_optimum(
 		dim_t n = bli_obj_width(c);
 		dim_t k = bli_obj_width_after_trans(a);
 
-
 		// Query the architecture ID
-		arch_t id = bli_arch_query_id();
-		if(id == BLIS_ARCH_ZEN5 || id == BLIS_ARCH_ZEN4)
+		arch_t arch_id = bli_arch_query_id();
+
+		if(arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
 		{
 			if(n < m)
 			{
@@ -1209,8 +1209,9 @@ void bli_nthreads_optimum(
 		dim_t k = bli_obj_width_after_trans(a);
 
 		// Query the architecture ID
-		arch_t id = bli_arch_query_id();
-		if( id == BLIS_ARCH_ZEN5 || id == BLIS_ARCH_ZEN4 )
+		arch_t arch_id = bli_arch_query_id();
+
+		if( arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4 )
 		{
 			/*
 				The logic for ideal thread selection is as follows:
@@ -1641,10 +1642,10 @@ void bli_nthreads_optimum(
 		dim_t n = bli_obj_width(c);
 		dim_t k = bli_obj_width_after_trans(a);
 
-
 		// Query the architecture ID
-		arch_t id = bli_arch_query_id();
-		if( id == BLIS_ARCH_ZEN5 )
+		arch_t arch_id = bli_arch_query_id();
+
+		if( arch_id == BLIS_ARCH_ZEN5 )
 		{
 			/*
 				The logic for ideal thread selection is as follows:
@@ -1887,7 +1888,7 @@ void bli_nthreads_optimum(
 					n_threads_ideal = 256;
 			}
 		}
-		else if( id == BLIS_ARCH_ZEN4 )
+		else if( arch_id == BLIS_ARCH_ZEN4 )
 		{
 			// Set the kernel dimensions
 			dim_t MR = 12, NR = 4;
@@ -2253,8 +2254,10 @@ void bli_nthreads_optimum(
 		dim_t m = bli_obj_length(c);
 		dim_t n = bli_obj_width(c);
 
-		arch_t id = bli_arch_query_id();
-		if (id == BLIS_ARCH_ZEN5)
+		// Query the architecture ID
+		arch_t arch_id = bli_arch_query_id();
+
+		if (arch_id == BLIS_ARCH_ZEN5)
 		{
 			if ( (m < 58 && n < 138) || (m < 1020 && n < 12))
 				n_threads_ideal = 1;
@@ -2613,7 +2616,7 @@ BLIS_INLINE void aocl_dscalv_dynamic
 		Pick the AOCL dynamic logic based on the
 		architecture ID
 	*/
-	switch (arch_id)
+	switch ( arch_id )
 	{
 		case BLIS_ARCH_ZEN5:
 			if ( n_elem <= 63894 )
@@ -2717,7 +2720,7 @@ BLIS_INLINE void aocl_zdscalv_dynamic
 		Pick the AOCL dynamic logic based on the
 		architecture ID
 	*/
-	switch (arch_id)
+	switch ( arch_id )
 	{
 		case BLIS_ARCH_ZEN5:
 		case BLIS_ARCH_ZEN4:
@@ -2787,7 +2790,7 @@ BLIS_INLINE void aocl_daxpyv_dynamic
 		Pick the AOCL dynamic logic based on the
 		architecture ID
 	*/
-	switch (arch_id)
+	switch ( arch_id )
 	{
 		case BLIS_ARCH_ZEN5:
 
@@ -2898,7 +2901,7 @@ BLIS_INLINE void aocl_zaxpyv_dynamic
 		Pick the AOCL dynamic logic based on the
 		architecture ID
 	*/
-	switch (arch_id)
+	switch ( arch_id )
 	{
 		case BLIS_ARCH_ZEN5:
 
@@ -2996,7 +2999,7 @@ BLIS_INLINE void aocl_ddotv_dynamic
 		Pick the AOCL dynamic logic based on the
 		architecture ID
 	*/
-	switch (arch_id)
+	switch ( arch_id )
 	{
 		case BLIS_ARCH_ZEN5:
 		case BLIS_ARCH_ZEN4:
@@ -3044,7 +3047,7 @@ BLIS_INLINE void aocl_zdotv_dynamic
 		Pick the AOCL dynamic logic based on the
 		architecture ID
 	*/
-	switch (arch_id)
+	switch ( arch_id )
 	{
 		case BLIS_ARCH_ZEN5:
 		case BLIS_ARCH_ZEN4:
@@ -3115,7 +3118,7 @@ BLIS_INLINE void aocl_dcopyv_dynamic
 	// Pick the AOCL dynamic logic based on the
 	// architecture ID
 
-	switch (arch_id)
+	switch ( arch_id )
 	{
 		case BLIS_ARCH_ZEN5:
 
@@ -3210,7 +3213,7 @@ BLIS_INLINE void aocl_zcopyv_dynamic
 	// Pick the AOCL dynamic logic based on the
 	// architecture ID
 
-	switch (arch_id)
+	switch ( arch_id )
 	{
 		case BLIS_ARCH_ZEN5:
 		case BLIS_ARCH_ZEN4:
@@ -3435,7 +3438,7 @@ static void aocl_daxpyf_dynamic
 	// Pick the AOCL dynamic logic based on the
 	// architecture ID
 
-	switch (arch_id)
+	switch ( arch_id )
 	{
 		case BLIS_ARCH_ZEN5:
 		case BLIS_ARCH_ZEN4:

@@ -109,9 +109,9 @@ err_t bli_gemmsup
 #if defined(BLIS_FAMILY_ZEN5) || defined(BLIS_FAMILY_ZEN4) || defined(BLIS_FAMILY_AMDZEN) || defined(BLIS_FAMILY_X86_64)
 
     // Query the architecture ID
-    arch_t id = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id();
 
-    if(( id == BLIS_ARCH_ZEN5 ) || ( id == BLIS_ARCH_ZEN4 ))
+    if(( arch_id == BLIS_ARCH_ZEN5 ) || ( arch_id == BLIS_ARCH_ZEN4 ))
     {
         if(( bli_obj_dt(a) == BLIS_DOUBLE ) || ( bli_obj_dt(a) == BLIS_SCOMPLEX ))
         {

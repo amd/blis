@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2018 - 2025, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -522,10 +522,10 @@ cntx_t* bli_gks_query_nat_cntx( void )
 	// bli_arch_query_id().
 
 	// Query the architecture id.
-	arch_t id = bli_arch_query_id();
+	arch_t arch_id = bli_arch_query_id();
 
 	// Use the architecture id to look up a pointer to its context.
-	cntx_t* cntx = bli_gks_lookup_nat_cntx( id );
+	cntx_t* cntx = bli_gks_lookup_nat_cntx( arch_id );
 
 	return cntx;
 }
@@ -538,10 +538,10 @@ cntx_t* bli_gks_query_cntx_noinit( void )
 	// does not call bli_init_once().
 
 	// Query the architecture id.
-	arch_t id = bli_arch_query_id();
+	arch_t arch_id = bli_arch_query_id();
 
 	// Use the architecture id to look up a pointer to its context.
-	cntx_t* cntx = bli_gks_lookup_nat_cntx( id );
+	cntx_t* cntx = bli_gks_lookup_nat_cntx( arch_id );
 
 	return cntx;
 }
@@ -577,12 +577,12 @@ cntx_t* bli_gks_query_ind_cntx
 	// ensure thread safety and deterministic behavior.
 
 	// Query the architecture id.
-	arch_t id = bli_arch_query_id();
+	arch_t arch_id = bli_arch_query_id();
 
 	// Sanity check: verify that the arch_t id is valid.
 	if ( bli_error_checking_is_enabled() )
 	{
-		err_t e_val = bli_check_valid_arch_id( id );
+		err_t e_val = bli_check_valid_arch_id( arch_id );
 		bli_check_error_code( e_val );
 	}
 
@@ -592,7 +592,7 @@ cntx_t* bli_gks_query_ind_cntx
 
 	// Query the gks for the array of context pointers corresponding to the
 	// given architecture id.
-	cntx_t** restrict gks_id     = gks[ id ];
+	cntx_t** restrict gks_id     = gks[ arch_id ];
 	cntx_t*  restrict gks_id_nat = gks_id[ BLIS_NAT ];
 
 	// If for some reason the native context was requested, we can return
@@ -630,7 +630,7 @@ cntx_t* bli_gks_query_ind_cntx
 
 			// Use the architecture id to look up the function pointer to the
 			// context initialization function for induced methods.
-			ind_cntx_init_ft f = cntx_ind_init[ id ];
+			ind_cntx_init_ft f = cntx_ind_init[ arch_id ];
 
 			// Now we modify the context (so that it contains the proper values
 			// for its induced method) by calling the context initialization
@@ -658,18 +658,18 @@ void bli_gks_init_ref_cntx
     )
 {
 	// Query the architecture id.
-	arch_t id = bli_arch_query_id();
+	arch_t arch_id = bli_arch_query_id();
 
 	// Sanity check: verify that the arch_t id is valid.
 	if ( bli_error_checking_is_enabled() )
 	{
-		err_t e_val = bli_check_valid_arch_id( id );
+		err_t e_val = bli_check_valid_arch_id( arch_id );
 		bli_check_error_code( e_val );
 	}
 
 	// Obtain the function pointer to the context initialization function for
 	// reference kernels.
-	ref_cntx_init_ft f = cntx_ref_init[ id ];
+	ref_cntx_init_ft f = cntx_ref_init[ arch_id ];
 
 	// Initialize the caller's context with reference kernels and related values.
 	f( cntx );
@@ -779,24 +779,24 @@ kimpl_t bli_gks_l3_ukr_impl_type( l3ukr_t ukr, ind_t method, num_t dt )
 		cntx_t ref_cntx_l;
 
 		// Query the architecture id.
-		arch_t id = bli_arch_query_id();
+		arch_t arch_id = bli_arch_query_id();
 
 		// Sanity check: verify that the arch_t id is valid.
 		if ( bli_error_checking_is_enabled() )
 		{
-			err_t e_val = bli_check_valid_arch_id( id );
+			err_t e_val = bli_check_valid_arch_id( arch_id );
 			bli_check_error_code( e_val );
 		}
 
 		// Obtain the function pointer to the context initialization function
 		// for reference kernels.
-		ref_cntx_init_ft f = cntx_ref_init[ id ];
+		ref_cntx_init_ft f = cntx_ref_init[ arch_id ];
 
 		// Initialize a local context with reference kernels and related values.
 		f( &ref_cntx_l );
 
 		// Query the native context from the gks.
-		cntx_t* nat_cntx = bli_gks_lookup_nat_cntx( id );
+		cntx_t* nat_cntx = bli_gks_lookup_nat_cntx( arch_id );
 
 		// Query the native ukernel func_t from both the native and reference
 		// contexts.

@@ -148,7 +148,7 @@ void DTL_Initialize_Global()
     uint32 ui32CurrentLogLevel = AOCL_DTL_TRACE_LEVEL;
 
     /* If user selects invalid trace log level then the default trace log level
-      will be AOCL_DTL_LEVEL_ALL */
+       will be AOCL_DTL_LEVEL_ALL */
     if ((ui32CurrentLogLevel < 1) || (ui32CurrentLogLevel > AOCL_DTL_LEVEL_ALL))
     {
         gui32TraceLogLevel = AOCL_DTL_LEVEL_ALL;
@@ -299,11 +299,11 @@ void DTL_Trace(
         pOutFile = AOCL_FLIST_GetFile(gpLogFileList, AOCL_gettid());
 
         /* If trace file pointer is equal to NULL then return with out dumping data
-         to the file */
+           to the file */
         if (NULL == pOutFile)
         {
             /* It might be the first call from the current thread, try to create
-         new trace for this thread. */
+               new trace for this thread. */
             pOutFile = AOCL_FLIST_AddFile(pchDTL_LOG_FILE, &gpLogFileList, AOCL_gettid());
 
             if (NULL == pOutFile)
@@ -320,11 +320,11 @@ void DTL_Trace(
      pOutFile = AOCL_FLIST_GetFile(gpTraceFileList, AOCL_gettid());
 
         /* If trace file pointer is equal to NULL then return with out dumping data
-         to file */
+           to file */
         if (NULL == pOutFile)
         {
             /* It might be the first call from the current thread, try to create
-         new trace for this thread. */
+               new trace for this thread. */
             pOutFile = AOCL_FLIST_AddFile(pchDTL_TRACE_FILE, &gpTraceFileList, AOCL_gettid());
 
             if (NULL == pOutFile)
@@ -337,7 +337,7 @@ void DTL_Trace(
     }
 
     /* Log the message only if the log level is less than or equal to global log
-      level set while initialization */
+       level set while initialization */
     if (ui8LogLevel <= gui32TraceLogLevel)
     {
         /* Indent as per level if is function call trace */
@@ -442,7 +442,7 @@ void DTL_DumpData(
     }
 #endif /* Dump enabled */
     /* Log the message only if the log level is less than or equal to global log
-      level set while initialization */
+       level set while initialization */
     if (ui8LogLevel > gui32TraceLogLevel)
     {
         return;
@@ -455,10 +455,10 @@ void DTL_DumpData(
     }
 
     /* Assuming that if the Data type for character = 1
-   * the Data type for uint32 = 2
-   * the data type for uint32 = 4
-   * the data type for string = 3
-   */
+     * the Data type for uint32 = 2
+     * the data type for uint32 = 4
+     * the data type for string = 3
+     */
     if (ui8DataType == AOCL_STRING_DATA_TYPE)
     {
         /* Typecast the void buffer to character buffer */
@@ -549,7 +549,7 @@ void AOCL_DTL_start_perf_timer(void)
 
     if (NULL == pFileNode) {
         /* It might be the first call from the current thread, try to create
-        new trace for this thread. */
+           new trace for this thread. */
         AOCL_FAL_FILE *pOutFile = AOCL_FLIST_AddFile(pchDTL_LOG_FILE, &gpLogFileList, current_thread);
 
         if (NULL == pOutFile)
@@ -582,7 +582,7 @@ uint64 AOCL_DTL_get_time_spent(void)
 
     if (NULL == pFileNode) {
         /* It might be the first call from the current thread, try to create
-        new trace for this thread. */
+           new trace for this thread. */
         AOCL_FAL_FILE *pOutFile = AOCL_FLIST_AddFile(pchDTL_LOG_FILE, &gpLogFileList, AOCL_gettid());
 
         if (NULL == pOutFile)
@@ -605,7 +605,7 @@ uint64 AOCL_DTL_get_time_spent(void)
 /*
     Disable instrumentation for these functions as they will also be
     called from compiler generated instrumentation code to trace
-   function execution.
+    function execution.
 
     It needs to be part of declaration in the C file so can't be
     moved to header file.
@@ -637,11 +637,11 @@ void __cyg_profile_func_enter(void *pvThisFunc, void *pvCaller)
     pOutFile = AOCL_FLIST_GetFile(gpAutoTraceFileList, AOCL_gettid());
 
     /* If trace file pointer is equal to NULL then return with out dumping data
-        to the file */
+       to the file */
     if (NULL == pOutFile)
     {
         /* It might be the first call from the current thread, try to create
-        new trace for this thread. */
+           new trace for this thread. */
         pOutFile = AOCL_FLIST_AddFile(pchDTL_AUTO_TRACE_FILE, &gpAutoTraceFileList, AOCL_gettid());
 
         if (NULL == pOutFile)
@@ -676,11 +676,11 @@ void __cyg_profile_func_exit(void *pvThisFunc, void *pvCaller)
     pOutFile = AOCL_FLIST_GetFile(gpAutoTraceFileList, AOCL_gettid());
 
     /* If trace file pointer is equal to NULL then return with out dumping data
-        to the file */
+       to the file */
     if (NULL == pOutFile)
     {
         /* It might be the first call from the current thread, try to create
-        new trace for this thread. */
+           new trace for this thread. */
         pOutFile = AOCL_FLIST_AddFile(pchDTL_AUTO_TRACE_FILE, &gpAutoTraceFileList, AOCL_gettid());
 
         if (NULL == pOutFile)

@@ -1,4 +1,4 @@
-##Copyright (C) 2022-2024, Advanced Micro Devices, Inc. All rights reserved.##
+##Copyright (C) 2022 - 2025, Advanced Micro Devices, Inc. All rights reserved.##
 # Comments:
 # Set the path to the BLIS installation.
 set(BLIS_INSTALL_PATH "" CACHE STRING "Setting the path to a BLIS installation that needs testing.")
@@ -140,3 +140,4 @@ add_custom_target(testall DEPENDS test_blis test_mkl test_openblas)
 
 # Put all those targets under test-targets folder name so that they appear all together in IDE.
 set_target_properties(testall test_blis test_mkl test_openblas PROPERTIES FOLDER test-targets)
+

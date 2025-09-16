@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2022 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2022 - 2025, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -241,8 +241,10 @@ static err_t bli_gemm_ic_jc_optimum_sup_arch_dispatcher
 {
 	err_t ret_val = BLIS_FAILURE;
 
-	arch_t id = bli_arch_query_id();
-	if ( id == BLIS_ARCH_ZEN3 )
+	// Query the architecture ID
+	arch_t arch_id = bli_arch_query_id();
+
+	if ( arch_id == BLIS_ARCH_ZEN3 )
 	{
 		ret_val = bli_gemm_ic_jc_optimum_sup_zen3
 				  (
@@ -250,7 +252,7 @@ static err_t bli_gemm_ic_jc_optimum_sup_arch_dispatcher
 				    max_available_nt, cntx, rntm
 				  );
 	}
-	else if ( id == BLIS_ARCH_ZEN5 || id == BLIS_ARCH_ZEN4 )
+	else if ( arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4 )
 	{
 		ret_val = bli_gemm_ic_jc_optimum_sup_zen4
 				  (
