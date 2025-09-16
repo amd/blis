@@ -130,8 +130,8 @@ void bli_packm_blk_var1
 	obj_t     kappa;
 	void*     buf_kappa;
 
-	func_t*   packm_kers;
-	void_fp   packm_ker;
+	func_t*   packm_kers = NULL;
+	void_fp   packm_ker = NULL;
 
 	FUNCPTR_T f;
 
@@ -214,7 +214,7 @@ void bli_packm_blk_var1
 		// for the current schema.
 		const dim_t i = bli_pack_schema_index( schema );
 
-		packm_kers = &packm_struc_cxk_kers[ i ];
+		if ( i < 3 ) packm_kers = &packm_struc_cxk_kers[ i ];
 	}
 #if 0
 	else // cntx's packm func_t overrides
@@ -227,7 +227,7 @@ void bli_packm_blk_var1
 #endif
 
 	// Query the datatype-specific function pointer from the func_t object.
-	packm_ker = bli_func_get_dt( dt_p, packm_kers );
+	if ( packm_kers ) packm_ker = bli_func_get_dt( dt_p, packm_kers );
 
 	// Index into the type combination array to extract the correct
 	// function pointer.
@@ -326,6 +326,10 @@ void PASTEMAC(ch,varname) \
 	ctype* restrict p_use; \
 	doff_t          diagoffp_i; \
 \
+\
+\
+	/* If the packing kernel is NULL for some reason, then return */ \
+	if(packm_ker == NULL) return; \
 \
 	/* If C is zeros and part of a triangular matrix, then we don't need
 	   to pack it. */ \
