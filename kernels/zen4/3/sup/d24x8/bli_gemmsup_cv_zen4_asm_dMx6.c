@@ -393,7 +393,7 @@
  * Prefetch of A matrix is not done in edge-case kernels.
  */
 
-void bli_dgemmsup_rv_zen4_asm_24x6
+void bli_dgemmsup_cv_zen4_asm_24x6
 (
        conj_t    conja,
        conj_t    conjb,
@@ -1733,7 +1733,7 @@ void bli_dgemmsup_rv_zen4_asm_24x6
 }
 
 
-void bli_dgemmsup_rv_zen4_asm_16x6
+void bli_dgemmsup_cv_zen4_asm_16x6
 (
        conj_t    conja,
        conj_t    conjb,
@@ -2883,7 +2883,7 @@ void bli_dgemmsup_rv_zen4_asm_16x6
 }
 
 
-void bli_dgemmsup_rv_zen4_asm_8x6
+void bli_dgemmsup_cv_zen4_asm_8x6
 (
        conj_t    conja,
        conj_t    conjb,
