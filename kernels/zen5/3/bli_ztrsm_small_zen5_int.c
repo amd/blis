@@ -198,6 +198,8 @@
                                                                             \
     dcomplex* restrict L = bli_obj_buffer_at_off( a );                      \
     dcomplex* restrict B = bli_obj_buffer_at_off( b );                      \
+    inc_t ps_a_use = (12 * rs_a);                                           \
+    bli_auxinfo_set_ps_a( ps_a_use, &auxinfo );
 
 // Generate load/store masks
 #define GENERATE_MASK(M)                                                    \
@@ -429,6 +431,8 @@ BLIS_INLINE void runn_n_rem
     dcomplex one = {1, 0};             // kappa for pack kernel
 #endif
     auxinfo_t auxinfo;
+    inc_t ps_a_use = (12 * rs_a);
+    bli_auxinfo_set_ps_a( ps_a_use, &auxinfo );
     __m512d t_reg[6];                  // temporary registers
     t_reg[5] = _mm512_set1_pd( 1.0 );  // (constant) used for fmaddsub
     t_reg[4] = _mm512_set1_pd(-1.0);   // (constatnt) used in complex multiplicaton
@@ -541,6 +545,8 @@ BLIS_INLINE void rlnn_n_rem
     dcomplex one = {1, 0};
 #endif
     auxinfo_t auxinfo;
+    inc_t ps_a_use = (12 * rs_a);
+    bli_auxinfo_set_ps_a( ps_a_use, &auxinfo );
     __m512d t_reg[6]; /*temporary registers*/
     __m512d c_reg[Z_MR_]; /*registers to hold GEMM accumulation*/
     double g_double[3];
@@ -964,6 +970,8 @@ err_t bli_ztrsm_small_zen5_int_XAutB_XAlB
 #define INIT_L_N_LEFT()                                                            \
     dcomplex minus_one = {-1, 0}; /* used as alpha in gemm kernel */               \
     auxinfo_t auxinfo;     /* for dgemm kernel*/                                   \
+    inc_t ps_a_use = (12);                                                         \
+    bli_auxinfo_set_ps_a( ps_a_use, &auxinfo );                                    \
     __m512d t_reg[10];     /*temporary registers*/                                 \
     t_reg[5] = _mm512_set1_pd( 1.0 ); /*(constant) used for fmaddsub*/             \
     t_reg[4] = _mm512_set1_pd(-1.0);                                               \
@@ -1160,6 +1168,8 @@ BLIS_INLINE void llnn_m_rem
     dcomplex one = {1, 0};
 #endif
     auxinfo_t auxinfo;
+    inc_t ps_a_use = (12 * rs_a);
+    bli_auxinfo_set_ps_a( ps_a_use, &auxinfo );
     __m512d t_reg[10]; /*temporary registers*/
     __m512d c_reg[Z_MR_]; /*registers to hold GEMM accumulation*/
     double g_double[3];
@@ -1231,6 +1241,8 @@ BLIS_INLINE void lunn_m_rem
     dcomplex one = {1, 0};
 #endif
     auxinfo_t auxinfo;
+    inc_t ps_a_use = (12 * rs_a);
+    bli_auxinfo_set_ps_a( ps_a_use, &auxinfo );
     __m512d t_reg[10]; /*temporary registers*/
     __m512d c_reg[Z_MR_]; /*registers to hold GEMM accumulation*/
     double g_double[3];
