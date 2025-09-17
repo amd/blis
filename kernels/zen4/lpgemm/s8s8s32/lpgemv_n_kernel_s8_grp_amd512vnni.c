@@ -373,7 +373,6 @@ LPGEMV_N_EQ1_KERN2(int8_t,int8_t,int32_t,s8s8s32os32_sym_quant)
         else    // Handle M fringe cases when mr0 < MR.
         {
             const int8_t* a_use_fringe = a_use;
-            dim_t regidx = 0;
 
             // Dot-product kernel for m_fringe >= 8; [8, 16).
             if ( mr0_use >= 8 )
@@ -467,8 +466,6 @@ LPGEMV_N_EQ1_KERN2(int8_t,int8_t,int32_t,s8s8s32os32_sym_quant)
                     // Compose outputs into one zmm to perform post-ops
                     zmm8 = _mm512_inserti32x4( zmm8, xmm0, 0 );
                     zmm8 = _mm512_inserti32x4( zmm8, xmm1, 1 );
-
-                    // regidx = 2;
 
                     int32_t* bsumptr = post_ops_attr.b_col_sum_vec + group;
 
@@ -628,8 +625,6 @@ LPGEMV_N_EQ1_KERN2(int8_t,int8_t,int32_t,s8s8s32os32_sym_quant)
                                     ymm5, ymm1, ymm2, ymm3, xmm2 )
 
                     // Compose outputs into one zmm to perform post-ops
-                    // if( regidx == 0 ) zmm8 = _mm512_inserti32x4( zmm8, xmm2, 0 );
-                    // else zmm8 = _mm512_inserti32x4( zmm8, xmm2, 2 );
                     zmm8 = _mm512_inserti32x4( zmm8, xmm2, 0 );
 
                     int32_t* bsumptr = post_ops_attr.b_col_sum_vec + group;
@@ -715,7 +710,6 @@ LPGEMV_N_EQ1_KERN2(int8_t,int8_t,int32_t,s8s8s32os32_sym_quant)
                     f32_acc0 = _mm512_maskz_add_ps(k2, f32_acc0, inter0 );
                 }   // group loop
 
-                regidx++;
                 a_use = a_use_fringe + 4 * rs_a;
                 a_use_fringe = a_use;
                 b_use = b;
@@ -889,7 +883,6 @@ LPGEMV_N_EQ1_KERN2(int8_t,int8_t,int32_t,s8s8s32os32_sym_quant)
                 a_use = a_use_fringe + 2 * rs_a;
                 a_use_fringe = a_use;
                 b_use = b;
-                regidx++;
             }
             else if ( mr0_use == 1 )
             {
@@ -1045,7 +1038,6 @@ LPGEMV_N_EQ1_KERN2(int8_t,int8_t,int32_t,s8s8s32os32_sym_quant)
                 a_use = a_use_fringe + 1 * rs_a;
                 a_use_fringe = a_use;
                 b_use = b;
-                regidx++;
             }
         }
 
