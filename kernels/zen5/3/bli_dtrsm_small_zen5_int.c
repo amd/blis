@@ -113,6 +113,8 @@
                                                                             \
     double* restrict L = bli_obj_buffer_at_off( a );                        \
     double* restrict B = bli_obj_buffer_at_off( b );                        \
+    inc_t ps_a_use = (24 * rs_a);                                           \
+    bli_auxinfo_set_ps_a( ps_a_use, &auxinfo );
 
 
 // Generate load/store masks
@@ -327,6 +329,8 @@ BLIS_INLINE void runn_n_rem
     double one = 1;
 #endif
     auxinfo_t auxinfo;
+    inc_t ps_a_use = (24 * rs_a);
+    bli_auxinfo_set_ps_a( ps_a_use, &auxinfo );
     __m512d t_reg[1]; /*temporary registers*/
     __m512d c_reg[D_MR_]; /*registers to hold GEMM accumulation*/
     for(dim_t i = 0; i < D_MR_; ++i)
@@ -491,6 +495,8 @@ BLIS_INLINE void rlnn_n_rem
     double one = 1;
 #endif
     auxinfo_t auxinfo;
+    inc_t ps_a_use = (24 * rs_a);
+    bli_auxinfo_set_ps_a( ps_a_use, &auxinfo );
     __m512d t_reg[1]; /*temporary registers*/
     __m512d c_reg[D_MR_]; /*registers to hold GEMM accumulation*/
 
@@ -980,6 +986,8 @@ err_t bli_dtrsm_small_zen5_int_XAutB_XAlB
     __mmask8 mask_m_0 = 0b11111111; /*register to hold mask for load/store*/\
     __mmask8 mask_m_1 = 0b11111111; /*register to hold mask for load/store*/\
     __mmask8 mask_m_2 = 0b11111111; /*register to hold mask for load/store*/\
+    inc_t ps_a_use = (24);                                                  \
+    bli_auxinfo_set_ps_a( ps_a_use, &auxinfo );                             \
 
 // initialize common variables used among all left kernels
 #define INIT_L() \
@@ -1166,6 +1174,8 @@ BLIS_INLINE void llnn_m_rem
     double one = 1;
 #endif
     auxinfo_t auxinfo;
+    inc_t ps_a_use = (24 * rs_a);
+    bli_auxinfo_set_ps_a( ps_a_use, &auxinfo );
     __m512d t_reg[10]; /*temporary registers*/
     __m512d c_reg[D_MR_]; /*registers to hold GEMM accumulation*/
 
@@ -1242,6 +1252,8 @@ BLIS_INLINE void lunn_m_rem
     double one = 1;
 #endif
     auxinfo_t auxinfo;
+    inc_t ps_a_use = (24 * rs_a);
+    bli_auxinfo_set_ps_a( ps_a_use, &auxinfo );
     __m512d t_reg[10]; /*temporary registers*/
     __m512d c_reg[D_MR_]; /*registers to hold GEMM accumulation*/
     for(dim_t i = 0; i < D_MR_; ++i)
