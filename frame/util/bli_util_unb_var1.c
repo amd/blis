@@ -573,8 +573,21 @@ void bli_znormfv_unb_var1
         an allocated memory if created or a NULL .
     */
 
-    mem_t mem_buf_X = { 0 };
+    mem_t mem_buf_X;
     inc_t incx_buf = incx;
+    
+    /*
+      Initialize mem pool buffer to NULL and size to 0
+      "buf" and "size" fields are assigned once memory
+      is allocated from the pool in bli_pba_acquire_m().
+      This will ensure bli_mem_is_alloc() will be passed on
+      an allocated memory if created or a NULL .
+    */
+    mem_buf_X.pblk.buf = NULL;
+    mem_buf_X.pblk.block_size = 0;
+    mem_buf_X.buf_type = 0;
+    mem_buf_X.size = 0;
+    mem_buf_X.pool = NULL;
 
     // Packing for non-unit strided vector x.
     // In order to get the buffer from pool via rntm access to memory broker
@@ -655,7 +668,20 @@ void bli_znormfv_unb_var1
             the local results will finally be reduced as per the mandate.
         */
 
-        mem_t mem_buf_norm = { 0 };
+        mem_t mem_buf_norm;
+
+        /*
+            Initialize mem pool buffer to NULL and size to 0
+            "buf" and "size" fields are assigned once memory
+            is allocated from the pool in bli_pba_acquire_m().
+            This will ensure bli_mem_is_alloc() will be passed on
+            an allocated memory if created or a NULL .
+        */
+        mem_buf_norm.pblk.buf = NULL;
+        mem_buf_norm.pblk.block_size = 0;
+        mem_buf_norm.buf_type = 0;
+        mem_buf_norm.size = 0;
+        mem_buf_norm.pool = NULL;
 
         double *norm_per_thread = NULL;
 
@@ -1203,8 +1229,21 @@ void bli_dnormfv_unb_var1
         an allocated memory if created or a NULL .
     */
 
-    mem_t mem_buf_X = { 0 };
+    mem_t mem_buf_X;
     inc_t incx_buf = incx;
+
+    /*
+        Initialize mem pool buffer to NULL and size to 0
+        "buf" and "size" fields are assigned once memory
+        is allocated from the pool in bli_pba_acquire_m().
+        This will ensure bli_mem_is_alloc() will be passed on
+        an allocated memory if created or a NULL .
+    */
+    mem_buf_X.pblk.buf = NULL;
+    mem_buf_X.pblk.block_size = 0;
+    mem_buf_X.buf_type = 0;
+    mem_buf_X.size = 0;
+    mem_buf_X.pool = NULL;
 
     // Packing for non-unit strided vector x.
     // In order to get the buffer from pool via rntm access to memory broker

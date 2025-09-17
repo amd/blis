@@ -231,6 +231,12 @@ thrinfo_t* bli_thrinfo_sup_create_for_cntl
 		// communicator.
 		new_comms = bli_thread_broadcast( thread_par, new_comms );
 
+		// Check if broadcast failed (can happen when parent communicator is NULL)
+		if ( new_comms == NULL )
+		{
+			bli_abort();
+		}
+
 		// Chiefs in the child communicator allocate the communicator
 		// object and store it in the array element corresponding to the
 		// parent's work id.
