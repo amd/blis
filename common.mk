@@ -582,7 +582,7 @@ endif
 # rule: if --disable-system is given at configure-time, LIBPTHREAD is empty.
 LDFLAGS    := $(LDFLAGS_PRESET) $(LIBM) $(LIBPTHREAD) $(STDCXX)
 
-SECURITY_FLAGS_ENABLED := no
+SECURITY_FLAGS_ENABLED := yes
 # If configure provided MK_ENABLE_SECURITY_FLAGS, honor it first.
 ifeq ($(MK_ENABLE_SECURITY_FLAGS),no)
   SECURITY_FLAGS_ENABLED := no

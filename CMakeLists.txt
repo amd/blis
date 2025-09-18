@@ -1006,10 +1006,10 @@ set(LIBMEMKIND -lmemkind)
 
 # Default linker flags.
 # Security hardening flags :
-#   Default (no user override): DISABLED.
-#   Enable:  -DENABLE_SECURITY_FLAGS=ON  (or =1/TRUE) : enabled
-#   Disable: -DENABLE_SECURITY_FLAGS=OFF (or =0/FALSE) : disabled (default)
-option(ENABLE_SECURITY_FLAGS "Enable addition of compiler/linker security hardening flags" OFF)
+#   Default (no user override): ENABLED.
+#   Enable:  -DENABLE_SECURITY_FLAGS=ON  (or =1/TRUE) : enabled (default)
+#   Disable: -DENABLE_SECURITY_FLAGS=OFF (or =0/FALSE) : disabled
+option(ENABLE_SECURITY_FLAGS "Enable addition of compiler/linker security hardening flags" ON)
 set(SECURITY_FLAGS_ENABLED ${ENABLE_SECURITY_FLAGS})
 
 if(SECURITY_FLAGS_ENABLED)
