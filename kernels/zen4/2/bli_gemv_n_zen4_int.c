@@ -1347,9 +1347,7 @@ void bli_dgemv_m_zen4_int_40x8_mt_Ndiv
     }
 
     temp_mem = bli_mem_buffer(&local_mem_buf);
-    if( temp_mem == NULL )
-        nt = 1;
-    if (local_mem_buf.size < temp_mem_size *sizeof(double))
+    if (local_mem_buf.size < temp_mem_size *sizeof(double) || (temp_mem == NULL) || (nt == 1) )
     {
         nt = 1;
         if (bli_mem_is_alloc( &local_mem_buf ))
