@@ -414,19 +414,23 @@ BLIS_EXPORT_BLIS void bli_daxpyv_zen4_int
             y0 += n_elem_per_reg;
         }
 
-        // This loop uses AVX2 instructions
-        for (; (i + 3) < n; i += 4)
+        // compute the remainder with masked operations
+        if ( i < n )
         {
-            __m256d x_vec = _mm256_loadu_pd(x0);
+            dim_t n_remainder = ( n - i );
+            __mmask8 mask_ = ( 1 <<  n_remainder ) - 1;
 
-            __m256d y_vec = _mm256_loadu_pd(y0);
+            xv[0] = _mm512_maskz_loadu_pd( mask_, x0 );
 
-            y_vec = _mm256_fmadd_pd(x_vec, _mm256_set1_pd(*alpha), y_vec);
+            yv[0] = _mm512_maskz_loadu_pd( mask_, y0 );
 
-            _mm256_storeu_pd(y0, y_vec);
+            yv[0] = _mm512_fmadd_pd(xv[0], alphav, yv[0]);
 
-            x0 += 4;
-            y0 += 4;
+            _mm512_mask_storeu_pd( y0, mask_, yv[0] );
+
+            x0 += n_remainder;
+            y0 += n_remainder;
+            i  += n_remainder;
         }
     }
 
