@@ -1473,17 +1473,13 @@ void bli_dgemv_n_zen4_int (
     if ( size < 95000 )
     {
         // we call sequential GEMV
-        if ( m <= 46 )
+        if ( m <= 180 )
         {
             ker_ft = bli_dgemv_n_zen4_int_40x2_st;
         }
-        else if ( n < 8 )
-        {
-            ker_ft = bli_dgemv_n_zen4_int_32x8_st;
-        }
         else
         {
-            ker_ft = bli_dgemv_m_zen4_int_40x8_st;
+            ker_ft = bli_dgemv_n_zen4_int_32x8_st;
         }
     }
     else
@@ -1500,17 +1496,13 @@ void bli_dgemv_n_zen4_int (
             ker_ft = bli_dgemv_m_zen4_int_40x8_mt_Mdiv;
         }
 #else
-        if ( m <= 46 )
+        if ( m <= 180 )
         {
             ker_ft = bli_dgemv_n_zen4_int_40x2_st;
         }
-        else if ( n < 8 )
-        {
-            ker_ft = bli_dgemv_n_zen4_int_32x8_st;
-        }
         else
         {
-            ker_ft = bli_dgemv_m_zen4_int_40x8_st;
+            ker_ft = bli_dgemv_n_zen4_int_32x8_st;
         }
 #endif
     }
