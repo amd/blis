@@ -1471,7 +1471,7 @@ void bli_dgemv_n_zen4_int (
     if ( size < 95000 )
     {
         // we call sequential GEMV
-        if ( m <= 180 )
+        if ( m <= 180 && n >= 8 )
         {
             ker_ft = bli_dgemv_n_zen4_int_40x2_st;
         }
@@ -1494,7 +1494,7 @@ void bli_dgemv_n_zen4_int (
             ker_ft = bli_dgemv_m_zen4_int_40x8_mt_Mdiv;
         }
 #else
-        if ( m <= 180 )
+        if ( m <= 180 && n >= 8 )
         {
             ker_ft = bli_dgemv_n_zen4_int_40x2_st;
         }
