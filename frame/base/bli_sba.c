@@ -47,12 +47,16 @@ apool_t* bli_sba_query( void )
 
 void bli_sba_init( void )
 {
+#ifdef BLIS_ENABLE_SBA_POOLS
 	bli_apool_init( &sba );
+#endif
 }
 
 void bli_sba_finalize( void )
 {
+#ifdef BLIS_ENABLE_SBA_POOLS
 	bli_apool_finalize( &sba );
+#endif
 }
 
 void* bli_sba_acquire
@@ -97,7 +101,7 @@ void* bli_sba_acquire
 	}
 #else
 
-	block = bli_malloc_intl( req_size, &r_val );
+	block = bli_malloc_user( req_size, &r_val );
 
 #endif
 
@@ -141,7 +145,7 @@ void bli_sba_release
 	}
 #else
 
-	bli_free_intl( block );
+	bli_free_user( block );
 
 #endif
 }
@@ -151,11 +155,11 @@ array_t* bli_sba_checkout_array
        const siz_t n_threads
      )
 {
-	#ifndef BLIS_ENABLE_SBA_POOLS
+#ifndef BLIS_ENABLE_SBA_POOLS
 	return NULL;
-	#endif
-
+#else
 	return bli_apool_checkout_array( n_threads, &sba );
+#endif
 }
 
 void bli_sba_checkin_array
@@ -163,11 +167,11 @@ void bli_sba_checkin_array
        array_t* restrict array
      )
 {
-	#ifndef BLIS_ENABLE_SBA_POOLS
+#ifndef BLIS_ENABLE_SBA_POOLS
 	return;
-	#endif
-
+#else
 	bli_apool_checkin_array( array, &sba );
+#endif
 }
 
 void bli_sba_rntm_set_pool
@@ -177,16 +181,16 @@ void bli_sba_rntm_set_pool
        rntm_t*  restrict rntm
      )
 {
-	#ifndef BLIS_ENABLE_SBA_POOLS
+#ifndef BLIS_ENABLE_SBA_POOLS
 	bli_rntm_set_sba_pool( NULL, rntm );
 	return;
-	#endif
-
+#else
 	// Query the pool_t* in the array_t corresponding to index.
 	pool_t* restrict pool = bli_apool_array_elem( index, array );
 
 	// Embed the pool_t* into the rntm_t.
 	bli_rntm_set_sba_pool( pool, rntm );
+#endif
 }
 
 
