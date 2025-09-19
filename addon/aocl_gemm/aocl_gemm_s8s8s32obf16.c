@@ -65,7 +65,15 @@ AOCL_GEMM_MATMUL(int8_t,int8_t,bfloat16,int32_t,s8s8s32obf16)
 	if ( bli_cpuid_is_avx512vnni_supported() == FALSE )
 	{
 		bli_print_msg(" AVX512_VNNI ISA not supported by processor, "
-				"cannot perform s8s8s32 gemm.", __FILE__, __LINE__ );
+				"cannot perform s8s8s32obf16 gemm.", __FILE__, __LINE__ );
+		goto err_hndl;
+	}
+
+	// Check for avx512_bf16 ISA support necessary for BF16.
+	if (bli_cpuid_is_avx512bf16_supported() == FALSE)
+	{
+		bli_print_msg(" AVX512_BF16 ISA not supported by processor, "
+				"cannot perform s8s8s32obf16 gemm.", __FILE__, __LINE__ );
 		goto err_hndl;
 	}
 

@@ -786,12 +786,19 @@ LPGEMV_N_EQ1_KERN( float, float, float, f32f32f32of32 )
       if ( ( post_ops_attr.buf_downscale != NULL ) &&
 			     ( post_ops_attr.is_first_k == TRUE ) )
 			{
-        _mm256_mask_storeu_epi16
-					(
-					( bfloat16* )post_ops_attr.buf_downscale +
-					  post_ops_attr.post_op_c_i,
-					k2, (__m256i) _mm512_cvtneps_pbh( zmm8 )
-					);
+        // Convert F32 to BF16 and store directly into memory using memcpy.
+        uint32_t tlsb, rounded, temp[16] = {0};
+        int i;
+        bfloat16* dest;
+
+        _mm512_mask_store_ps((float*)temp, k2, zmm8);
+        dest = ( bfloat16* )post_ops_attr.buf_downscale +
+        	    post_ops_attr.post_op_c_i;
+        for (i = 0; i < mr0; ++i) {
+          tlsb = ( temp[i] & ( uint32_t )0x00010000 ) > 16;
+          rounded = temp[i] + ( uint32_t )0x00007FFF + tlsb;
+          memcpy( (dest+i), ((char *)(&rounded))+2, sizeof(bfloat16));
+        }
       }
       else
       {
@@ -800,23 +807,27 @@ LPGEMV_N_EQ1_KERN( float, float, float, f32f32f32of32 )
     }
     else
     {
-      // Store ZMM8 into ctemp buffer and store back
-      // element by element into output buffer at strides
-
       if ( post_ops_attr.buf_downscale != NULL )
 			{
-        bfloat16 ctemp[16];
-        _mm256_mask_storeu_epi16( ctemp, k2, ( __m256i )
-                             _mm512_cvtneps_pbh( zmm8 ) );
-        for (dim_t i = 0; i < mr0; i++)
-        {
-           *( ( bfloat16* )post_ops_attr.buf_downscale +
-           ( post_ops_attr.rs_c_downscale *
-           ( post_ops_attr.post_op_c_i + i ) ) ) = ctemp[i];
+        // Convert F32 to BF16 and store directly into memory using memcpy.
+        uint32_t tlsb, rounded, temp[16] = {0};
+        int i;
+
+        _mm512_mask_storeu_ps((float*)temp, k2, zmm8);
+        for (i = 0; i < mr0; ++i) {
+          tlsb = ( temp[i] & ( uint32_t )0x00010000 ) > 16;
+          rounded = temp[i] + ( uint32_t )0x00007FFF + tlsb;
+          memcpy( ( ( bfloat16* )post_ops_attr.buf_downscale +
+                  ( post_ops_attr.rs_c_downscale *
+                  ( post_ops_attr.post_op_c_i + i ) ) ),
+                  ((char *)(&rounded)) + 2,
+                  sizeof(bfloat16));
         }
       }
       else
       {
+        // Store ZMM8 into ctemp buffer and store back
+        // element by element into output buffer at strides
         float ctemp[16];
         _mm512_mask_storeu_ps(ctemp, k2, zmm8);
         for (dim_t i = 0; i < mr0; i++)
