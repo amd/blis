@@ -192,7 +192,7 @@ thrinfo_t* bli_thrinfo_sup_create_for_cntl
 	// communicator is divisible by the number of new sub-groups.
 	if ( parent_nt_in % parent_n_way != 0 )
 	{
-		printf( "Assertion failed: parent_nt_in <mod> parent_n_way != 0\n" );
+		bli_print_msg( "Assertion failed: parent_nt_in <mod> parent_n_way != 0.", __FILE__, __LINE__  );
 		bli_abort();
 	}
 
@@ -234,6 +234,7 @@ thrinfo_t* bli_thrinfo_sup_create_for_cntl
 		// Check if broadcast failed (can happen when parent communicator is NULL)
 		if ( new_comms == NULL )
 		{
+			bli_print_msg( "Broadcast failed if parent communicator is NULL.", __FILE__, __LINE__ );
 			bli_abort();
 		}
 
