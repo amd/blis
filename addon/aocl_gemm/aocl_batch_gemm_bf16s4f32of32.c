@@ -74,7 +74,7 @@ AOCL_BGEMM_MATMUL(bfloat16,int8_t,float,float,bf16s4f32of32)
 
 	#ifdef LPGEMM_BF16_JIT
 		bli_print_msg(" WOQ is not supported by JIT kernels.", __FILE__, __LINE__ );
-		return;
+		goto err_hndl;
 	#endif
 
 	// offset to get subsequent matrix when group_count > 1
@@ -292,7 +292,7 @@ AOCL_BGEMM_MATMUL(bfloat16,int8_t,bfloat16,float,bf16s4f32obf16)
 
 	#ifdef LPGEMM_BF16_JIT
 		bli_print_msg(" WOQ is not supported by JIT kernels.", __FILE__, __LINE__ );
-		return;
+		goto err_hndl;
 	#endif
 
 	// offset to get subsequent matrix when group_count > 1

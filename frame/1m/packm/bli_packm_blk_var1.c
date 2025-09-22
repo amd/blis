@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2018 - 2025, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -130,8 +130,8 @@ void bli_packm_blk_var1
 	obj_t     kappa;
 	void*     buf_kappa;
 
-	func_t*   packm_kers;
-	void_fp   packm_ker;
+	func_t*   packm_kers = NULL;
+	void_fp   packm_ker = NULL;
 
 	FUNCPTR_T f;
 
@@ -185,11 +185,15 @@ void bli_packm_blk_var1
 	
 #ifdef BLIS_KERNELS_ZEN4
 	// For DGEMM in AVX512, scale by alpha during packing
+
+	// Query the architecture ID
+	arch_t arch_id = bli_arch_query_id();
+
 	if
 	( 
 		( bli_obj_dt( p ) == BLIS_DOUBLE ) &&
-		( ( bli_arch_query_id() == BLIS_ARCH_ZEN5 ) ||
-		  ( bli_arch_query_id() == BLIS_ARCH_ZEN4 ) )
+		( ( arch_id == BLIS_ARCH_ZEN5 ) ||
+		  ( arch_id == BLIS_ARCH_ZEN4 ) )
 	)
 	{
 		bli_obj_scalar_detach( p, &kappa );
@@ -214,7 +218,7 @@ void bli_packm_blk_var1
 		// for the current schema.
 		const dim_t i = bli_pack_schema_index( schema );
 
-		packm_kers = &packm_struc_cxk_kers[ i ];
+		if ( i < 3 ) packm_kers = &packm_struc_cxk_kers[ i ];
 	}
 #if 0
 	else // cntx's packm func_t overrides
@@ -227,7 +231,7 @@ void bli_packm_blk_var1
 #endif
 
 	// Query the datatype-specific function pointer from the func_t object.
-	packm_ker = bli_func_get_dt( dt_p, packm_kers );
+	if ( packm_kers ) packm_ker = bli_func_get_dt( dt_p, packm_kers );
 
 	// Index into the type combination array to extract the correct
 	// function pointer.
@@ -326,6 +330,10 @@ void PASTEMAC(ch,varname) \
 	ctype* restrict p_use; \
 	doff_t          diagoffp_i; \
 \
+\
+\
+	/* If the packing kernel is NULL for some reason, then return */ \
+	if(packm_ker == NULL) return; \
 \
 	/* If C is zeros and part of a triangular matrix, then we don't need
 	   to pack it. */ \

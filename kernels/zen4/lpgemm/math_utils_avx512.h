@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2025, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -105,8 +105,8 @@
 #define erf512_c14  _mm512_set1_pd((-0x1.155445e2e006723066d72d22ddcp-20))
 #define erf512_c15  _mm512_set1_pd((0x1.c6a4181da4ef76f22bd39bb5dcp-25))
 
-#define ERF512_UBOUND    (0x407AD447)  // 3.402823466E+38F
-#define ERF512_BOUND     _mm512_set1_ps((float)(3.91920638084411621F))
+#define ERF512_UBOUND    3.9192059040069580078125f
+#define ERF512_BOUND     _mm512_set1_ps((float)(ERF512_UBOUND))
 
 typedef union {
     float    f;

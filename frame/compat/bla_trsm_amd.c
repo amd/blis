@@ -44,8 +44,8 @@
 
     #define TRSM_BLIS_IMPL(ch, blasname) \
         PASTEF77S(ch,blasname) ( side, uploa, transa, diaga, m, n, alpha, a, lda, b, ldb ); \
-        arch_t id = bli_arch_query_id(); \
-        if (id == BLIS_ARCH_ZEN5 || id == BLIS_ARCH_ZEN4) \
+        arch_t arch_id = bli_arch_query_id(); \
+        if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4) \
         { \
             bli_zero_zmm(); \
         } \
@@ -221,7 +221,9 @@ void PASTEF77S(ch,blasname) \
     diag_t  blis_diaga; \
     dim_t   m0, n0; \
     ftype   a_conj; \
+IF_BLIS_ENABLE_MNK1_MATRIX(\
     conj_t  conja = BLIS_NO_CONJUGATE ; \
+) /* End of IF_BLIS_ENABLE_MNK1_MATRIX */ \
 \
     /* Perform BLAS parameter checking. */ \
     PASTEBLACHK(blasname) \
@@ -528,7 +530,9 @@ void strsm_blis_impl
     trans_t blis_transa;
     diag_t  blis_diaga;
     dim_t   m0, n0;
-    conj_t  conja = BLIS_NO_CONJUGATE ;
+#ifdef BLIS_ENABLE_MNK1_MATRIX
+    conj_t  conja = BLIS_NO_CONJUGATE;
+#endif
 
     /* Perform BLAS parameter checking. */
     PASTEBLACHK(trsm)
@@ -843,8 +847,8 @@ void strsm_
 {
     strsm_blis_impl ( side, uploa, transa, diaga, m, n, alpha, a, lda, b, ldb );
 #if defined(BLIS_KERNELS_ZEN4)
-    arch_t id = bli_arch_query_id();
-    if (id == BLIS_ARCH_ZEN5 || id == BLIS_ARCH_ZEN4)
+    arch_t arch_id = bli_arch_query_id();
+    if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
     {
         bli_zero_zmm();
     }
@@ -877,7 +881,9 @@ void dtrsm_blis_impl
     trans_t blis_transa;
     diag_t  blis_diaga;
     dim_t   m0, n0;
-    conj_t  conja = BLIS_NO_CONJUGATE ;
+#ifdef BLIS_ENABLE_MNK1_MATRIX
+    conj_t  conja = BLIS_NO_CONJUGATE;
+#endif
 
     /* Perform BLAS parameter checking. */
     PASTEBLACHK(trsm)
@@ -1130,10 +1136,10 @@ void dtrsm_blis_impl
         err_t small_status = BLIS_NOT_YET_IMPLEMENTED;
 
         // trsm small kernel function pointer definition
-        dtrsm_small_ker_ft ker_ft = NULL;
+        dtrsm_small_ker_ft trsm_ker_ptr = NULL;
 
         // Query the architecture ID
-        arch_t id = bli_arch_query_id();
+        arch_t arch_id = bli_arch_query_id();
 
         // dimensions of triangular matrix
         // for left variants, dim_a is m0,
@@ -1150,7 +1156,7 @@ void dtrsm_blis_impl
          * In case of multithread when [m+n]<320 single thread implementation
          * is doing better than small multithread and native multithread */
         bool is_parallel = bli_thread_get_is_parallel();
-        switch(id)
+        switch ( arch_id )
         {
             case BLIS_ARCH_ZEN5:
 #if defined(BLIS_KERNELS_ZEN5)
@@ -1181,22 +1187,22 @@ void dtrsm_blis_impl
                 {
                     if ( m0 <= 120 )
                     {
-                        ker_ft = bli_trsm_small_zen4;
+                        trsm_ker_ptr = bli_trsm_small_zen4;
                     }
                     else if ( (log10(n0) + (0.65*log10(m0)) ) < 4.4  && ( m0 < 4500 ) )
                     {
-                        ker_ft = bli_trsm_small_zen5;
+                        trsm_ker_ptr = bli_trsm_small_zen5;
                     }
                 }
                 else //if ( blis_side == BLIS_RIGHT )
                 {
                     if ( (log10(m0) + (3.2*log10(n0)) ) < 7 )
                     {
-                        ker_ft = bli_trsm_small_zen4;
+                        trsm_ker_ptr = bli_trsm_small_zen4;
                     }
                     else if ( (log10(m0) + (0.85*log10(n0)) ) < 5 && ( n0 < 4500 ))
                     {
-                        ker_ft = bli_trsm_small_zen5;
+                        trsm_ker_ptr = bli_trsm_small_zen5;
                     }
                 }
                 break;
@@ -1210,11 +1216,11 @@ void dtrsm_blis_impl
                     except for sizes where n is multiple of 8.*/
                     if (((n0 % 8 == 0) && (n0 < 50)) || ((m0 > 50) && (n0 > 50)))
                     {
-                        ker_ft = bli_trsm_small_zen4;
+                        trsm_ker_ptr = bli_trsm_small_zen4;
                     }
                     else
                     {
-                        ker_ft = bli_trsm_small_zen;
+                        trsm_ker_ptr = bli_trsm_small_zen;
                     }
                 }
                 break;
@@ -1226,13 +1232,13 @@ void dtrsm_blis_impl
                 if ((!is_parallel && ((dim_a < 1500) && (size_b < 5e6)) ) ||
                     (is_parallel && (m0+n0)<200))
                 {
-                    ker_ft = bli_trsm_small_zen;
+                    trsm_ker_ptr = bli_trsm_small_zen;
                 }
                 break;
         }
 
 #ifdef BLIS_ENABLE_OPENMP
-        switch(id)
+        switch ( arch_id )
         {
             case BLIS_ARCH_ZEN5:
 #if defined(BLIS_KERNELS_ZEN5)
@@ -1242,22 +1248,22 @@ void dtrsm_blis_impl
                     {
                         if ( n0 < 4300 )
                         {
-                            ker_ft = bli_trsm_small_zen5_mt;
+                            trsm_ker_ptr = bli_trsm_small_zen5_mt;
                         }
                         else
                         {
-                            ker_ft = NULL; //native code path
+                            trsm_ker_ptr = NULL; //native code path
                         }
                     }
                     else //if ( blis_side == BLIS_RIGHT )
                     {
                         if ( (n0 < 1812 || m0 < 3220) && (m0 < 14000) )
                         {
-                            ker_ft = bli_trsm_small_zen5_mt;
+                            trsm_ker_ptr = bli_trsm_small_zen5_mt;
                         }
                         else
                         {
-                            ker_ft = NULL; //native code path
+                            trsm_ker_ptr = NULL; //native code path
                         }
                     }
                 }
@@ -1265,10 +1271,10 @@ void dtrsm_blis_impl
 #endif// BLIS_KERNELS_ZEN5
             case BLIS_ARCH_ZEN4:
 #if defined(BLIS_KERNELS_ZEN4)
-                if( (ker_ft == NULL) && (is_parallel) &&
-                    ((dim_a < 2500) && (size_b < 5e6)) )
+                if ( (trsm_ker_ptr == NULL) && (is_parallel) &&
+                     ((dim_a < 2500) && (size_b < 5e6)) )
                 {
-                    ker_ft = bli_trsm_small_zen4_mt;
+                    trsm_ker_ptr = bli_trsm_small_zen4_mt;
                 }
                 break;
 #endif// BLIS_KERNELS_ZEN4
@@ -1276,18 +1282,18 @@ void dtrsm_blis_impl
             case BLIS_ARCH_ZEN2:
             case BLIS_ARCH_ZEN3:
             default:
-                if( (ker_ft == NULL) && (is_parallel) &&
-                    ((dim_a < 2500) && (size_b < 5e6)) )
+                if ( (trsm_ker_ptr == NULL) && (is_parallel) &&
+                     ((dim_a < 2500) && (size_b < 5e6)) )
                 {
-                    ker_ft = bli_trsm_small_zen_mt;
+                    trsm_ker_ptr = bli_trsm_small_zen_mt;
                 }
                 break;
             }
 
 #endif// BLIS_ENABLE_OPENMP
-        if(ker_ft)
+        if ( trsm_ker_ptr )
         {
-            small_status = ker_ft(blis_side, &alphao, &ao, &bo, NULL, NULL, is_parallel);
+            small_status = trsm_ker_ptr(blis_side, &alphao, &ao, &bo, NULL, NULL, is_parallel);
         }
         if ( small_status == BLIS_SUCCESS )
         {
@@ -1345,8 +1351,8 @@ void dtrsm_
 {
     dtrsm_blis_impl ( side, uploa, transa, diaga, m, n, alpha, a, lda, b, ldb );
 #if defined(BLIS_KERNELS_ZEN4)
-    arch_t id = bli_arch_query_id();
-    if (id == BLIS_ARCH_ZEN5 || id == BLIS_ARCH_ZEN4)
+    arch_t arch_id = bli_arch_query_id();
+    if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
     {
         bli_zero_zmm();
     }
@@ -1380,7 +1386,9 @@ void ztrsm_blis_impl
     trans_t blis_transa;
     diag_t  blis_diaga;
     dim_t   m0, n0;
+#ifdef BLIS_ENABLE_MNK1_MATRIX
     conj_t  conja = BLIS_NO_CONJUGATE;
+#endif
 
     /* Perform BLAS parameter checking. */
     PASTEBLACHK(trsm)
@@ -1695,10 +1703,10 @@ void ztrsm_blis_impl
         err_t small_status = BLIS_NOT_YET_IMPLEMENTED;
 
         // trsm small kernel function pointer definition
-        ztrsm_small_ker_ft ker_ft = NULL;
+        ztrsm_small_ker_ft trsm_ker_ptr = NULL;
 
         // Query the architecture ID
-        arch_t id = bli_arch_query_id();
+        arch_t arch_id = bli_arch_query_id();
 
         bool is_parallel = bli_thread_get_is_parallel();
 
@@ -1714,7 +1722,7 @@ void ztrsm_blis_impl
         dim_t size_b = m0*n0;
 
 #if defined(BLIS_ENABLE_OPENMP)
-        switch (id)
+        switch ( arch_id )
         {
         case BLIS_ARCH_ZEN5:
 #if defined(BLIS_KERNELS_ZEN5)
@@ -1723,7 +1731,7 @@ void ztrsm_blis_impl
             {
                 if (!bli_obj_has_conj(&ao)) // if transa == 'C', go to native code path
                 {
-                    ker_ft = bli_trsm_small_zen5_mt; // 12x4 non fused kernel for ZEN5
+                    trsm_ker_ptr = bli_trsm_small_zen5_mt; // 12x4 non fused kernel for ZEN5
                 }
             }
             break;
@@ -1735,7 +1743,7 @@ void ztrsm_blis_impl
             {
                 if (!bli_obj_has_conj(&ao))
                 {
-                    ker_ft = bli_trsm_small_zen4_mt; // 4x4 fused kernel for ZEN4
+                    trsm_ker_ptr = bli_trsm_small_zen4_mt; // 4x4 fused kernel for ZEN4
                 }
                 else
                 {
@@ -1744,7 +1752,7 @@ void ztrsm_blis_impl
                     // better accuracy in large sizes
                     if (dim_a <= 500)
 #endif
-                    ker_ft = bli_trsm_small_zen_mt;
+                    trsm_ker_ptr = bli_trsm_small_zen_mt;
                 }
             }
             break;
@@ -1753,14 +1761,14 @@ void ztrsm_blis_impl
             break;
         }
 #endif
-        if( ( ker_ft == NULL ) &&
+        if( ( trsm_ker_ptr == NULL ) &&
                 ( ( !is_parallel ) ||
                   ( ( is_parallel ) &&
                     ( (m0 + n0 < 180) || (size_b < 5000) ) )
             )
           )
         {
-            switch (id)
+            switch ( arch_id )
             {
                 case BLIS_ARCH_ZEN5:
 #if defined(BLIS_KERNELS_ZEN5)
@@ -1772,22 +1780,22 @@ void ztrsm_blis_impl
                     {
                         if ( m0 <= 88 )
                         {
-                            ker_ft = bli_trsm_small_zen4;
+                            trsm_ker_ptr = bli_trsm_small_zen4;
                         }
                         else if ( (log10(n0) + (0.15*log10(m0)) ) < 2.924 )
                         {
-                            ker_ft = bli_trsm_small_zen5;
+                            trsm_ker_ptr = bli_trsm_small_zen5;
                         }
                     }
                     else //if ( blis_side == BLIS_RIGHT )
                     {
                         if ( (log10(m0) + (2.8*log10(n0)) ) < 6 )
                         {
-                            ker_ft = bli_trsm_small_zen4;
+                            trsm_ker_ptr = bli_trsm_small_zen4;
                         }
                         else if ( (log10(m0) + (1.058*log10(n0)) ) < 5.373 )
                         {
-                            ker_ft = bli_trsm_small_zen5;
+                            trsm_ker_ptr = bli_trsm_small_zen5;
                         }
                     }
                     break;
@@ -1800,7 +1808,7 @@ void ztrsm_blis_impl
                         // conjugate
                         if (!bli_obj_has_conj(&ao))
                         {
-                            ker_ft = bli_trsm_small_zen4;
+                            trsm_ker_ptr = bli_trsm_small_zen4;
                         }
                         else
                         {
@@ -1809,7 +1817,7 @@ void ztrsm_blis_impl
                             // better accuracy in large sizes
                             if (dim_a <= 500)
 #endif
-                            ker_ft = bli_trsm_small_zen;
+                            trsm_ker_ptr = bli_trsm_small_zen;
                         }
                     }
                     break;
@@ -1823,13 +1831,13 @@ void ztrsm_blis_impl
                     // better accuracy in large sizes
                     if (dim_a <= 500)
 #endif
-                    ker_ft = bli_trsm_small_zen;
+                    trsm_ker_ptr = bli_trsm_small_zen;
                     break;
             }
         }
-        if(ker_ft)
+        if ( trsm_ker_ptr )
         {
-            small_status = ker_ft(blis_side, &alphao, &ao, &bo, NULL, NULL, is_parallel);
+            small_status = trsm_ker_ptr(blis_side, &alphao, &ao, &bo, NULL, NULL, is_parallel);
         }
         if ( small_status == BLIS_SUCCESS )
         {
@@ -1887,8 +1895,8 @@ void ztrsm_
 {
     ztrsm_blis_impl ( side, uploa, transa, diaga, m, n, alpha, a, lda, b, ldb );
 #if defined(BLIS_KERNELS_ZEN4)
-    arch_t id = bli_arch_query_id();
-    if (id == BLIS_ARCH_ZEN5 || id == BLIS_ARCH_ZEN4)
+    arch_t arch_id = bli_arch_query_id();
+    if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
     {
         bli_zero_zmm();
     }
@@ -1922,7 +1930,9 @@ void ctrsm_blis_impl
     trans_t blis_transa;
     diag_t  blis_diaga;
     dim_t   m0, n0;
+#ifdef BLIS_ENABLE_MNK1_MATRIX
     conj_t  conja = BLIS_NO_CONJUGATE;
+#endif
 
     /* Perform BLAS parameter checking. */
     PASTEBLACHK(trsm)
@@ -2296,8 +2306,8 @@ void ctrsm_
 {
     ctrsm_blis_impl ( side, uploa, transa, diaga, m, n, alpha, a, lda, b, ldb );
 #if defined(BLIS_KERNELS_ZEN4)
-    arch_t id = bli_arch_query_id();
-    if (id == BLIS_ARCH_ZEN5 || id == BLIS_ARCH_ZEN4)
+    arch_t arch_id = bli_arch_query_id();
+    if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
     {
         bli_zero_zmm();
     }

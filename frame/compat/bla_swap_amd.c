@@ -45,8 +45,8 @@
 void PASTEF77S(ch,blasname) \
      ( \
        const f77_int* n, \
-       ftype*   x, const f77_int* incx, \
-       ftype*   y, const f77_int* incy  \
+             ftype*   x, const f77_int* incx, \
+             ftype*   y, const f77_int* incy  \
      ) \
 { \
     /* Initialize BLIS. */ \
@@ -86,11 +86,11 @@ void PASTEF77S(ch,blasname) \
 \
 IF_BLIS_ENABLE_BLAS(\
 void PASTEF77(ch,blasname) \
-	( \
-		const f77_int* n, \
-		ftype*   x, const f77_int* incx, \
-		ftype*   y, const f77_int* incy  \
-		) \
+     ( \
+       const f77_int* n, \
+             ftype*   x, const f77_int* incx, \
+             ftype*   y, const f77_int* incy  \
+     ) \
 { \
    PASTEF77S(ch,blasname)( n, x, incx, y, incy ); \
 }\
@@ -99,8 +99,8 @@ void PASTEF77(ch,blasname) \
 void sswap_blis_impl
      (
        const f77_int* n,
-       float*   x, const f77_int* incx,
-       float*   y, const f77_int* incy
+             float*   x, const f77_int* incx,
+             float*   y, const f77_int* incy
      )
 {
     /* Initialize BLIS. */
@@ -118,7 +118,7 @@ void sswap_blis_impl
 
     /* Convert/typecast negative values of n to zero. */
     if ( *n < 0 ) n0 = ( dim_t )0;
-    else              n0 = ( dim_t )(*n);
+    else          n0 = ( dim_t )(*n);
 
     /* If the input increments are negative, adjust the pointers so we can
        use positive increments instead. */
@@ -182,16 +182,16 @@ void sswap_blis_impl
 		    ); \
     }
 
-    /* Finalize BLIS. */
-//    bli_finalize_auto();
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
+    /* Finalize BLIS. */
+    // Call to bli_finalize_auto() is not needed here
 }
 #ifdef BLIS_ENABLE_BLAS
 void sswap_
      (
        const f77_int* n,
-       float*   x, const f77_int* incx,
-       float*   y, const f77_int* incy
+             float*   x, const f77_int* incx,
+             float*   y, const f77_int* incy
      )
 {
     sswap_blis_impl( n, x, incx, y, incy );
@@ -200,8 +200,8 @@ void sswap_
 void dswap_blis_impl
      (
        const f77_int* n,
-       double*   x, const f77_int* incx,
-       double*   y, const f77_int* incy
+             double*  x, const f77_int* incx,
+             double*  y, const f77_int* incy
      )
 {
     /* Initialize BLIS. */
@@ -219,7 +219,7 @@ void dswap_blis_impl
 
     /* Convert/typecast negative values of n to zero. */
     if ( *n < 0 ) n0 = ( dim_t )0;
-    else              n0 = ( dim_t )(*n);
+    else          n0 = ( dim_t )(*n);
 
     /* If the input increments are negative, adjust the pointers so we can
        use positive increments instead. */
@@ -283,16 +283,16 @@ void dswap_blis_impl
 		    ); \
     }
 
-    /* Finalize BLIS. */
-//    bli_finalize_auto();
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
+    /* Finalize BLIS. */
+    // Call to bli_finalize_auto() is not needed here
 }
 #ifdef BLIS_ENABLE_BLAS
 void dswap_
      (
        const f77_int* n,
-       double*   x, const f77_int* incx,
-       double*   y, const f77_int* incy
+             double*  x, const f77_int* incx,
+             double*  y, const f77_int* incy
      )
 {
     dswap_blis_impl( n, x, incx, y, incy ); 

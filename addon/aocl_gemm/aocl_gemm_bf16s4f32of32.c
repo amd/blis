@@ -71,7 +71,7 @@ AOCL_GEMM_MATMUL(bfloat16, int8_t, float, float, bf16s4f32of32)
 	}
 #ifdef LPGEMM_BF16_JIT
 	bli_print_msg(" WOQ is not supported by JIT kernels.", __FILE__, __LINE__ );
-	return;
+	goto err_hndl;
 #endif
 	/* Initialize BLIS. */
 	bli_init_auto();
@@ -280,7 +280,7 @@ AOCL_GEMM_MATMUL(bfloat16, int8_t, bfloat16, float, bf16s4f32obf16)
 	}
 #ifdef LPGEMM_BF16_JIT
 	bli_print_msg(" WOQ is not supported by JIT kernels.", __FILE__, __LINE__ );
-	return;
+	goto err_hndl;
 #endif
 	/* Initialize BLIS. */
 	bli_init_auto();

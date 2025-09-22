@@ -31,6 +31,14 @@
    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
+
+// This avoids a known issue with GCC15 ("error: bp cannot be used in asm here", #845).
+// Only check for version 15 since this may be fixed in 16, and also make sure the
+// compiler isn't clang since it also confusingly defines __GNUC__
+#if !defined(__clang__) && defined(__GNUC__) && __GNUC__ == 15
+#pragma GCC optimize("-fno-tree-slp-vectorize")
+#endif
+
 #include "blis.h"
 #define BLIS_ASM_SYNTAX_ATT
 #include "bli_x86_asm_macros.h"
@@ -50285,7 +50293,7 @@ void bli_dgemmsup_cv_zen4_asm_24x8m
         // covers the range 16 < m_left <= 24 by using masked load/store instructions
         if( 16 < m_left )
         {
-            bli_dgemmsup_rv_zen4_asm_24x8(
+            bli_dgemmsup_cv_zen4_asm_24x8(
               conja, conjb, m_left, nr_cur, k0,
               alpha, ai, rs_a0, cs_a0, bj, rs_b0, cs_b0,
               beta, cij, rs_c0, cs_c0, data, cntx);
@@ -50293,7 +50301,7 @@ void bli_dgemmsup_cv_zen4_asm_24x8m
         // covers the range 8 < m_left <= 16 by using masked load/store instructions
         else if( 8 < m_left )
         {
-            bli_dgemmsup_rv_zen4_asm_16x8(
+            bli_dgemmsup_cv_zen4_asm_16x8(
               conja, conjb, m_left, nr_cur, k0,
               alpha, ai, rs_a0, cs_a0, bj, rs_b0, cs_b0,
               beta, cij, rs_c0, cs_c0, data, cntx);
@@ -50301,7 +50309,7 @@ void bli_dgemmsup_cv_zen4_asm_24x8m
         // covers the range 0 < m_left <= 8 by using masked load/store instructions
         else if( 0 < m_left )
         {
-            bli_dgemmsup_rv_zen4_asm_8x8(
+            bli_dgemmsup_cv_zen4_asm_8x8(
               conja, conjb, m_left, nr_cur, k0,
               alpha, ai, rs_a0, cs_a0, bj, rs_b0, cs_b0,
               beta, cij, rs_c0, cs_c0, data, cntx);
@@ -51780,7 +51788,7 @@ void bli_dgemmsup_cv_zen4_asm_24x7m
         // covers the range 16 < m_left <= 24 by using masked load/store instructions
         if( 16 < m_left )
         {
-            bli_dgemmsup_rv_zen4_asm_24x7(
+            bli_dgemmsup_cv_zen4_asm_24x7(
               conja, conjb, m_left, nr_cur, k0,
               alpha, ai, rs_a0, cs_a0, bj, rs_b0, cs_b0,
               beta, cij, rs_c0, cs_c0, data, cntx);
@@ -51788,7 +51796,7 @@ void bli_dgemmsup_cv_zen4_asm_24x7m
         // covers the range 8 < m_left <= 16 by using masked load/store instructions
         else if( 8 < m_left )
         {
-            bli_dgemmsup_rv_zen4_asm_16x7(
+            bli_dgemmsup_cv_zen4_asm_16x7(
               conja, conjb, m_left, nr_cur, k0,
               alpha, ai, rs_a0, cs_a0, bj, rs_b0, cs_b0,
               beta, cij, rs_c0, cs_c0, data, cntx);
@@ -51796,7 +51804,7 @@ void bli_dgemmsup_cv_zen4_asm_24x7m
         // covers the range 0 < m_left <= 8 by using masked load/store instructions
         else if( 0 < m_left )
         {
-            bli_dgemmsup_rv_zen4_asm_8x7(
+            bli_dgemmsup_cv_zen4_asm_8x7(
               conja, conjb, m_left, nr_cur, k0,
               alpha, ai, rs_a0, cs_a0, bj, rs_b0, cs_b0,
               beta, cij, rs_c0, cs_c0, data, cntx);
@@ -53163,7 +53171,7 @@ void bli_dgemmsup_cv_zen4_asm_24x6m
         // covers the range 16 < m_left <= 24 by using masked load/store instructions
         if( 16 < m_left )
         {
-            bli_dgemmsup_rv_zen4_asm_24x6(
+            bli_dgemmsup_cv_zen4_asm_24x6(
               conja, conjb, m_left, nr_cur, k0,
               alpha, ai, rs_a0, cs_a0, bj, rs_b0, cs_b0,
               beta, cij, rs_c0, cs_c0, data, cntx);
@@ -53171,7 +53179,7 @@ void bli_dgemmsup_cv_zen4_asm_24x6m
         // covers the range 8 < m_left <= 16 by using masked load/store instructions
         else if( 8 < m_left )
         {
-            bli_dgemmsup_rv_zen4_asm_16x6(
+            bli_dgemmsup_cv_zen4_asm_16x6(
               conja, conjb, m_left, nr_cur, k0,
               alpha, ai, rs_a0, cs_a0, bj, rs_b0, cs_b0,
               beta, cij, rs_c0, cs_c0, data, cntx);
@@ -53179,7 +53187,7 @@ void bli_dgemmsup_cv_zen4_asm_24x6m
         // covers the range 0 < m_left <= 8 by using masked load/store instructions
         else if( 0 < m_left )
         {
-            bli_dgemmsup_rv_zen4_asm_8x6(
+            bli_dgemmsup_cv_zen4_asm_8x6(
               conja, conjb, m_left, nr_cur, k0,
               alpha, ai, rs_a0, cs_a0, bj, rs_b0, cs_b0,
               beta, cij, rs_c0, cs_c0, data, cntx);
@@ -54429,7 +54437,7 @@ void bli_dgemmsup_cv_zen4_asm_24x5m
         // covers the range 16 < m_left <= 24 by using masked load/store instructions
         if( 16 < m_left )
         {
-            bli_dgemmsup_rv_zen4_asm_24x5(
+            bli_dgemmsup_cv_zen4_asm_24x5(
               conja, conjb, m_left, nr_cur, k0,
               alpha, ai, rs_a0, cs_a0, bj, rs_b0, cs_b0,
               beta, cij, rs_c0, cs_c0, data, cntx);
@@ -54437,7 +54445,7 @@ void bli_dgemmsup_cv_zen4_asm_24x5m
         // covers the range 8 < m_left <= 16 by using masked load/store instructions
         else if( 8 < m_left )
         {
-            bli_dgemmsup_rv_zen4_asm_16x5(
+            bli_dgemmsup_cv_zen4_asm_16x5(
               conja, conjb, m_left, nr_cur, k0,
               alpha, ai, rs_a0, cs_a0, bj, rs_b0, cs_b0,
               beta, cij, rs_c0, cs_c0, data, cntx);
@@ -54445,7 +54453,7 @@ void bli_dgemmsup_cv_zen4_asm_24x5m
         // covers the range 0 < m_left <= 8 by using masked load/store instructions
         else if( 0 < m_left )
         {
-            bli_dgemmsup_rv_zen4_asm_8x5(
+            bli_dgemmsup_cv_zen4_asm_8x5(
               conja, conjb, m_left, nr_cur, k0,
               alpha, ai, rs_a0, cs_a0, bj, rs_b0, cs_b0,
               beta, cij, rs_c0, cs_c0, data, cntx);
@@ -55568,7 +55576,7 @@ void bli_dgemmsup_cv_zen4_asm_24x4m
         // covers the range 16 < m_left <= 24 by using masked load/store instructions
         if( 16 < m_left )
         {
-            bli_dgemmsup_rv_zen4_asm_24x4(
+            bli_dgemmsup_cv_zen4_asm_24x4(
               conja, conjb, m_left, nr_cur, k0,
               alpha, ai, rs_a0, cs_a0, bj, rs_b0, cs_b0,
               beta, cij, rs_c0, cs_c0, data, cntx);
@@ -55576,7 +55584,7 @@ void bli_dgemmsup_cv_zen4_asm_24x4m
         // covers the range 8 < m_left <= 16 by using masked load/store instructions
         else if( 8 < m_left )
         {
-            bli_dgemmsup_rv_zen4_asm_16x4(
+            bli_dgemmsup_cv_zen4_asm_16x4(
               conja, conjb, m_left, nr_cur, k0,
               alpha, ai, rs_a0, cs_a0, bj, rs_b0, cs_b0,
               beta, cij, rs_c0, cs_c0, data, cntx);
@@ -55584,7 +55592,7 @@ void bli_dgemmsup_cv_zen4_asm_24x4m
         // covers the range 0 < m_left <= 8 by using masked load/store instructions
         else if( 0 < m_left )
         {
-            bli_dgemmsup_rv_zen4_asm_8x4(
+            bli_dgemmsup_cv_zen4_asm_8x4(
               conja, conjb, m_left, nr_cur, k0,
               alpha, ai, rs_a0, cs_a0, bj, rs_b0, cs_b0,
               beta, cij, rs_c0, cs_c0, data, cntx);
@@ -56583,7 +56591,7 @@ void bli_dgemmsup_cv_zen4_asm_24x3m
         // covers the range 16 < m_left <= 24 by using masked load/store instructions
         if( 16 < m_left )
         {
-            bli_dgemmsup_rv_zen4_asm_24x3(
+            bli_dgemmsup_cv_zen4_asm_24x3(
               conja, conjb, m_left, nr_cur, k0,
               alpha, ai, rs_a0, cs_a0, bj, rs_b0, cs_b0,
               beta, cij, rs_c0, cs_c0, data, cntx);
@@ -56591,7 +56599,7 @@ void bli_dgemmsup_cv_zen4_asm_24x3m
         // covers the range 8 < m_left <= 16 by using masked load/store instructions
         else if( 8 < m_left )
         {
-            bli_dgemmsup_rv_zen4_asm_16x3(
+            bli_dgemmsup_cv_zen4_asm_16x3(
               conja, conjb, m_left, nr_cur, k0,
               alpha, ai, rs_a0, cs_a0, bj, rs_b0, cs_b0,
               beta, cij, rs_c0, cs_c0, data, cntx);
@@ -56599,7 +56607,7 @@ void bli_dgemmsup_cv_zen4_asm_24x3m
         // covers the range 0 < m_left <= 8 by using masked load/store instructions
         else if( 0 < m_left )
         {
-            bli_dgemmsup_rv_zen4_asm_8x3(
+            bli_dgemmsup_cv_zen4_asm_8x3(
               conja, conjb, m_left, nr_cur, k0,
               alpha, ai, rs_a0, cs_a0, bj, rs_b0, cs_b0,
               beta, cij, rs_c0, cs_c0, data, cntx);
@@ -57475,7 +57483,7 @@ void bli_dgemmsup_cv_zen4_asm_24x2m
         // covers the range 16 < m_left <= 24 by using masked load/store instructions
         if( 16 < m_left )
         {
-            bli_dgemmsup_rv_zen4_asm_24x2(
+            bli_dgemmsup_cv_zen4_asm_24x2(
               conja, conjb, m_left, nr_cur, k0,
               alpha, ai, rs_a0, cs_a0, bj, rs_b0, cs_b0,
               beta, cij, rs_c0, cs_c0, data, cntx);
@@ -57483,7 +57491,7 @@ void bli_dgemmsup_cv_zen4_asm_24x2m
         // covers the range 8 < m_left <= 16 by using masked load/store instructions
         else if( 8 < m_left )
         {
-            bli_dgemmsup_rv_zen4_asm_16x2(
+            bli_dgemmsup_cv_zen4_asm_16x2(
               conja, conjb, m_left, nr_cur, k0,
               alpha, ai, rs_a0, cs_a0, bj, rs_b0, cs_b0,
               beta, cij, rs_c0, cs_c0, data, cntx);
@@ -57491,7 +57499,7 @@ void bli_dgemmsup_cv_zen4_asm_24x2m
         // covers the range 0 < m_left <= 8 by using masked load/store instructions
         else if( 0 < m_left )
         {
-            bli_dgemmsup_rv_zen4_asm_8x2(
+            bli_dgemmsup_cv_zen4_asm_8x2(
               conja, conjb, m_left, nr_cur, k0,
               alpha, ai, rs_a0, cs_a0, bj, rs_b0, cs_b0,
               beta, cij, rs_c0, cs_c0, data, cntx);
@@ -58242,7 +58250,7 @@ void bli_dgemmsup_cv_zen4_asm_24x1m
         // covers the range 16 < m_left <= 24 by using masked load/store instructions
         if( 16 < m_left )
         {
-            bli_dgemmsup_rv_zen4_asm_24x1(
+            bli_dgemmsup_cv_zen4_asm_24x1(
               conja, conjb, m_left, nr_cur, k0,
               alpha, ai, rs_a0, cs_a0, bj, rs_b0, cs_b0,
               beta, cij, rs_c0, cs_c0, data, cntx);
@@ -58250,7 +58258,7 @@ void bli_dgemmsup_cv_zen4_asm_24x1m
         // covers the range 8 < m_left <= 16 by using masked load/store instructions
         else if( 8 < m_left )
         {
-            bli_dgemmsup_rv_zen4_asm_16x1(
+            bli_dgemmsup_cv_zen4_asm_16x1(
               conja, conjb, m_left, nr_cur, k0,
               alpha, ai, rs_a0, cs_a0, bj, rs_b0, cs_b0,
               beta, cij, rs_c0, cs_c0, data, cntx);
@@ -58258,7 +58266,7 @@ void bli_dgemmsup_cv_zen4_asm_24x1m
         // covers the range 0 < m_left <= 8 by using masked load/store instructions
         else if( 0 < m_left )
         {
-            bli_dgemmsup_rv_zen4_asm_8x1(
+            bli_dgemmsup_cv_zen4_asm_8x1(
               conja, conjb, m_left, nr_cur, k0,
               alpha, ai, rs_a0, cs_a0, bj, rs_b0, cs_b0,
               beta, cij, rs_c0, cs_c0, data, cntx);

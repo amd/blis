@@ -121,7 +121,7 @@ err_t bli_trsm_small_zen5
     bool transa = bli_obj_has_trans(a);
     num_t dt    = bli_obj_dt(a);
 
-    if (dt == BLIS_SCOMPLEX || dt == BLIS_FLOAT)
+    if (dt != BLIS_DOUBLE && dt != BLIS_DCOMPLEX)
     {
         return BLIS_NOT_YET_IMPLEMENTED;
     }

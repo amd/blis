@@ -304,7 +304,7 @@
     else           { STORE_COL_UPPER(M, n_rem) } \
     c += 8 * rs_c; \
 
-void bli_dgemmsup_rv_zen4_asm_8x8m
+void bli_dgemmsup_cv_zen4_asm_8x8m
       (
         conj_t              conja,
         conj_t              conjb,
@@ -353,7 +353,7 @@ void bli_dgemmsup_rv_zen4_asm_8x8m
     }
 }
 
-void bli_dgemmsup_rv_zen4_asm_8x8m_lower
+void bli_dgemmsup_cv_zen4_asm_8x8m_lower
       (
         conj_t              conja,
         conj_t              conjb,
@@ -402,7 +402,7 @@ void bli_dgemmsup_rv_zen4_asm_8x8m_lower
     }
 }
 
-void bli_dgemmsup_rv_zen4_asm_8x8m_upper
+void bli_dgemmsup_cv_zen4_asm_8x8m_upper
       (
         conj_t              conja,
         conj_t              conjb,
@@ -468,7 +468,7 @@ void bli_dgemmsup_rv_zen4_asm_8x8m_upper
     |********|
      ________
 */
-void bli_dgemmsup_rv_zen4_asm_8x8m_lower_mle8
+void bli_dgemmsup_cv_zen4_asm_8x8m_lower_mle8
       (
         conj_t              conja,
         conj_t              conjb,
@@ -533,7 +533,7 @@ void bli_dgemmsup_rv_zen4_asm_8x8m_lower_mle8
     |-------*|
      ________
 */
-void bli_dgemmsup_rv_zen4_asm_8x8m_upper_mle8
+void bli_dgemmsup_cv_zen4_asm_8x8m_upper_mle8
       (
         conj_t              conja,
         conj_t              conjb,
@@ -691,7 +691,7 @@ void bli_dgemmsup_cv_zen4_asm_24x8m_lower_0
     // call row major 8x8m upper diagonal kernel after
     // inducing transpose to solve column major lower
     // triangular GEMM
-    bli_dgemmsup_rv_zen4_asm_8x8m_upper_mle8
+    bli_dgemmsup_cv_zen4_asm_8x8m_upper_mle8
     (
         conjb,
         conja,
@@ -801,7 +801,7 @@ void bli_dgemmsup_cv_zen4_asm_24x8m_lower_1
     // call row major 8x8m upper diagonal kernel after
     // inducing transpose to solve column major lower
     // triangular GEMM
-    bli_dgemmsup_rv_zen4_asm_8x8m_upper_mle8
+    bli_dgemmsup_cv_zen4_asm_8x8m_upper_mle8
     (
         conjb,
         conja,
@@ -911,7 +911,7 @@ void bli_dgemmsup_cv_zen4_asm_24x8m_lower_2
     // call row major 8x8m upper diagonal kernel after
     // inducing transpose to solve column major lower
     // triangular GEMM
-    bli_dgemmsup_rv_zen4_asm_8x8m_upper_mle8
+    bli_dgemmsup_cv_zen4_asm_8x8m_upper_mle8
     (
         conjb,
         conja,
@@ -1081,7 +1081,7 @@ void bli_dgemmsup_cv_zen4_asm_24x8m_upper_0
     // call row major 8x8m lower diagonal kernel after
     // inducing transpose to solve column major upper
     // triangular GEMM
-    bli_dgemmsup_rv_zen4_asm_8x8m_lower_mle8
+    bli_dgemmsup_cv_zen4_asm_8x8m_lower_mle8
     (
         conjb,
         conja,
@@ -1187,7 +1187,7 @@ void bli_dgemmsup_cv_zen4_asm_24x8m_upper_1
     // call row major 8x8m lower diagonal kernel after
     // inducing transpose to solve column major upper
     // triangular GEMM
-    bli_dgemmsup_rv_zen4_asm_8x8m_lower_mle8
+    bli_dgemmsup_cv_zen4_asm_8x8m_lower_mle8
     (
         conjb,
         conja,
@@ -1287,7 +1287,7 @@ void bli_dgemmsup_cv_zen4_asm_24x8m_upper_2
     // call row major 8x8m lower diagonal kernel after
     // inducing transpose to solve column major upper
     // triangular GEMM
-    bli_dgemmsup_rv_zen4_asm_8x8m_lower_mle8
+    bli_dgemmsup_cv_zen4_asm_8x8m_lower_mle8
     (
         conjb,
         conja,

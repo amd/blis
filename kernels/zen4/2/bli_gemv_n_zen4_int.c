@@ -1179,6 +1179,7 @@ void bli_dgemv_m_zen4_int_40x8_mt_Mdiv
           y, incy,
           NULL
         );
+        AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_4)
         return;
     }
@@ -1224,7 +1225,8 @@ void bli_dgemv_m_zen4_int_40x8_mt_Mdiv
             cntx
         );
     }
-}
+    AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, nt);
+} // end of function
 
 /*
  * Multi-threaded GEMV M-kernel with division along N dimension
@@ -1290,6 +1292,7 @@ void bli_dgemv_m_zen4_int_40x8_mt_Ndiv
           y, incy,
           NULL
         );
+        AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_4)
         return;
     }
@@ -1342,14 +1345,13 @@ void bli_dgemv_m_zen4_int_40x8_mt_Ndiv
           NULL
         );
 
+        AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_4)
         return;
     }
 
     temp_mem = bli_mem_buffer(&local_mem_buf);
-    if( temp_mem == NULL )
-        nt = 1;
-    if (local_mem_buf.size < temp_mem_size *sizeof(double))
+    if (local_mem_buf.size < temp_mem_size *sizeof(double) || (temp_mem == NULL) || (nt == 1) )
     {
         nt = 1;
         if (bli_mem_is_alloc( &local_mem_buf ))
@@ -1365,6 +1367,7 @@ void bli_dgemv_m_zen4_int_40x8_mt_Ndiv
         (
             transa, conjx, m, n, alpha, a, rs_a, cs_a, x, incx, beta, y, incy, cntx
         );
+        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_4)
         return;
     }
 
@@ -1430,6 +1433,8 @@ void bli_dgemv_m_zen4_int_40x8_mt_Ndiv
     {
         bli_pba_release(&rntm, &local_mem_buf);
     }
+
+    AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, nt);
 }
 #endif
 
@@ -1451,18 +1456,18 @@ void bli_dgemv_n_zen4_int (
                             cntx_t* cntx
                         )
 {
-    void (*ker_ft) ( trans_t, 
-                      conj_t, 
-                      dim_t, 
-                      dim_t, 
-                      double*, 
+    void (*ker_ft) ( trans_t,
+                      conj_t,
+                      dim_t,
+                      dim_t,
                       double*,
-                      inc_t, 
-                      inc_t, 
-                      double*, 
-                      inc_t, 
-                      double*, 
-                      double*, 
+                      double*,
+                      inc_t,
+                      inc_t,
+                      double*,
+                      inc_t,
+                      double*,
+                      double*,
                       inc_t, cntx_t* ) = NULL;
 
 // If AOCL_DYNAMIC is enabled, call ST kernels for small sizes.
@@ -1473,18 +1478,15 @@ void bli_dgemv_n_zen4_int (
     if ( size < 95000 )
     {
         // we call sequential GEMV
-        if ( m <= 46 )
+        if ( m <= 180 && n >= 8 )
         {
             ker_ft = bli_dgemv_n_zen4_int_40x2_st;
         }
-        else if ( n < 8 )
+        else
         {
             ker_ft = bli_dgemv_n_zen4_int_32x8_st;
         }
-        else
-        {
-            ker_ft = bli_dgemv_m_zen4_int_40x8_st;
-        }
+        AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
     }
     else
 #endif
@@ -1500,18 +1502,15 @@ void bli_dgemv_n_zen4_int (
             ker_ft = bli_dgemv_m_zen4_int_40x8_mt_Mdiv;
         }
 #else
-        if ( m <= 46 )
+        if ( m <= 180 && n >= 8 )
         {
             ker_ft = bli_dgemv_n_zen4_int_40x2_st;
         }
-        else if ( n < 8 )
+        else
         {
             ker_ft = bli_dgemv_n_zen4_int_32x8_st;
         }
-        else
-        {
-            ker_ft = bli_dgemv_m_zen4_int_40x8_st;
-        }
+        AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
 #endif
     }
 
@@ -1520,7 +1519,12 @@ void bli_dgemv_n_zen4_int (
     if ( incy != 1 || transa != BLIS_NO_TRANSPOSE)
     {
         ker_ft = bli_dgemv_n_zen4_int_32x8_st;
+        // AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
+        // I am commenting out the above line because
+        // it ends up calling twice sometimes.
+        // Need to fix it later !!
     }
+    // Call the function pointer
     ker_ft
     (
         transa,

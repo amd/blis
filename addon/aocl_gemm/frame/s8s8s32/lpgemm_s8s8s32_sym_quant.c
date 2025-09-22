@@ -53,7 +53,7 @@ LPGEMV2(int8_t,int8_t,int32_t,s8s8s32o32_sym_quant)
 	dim_t MC = lcntx->blksz.MC;
 	dim_t NR = lcntx->blksz.NR;
 
-    // Group size should always be <= KC to make sure that entire group is processed
+	// Group size should always be <= KC to make sure that entire group is processed
 	// within one micro-kernel call.
 	// If group size is greater than KC, then KC will be updated to group size.
 	// This same change is done in reorder function to maintain consistency between
@@ -77,6 +77,14 @@ LPGEMV2(int8_t,int8_t,int32_t,s8s8s32o32_sym_quant)
 	lpgemm_post_op_attr post_ops_attr;
 
 	post_ops_attr.c_stor_type = c_downscale;
+    post_ops_attr.rs_c_downscale    = rs_c;
+    post_ops_attr.cs_c_downscale    = cs_c;
+    post_ops_attr.is_first_k        = TRUE;
+    post_ops_attr.is_last_k         = TRUE;
+    post_ops_attr.b_sum_offset      = 0;
+    post_ops_attr.b_col_sum_vec     = NULL;
+    post_ops_attr.b_col_sum_vec_s16 = NULL;
+
 	if ( c_downscale <  F32 )
 	{
 		post_ops_attr.buf_downscale = c;
@@ -110,11 +118,11 @@ LPGEMV2(int8_t,int8_t,int32_t,s8s8s32o32_sym_quant)
 	grp_post_ops_attr.sf_stor_type = grp_post_op_list->sf_stor_type;
 	grp_post_ops_attr.zp_stor_type = grp_post_op_list->zp_stor_type;
 
-    dim_t num_groups = ( k + group_size - 1 ) / group_size;
+	dim_t num_groups = ( k + group_size - 1 ) / group_size;
 	grp_post_ops_attr.grp_post_op_lda = num_groups;
 	grp_post_ops_attr.grp_post_op_ldb = n;
 
-    // Generate thrinfo objects for jc and ic loops from lpgemm_thrinfo_t.
+	// Generate thrinfo objects for jc and ic loops from lpgemm_thrinfo_t.
 	thrinfo_t thread_jc;
 	thrinfo_t thread_ic;
 
@@ -125,32 +133,32 @@ LPGEMV2(int8_t,int8_t,int32_t,s8s8s32o32_sym_quant)
 		// Increased MR from 6 to 16 to make use of 32 ZMM registers
 		dim_t MR = 16;
 
-        if( mtag_b == REORDERED )
+		if( mtag_b == REORDERED )
 		{
 			post_ops_attr.b_col_sum_vec = ( int32_t* )( b + k );
 		}
 		else if( mtag_b == PACK )
-        {
-            // Unreordered B not supported.
-            return;
-        }
-        else
-        {
-            // Unpacked B not supported.
-            return;
-        }
-        
-        // Compute the IC loop thread range for the current thread.
+		{
+			// Unreordered B not supported.
+			return;
+		}
+		else
+		{
+			// Unpacked B not supported.
+			return;
+		}
+
+		// Compute the IC loop thread range for the current thread.
 		dim_t ic_start, ic_end;
 		thread_ic.n_way = ( thread_ic.n_way == 1 ) ?
 			              ( thread->n_threads ) : ( thread_ic.n_way );
 		thread_ic.work_id = thread->tid;
 		bli_thread_range_sub(&thread_ic, m, MR, FALSE, &ic_start, &ic_end);
 
-        grp_post_ops_attr.grp_post_op_k = 0;
+		grp_post_ops_attr.grp_post_op_k = 0;
 		for ( dim_t ic = ic_start; ic < ic_end; ic += MC )
 		{
-            grp_post_ops_attr.grp_post_op_i = ic;
+			grp_post_ops_attr.grp_post_op_i = ic;
 
 			dim_t mc0 = bli_min( ( ic_end - ic ), MC );
 
@@ -192,7 +200,7 @@ LPGEMV2(int8_t,int8_t,int32_t,s8s8s32o32_sym_quant)
 			  c_use, rs_c, cs_c,
 			  alpha, beta,
 			  MR, KC,
-              grp_post_ops_attr,
+			  grp_post_ops_attr,
 			  post_op_list,
 			  &post_ops_attr
 			);
@@ -220,10 +228,10 @@ LPGEMV2(int8_t,int8_t,int32_t,s8s8s32o32_sym_quant)
 
 		dim_t packb_min_NR = get_packb_s8s8s32o32_min_NR();
 
-        // kc needs to be a multiple of 4 so that it can be used with vpdpbusd
-        // instruction. Padding is added in cases this condition is not
-        // satisfied, and therefore the k offset used for packed/reordered
-        // buffer needs to be updated.
+		// kc needs to be a multiple of 4 so that it can be used with vpdpbusd
+		// instruction. Padding is added in cases this condition is not
+		// satisfied, and therefore the k offset used for packed/reordered
+		// buffer needs to be updated.
 		dim_t k_updated = make_multiple_of_n( k, 4 );
 		dim_t n_updated = make_multiple_of_n( n, 16 );
 
@@ -259,10 +267,10 @@ LPGEMV2(int8_t,int8_t,int32_t,s8s8s32o32_sym_quant)
 			a_use = pack_a_buffer_s8s8s32os32;
 		}
 
-        grp_post_ops_attr.grp_post_op_k = 0;
+		grp_post_ops_attr.grp_post_op_k = 0;
 		for ( dim_t jc = jc_start; jc < jc_end; jc += NC  )
 		{
-            grp_post_ops_attr.grp_post_op_j = jc;
+			grp_post_ops_attr.grp_post_op_j = jc;
 
 			dim_t nc0 = bli_min( ( jc_end - jc ), NC );
 			c_use = c + jc;
@@ -271,7 +279,7 @@ LPGEMV2(int8_t,int8_t,int32_t,s8s8s32o32_sym_quant)
 			dim_t jc_cur_loop_rem = 0;
 			dim_t n_sub_updated = 0;
 
-            dim_t kc0_updated = make_multiple_of_n( k, 4 );
+			dim_t kc0_updated = make_multiple_of_n( k, 4 );
 
 			if ( mtag_b == REORDERED )
 			{
@@ -280,36 +288,36 @@ LPGEMV2(int8_t,int8_t,int32_t,s8s8s32o32_sym_quant)
 				  &jc_cur_loop, &jc_cur_loop_rem,
 				  &nc0, &n_sub_updated );
 
-                b_use = ( int8_t* ) ( b +
-                                      ( jc_cur_loop * k_updated ) +
-                                      ( jc_cur_loop_rem * kc0_updated )
-                                    );
+				b_use = ( int8_t* ) ( b +
+				        ( jc_cur_loop * k_updated ) +
+				        ( jc_cur_loop_rem * kc0_updated )
+				);
 
 				lpgemm_get_packb_strides( lcntx, &rs_b_use, &cs_b_use );
 
-                post_ops_attr.b_col_sum_vec = ( ( int32_t* )( b +
-                                                ( k_updated * n_updated ) ) ) +
-                                                jc;
+				post_ops_attr.b_col_sum_vec = ( ( int32_t* )( b +
+				                                ( k_updated * n_updated ) ) ) +
+				                              jc;
 
-                grp_post_ops_attr.grp_post_op_sum_ld = n_updated;
+				grp_post_ops_attr.grp_post_op_sum_ld = n_updated;
 			}
 			else if( mtag_b == PACK )
 			{
-                // Unreordered B not supported.
-                return;
+				// Unreordered B not supported.
+				return;
 			}
-            else
-            {
-                // Unpacked B not supported.
-                return;
-            }
+			else
+			{
+				// Unpacked B not supported.
+				return;
+			}
 
 			post_ops_attr.post_op_c_i = 0;
 			post_ops_attr.post_op_c_j = jc;
 			post_ops_attr.rs_c_downscale = rs_c;
 			post_ops_attr.b_sum_offset = 0;
 
-            lpgemv_m_one_s8s8s32os32_sym_quant
+			lpgemv_m_one_s8s8s32os32_sym_quant
 			(
 			  nc0, k,
 			  a_use, rs_a_use, cs_a_use, mtag_a,
@@ -319,9 +327,9 @@ LPGEMV2(int8_t,int8_t,int32_t,s8s8s32o32_sym_quant)
 			  NR, KC,
 			  n_sub_updated,
 			  jc_cur_loop_rem,
-              grp_post_ops_attr,
-              post_op_list,
-              &post_ops_attr
+			  grp_post_ops_attr,
+			  post_op_list,
+			  &post_ops_attr
 			);
 
 			if ( mtag_b == REORDERED )
@@ -368,20 +376,20 @@ LPGEMM_5LOOP2(int8_t,int8_t,int32_t,s8s8s32o32_sym_quant)
 		return;
 	}
 
-    // Invoke gemv kernels for m = 1 or n = 1.
+	// Invoke gemv kernels for m = 1 or n = 1.
 	if ( ( ( m == 1 ) || ( n == 1 ) ) && ( mtag_b == REORDERED) )
 	{
-        if ( ( k % grp_post_op_list->group_size != 0 ) ||
-             ( KC % grp_post_op_list->group_size != 0 ) )
-        {
-            bli_print_msg( "Quantized GEMV is only supported only when k and KC are "
-                           "divisible by group_size." , __FILE__, __LINE__ );
-            return; // Error
-        }
+	        if ( ( k % grp_post_op_list->group_size != 0 ) ||
+	             ( KC % grp_post_op_list->group_size != 0 ) )
+	        {
+			bli_print_msg( "Quantized GEMV is only supported only when k and KC are "
+			               "divisible by group_size." , __FILE__, __LINE__ );
+			return; // Error
+		}
 
 		lpgemv_rowvar_s8s8s32o32_sym_quant
-        (
-          m, n, k,
+		(
+		  m, n, k,
 		  a, rs_a, cs_a, mtag_a,
 		  b, rs_b, cs_b, mtag_b,
 		  c, rs_c, cs_c,
@@ -390,10 +398,10 @@ LPGEMM_5LOOP2(int8_t,int8_t,int32_t,s8s8s32o32_sym_quant)
 		  rntm,
 		  thread,
 		  lcntx,
-          grp_post_op_list,
+		  grp_post_op_list,
 		  post_op_list,
 		  c_downscale
-        );
+	        );
 
 		return;
 	}
@@ -446,6 +454,12 @@ LPGEMM_5LOOP2(int8_t,int8_t,int32_t,s8s8s32o32_sym_quant)
 	lpgemm_grp_post_op_attr grp_post_ops_attr;
 
 	post_ops_attr.c_stor_type = c_downscale;
+    post_ops_attr.rs_c_downscale    = rs_c;
+    post_ops_attr.cs_c_downscale    = cs_c;
+    post_ops_attr.b_sum_offset      = 0;
+    post_ops_attr.b_col_sum_vec     = NULL;
+    post_ops_attr.b_col_sum_vec_s16 = NULL;
+
 	if ( c_downscale <  F32 )
 	{
 		post_ops_attr.buf_downscale = c;

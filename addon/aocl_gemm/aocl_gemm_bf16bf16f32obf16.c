@@ -128,7 +128,7 @@ AOCL_GEMM_MATMUL(bfloat16,bfloat16,bfloat16,float,bf16bf16f32obf16)
 	{
 		bli_print_msg(" Could not generate bf16bf16f32obf16 "
 			" kernels using JIT.", __FILE__, __LINE__ );
-			return;
+		goto err_hndl;
 	}
 #endif
 
@@ -251,7 +251,7 @@ AOCL_GEMM_MATMUL(bfloat16,bfloat16,bfloat16,float,bf16bf16f32obf16)
 				lcntx_g,
 				post_op_list, BF16
 			);
-			return;
+			goto err_hndl;
 		}
 		else if( ( is_column_major == TRUE ) &&
 				 ( is_tiny_input_bf16obf16( n, m, k, lcntx_g ) == TRUE ) )
@@ -266,7 +266,7 @@ AOCL_GEMM_MATMUL(bfloat16,bfloat16,bfloat16,float,bf16bf16f32obf16)
 				lcntx_g,
 				post_op_list, BF16
 			);
-			return;
+			goto err_hndl;
 		}
 	}
 #endif

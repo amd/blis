@@ -247,6 +247,7 @@ void bli_dgemv_unf_var1
           NULL
         );
 
+        AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_3)
         return;
     }
@@ -270,8 +271,8 @@ void bli_dgemv_unf_var1
     //                    n0   = n;
     //
     bli_set_dims_incs_with_trans(transa,
-                                m, n, rs_a, cs_a,
-                                &n0, &m0, &lda, &inca);
+                                 m, n, rs_a, cs_a,
+                                 &n0, &m0, &lda, &inca);
 
     // Extract the conjugation from transa.
     conja = bli_extract_conj(transa);
@@ -284,16 +285,16 @@ void bli_dgemv_unf_var1
     bool is_x_temp_buf_created = FALSE;
 
     // Function pointer declaration for the functions that will be used.
-    dgemv_ker_ft_conja   gemv_kr_ptr;         // DGEMV
-    dscalv_ker_ft        scalv_kr_ptr;        // DSCALV
-    dcopyv_ker_ft        copyv_kr_ptr;        // DCOPYV
+    dgemv_ker_ft_conja   gemv_kr_ptr = NULL;     // DGEMV
+    dscalv_ker_ft        scalv_kr_ptr = NULL;    // DSCALV
+    dcopyv_ker_ft        copyv_kr_ptr = NULL;    // DCOPYV
 
     /*
       Fatbinary config amdzen when run on non-AMD X86 will query for
       the support of AVX512 or AVX2, if AVX512 - arch_id will be zen4
       and zen5 or for AVX2 it will be zen3.
     */
-    arch_t id = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id();
 
 #if defined(BLIS_ENABLE_OPENMP) && defined(AOCL_DYNAMIC)
     // Setting the threshold to invoke the fast-path
@@ -302,23 +303,23 @@ void bli_dgemv_unf_var1
     dim_t fast_path_thresh = 0;
 #endif
 
-    switch (id)
+    switch ( arch_id )
     {
       case BLIS_ARCH_ZEN5:
 #if defined(BLIS_KERNELS_ZEN5)
-      gemv_kr_ptr   = bli_dgemv_t_zen4_int;     // DGEMV
-      scalv_kr_ptr  = bli_dscalv_zen4_int;      // DSCALV
-      copyv_kr_ptr  = bli_dcopyv_zen5_asm;     // DCOPYV
+        gemv_kr_ptr   = bli_dgemv_t_zen4_int;    // DGEMV
+        scalv_kr_ptr  = bli_dscalv_zen4_int;     // DSCALV
+        copyv_kr_ptr  = bli_dcopyv_zen5_asm;     // DCOPYV
 #if defined(BLIS_ENABLE_OPENMP) && defined(AOCL_DYNAMIC)
-      fast_path_thresh = 12000;
+        fast_path_thresh = 12000;
 #endif
-      break;
+        break;
 #endif
       case BLIS_ARCH_ZEN4:
 
 #if defined(BLIS_KERNELS_ZEN4)
-        gemv_kr_ptr   = bli_dgemv_t_zen4_int;     // DGEMV
-        scalv_kr_ptr  = bli_dscalv_zen4_int;      // DSCALV
+        gemv_kr_ptr   = bli_dgemv_t_zen4_int;    // DGEMV
+        scalv_kr_ptr  = bli_dscalv_zen4_int;     // DSCALV
         copyv_kr_ptr  = bli_dcopyv_zen4_asm;     // DCOPYV
 #if defined(BLIS_ENABLE_OPENMP) && defined(AOCL_DYNAMIC)
         fast_path_thresh = 11000;
@@ -330,11 +331,12 @@ void bli_dgemv_unf_var1
       case BLIS_ARCH_ZEN2:
       case BLIS_ARCH_ZEN3:
 
-        gemv_kr_ptr   = bli_dgemv_t_zen_int;       // DGEMV
-        scalv_kr_ptr  = bli_dscalv_zen_int;             // DSCALV
-        copyv_kr_ptr  = bli_dcopyv_zen_int;             // DCOPYV
+        gemv_kr_ptr   = bli_dgemv_t_zen_int;     // DGEMV
+        scalv_kr_ptr  = bli_dscalv_zen_int;      // DSCALV
+        copyv_kr_ptr  = bli_dcopyv_zen_int;      // DCOPYV
+
 #if defined(BLIS_ENABLE_OPENMP) && defined(AOCL_DYNAMIC)
-          fast_path_thresh = 13000;
+        fast_path_thresh = 13000;
 #endif
         break;
 
@@ -383,10 +385,11 @@ void bli_dgemv_unf_var1
             );
           }
 
+          AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
           AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_3);
           return;
     }
-    
+
     // If alpha is zero, the GEMV operation is reduced to y := beta * y, thus,
     // y is only scaled by beta and returned.
     if( bli_deq0( *alpha ) )
@@ -401,6 +404,7 @@ void bli_dgemv_unf_var1
           cntx
         );
 
+        AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_3)
         return;
     }
@@ -491,6 +495,8 @@ void bli_dgemv_unf_var1
             cntx
         );
 
+        AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
+
 #if defined(BLIS_ENABLE_OPENMP)
       }
       else
@@ -509,7 +515,7 @@ void bli_dgemv_unf_var1
             BLIS_GEMV_KER,
             BLIS_DOUBLE,
             BLIS_TRANSPOSE,
-            id,
+            arch_id,
             n0,
             m0,
             &nt
@@ -568,6 +574,7 @@ void bli_dgemv_unf_var1
               cntx
           );
         }
+        AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, nt);
       }
 #endif
     }
@@ -587,6 +594,7 @@ void bli_dgemv_unf_var1
           y, incy,
           NULL
         );
+        AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
     }
 
     // If x was packed into x_temp, free the memory.
@@ -904,17 +912,17 @@ void bli_zgemv_unf_var1
       Function pointer declaration for the functions
       that will be used by this API
     */
-    zdotxf_ker_ft   dotxf_kr_ptr; // ZDOTXF
-    zscal2v_ker_ft  scal2v_kr_ptr; // ZSCAL2V
+    zdotxf_ker_ft   dotxf_kr_ptr = NULL;  // ZDOTXF
+    zscal2v_ker_ft  scal2v_kr_ptr = NULL; // ZSCAL2V
 
    /*
       Fatbinary config amdzen when run on non-AMD X86 will query for
       the support of AVX512 or AVX2, if AVX512 - arch_id will be zen4
       or for AVX2 it will be zen3.
     */
-    arch_t id = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id();
 
-    switch (id)
+    switch ( arch_id )
     {
       case BLIS_ARCH_ZEN5:
       case BLIS_ARCH_ZEN4:

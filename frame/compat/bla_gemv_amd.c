@@ -114,6 +114,7 @@ void PASTEF77S(ch,blasname) \
        this quirky behavior; it will scale y by beta, as one would expect. */ \
     if ( m_y > 0 && n_x == 0 ) \
     { \
+        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1); \
         /* Finalize BLIS. */ \
         bli_finalize_auto(); \
 \
@@ -172,11 +173,11 @@ void dgemv_blis_impl
        const f77_char* transa,
        const f77_int*  m,
        const f77_int*  n,
-       const double*    alpha,
-       const double*    a, const f77_int* lda,
-       const double*    x, const f77_int* incx,
-       const double*    beta,
-             double*    y, const f77_int* incy
+       const double*   alpha,
+       const double*   a, const f77_int* lda,
+       const double*   x, const f77_int* incx,
+       const double*   beta,
+             double*   y, const f77_int* incy
      )
 {
     trans_t blis_transa;
@@ -215,7 +216,10 @@ void dgemv_blis_impl
     if ( *m == 0 || *n == 0 || \
          ( PASTEMAC(d,eq0)( *alpha ) && PASTEMAC(d,eq1)( *beta ) ) )
     {
+        AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+        /* Finalize BLIS. */
+        // Call to bli_finalize_auto() is not needed here
         return;
     }
 
@@ -225,8 +229,8 @@ void dgemv_blis_impl
     else if ( *transa == 'c' || *transa == 'C' ) blis_transa = BLIS_CONJ_TRANSPOSE;
     else
     {
-        // See comment for bli_param_map_netlib_to_blis_side() above.
-        //bli_check_error_code( BLIS_INVALID_TRANS );
+        // See comment for bli_param_map_netlib_to_blis_side() in frame/base/bli_param_map.h.
+        // for why we don't call bli_check_error_code( BLIS_INVALID_TRANS )
         blis_transa = BLIS_NO_TRANSPOSE;
     }
 
@@ -238,39 +242,31 @@ void dgemv_blis_impl
     else          n0 = ( dim_t )(*n);
 
     /* Determine the dimensions of x and y so we can adjust the increments,
-        if necessary.*/
-    if ( bli_does_notrans( blis_transa ) )
-    {
-        m_y = m0;
-        n_x = n0;
-    }
-    else
-    {
-        m_y = n0;
-        n_x = m0;
-    }
+       if necessary.*/
+    if( bli_does_notrans( blis_transa ) ) { m_y = m0; n_x = n0; }
+    else                                  { m_y = n0; n_x = m0; }
 
     /* BLAS handles cases where trans(A) has no columns, and x has no elements,
-        in a peculiar way. In these situations, BLAS returns without performing
-        any action, even though most sane interpretations of gemv would have the
-        the operation reduce to y := beta * y. Here, we catch those cases that
-        BLAS would normally mishandle and emulate the BLAS exactly so as to
-        provide "bug-for-bug" compatibility. Note that this extreme level of
-        compatibility would not be as much of an issue if it weren't for the
-        fact that some BLAS test suites actually test for these cases. Also, it
-        should be emphasized that BLIS, if called natively, does NOT exhibit
-        this quirky behavior; it will scale y by beta, as one would expect. */
+       in a peculiar way. In these situations, BLAS returns without performing
+       any action, even though most sane interpretations of gemv would have the
+       the operation reduce to y := beta * y. Here, we catch those cases that
+       BLAS would normally mishandle and emulate the BLAS exactly so as to
+       provide "bug-for-bug" compatibility. Note that this extreme level of
+       compatibility would not be as much of an issue if it weren't for the
+       fact that some BLAS test suites actually test for these cases. Also, it
+       should be emphasized that BLIS, if called natively, does NOT exhibit
+       this quirky behavior; it will scale y by beta, as one would expect. */
     if ( m_y > 0 && n_x == 0 )
     {
-        /* Finalize BLIS. */
-        //      bli_finalize_auto();
-
+        AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+        /* Finalize BLIS. */
+        // Call to bli_finalize_auto() is not needed here
         return;
     }
 
     /* If the input increments are negative, adjust the pointers so we can
-    use positive increments instead. */
+       use positive increments instead. */
     if ( *incx < 0 )
     {
         x0    = ((double*)x) + (n_x-1)*(-*incx);
@@ -316,8 +312,10 @@ void dgemv_blis_impl
           NULL,
           NULL
         );
-
+        AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+        /* Finalize BLIS. */
+        // Call to bli_finalize_auto() is not needed here
         return;
     }
 
@@ -342,8 +340,10 @@ void dgemv_blis_impl
           y0, incy0,
           NULL
         );
-
+        AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+        /* Finalize BLIS. */
+        // Call to bli_finalize_auto() is not needed here
         return;
     }
 
@@ -358,16 +358,16 @@ void dgemv_blis_impl
         // and uses axpyf-based implementation
         bli_dgemv_unf_var2
         (
-            blis_transa,
-            BLIS_NO_CONJUGATE,
-            m0,
-            n0,
-            (double*)alpha,
-            (double*)a,  rs_a, cs_a,
-            x0, incx0,
-            (double*)beta,
-            y0, incy0,
-            NULL
+          blis_transa,
+          BLIS_NO_CONJUGATE,
+          m0,
+          n0,
+          (double*)alpha,
+          (double*)a,  rs_a, cs_a,
+          x0, incx0,
+          (double*)beta,
+          y0, incy0,
+          NULL
         );
     }
     else
@@ -376,20 +376,22 @@ void dgemv_blis_impl
         // when op(A) = n and A is row-stored    -> var1 will be called
         bli_dgemv_unf_var1
         (
-            blis_transa,
-            BLIS_NO_CONJUGATE,
-            m0,
-            n0,
-            (double*)alpha,
-            (double*)a,  rs_a, cs_a,
-            x0, incx0,
-            (double*)beta,
-            y0, incy0,
-            NULL
+          blis_transa,
+          BLIS_NO_CONJUGATE,
+          m0,
+          n0,
+          (double*)alpha,
+          (double*)a,  rs_a, cs_a,
+          x0, incx0,
+          (double*)beta,
+          y0, incy0,
+          NULL
         );
     }
 
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+    /* Finalize BLIS. */
+    // Call to bli_finalize_auto() is not needed here
 }
 #ifdef BLIS_ENABLE_BLAS
 void dgemv_
@@ -397,11 +399,11 @@ void dgemv_
        const f77_char* transa,
        const f77_int*  m,
        const f77_int*  n,
-       const double*    alpha,
-       const double*    a, const f77_int* lda,
-       const double*    x, const f77_int* incx,
-       const double*    beta,
-             double*    y, const f77_int* incy
+       const double*   alpha,
+       const double*   a, const f77_int* lda,
+       const double*   x, const f77_int* incx,
+       const double*   beta,
+             double*   y, const f77_int* incy
      )
 {
   dgemv_blis_impl( transa, m, n, alpha, a, lda,
@@ -457,6 +459,8 @@ void sgemv_blis_impl
          ( PASTEMAC(s,eq0)( *alpha ) && PASTEMAC(s,eq1)( *beta ) ) )
     {
         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+        /* Finalize BLIS. */
+        // Call to bli_finalize_auto() is not needed here
         return;
     }
 
@@ -466,8 +470,8 @@ void sgemv_blis_impl
     else if ( *transa == 'c' || *transa == 'C' ) blis_transa = BLIS_CONJ_TRANSPOSE;
     else
     {
-        // See comment for bli_param_map_netlib_to_blis_side() above.
-        //bli_check_error_code( BLIS_INVALID_TRANS );
+        // See comment for bli_param_map_netlib_to_blis_side() in frame/base/bli_param_map.h.
+        // for why we don't call bli_check_error_code( BLIS_INVALID_TRANS )
         blis_transa = BLIS_NO_TRANSPOSE;
     }
 
@@ -479,38 +483,30 @@ void sgemv_blis_impl
     else          n0 = ( dim_t )(*n);
 
     /* Determine the dimensions of x and y so we can adjust the increments,
-        if necessary.*/
-    if ( bli_does_notrans( blis_transa ) )
-    {
-      m_y = m0;
-      n_x = n0;
-    }
-    else
-    {
-      m_y = n0;
-      n_x = m0;
-    }
+       if necessary.*/
+    if( bli_does_notrans( blis_transa ) ) { m_y = m0; n_x = n0; }
+    else                                  { m_y = n0; n_x = m0; }
 
     /* BLAS handles cases where trans(A) has no columns, and x has no elements,
-        in a peculiar way. In these situations, BLAS returns without performing
-        any action, even though most sane interpretations of gemv would have the
-        the operation reduce to y := beta * y. Here, we catch those cases that
-        BLAS would normally mishandle and emulate the BLAS exactly so as to
-        provide "bug-for-bug" compatibility. Note that this extreme level of
-        compatibility would not be as much of an issue if it weren't for the
-        fact that some BLAS test suites actually test for these cases. Also, it
-        should be emphasized that BLIS, if called natively, does NOT exhibit
-        this quirky behavior; it will scale y by beta, as one would expect. */
+       in a peculiar way. In these situations, BLAS returns without performing
+       any action, even though most sane interpretations of gemv would have the
+       the operation reduce to y := beta * y. Here, we catch those cases that
+       BLAS would normally mishandle and emulate the BLAS exactly so as to
+       provide "bug-for-bug" compatibility. Note that this extreme level of
+       compatibility would not be as much of an issue if it weren't for the
+       fact that some BLAS test suites actually test for these cases. Also, it
+       should be emphasized that BLIS, if called natively, does NOT exhibit
+       this quirky behavior; it will scale y by beta, as one would expect. */
     if ( m_y > 0 && n_x == 0 )
     {
-        /* Finalize BLIS. */
-        //      bli_finalize_auto();
         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+        /* Finalize BLIS. */
+        // Call to bli_finalize_auto() is not needed here
         return;
     }
 
     /* If the input increments are negative, adjust the pointers so we can
-        use positive increments instead. */
+       use positive increments instead. */
     if ( *incx < 0 )
     {
         x0    = ((float*)x) + (n_x-1)*(-*incx);
@@ -541,23 +537,25 @@ void sgemv_blis_impl
     // Non-AVX2+FMA3 platforms will use the kernels derived from the context.
     if (bli_cpuid_is_avx2fma3_supported() == FALSE)
     {
-      /* Call BLIS interface. */
-      PASTEMAC2(s,gemv,BLIS_TAPI_EX_SUF)
-      (
-        blis_transa,
-        BLIS_NO_CONJUGATE,
-        m0,
-        n0,
-        (float*)alpha,
-        (float*)a,  rs_a, cs_a,
-        x0, incx0,
-        (float*)beta,
-        y0, incy0,
-        NULL,
-        NULL
-      );
-      AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
-      return;
+        /* Call BLIS interface. */
+        PASTEMAC2(s,gemv,BLIS_TAPI_EX_SUF)
+        (
+          blis_transa,
+          BLIS_NO_CONJUGATE,
+          m0,
+          n0,
+          (float*)alpha,
+          (float*)a,  rs_a, cs_a,
+          x0, incx0,
+          (float*)beta,
+          y0, incy0,
+          NULL,
+          NULL
+        );
+        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+        /* Finalize BLIS. */
+        // Call to bli_finalize_auto() is not needed here
+        return;
     }
 
     /* Call variants based on transpose value. */
@@ -565,36 +563,38 @@ void sgemv_blis_impl
     {
         bli_sgemv_unf_var2
         (
-            blis_transa,
-            BLIS_NO_CONJUGATE,
-            m0,
-            n0,
-            (float*)alpha,
-            (float*)a,  rs_a, cs_a,
-            x0, incx0,
-            (float*)beta,
-            y0, incy0,
-            NULL
+          blis_transa,
+          BLIS_NO_CONJUGATE,
+          m0,
+          n0,
+          (float*)alpha,
+          (float*)a,  rs_a, cs_a,
+          x0, incx0,
+          (float*)beta,
+          y0, incy0,
+          NULL
         );
     }
     else
     {
         bli_sgemv_unf_var1
         (
-            blis_transa,
-            BLIS_NO_CONJUGATE,
-            m0,
-            n0,
-            (float*)alpha,
-            (float*)a,  rs_a, cs_a,
-            x0, incx0,
-            (float*)beta,
-            y0, incy0,
-            NULL
+          blis_transa,
+          BLIS_NO_CONJUGATE,
+          m0,
+          n0,
+          (float*)alpha,
+          (float*)a,  rs_a, cs_a,
+          x0, incx0,
+          (float*)beta,
+          y0, incy0,
+          NULL
         );
     }
 
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+    /* Finalize BLIS. */
+    // Call to bli_finalize_auto() is not needed here
 }
 #ifdef BLIS_ENABLE_BLAS
 void sgemv_
@@ -662,52 +662,55 @@ void cgemv_blis_impl
          ( PASTEMAC(c,eq0)( *alpha ) && PASTEMAC(c,eq1)( *beta ) ) )
     {
         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+        /* Finalize BLIS. */
+        // Call to bli_finalize_auto() is not needed here
         return;
     }
 
     /* Map BLAS chars to their corresponding BLIS enumerated type value. */
-    if( *transa == 'n' || *transa == 'N' ) blis_transa = BLIS_NO_TRANSPOSE;
-    else if( *transa == 't' || *transa == 'T' ) blis_transa = BLIS_TRANSPOSE;
-    else if( * transa == 'c' || *transa == 'C' ) blis_transa = BLIS_CONJ_TRANSPOSE;
+    if      ( *transa == 'n' || *transa == 'N' ) blis_transa = BLIS_NO_TRANSPOSE;
+    else if ( *transa == 't' || *transa == 'T' ) blis_transa = BLIS_TRANSPOSE;
+    else if ( *transa == 'c' || *transa == 'C' ) blis_transa = BLIS_CONJ_TRANSPOSE;
     else
     {
-        // See comment for bli_param_map_netlib_to_blis_side() above.
-        // bli_check_error_code( BLIS_INVALID_TRANS );
+        // See comment for bli_param_map_netlib_to_blis_side() in frame/base/bli_param_map.h.
+        // for why we don't call bli_check_error_code( BLIS_INVALID_TRANS )
         blis_transa = BLIS_NO_TRANSPOSE;
     }
 
     /* Convert/typecast negative values of m and n to zero. */
-    if( *m < 0 ) m0 = (dim_t)0;
-    else         m0 = (dim_t)(*m);
+    if ( *m < 0 ) m0 = ( dim_t )0;
+    else          m0 = ( dim_t )(*m);
 
-    if( *n < 0 ) n0 = (dim_t)0;
-    else         n0 = (dim_t)(*n);
+    if ( *n < 0 ) n0 = ( dim_t )0;
+    else          n0 = ( dim_t )(*n);
 
     /* Determine the dimensions of x and y so we can adjust the increments,
-        if necessary.*/
-    if( bli_does_notrans( blis_transa ) ) { m_y = m0, n_x = n0; }
+       if necessary.*/
+    if( bli_does_notrans( blis_transa ) ) { m_y = m0; n_x = n0; }
     else                                  { m_y = n0; n_x = m0; }
 
     /* BLAS handles cases where trans(A) has no columns, and x has no elements,
-        in a peculiar way. In these situations, BLAS returns without performing
-        any action, even though most sane interpretations of gemv would have the
-        the operation reduce to y := beta * y. Here, we catch those cases that
-        BLAS would normally mishandle and emulate the BLAS exactly so as to
-        provide "bug-for-bug" compatibility. Note that this extreme level of
-        compatibility would not be as much of an issue if it weren't for the
-        fact that some BLAS test suites actually test for these cases. Also, it
-        should be emphasized that BLIS, if called natively, does NOT exhibit
-        this quirky behavior; it will scale y by beta, as one would expect. */
-
+       in a peculiar way. In these situations, BLAS returns without performing
+       any action, even though most sane interpretations of gemv would have the
+       the operation reduce to y := beta * y. Here, we catch those cases that
+       BLAS would normally mishandle and emulate the BLAS exactly so as to
+       provide "bug-for-bug" compatibility. Note that this extreme level of
+       compatibility would not be as much of an issue if it weren't for the
+       fact that some BLAS test suites actually test for these cases. Also, it
+       should be emphasized that BLIS, if called natively, does NOT exhibit
+       this quirky behavior; it will scale y by beta, as one would expect. */
     if ( m_y > 0 && n_x == 0 )
     {
         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+        /* Finalize BLIS. */
+        // Call to bli_finalize_auto() is not needed here
         return;
     }
 
     /* If the input increments are negative, adjust the pointers so we can
-        use positive increments instead. */
-    if( *incx < 0 )
+       use positive increments instead. */
+    if ( *incx < 0 )
     {
         x0    = ((scomplex*)x) + (n_x-1)*(-*incx);
         incx0 = ( inc_t )(*incx);
@@ -783,6 +786,8 @@ void cgemv_blis_impl
         y0->imag = yval.imag;
 
         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+        /* Finalize BLIS. */
+        // Call to bli_finalize_auto() is not needed here
         return;
     }
 
@@ -804,6 +809,8 @@ void cgemv_blis_impl
           NULL
         );
         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+        /* Finalize BLIS. */
+        // Call to bli_finalize_auto() is not needed here
         return;
     }
 
@@ -812,16 +819,16 @@ void cgemv_blis_impl
     {
         bli_cgemv_unf_var2
         (
-        blis_transa,
-        BLIS_NO_CONJUGATE,
-        m0,
-        n0,
-        (scomplex*)alpha,
-        (scomplex*)a, rs_a, cs_a,
-        x0, incx0,
-        (scomplex*)beta,
-        y0, incy0,
-        NULL
+          blis_transa,
+          BLIS_NO_CONJUGATE,
+          m0,
+          n0,
+          (scomplex*)alpha,
+          (scomplex*)a, rs_a, cs_a,
+          x0, incx0,
+          (scomplex*)beta,
+          y0, incy0,
+          NULL
         );
     }
     else
@@ -842,6 +849,8 @@ void cgemv_blis_impl
     }
 
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+    /* Finalize BLIS. */
+    // Call to bli_finalize_auto() is not needed here
 }
 #ifdef BLIS_ENABLE_BLAS
 void cgemv_
@@ -909,30 +918,32 @@ void zgemv_blis_impl
          ( PASTEMAC(z,eq0)( *alpha ) && PASTEMAC(z,eq1)( *beta ) ) )
     {
         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+        /* Finalize BLIS. */
+        // Call to bli_finalize_auto() is not needed here
         return;
     }
 
     /* Map BLAS chars to their corresponding BLIS enumerated type value. */
-    if( *transa == 'n' || *transa == 'N' ) blis_transa = BLIS_NO_TRANSPOSE;
-    else if( *transa == 't' || *transa == 'T' ) blis_transa = BLIS_TRANSPOSE;
-    else if( * transa == 'c' || *transa == 'C' ) blis_transa = BLIS_CONJ_TRANSPOSE;
+    if      ( *transa == 'n' || *transa == 'N' ) blis_transa = BLIS_NO_TRANSPOSE;
+    else if ( *transa == 't' || *transa == 'T' ) blis_transa = BLIS_TRANSPOSE;
+    else if ( *transa == 'c' || *transa == 'C' ) blis_transa = BLIS_CONJ_TRANSPOSE;
     else
     {
-        // See comment for bli_param_map_netlib_to_blis_side() above.
-        // bli_check_error_code( BLIS_INVALID_TRANS );
+        // See comment for bli_param_map_netlib_to_blis_side() in frame/base/bli_param_map.h.
+        // for why we don't call bli_check_error_code( BLIS_INVALID_TRANS )
         blis_transa = BLIS_NO_TRANSPOSE;
     }
 
     /* Convert/typecast negative values of m and n to zero. */
-    if( *m < 0 ) m0 = (dim_t)0;
-    else         m0 = (dim_t)(*m);
+    if ( *m < 0 ) m0 = ( dim_t )0;
+    else          m0 = ( dim_t )(*m);
 
-    if( *n < 0 ) n0 = (dim_t)0;
-    else         n0 = (dim_t)(*n);
+    if ( *n < 0 ) n0 = ( dim_t )0;
+    else          n0 = ( dim_t )(*n);
 
     /* Determine the dimensions of x and y so we can adjust the increments,
        if necessary.*/
-    if( bli_does_notrans( blis_transa ) ) { m_y = m0, n_x = n0; }
+    if( bli_does_notrans( blis_transa ) ) { m_y = m0; n_x = n0; }
     else                                  { m_y = n0; n_x = m0; }
 
     /* BLAS handles cases where trans(A) has no columns, and x has no elements,
@@ -945,16 +956,17 @@ void zgemv_blis_impl
        fact that some BLAS test suites actually test for these cases. Also, it
        should be emphasized that BLIS, if called natively, does NOT exhibit
        this quirky behavior; it will scale y by beta, as one would expect. */
-
     if ( m_y > 0 && n_x == 0 )
     {
         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+        /* Finalize BLIS. */
+        // Call to bli_finalize_auto() is not needed here
         return;
     }
 
     /* If the input increments are negative, adjust the pointers so we can
        use positive increments instead. */
-    if( *incx < 0 )
+    if ( *incx < 0 )
     {
         x0    = ((dcomplex*)x) + (n_x-1)*(-*incx);
         incx0 = ( inc_t )(*incx);
@@ -984,7 +996,6 @@ void zgemv_blis_impl
     {
         conj_t conja = bli_extract_conj(blis_transa);
         dcomplex rho;
-
         if (bli_cpuid_is_avx2fma3_supported() == TRUE)
         {
             bli_zdotv_zen_int_5
@@ -1031,6 +1042,8 @@ void zgemv_blis_impl
         y0->imag = yval.imag;
 
         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+        /* Finalize BLIS. */
+        // Call to bli_finalize_auto() is not needed here
         return;
     }
 
@@ -1052,6 +1065,8 @@ void zgemv_blis_impl
           NULL
         );
         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+        /* Finalize BLIS. */
+        // Call to bli_finalize_auto() is not needed here
         return;
     }
 
@@ -1060,36 +1075,38 @@ void zgemv_blis_impl
     {
         bli_zgemv_unf_var2
         (
-            blis_transa,
-            BLIS_NO_CONJUGATE,
-            m0,
-            n0,
-            (dcomplex*)alpha,
-            (dcomplex*)a, rs_a, cs_a,
-            x0, incx0,
-            (dcomplex*)beta,
-            y0, incy0,
-            NULL
+          blis_transa,
+          BLIS_NO_CONJUGATE,
+          m0,
+          n0,
+          (dcomplex*)alpha,
+          (dcomplex*)a, rs_a, cs_a,
+          x0, incx0,
+          (dcomplex*)beta,
+          y0, incy0,
+          NULL
         );
     }
     else
     {
         bli_zgemv_unf_var1
         (
-            blis_transa,
-            BLIS_NO_CONJUGATE,
-            m0,
-            n0,
-            (dcomplex*)alpha,
-            (dcomplex*)a, rs_a, cs_a,
-            x0, incx0,
-            (dcomplex*)beta,
-            y0, incy0,
-            NULL
+          blis_transa,
+          BLIS_NO_CONJUGATE,
+          m0,
+          n0,
+          (dcomplex*)alpha,
+          (dcomplex*)a, rs_a, cs_a,
+          x0, incx0,
+          (dcomplex*)beta,
+          y0, incy0,
+          NULL
         );
     }
 
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+    /* Finalize BLIS. */
+    // Call to bli_finalize_auto() is not needed here
 }
 #ifdef BLIS_ENABLE_BLAS
 void zgemv_
@@ -1107,6 +1124,4 @@ void zgemv_
   zgemv_blis_impl( transa, m, n, alpha, a, lda,
                         x, incx, beta, y, incy );
 }
-
-
 #endif

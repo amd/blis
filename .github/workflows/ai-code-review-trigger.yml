@@ -1,0 +1,48 @@
+name: AI Code Review Trigger
+
+on:
+  pull_request_review_comment:
+    types: [created]
+  pull_request:
+    types: [opened]
+    branches:
+      - 'amd-main'
+
+jobs:
+  # AI PR Summary
+  ai_pr_summary:
+    if: |
+      github.event_name == 'pull_request'
+    uses: AMD-GH-Actions/ai-pr-platform-actions-lib/.github/workflows/call_ai_assistant.yml@main
+    with:
+      assistant_type: 'PRSummary'
+    secrets:
+      api_token: ${{ secrets.AI_REVIEW_COMMENT_FIX_APIKEY }}
+      gh_token: ${{ secrets.AI_GH_TOKEN }}
+      llm_token: ${{ secrets.AI_LLM_TOKEN }}
+
+  # AI Code Review
+  ai_code_review:
+    if: |
+      github.event_name == 'pull_request'
+    uses: AMD-GH-Actions/ai-pr-platform-actions-lib/.github/workflows/call_ai_assistant.yml@main
+    with:
+      assistant_type: 'AICodeReview'
+      post_info_reply_comment: false
+    secrets:
+      api_token: ${{ secrets.AI_REVIEW_COMMENT_FIX_APIKEY }}
+      gh_token: ${{ secrets.AI_GH_TOKEN }}
+      llm_token: ${{ secrets.AI_LLM_TOKEN }}
+
+  # AI Comment Fix
+  ai_comment_fix:
+    if: |
+      github.event_name == 'pull_request_review_comment'
+    uses: AMD-GH-Actions/ai-pr-platform-actions-lib/.github/workflows/call_ai_assistant.yml@main
+    with:
+      assistant_type: 'AIReviewCommentFix'
+      post_info_reply_comment: false
+    secrets:
+      api_token: ${{ secrets.AI_REVIEW_COMMENT_FIX_APIKEY }}
+      gh_token: ${{ secrets.AI_GH_TOKEN }}
+      llm_token: ${{ secrets.AI_LLM_TOKEN }}

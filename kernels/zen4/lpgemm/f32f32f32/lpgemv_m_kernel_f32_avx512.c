@@ -258,10 +258,10 @@ LPGEMV_M_EQ1_KERN( float, float, float, f32f32f32of32 )
 
 			if ( ( post_ops_attr.buf_downscale != NULL )  )
 		    {
-              BF16_F32_BETA_OP_NLT16F_MASK(k1, zmm8, 0, 0,  zmm0,zmm3);
-              BF16_F32_BETA_OP_NLT16F_MASK(k2, zmm12, 0, 1,  zmm1,zmm3);
-              BF16_F32_BETA_OP_NLT16F_MASK(k3, zmm16, 0, 2,  zmm2,zmm3);
-              BF16_F32_BETA_OP_NLT16F_MASK(k4, zmm20, 0, 3,  zmm3,zmm3);
+              BF16_F32_BETA_OP_NLT16F_MASK(k1, zmm8,  0, 0, zmm0, zmm3);
+              BF16_F32_BETA_OP_NLT16F_MASK(k2, zmm12, 0, 1, zmm1, zmm3);
+              BF16_F32_BETA_OP_NLT16F_MASK(k3, zmm16, 0, 2, zmm2, zmm3);
+              BF16_F32_BETA_OP_NLT16F_MASK(k4, zmm20, 0, 3, zmm4, zmm3);
             }
 			else
 			{
@@ -835,33 +835,33 @@ LPGEMV_M_EQ1_KERN( float, float, float, f32f32f32of32 )
 	{
 		if ( post_ops_attr.buf_downscale != NULL )
 		{
-			_mm256_mask_storeu_epi16
-			(
-			( bfloat16* )post_ops_attr.buf_downscale +
-			post_ops_attr.post_op_c_j + ( 0 * 16 ),
-			k1, (__m256i) _mm512_cvtneps_pbh( zmm8 )
-			);
+			uint32_t tlsb, rounded, temp[16] = {0};
+			int i, chunk;
+			bfloat16* dest;
 
-			_mm256_mask_storeu_epi16
-			(
-			( bfloat16* )post_ops_attr.buf_downscale +
-			post_ops_attr.post_op_c_j + ( 1 * 16 ),
-			k2, (__m256i) _mm512_cvtneps_pbh( zmm12 )
-			);
+			dim_t full_iters = nr0 / 16;
+			dim_t partial_iters = nr0 % 16;
 
-			_mm256_mask_storeu_epi16
-			(
-			( bfloat16* )post_ops_attr.buf_downscale +
-			post_ops_attr.post_op_c_j + ( 2 * 16 ),
-			k3, (__m256i) _mm512_cvtneps_pbh( zmm16 )
-			);
+			// masks and zmm_regs respective to each chunk.
+			__mmask16 masks[4] = {k1, k2, k3, k4};
+			__m512 zmm_regs[4] = {zmm8, zmm12, zmm16, zmm20};
+			
+			for (chunk = 0; chunk < 4; ++chunk) {
+				dim_t chunk_size = (chunk < full_iters) ? 16 :
+								   (chunk == full_iters) ? partial_iters : 0;
+				
+				if (chunk_size == 0) break;
 
-			_mm256_mask_storeu_epi16
-			(
-			( bfloat16* )post_ops_attr.buf_downscale +
-			post_ops_attr.post_op_c_j + ( 3 * 16 ),
-			k4, (__m256i) _mm512_cvtneps_pbh( zmm20 )
-			);
+				_mm512_mask_storeu_ps((float*)temp, masks[chunk], zmm_regs[chunk]);
+				dest = (bfloat16*)post_ops_attr.buf_downscale +
+					post_ops_attr.post_op_c_j + (chunk * 16);
+				
+				for (i = 0; i < chunk_size; ++i) {
+					tlsb = (temp[i] & (uint32_t)0x00010000) > 16;
+					rounded = temp[i] + (uint32_t)0x00007FFF + tlsb;
+					memcpy((dest+i), ((char*)(&rounded))+2, sizeof(bfloat16));
+				}
+			}
 		}
 		else
 		{

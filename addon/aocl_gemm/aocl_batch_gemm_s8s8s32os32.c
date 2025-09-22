@@ -181,7 +181,7 @@ AOCL_BGEMM_MATMUL(int8_t,int8_t,int32_t,int32_t,s8s8s32os32)
 				// has to be transposed to row-major format. In col-maj case, inputs are
 				// swapped and B becomes A from kernel point of view. Hence, if B is packed, 
 				// set B to unpacked and proceed with GEMM.
-				if ((mtag_b[gs_i] == PACK))
+				if ( mtag_b[gs_i] == PACK )
 				{
 					mtag_b[gs_i] = UNPACKED;
 				}
@@ -444,7 +444,7 @@ AOCL_BGEMM_MATMUL(int8_t,int8_t,int8_t,int32_t,s8s8s32os8)
 				// has to be transposed to row-major format. In col-maj case, inputs are
 				// swapped and B becomes A from kernel point of view. Hence, if B is packed, 
 				// set B to unpacked and proceed with GEMM.
-				if ((mtag_b[gs_i] == PACK))
+				if ( mtag_b[gs_i] == PACK )
 				{
 					mtag_b[gs_i] = UNPACKED;
 				}
@@ -694,7 +694,7 @@ AOCL_BGEMM_MATMUL(int8_t,int8_t,float,int32_t,s8s8s32of32)
 				// has to be transposed to row-major format. In col-maj case, inputs are
 				// swapped and B becomes A from kernel point of view. Hence, if B is packed, 
 				// set B to unpacked and proceed with GEMM.
-				if ((mtag_b[gs_i] == PACK))
+				if ( mtag_b[gs_i] == PACK )
 				{
 					mtag_b[gs_i] = UNPACKED;
 				}
@@ -964,7 +964,7 @@ AOCL_BGEMM_MATMUL(int8_t,int8_t,bfloat16,int32_t,s8s8s32obf16)
 				// has to be transposed to row-major format. In col-maj case, inputs are
 				// swapped and B becomes A from kernel point of view. Hence, if B is packed, 
 				// set B to unpacked and proceed with GEMM.
-				if ((mtag_b[gs_i] == PACK))
+				if ( mtag_b[gs_i] == PACK )
 				{
 					mtag_b[gs_i] = UNPACKED;
 				}
@@ -1231,7 +1231,7 @@ AOCL_BGEMM_MATMUL(int8_t,int8_t,uint8_t,int32_t,s8s8s32ou8)
 				// has to be transposed to row-major format. In col-maj case, inputs are
 				// swapped and B becomes A from kernel point of view. Hence, if B is packed, 
 				// set B to unpacked and proceed with GEMM.
-				if ((mtag_b[gs_i] == PACK))
+				if ( mtag_b[gs_i] == PACK )
 				{
 					mtag_b[gs_i] = UNPACKED;
 				}

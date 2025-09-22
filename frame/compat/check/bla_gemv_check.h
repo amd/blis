@@ -65,6 +65,7 @@
 \
 		PASTE_XERBLA( func_str, &info, (ftnlen)6 ); \
 \
+        AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1); \
 		AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1); \
 \
 		/* Finalize BLIS. */ \

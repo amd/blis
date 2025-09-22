@@ -1,0 +1,53 @@
+# AI Code Review Self-Enablement Configuration
+# Configure which AI assistants to enable and their settings
+
+ai_assistants:
+  # PR Summary Assistant - Generates automatic PR summaries
+  PRSummary:
+    enable: true
+    branches:
+      - amd-main
+  
+  # AI Code Review Assistant - Analyzes code for best practices
+  AICodeReview:
+    enable: true
+    # Optional: Filter by specific ticket IDs (comma-separated)
+    #filtered_ticket_ids: "SWDEV-123,TICKET-456"
+    branches:
+      - amd-main
+  
+  # AI Review Comment Fix Assistant - Helps address review comments
+  AIReviewCommentFix:
+    enable: true
+    branches:
+      - amd-main
+    # Optional: Exclude specific comment authors (comma-separated)
+    exclude_comment_authors: ""
+
+# GitHub Secret Configuration
+# Default token name is AI_REVIEW_COMMENT_FIX_APIKEY
+github_secret_token_name: AI_GH_TOKEN
+
+# Email Notifications (Optional)
+email_notifications:
+  enabled: true
+  recipients_file: ".github/recipients.yaml"
+
+# PR Metadata (Optional - customize the enablement PR)
+pr_metadata:
+  pr_title: "CPUPL - Enable AI Code Review"
+  pr_description: |
+    This PR adds AI Code Review workflow to enable automated code analysis.
+    
+    Enabled Features:
+    - Automated PR summaries
+    - Coding standard checks
+    - Review comment assistance
+    
+    Please review and merge to activate AI Code Review.
+  branch_name: "ai-code-review-enable"
+  commit_title: "Add AI Code Review workflow"
+  commit_description: "Automated enablement of AI Code Review capabilities"
+  labels: ["automation", "ai-review"]
+  reviewers: []
+  base_branch: 'amd-main'

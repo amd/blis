@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2019 - 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2019 - 2025, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -427,7 +427,7 @@ err_t bli_gemmtsup_int
 
 		/* Enable packing for A matrix for higher sizes. Note that pack A
 		 * * becomes pack B inside var2m because this is transpose case*/
-		arch_t cpu_id = bli_arch_query_id();
+		arch_t arch_id = bli_arch_query_id();
 		/* Do not pack A for ZEN4 and ZEN5 because the GEMM kernels
 		 * used are column major and GEMMT kernels used are row major.
 		 * Packing matrix A makes matrix B in the GEMMT kernels column
@@ -448,7 +448,7 @@ err_t bli_gemmtsup_int
 		 * and as result it will break the DGEMMT kernel assumption that A is
 		 * row-storage.
 		**/
-		if( ( cpu_id != BLIS_ARCH_ZEN4 && cpu_id != BLIS_ARCH_ZEN5) &&
+		if( ( arch_id != BLIS_ARCH_ZEN4 && arch_id != BLIS_ARCH_ZEN5) &&
 		    bli_is_double(dt) && (n_threads==1))
 		{
 			if((m > 320) &&  (k > 50))

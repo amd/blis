@@ -560,8 +560,7 @@ if(ENABLE_SBA_POOLS)
     message("   Internal memory pools for small blocks are enabled.")
     set(ENABLE_SBA_POOLS_01 1)
 else()
-    #message("   Internal memory pools for small blocks are disabled.")
-    message(FATAL_ERROR  "Disabling memory pools for small blocks is currently disabled, awaiting fixes to this functionality.")
+    message("   Internal memory pools for small blocks are disabled.")
     set(ENABLE_SBA_POOLS_01 0)
 endif()
 cmake_print_variables(ENABLE_MEM_TRACING)
@@ -1006,10 +1005,10 @@ set(LIBMEMKIND -lmemkind)
 
 # Default linker flags.
 # Security hardening flags :
-#   Default (no user override): DISABLED.
-#   Enable:  -DENABLE_SECURITY_FLAGS=ON  (or =1/TRUE) : enabled
-#   Disable: -DENABLE_SECURITY_FLAGS=OFF (or =0/FALSE) : disabled (default)
-option(ENABLE_SECURITY_FLAGS "Enable addition of compiler/linker security hardening flags" OFF)
+#   Default (no user override): ENABLED.
+#   Enable:  -DENABLE_SECURITY_FLAGS=ON  (or =1/TRUE) : enabled (default)
+#   Disable: -DENABLE_SECURITY_FLAGS=OFF (or =0/FALSE) : disabled
+option(ENABLE_SECURITY_FLAGS "Enable addition of compiler/linker security hardening flags" ON)
 set(SECURITY_FLAGS_ENABLED ${ENABLE_SECURITY_FLAGS})
 
 if(SECURITY_FLAGS_ENABLED)

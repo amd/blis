@@ -1,0 +1,23 @@
+jenkinsURLs:
+  - https://ai-ci.amd.com/job/automations/job/entrypoints/job/github-psdb-entrypoint/
+help:
+  doc: https://confluence.amd.com/display/SI/PSDB+Jenkins+Trigger+-+GitHub+Guide
+  enabled: false
+  includeTriggers: false
+  verbose: false
+  message: This branch is configured to trigger PSDB. Comment __!help__ to get additional details
+triggerExclusions:
+  all:
+    - "psdb-jenkins-trigger-dev[bot]"
+    - "psdb-jenkins-trigger[bot]"
+  onEdit:
+    - "swjenci"
+branches:
+  - branchName: "amd-main"
+    triggers:
+      - triggerName: "!coverity-fix"
+        description: "AI Coverity Fix"
+        onOpen: false
+        onSynchronize: false
+        jobs:
+          - "[jenkins-psdb, AI-Code-review/ai-coverity-fix-psdb, AIAssistantType:CoverityFixJSON, coverityKernelMode:false]"

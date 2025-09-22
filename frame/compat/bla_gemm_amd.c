@@ -42,8 +42,8 @@
 
     #define GEMM_BLIS_IMPL(ch, blasname) \
         PASTEF77S(ch,blasname) ( transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc ); \
-        arch_t id = bli_arch_query_id(); \
-        if (id == BLIS_ARCH_ZEN5 || id == BLIS_ARCH_ZEN4) \
+        arch_t arch_id = bli_arch_query_id(); \
+        if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4) \
         { \
             bli_zero_zmm(); \
         } \
@@ -819,58 +819,63 @@ void dgemm_blis_impl
 
     /* Boolean to track the entry to small path */
     bool entry_to_small = false;
+    /* AVX512 GEMM tiny path is performant enough to handle small skinny inputs on ZEN4/5 */
+    /* AVX2 gemm_small path is invoked on ZEN/2/3 only */
+    arch_t arch_id = bli_arch_query_id();
 
-    if ( m0 == n0 )
+    if( arch_id == BLIS_ARCH_ZEN3 || arch_id == BLIS_ARCH_ZEN2 || arch_id == BLIS_ARCH_ZEN )
     {
-        if ( (m0 < 400) && (k0 < 1000) )
-            entry_to_small = true;
-    }
-    else
-    {
-        if ( (n0 <= 100) && (k0 <=100) )
-            entry_to_small = true;
-        else if ( ((m0 + n0 - k0) < 1500) &&
-                  ((m0 + k0 - n0) < 1500) &&
-                  ((n0 + k0 - m0) < 1500) )
-            entry_to_small = true;
-    }
-
-    if ( entry_to_small )
-    {
-        err_t small_status = BLIS_FAILURE;
-        if (bli_is_notrans(blis_transa))
+        if ( m0 == n0 )
         {
-            small_status = bli_dgemm_small( &alphao,
-                                            &ao,
-                                            &bo,
-                                            &betao,
-                                            &co,
-                                            NULL, //cntx,
-                                            NULL
-                                          );
+            if ( (m0 < 400) && (k0 < 1000) )
+                entry_to_small = true;
         }
         else
         {
-            small_status = bli_dgemm_small_At( &alphao,
-                                               &ao,
-                                               &bo,
-                                               &betao,
-                                               &co,
-                                               NULL, //cntx,
-                                               NULL
-                                             );
+            if ( (n0 <= 100) && (k0 <=100) )
+                entry_to_small = true;
+            else if ( ((m0 + n0 - k0) < 1500) &&
+                    ((m0 + k0 - n0) < 1500) &&
+                    ((n0 + k0 - m0) < 1500) )
+                entry_to_small = true;
         }
 
-        if ( small_status == BLIS_SUCCESS )
+        if ( entry_to_small )
         {
-            AOCL_DTL_LOG_GEMM_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(d), *m, *n, *k);
-            AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
-            /* Finalize BLIS. */
-            bli_finalize_auto();
-            return;
+            err_t small_status = BLIS_FAILURE;
+            if (bli_is_notrans(blis_transa))
+            {
+                small_status = bli_dgemm_small( &alphao,
+                                                &ao,
+                                                &bo,
+                                                &betao,
+                                                &co,
+                                                NULL, //cntx,
+                                                NULL
+                                            );
+            }
+            else
+            {
+                small_status = bli_dgemm_small_At( &alphao,
+                                                &ao,
+                                                &bo,
+                                                &betao,
+                                                &co,
+                                                NULL, //cntx,
+                                                NULL
+                                                );
+            }
+
+            if ( small_status == BLIS_SUCCESS )
+            {
+                AOCL_DTL_LOG_GEMM_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(d), *m, *n, *k);
+                AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+                /* Finalize BLIS. */
+                bli_finalize_auto();
+                return;
+            }
         }
     }
-
 #endif // End of BLIS_ENABLE_SMALL_MATRIX
 
 #ifdef BLIS_ENABLE_SUP_HANDLING
@@ -924,8 +929,8 @@ void dgemm_
 {
     dgemm_blis_impl(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
 #if defined(BLIS_KERNELS_ZEN4)
-    arch_t id = bli_arch_query_id();
-    if (id == BLIS_ARCH_ZEN5 || id == BLIS_ARCH_ZEN4)
+    arch_t arch_id = bli_arch_query_id();
+    if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
     {
         bli_zero_zmm();
     }
@@ -1347,7 +1352,7 @@ void zgemm_blis_impl
        current ZGEMM small path is based on the AVX2 ISA. The thresholds
        are subject to further tuning post introducing an AVX512 code-path
        for tiny/small sizes. */
-    switch( arch_id )
+    switch ( arch_id )
     {
     #if defined(BLIS_KERNELS_ZEN4)
         case BLIS_ARCH_ZEN5:
@@ -1486,8 +1491,8 @@ void zgemm_
 {
     zgemm_blis_impl(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
 #if defined(BLIS_KERNELS_ZEN4)
-    arch_t id = bli_arch_query_id();
-    if (id == BLIS_ARCH_ZEN5 || id == BLIS_ARCH_ZEN4)
+    arch_t arch_id = bli_arch_query_id();
+    if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
     {
         bli_zero_zmm();
     }
@@ -1763,13 +1768,12 @@ void cgemm_blis_impl
 
 #ifdef BLIS_ENABLE_TINY_MATRIX
 
-    bool is_parallel = bli_thread_get_is_parallel(); // Check if parallel cgemm is invoked.
-
     // Tiny gemm dispatch
     // NOTE : The tiny gemm interface is intended to be built for zen4/zen5 configurations
     //        In case of fat-binary build, the optimizations will be used on zen4 and zen5
     //        machines.
 #if defined(BLIS_FAMILY_ZEN4) || defined(BLIS_FAMILY_ZEN5) || defined(BLIS_FAMILY_AMDZEN)
+    bool is_parallel = bli_thread_get_is_parallel(); // Check if parallel cgemm is invoked.
     err_t tiny_status = BLIS_FAILURE;
     tiny_status = bli_cgemm_tiny
                   (
@@ -1883,8 +1887,8 @@ void cgemm_
 {
     cgemm_blis_impl(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
 #if defined(BLIS_KERNELS_ZEN4)
-    arch_t id = bli_arch_query_id();
-    if (id == BLIS_ARCH_ZEN5 || id == BLIS_ARCH_ZEN4)
+    arch_t arch_id = bli_arch_query_id();
+    if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
     {
         bli_zero_zmm();
     }
@@ -2054,8 +2058,8 @@ void dzgemm_
 {
     dzgemm_blis_impl( transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc );
 #if defined(BLIS_KERNELS_ZEN4)
-    arch_t id = bli_arch_query_id();
-    if (id == BLIS_ARCH_ZEN5 || id == BLIS_ARCH_ZEN4)
+    arch_t arch_id = bli_arch_query_id();
+    if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
     {
         bli_zero_zmm();
     }

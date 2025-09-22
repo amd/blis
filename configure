@@ -404,9 +404,9 @@ print_usage()
 	echo " "
 	echo "   --enable-security-flags, --disable-security-flags"
 	echo " "
-	echo "                 Enable (disabled by default) addition of compiler and linker"
+	echo "                 Disable (Enabled by default) addition of compiler and linker"
 	echo "                 security hardening flags (e.g. -D_FORTIFY_SOURCE=2 -fstack-protector-strong"
-	echo "                 and -Wl,-z,relro -Wl,-z,now on ELF platforms). Disabling omits them."
+	echo "                 and -Wl,-z,relro -Wl,-z,now on ELF platforms)."
 	echo " "
 	echo "   --enable-blis-arch-type, --disable-blis-arch-type"
 	echo " "
@@ -2188,7 +2188,7 @@ main()
 
 	enable_memkind='' # The default memkind value is determined later on.
 	enable_aocl_dynamic='yes'
-	enable_security_flags='no'
+	enable_security_flags='yes'
 	force_version='no'
 	complex_return='default'
 	disable_blis_arch_type='unset'
@@ -3253,9 +3253,7 @@ main()
 		echo "${script_name}: internal memory pools for small blocks are enabled."
 		enable_sba_pools_01=1
 	else
-		#echo "${script_name}: internal memory pools for small blocks are disabled."
-		echo "${script_name}: *** disabling memory pools for small blocks is currently disabled, awaiting fixes to this functionality."
-		exit 1
+		echo "${script_name}: internal memory pools for small blocks are disabled."
 		enable_sba_pools_01=0
 	fi
 	if [ "x${enable_mem_tracing}" = "xyes" ]; then

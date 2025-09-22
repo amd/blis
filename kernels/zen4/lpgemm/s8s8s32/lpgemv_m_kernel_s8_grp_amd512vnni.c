@@ -144,12 +144,6 @@ LPGEMV_M_EQ1_KERN2(int8_t,int8_t,int32_t,s8s8s32os32_sym_quant)
                 dim_t k_iter = kg0 / 16;
                 dim_t k_rem = k_full_pieces % 4;
 
-                dim_t kg0_updated = kg0;
-                if ( k_partial_pieces > 0 )
-                {
-                    kg0_updated += ( 4 - k_partial_pieces );
-                }
-
                 b_use = b_pc + ( g_id * NR * group_size );
 
                 // zero the accumulator registers

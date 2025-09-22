@@ -48,6 +48,7 @@
 
 
 #define AOCL_MATRIX_INITIALISATION
+#define BUFFER_SIZE 256
 
 //#define BLIS_ENABLE_CBLAS
 
@@ -100,6 +101,11 @@ int main( int argc, char** argv )
         exit(1);
       }
 
+    if (argc > 3)
+    {
+        n_repeats = atoi(argv[3]);
+    }
+
     fprintf(fout, "Func Dt transa m n alphaR alphaI lda incx betaR betaI incy gflops\n");
 
     char transA;
@@ -109,14 +115,21 @@ int main( int argc, char** argv )
     inc_t lda;
     inc_t incx;
     inc_t incy;
-    char tmp[256]; // to store function name, line no present in logs.
+    //char tmp[256]; // to store function name, line no present in logs.
+    // Following variables are needed for scanf to read inputs properly
+    // however they are not used in bench.
+    char api_name[BUFFER_SIZE];       // to store function name, line no present in logs
+    char dummy_buffer[BUFFER_SIZE];
 
 
     // {S,D,C,Z} {transa m n alpha lda, incx, beta, incy}
-    while (fscanf(fin, "%s %c %c " INT_FS INT_FS " %lf %lf " INT_FS INT_FS " %lf %lf " INT_FS "\n",
-      tmp, &dt_ch, &transA, &m, &n,  &alpha_r, &alpha_i, &lda,\
+    while (fscanf(fin, "%s %c %c " INT_FS INT_FS " %lf %lf " INT_FS INT_FS " %lf %lf " INT_FS"[^\n]",
+      api_name, &dt_ch, &transA, &m, &n,  &alpha_r, &alpha_i, &lda,\
                   &incx, &beta_r, &beta_i, &incy) == 12)
       {
+        // Discard any extra data on current line in the input file.
+        fgets(dummy_buffer, BUFFER_SIZE, fin );
+
         if (dt_ch == 'D' || dt_ch == 'd') dt = BLIS_DOUBLE;
         else if (dt_ch == 'Z' || dt_ch == 'z') dt = BLIS_DCOMPLEX;
         else if (dt_ch == 'S' || dt_ch == 's') dt = BLIS_FLOAT;
@@ -398,7 +411,7 @@ int main( int argc, char** argv )
                 gflops);
 
         fprintf (fout, "%s %c %c" INT_FS INT_FS " %lf %lf"  INT_FS INT_FS  " %lf %lf " INT_FS " %6.3f\n",
-                   tmp, dt_ch, transA, m, n,  alpha_r, alpha_i, lda,\
+                   api_name, dt_ch, transA, m, n,  alpha_r, alpha_i, lda,\
                     incx, beta_r, beta_i, incy, gflops);
 
         fflush(fout);

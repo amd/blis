@@ -60,11 +60,6 @@ if(MSVC)
     set(CKVECFLAGS -mavx2 -mfma -mno-fma4 -mno-tbm -mno-xop -mno-lwp)
 
 elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
-    if(CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 15.0.0)
-        # gcc 15.1.0 fails to compile SUP kernels if -ftree-slp-vectorize
-        # is enabled, which is default in -O2 and higher
-        list(APPEND CKOPTFLAGS -fno-tree-slp-vectorize)
-    endif()
     set(CKVECFLAGS -mavx2 -mfpmath=sse -mfma)
 
 elseif("${CMAKE_C_COMPILER_ID}" MATCHES "Clang")
