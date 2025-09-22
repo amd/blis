@@ -47,6 +47,11 @@
 //#define DUMP_JIT_CODE
 #endif
 
+
+#if ( defined( BLIS_GCC ) && ( ( __GNUC__ >= 12 ) ) )
+    #define BLIS_GCC_12_ABOVE
+#endif
+
 typedef void (*lpgemm_m_fringe_f32_ker_ft)
     (
        const dim_t         k0,

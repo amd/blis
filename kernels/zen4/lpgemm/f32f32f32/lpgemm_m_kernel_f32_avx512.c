@@ -44,8 +44,14 @@
 
 LPGEMM_MAIN_KERN(float,float,float,f32f32f32of32_avx512_6x64m)
 {
+
+#ifdef BLIS_GCC_12_ABOVE
+
     if(post_ops_list->op_code == POST_OPS_DISABLE)
     {
+        //When there are no post-ops to do after GEMM this np path gives 
+        //better performance as the code size improves significantly     
+        // This path has accuracy issues for GCC Version < 12 so disabled for those
         lpgemm_rowvar_f32f32f32of32_avx512_6x64m_np
         (
           m0, n0, k0,
@@ -57,6 +63,7 @@ LPGEMM_MAIN_KERN(float,float,float,f32f32f32of32_avx512_6x64m)
         );
         return;
     }
+#endif
     
     //Call RD kernels if B is transposed
     if(rs_b == 1 && n0 != 1 )
