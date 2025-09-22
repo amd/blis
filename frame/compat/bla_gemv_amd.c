@@ -216,6 +216,7 @@ void dgemv_blis_impl
     if ( *m == 0 || *n == 0 || \
          ( PASTEMAC(d,eq0)( *alpha ) && PASTEMAC(d,eq1)( *beta ) ) )
     {
+        AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
         /* Finalize BLIS. */
         // Call to bli_finalize_auto() is not needed here
@@ -257,6 +258,7 @@ void dgemv_blis_impl
        this quirky behavior; it will scale y by beta, as one would expect. */
     if ( m_y > 0 && n_x == 0 )
     {
+        AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
         /* Finalize BLIS. */
         // Call to bli_finalize_auto() is not needed here
@@ -310,7 +312,7 @@ void dgemv_blis_impl
           NULL,
           NULL
         );
-
+        AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
         /* Finalize BLIS. */
         // Call to bli_finalize_auto() is not needed here
@@ -338,7 +340,7 @@ void dgemv_blis_impl
           y0, incy0,
           NULL
         );
-
+        AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
         /* Finalize BLIS. */
         // Call to bli_finalize_auto() is not needed here

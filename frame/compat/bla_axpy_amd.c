@@ -74,6 +74,7 @@ void PASTEF77S(ch,blasname) \
     */ \
     if ((*n) <= 0 || PASTEMAC(ch, eq0)(*alpha)) \
     { \
+      AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1); \
       AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1); \
       return; \
     } \
@@ -104,6 +105,7 @@ void PASTEF77S(ch,blasname) \
       NULL  \
     ); \
 \
+     AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1); \
      AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1) \
      /* Finalize BLIS. */ \
      bli_finalize_auto();  \
@@ -144,6 +146,7 @@ void saxpy_blis_impl
     */
     if ((*n) <= 0 || PASTEMAC(s, eq0)(*alpha))
     {
+      AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
       AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
       return;
     }
@@ -276,6 +279,7 @@ void daxpy_blis_impl
     */
     if ((*n) <= 0 || PASTEMAC(d, eq0)(*alpha))
     {
+      AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
       AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
       return;
     }
@@ -378,6 +382,13 @@ void daxpy_blis_impl
           axpyv_ker_ptr = bli_cntx_get_l1v_ker_dt(BLIS_DOUBLE, BLIS_AXPYV_KER, cntx);
     }
 
+    /*
+      Initializing the number of thread to one
+      to avoid compiler warnings
+    */
+    dim_t nt = 1;
+
+
 #ifdef BLIS_ENABLE_OPENMP
     #ifdef AOCL_DYNAMIC
       /* Invoking the fast-path, if the size is ideal for such execution */
@@ -392,16 +403,11 @@ void daxpy_blis_impl
           y0, incy0,
           cntx
         );
-
+        AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
         return;
       }
     #endif
-    /*
-      Initializing the number of thread to one
-      to avoid compiler warnings
-    */
-    dim_t nt = 1;
 
     /*
       For the given problem size and architecture, the function
@@ -431,6 +437,7 @@ void daxpy_blis_impl
           cntx
         );
 
+        AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, nt);
         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
         return;
 
@@ -487,6 +494,7 @@ void daxpy_blis_impl
     }
 #endif // BLIS_ENABLE_OPENMP
 
+    AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, nt);
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
     /* Finalize BLIS. */
     // Call to bli_finalize_auto() is not needed here
@@ -527,6 +535,7 @@ void caxpy_blis_impl
     */
     if ((*n) <= 0 || PASTEMAC(c, eq0)(*alpha))
     {
+      AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
       AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
       return;
     }
@@ -606,6 +615,7 @@ void caxpy_blis_impl
         );
     }
 
+    AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
     /* Finalize BLIS. */
     // Call to bli_finalize_auto() is not needed here
@@ -646,6 +656,7 @@ void zaxpy_blis_impl
     */
     if ((*n) <= 0 || PASTEMAC(z, eq0)(*alpha))
     {
+      AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
       AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
       return;
     }
@@ -729,13 +740,13 @@ void zaxpy_blis_impl
           axpyv_ker_ptr = bli_cntx_get_l1v_ker_dt(BLIS_DCOMPLEX, BLIS_AXPYV_KER, cntx);
     }
 
-#ifdef BLIS_ENABLE_OPENMP
-    /*
-      Initializing the number of thread to one
-      to avoid compiler warnings
-    */
+/*
+  Initializing the number of thread to one
+  to avoid compiler warnings
+*/
     dim_t nt = 1;
 
+#ifdef BLIS_ENABLE_OPENMP
     /*
       For the given problem size and architecture, the function
       returns the optimum number of threads with AOCL dynamic enabled
@@ -764,6 +775,7 @@ void zaxpy_blis_impl
           cntx
         );
 
+        AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
         return;
 
@@ -776,8 +788,8 @@ void zaxpy_blis_impl
         thrinfo_t thread;
 
         /* The factor by which the size should be a multiple during thread partition.
-	   The main loop of the kernel can handle 32 elements at a time hence 32 is
-	   selected for block_size. */
+       The main loop of the kernel can handle 32 elements at a time hence 32 is
+       selected for block_size. */
         dim_t block_size = 32;
 
         // Get the thread ID
@@ -819,7 +831,7 @@ void zaxpy_blis_impl
         );
     }
 #endif // BLIS_ENABLE_OPENMP
-
+    AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, nt);
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
     /* Finalize BLIS. */
     // Call to bli_finalize_auto() is not needed here

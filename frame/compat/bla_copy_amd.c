@@ -81,7 +81,8 @@ void PASTEF77S(ch,blasname) \
 	); \
 	\
 \
-	AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1); \
+  AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1); \
+  AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);         \
 \
 	/* Finalize BLIS. */ \
 	bli_finalize_auto(); \
@@ -203,10 +204,12 @@ void scopy_blis_impl
 		cntx
 	);
 
-	AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+	AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
+	AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
 	/* Finalize BLIS. */
 	// Call to bli_finalize_auto() is not needed here
 }
+
 #ifdef BLIS_ENABLE_BLAS
 void scopy_
 (
@@ -336,6 +339,13 @@ void dcopy_blis_impl
 			copyv_ker_ptr = bli_cntx_get_l1v_ker_dt(BLIS_DOUBLE, BLIS_COPYV_KER, cntx);
 	}
 
+	/*
+	Initializing the number of thread to one
+	to avoid compiler warnings
+*/
+	dim_t nt = 1;
+
+
 #ifdef BLIS_ENABLE_OPENMP
 
 	#ifdef AOCL_DYNAMIC
@@ -351,18 +361,12 @@ void dcopy_blis_impl
 			y0, incy0,
 			cntx
 		);
-
-		AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+		AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
+		AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
 		return;
 	}
 
 	#endif
-
-	/*
-		Initializing the number of thread to one
-		to avoid compiler warnings
-	*/
-	dim_t nt = 1;
 
 	/*
 		For the given problem size and architecture, the function
@@ -394,7 +398,7 @@ void dcopy_blis_impl
 			y0, incy0,
 			cntx
 		);
-
+		AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, nt);
 		AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
 		return;
 
@@ -450,13 +454,13 @@ void dcopy_blis_impl
 	}
 
 #endif // BLIS_ENABLE_OPENMP
-
-	AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+	AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, nt);
+	AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
 	/* Finalize BLIS. */
 	// Call to bli_finalize_auto() is not needed here
-}
-#ifdef BLIS_ENABLE_BLAS
+} // end of function
 
+#ifdef BLIS_ENABLE_BLAS
 void dcopy_
 (
 	const f77_int* n,
@@ -565,13 +569,13 @@ void zcopy_blis_impl
 			copyv_ker_ptr = bli_cntx_get_l1v_ker_dt(BLIS_DCOMPLEX, BLIS_COPYV_KER, cntx);
 	}
 
-#ifdef BLIS_ENABLE_OPENMP
 	/*
 		Initializing the number of thread to one
 		to avoid compiler warnings
 	*/
 	dim_t nt = 1;
 
+#ifdef BLIS_ENABLE_OPENMP
 	/*
 		For the given problem size and architecture, the function
 		returns the optimum number of threads with AOCL dynamic enabled
@@ -603,6 +607,7 @@ void zcopy_blis_impl
 			cntx
 		);
 
+		AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, nt);
 		AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
 		return;
 
@@ -611,46 +616,47 @@ void zcopy_blis_impl
 
 	_Pragma("omp parallel num_threads(nt)")
 	{
-		dim_t start, length;
+			dim_t start, length;
 
-		// Get the thread ID
-		dim_t thread_id = omp_get_thread_num();
+			// Get the thread ID
+			dim_t thread_id = omp_get_thread_num();
 
-		// Get the actual number of threads spawned
-		dim_t nt_use = omp_get_num_threads();
-		/*
-			Calculate the compute range for the current thread
-			based on the actual number of threads spawned
-		*/
-		bli_thread_vector_partition
-		(
-			n0,
-			nt_use,
-			&start, &length,
-			thread_id
-		);
+			// Get the actual number of threads spawned
+			dim_t nt_use = omp_get_num_threads();
+			/*
+				Calculate the compute range for the current thread
+				based on the actual number of threads spawned
+			*/
+			bli_thread_vector_partition
+			(
+				n0,
+				nt_use,
+				&start, &length,
+				thread_id
+			);
 
-		// Adjust the local pointer for computation
-		dcomplex *x_thread_local = x0 + (start * incx0);
-		dcomplex *y_thread_local = y0 + (start * incy0);
+			// Adjust the local pointer for computation
+			dcomplex *x_thread_local = x0 + (start * incx0);
+			dcomplex *y_thread_local = y0 + (start * incy0);
 
-		// Invoke the function based on the kernel function pointer
-		copyv_ker_ptr
-		(
-			BLIS_NO_CONJUGATE,
-			length,
-			x_thread_local, incx0,
-			y_thread_local, incy0,
-			cntx
-		);
+			// Invoke the function based on the kernel function pointer
+			copyv_ker_ptr
+			(
+				BLIS_NO_CONJUGATE,
+				length,
+				x_thread_local, incx0,
+				y_thread_local, incy0,
+				cntx
+			);
 	}
-
 #endif
-
+	AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, nt);
 	AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+
 	/* Finalize BLIS. */
 	// Call to bli_finalize_auto() is not needed here
 }
+
 #ifdef BLIS_ENABLE_BLAS
 void zcopy_
 (

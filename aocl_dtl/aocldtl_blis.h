@@ -46,6 +46,10 @@
 #if AOCL_DTL_LOG_ENABLE
 dim_t AOCL_get_requested_threads_count(void);
 
+void AOCL_DTL_log_num_threads(int8 loglevel,
+                              dim_t num_threads
+                             );
+
 // Level-3 Logging
 
 void AOCL_DTL_log_gemm_sizes(int8 loglevel,
@@ -760,6 +764,11 @@ void AOCL_DTL_log_matcopy2_sizes(int8 loglevel,
                                  const char* function_name,
                                  int line);
 
+
+#define AOCL_DTL_LOG_NUM_THREADS(loglevel, num_threads) \
+    if (tlIsLoggingEnabled) \
+        AOCL_DTL_log_num_threads(loglevel, num_threads);
+
 // Level-3 Macros
 
 #define AOCL_DTL_LOG_GEMM_INPUTS(loglevel, dt, transa, transb, m, n, k, alpha, lda, ldb, beta, ldc)    \
@@ -1058,6 +1067,8 @@ void AOCL_DTL_log_matcopy2_sizes(int8 loglevel,
         AOCL_DTL_log_matcopy2_sizes(loglevel, dt_type, trans, rows, cols, alpha, lda, stridea, ldb, strideb,  __FILE__,__FUNCTION__,__LINE__);
 
 #else // AOCL_DTL_LOG_ENABLE
+
+#define AOCL_DTL_LOG_NUM_THREADS(loglevel, num_threads)
 
 // Level-3 Macros
 

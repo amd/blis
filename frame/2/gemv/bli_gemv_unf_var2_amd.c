@@ -342,7 +342,7 @@ void bli_dgemv_unf_var2 (
                               y, incy,
                               cntx
                            );
-
+            AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
             AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_3)
             return;
 
@@ -477,7 +477,8 @@ void bli_dgemv_unf_var2 (
 
     if( bli_deq0( *alpha ) )
     {
-        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_3)
+       AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
+       AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_3)
         return;
     }
 
@@ -521,7 +522,7 @@ void bli_dgemv_unf_var2 (
         // Return the buffer to pool
         bli_pba_release(&rntm , &mem_bufY);
     }
-
+    AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_3);
 }
 
