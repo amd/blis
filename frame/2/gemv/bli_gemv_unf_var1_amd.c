@@ -629,7 +629,7 @@ void bli_sgemv_var1_smart_threading
     return;
   }
 
-  double m_n_ratio = m/n;
+  double m_n_ratio = (double)m/(double)n;
 
   // When the input value is less than the fuse factor
   if(n_per_loop < 1)
