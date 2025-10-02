@@ -1913,7 +1913,10 @@ set_default_version()
 	echo "${script_name}: determining default version string."
 
 	# Use what's in the version file as-is.
-	version="AOCL-BLAS $(cat "${version_file}") Build $(date +%Y%m%d)"
+	DATE_FMT="+%Y%m%d"
+	SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-$(date +%s)}"
+	BUILD_DATE=$(date -u -d "@$SOURCE_DATE_EPOCH" "$DATE_FMT" 2>/dev/null || date -u -r "$SOURCE_DATE_EPOCH" "$DATE_FMT" 2>/dev/null || date -u "$DATE_FMT")
+	version="AOCL-BLAS $(cat "${version_file}") Build ${BUILD_DATE}"
 }
 
 
