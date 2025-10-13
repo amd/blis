@@ -339,14 +339,12 @@ void dcopy_blis_impl
 			copyv_ker_ptr = bli_cntx_get_l1v_ker_dt(BLIS_DOUBLE, BLIS_COPYV_KER, cntx);
 	}
 
-	/*
-	Initializing the number of thread to one
-	to avoid compiler warnings
-*/
-	dim_t nt = 1;
-
-
 #ifdef BLIS_ENABLE_OPENMP
+	/*
+		Initializing the number of thread to one
+		to avoid compiler warnings
+	*/
+	dim_t nt = 1;
 
 	#ifdef AOCL_DYNAMIC
 
@@ -389,7 +387,6 @@ void dcopy_blis_impl
 	*/
 	if (nt == 1)
 	{
-#endif
 		copyv_ker_ptr
 		(
 			BLIS_NO_CONJUGATE,
@@ -401,8 +398,6 @@ void dcopy_blis_impl
 		AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, nt);
 		AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
 		return;
-
-#ifdef BLIS_ENABLE_OPENMP
 	}
 
 	_Pragma("omp parallel num_threads(nt)")
@@ -453,12 +448,28 @@ void dcopy_blis_impl
 		);
 	}
 
-#endif // BLIS_ENABLE_OPENMP
 	AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, nt);
 	AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
+
+#else // not BLIS_ENABLE_OPENMP
+
+	copyv_ker_ptr
+	(
+		BLIS_NO_CONJUGATE,
+		n0,
+		x0, incx0,
+		y0, incy0,
+		cntx
+	);
+
+	AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
+	AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+
+#endif // BLIS_ENABLE_OPENMP
+
 	/* Finalize BLIS. */
 	// Call to bli_finalize_auto() is not needed here
-} // end of function
+}
 
 #ifdef BLIS_ENABLE_BLAS
 void dcopy_
@@ -569,13 +580,13 @@ void zcopy_blis_impl
 			copyv_ker_ptr = bli_cntx_get_l1v_ker_dt(BLIS_DCOMPLEX, BLIS_COPYV_KER, cntx);
 	}
 
+#ifdef BLIS_ENABLE_OPENMP
 	/*
 		Initializing the number of thread to one
 		to avoid compiler warnings
 	*/
 	dim_t nt = 1;
 
-#ifdef BLIS_ENABLE_OPENMP
 	/*
 		For the given problem size and architecture, the function
 		returns the optimum number of threads with AOCL dynamic enabled
@@ -597,7 +608,6 @@ void zcopy_blis_impl
 	*/
 	if (nt == 1)
 	{
-#endif
 		copyv_ker_ptr
 		(
 			BLIS_NO_CONJUGATE,
@@ -610,8 +620,6 @@ void zcopy_blis_impl
 		AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, nt);
 		AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
 		return;
-
-#ifdef BLIS_ENABLE_OPENMP
 	}
 
 	_Pragma("omp parallel num_threads(nt)")
@@ -649,9 +657,25 @@ void zcopy_blis_impl
 				cntx
 			);
 	}
-#endif
+
 	AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, nt);
 	AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+
+#else // not BLIS_ENABLE_OPENMP
+
+	copyv_ker_ptr
+	(
+		BLIS_NO_CONJUGATE,
+		n0,
+		x0, incx0,
+		y0, incy0,
+		cntx
+	);
+
+	AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
+	AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+
+#endif // BLIS_ENABLE_OPENMP
 
 	/* Finalize BLIS. */
 	// Call to bli_finalize_auto() is not needed here
