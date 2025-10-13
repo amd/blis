@@ -302,6 +302,49 @@ BLIS_EXPORT_BLIS void bli_daxpyv_zen4_int
 
     if (incx == 1 && incy == 1)
     {
+        if ( n < 8 )
+        {
+            // At this point we are sure that N is not more than 7
+            // If N is at least 4, use a full AVX2 FMA
+            if ( ( i + 3 ) < n )
+            {
+                __m256d y_vec = _mm256_loadu_pd(y0);
+                y_vec = _mm256_fmadd_pd(_mm256_loadu_pd(x0), _mm256_set1_pd(*alpha), y_vec);
+                _mm256_storeu_pd(y0, y_vec);
+
+                x0 += 4;
+                y0 += 4;
+                i += 4;
+            }
+
+            // At this point remainder is not more than 3
+            // If remainder is at least 2, we use full SSE FMA
+            if ( ( i + 1 ) < n )
+            {
+                __m128d y_vec = _mm_loadu_pd(y0);
+                y_vec = _mm_fmadd_pd(_mm_loadu_pd(x0), _mm_set1_pd(*alpha), y_vec);
+                _mm_storeu_pd(y0, y_vec);
+
+                x0 += 2;
+                y0 += 2;
+                i += 2;
+            }
+
+            // At this point remainder is either 0 or 1
+            // If remainder is 1, we use SSE FMA
+            // Note: Using C code instead of SSE results in MUL+ADD which is
+            // bad for accuracy.
+            if ( i < n )
+            {
+                __m128d y_vec = _mm_load1_pd(y0);
+                y_vec = _mm_fmadd_pd(_mm_load1_pd(x0), _mm_set1_pd(*alpha), y_vec);
+                _mm_storel_pd(y0, y_vec);
+            }
+
+            AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_4)
+            return;
+        }
+        
         __m512d xv[8], yv[8], alphav;
 
         // Broadcast the alpha scalar to all elements of a vector register.
