@@ -195,8 +195,7 @@ void unpackb_nr64_bf16_f32
       const dim_t	    KC,
       const dim_t     NC,
       dim_t           rs_b,
-      dim_t           cs_b,
-      bool            is_n_one
+      dim_t           cs_b
     );
 
 void cvt_bf16_f32(
@@ -209,5 +208,22 @@ void cvt_bf16_f32(
     const dim_t      rs_p,
     const dim_t      cs_p
   );
+
+// Optimized GEMV conversion for true K=1 matrices with contiguous output
+void cvt_bf16_f32_gemv_row_major(
+    float*          cvt_buffer,
+    const bfloat16* a,
+    const dim_t     rs_a,
+    const dim_t     MC
+  );
+
+// Optimized GEMV unpacking for true N=1 reordered matrices (contiguous storage)
+void
+unpackb_nr64_bf16_f32_gemv(
+    const bfloat16* b,
+    float*          unpack_b_buffer,
+    const dim_t     KC
+  );
+
 
 #endif //BLIS_GEMM_BF16_PACKB

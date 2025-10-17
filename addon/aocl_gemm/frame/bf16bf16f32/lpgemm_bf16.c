@@ -891,21 +891,18 @@ LPGEMV_AVX2(bfloat16, bfloat16, float, bf16bf16f32of32)
 		{
 			/* For n = 1 case, a re-ordered matrix would be stored contigously
 			 in memeory and hence need to be accessed likewise for conversion.*/
-			unpackb_nr64_bf16_f32
+			unpackb_nr64_bf16_f32_gemv
 			(
-				b, cvt_b_buffer_bf16_f32,
-				k, 1,
-				rs_b, cs_b, TRUE
+				b, cvt_b_buffer_bf16_f32, k
 			);
 		}
 		else
 		{
-			cvt_bf16_f32
+			// Direct call to optimized GEMV conversion (K=1, contiguous output)
+			cvt_bf16_f32_gemv_row_major
 			(
-				cvt_b_buffer_bf16_f32 ,
-				b, rs_b, cs_b,
-				k, 1,
-				rs_b_use, cs_b_use
+				cvt_b_buffer_bf16_f32, 
+				b, rs_b, k
 			);
 		}
 		b_use = cvt_b_buffer_bf16_f32;
@@ -1084,7 +1081,7 @@ LPGEMV_AVX2(bfloat16, bfloat16, float, bf16bf16f32of32)
 						( jc_cur_loop_rem * kc0_updated) + ( n_sub_updated * pc )),
 						( b_unreorder + (nc0 * pc)),
 						kc0, nc0 ,
-						rs_b_use, cs_b_use, FALSE
+						rs_b_use, cs_b_use
 					);
 					b_use = b_unreorder;
 				}
@@ -1431,7 +1428,7 @@ LPGEMM_5LOOP_AVX2(bfloat16,bfloat16,float,bf16bf16f32of32)
 						( ( jc_cur_loop_rem + jc_packb_start ) *
 						kc0_updated ) ),( b_unreorder +  jc_packb_start),
 						kc0, ( jc_packb_end - jc_packb_start ) ,
-						rs_b_use, cs_b_use, FALSE
+						rs_b_use, cs_b_use
 					);
 				}
 
