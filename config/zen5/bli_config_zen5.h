@@ -157,6 +157,13 @@
   /* In case of multi-threaded request */ \
   IS_TINY_PARALLEL_z_ZEN5_AVX512( transa, transb, m, n, k, is_parallel )
 
+#define THRESH_GEMM_s_TINY_ZEN5_AVX2( transa, transb, m, n, k, is_parallel ) \
+  ( 0 ) 
+
+#define THRESH_GEMM_s_TINY_ZEN5_AVX512( transa, transb, m, n, k, is_parallel ) \
+  ( ( !is_parallel ) && ( ( ( (m) + (k) ) *  (n)  + ( (m) * (k) ) ) < 8192 ) ) // Make sure that all the matrices fit in the L1 cache
+                                                                               // Currently, tiny path is only enabled in the single threaded mode
+
 /* Defining the macro to be used for selecting the kernel at runtime */
 #define ZEN5_UKR_SELECTOR( ch, transa, transb, m, n, k, stor_id, ukr_support, gemmtiny_ukr_info, is_parallel ) \
     if ( PASTECH2( THRESH_GEMM_, ch, _TINY_ZEN5_AVX2 )( transa, transb, m, n, k, is_parallel ) ) \

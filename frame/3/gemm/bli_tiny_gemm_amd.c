@@ -385,7 +385,7 @@ err_t PASTEMAC( ch, tfuncname ) \
 
 GENTFUNC( scomplex, c, gemm_tiny )
 GENTFUNC( dcomplex, z, gemm_tiny )
-
+GENTFUNC(    float, s, gemm_tiny )
 
 /*
  * blis_dgemm_single_threaded:

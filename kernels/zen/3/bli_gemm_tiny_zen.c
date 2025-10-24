@@ -59,6 +59,18 @@ static gemmtiny_ukr_info_t zgemmtiny_ukr_zen[] =
     { (void *)bli_zgemmsup_rv_zen_asm_3x4m, (void *)bli_zpackm_haswell_asm_4xk, TRUE, FALSE, 3, 4 }
 };
 
+static gemmtiny_ukr_info_t sgemmtiny_ukr_zen[] =
+{
+    { (void *)bli_sgemmsup_rv_zen_asm_6x16m, (void *)bli_spackm_haswell_asm_6xk, TRUE, FALSE, 6, 16 },
+    { (void *)bli_sgemmsup_rd_zen_asm_6x16m, (void *)bli_spackm_haswell_asm_6xk, TRUE, FALSE, 6, 16 },
+    { (void *)bli_sgemmsup_rv_zen_asm_6x16m, (void *)bli_spackm_haswell_asm_6xk, TRUE, FALSE, 6, 16 },
+    { (void *)bli_sgemmsup_rv_zen_asm_6x16m, (void *)bli_spackm_haswell_asm_6xk, TRUE, FALSE, 6, 16 },
+    { (void *)bli_sgemmsup_rv_zen_asm_6x16m, (void *)bli_spackm_haswell_asm_6xk, TRUE, FALSE, 6, 16 },
+    { (void *)bli_sgemmsup_rd_zen_asm_6x16m, (void *)bli_spackm_haswell_asm_6xk, TRUE, FALSE, 6, 16 },
+    { (void *)bli_sgemmsup_rv_zen_asm_6x16m, (void *)bli_spackm_haswell_asm_6xk, TRUE, FALSE, 6, 16 },
+    { (void *)bli_sgemmsup_rv_zen_asm_6x16m, (void *)bli_spackm_haswell_asm_6xk, TRUE, FALSE, 6, 16 }
+};
+
 // Function macro that defines the bli_?gemmtiny_ukr_zen_info functions
 // These are used to acquire the kernel info at framework level
 #undef  GENTFUNC
@@ -86,3 +98,4 @@ err_t PASTEMAC( ch, tfuncname ) \
 
 GENTFUNC( scomplex, c, gemmtiny_ukr_zen_info )
 GENTFUNC( dcomplex, z, gemmtiny_ukr_zen_info )
+GENTFUNC(    float, s, gemmtiny_ukr_zen_info )

@@ -48,6 +48,7 @@ err_t PASTEMAC( ch, tfuncname ) \
 
 GENTFUNC( scomplex, c, gemmtiny_ukr_zen4_info )
 GENTFUNC( dcomplex, z, gemmtiny_ukr_zen4_info )
+GENTFUNC(    float, s, gemmtiny_ukr_zen4_info )
 
 /* Enabling the query for AVX512 kernels, based on the library's configuration */
 /* Minimum requirement is 'ZEN4' */
