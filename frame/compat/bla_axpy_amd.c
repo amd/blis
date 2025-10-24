@@ -146,7 +146,7 @@ void saxpy_blis_impl
     */
     if ((*n) <= 0 || PASTEMAC(s, eq0)(*alpha))
     {
-      AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
+      AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, AOCL_get_requested_threads_count());
       AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
       return;
     }
@@ -280,7 +280,7 @@ void daxpy_blis_impl
     */
     if ((*n) <= 0 || PASTEMAC(d, eq0)(*alpha))
     {
-      AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
+      AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, AOCL_get_requested_threads_count());
       AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
       return;
     }
@@ -549,7 +549,7 @@ void caxpy_blis_impl
     */
     if ((*n) <= 0 || PASTEMAC(c, eq0)(*alpha))
     {
-      AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
+      AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, AOCL_get_requested_threads_count());
       AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
       return;
     }
@@ -670,7 +670,7 @@ void zaxpy_blis_impl
     */
     if ((*n) <= 0 || PASTEMAC(z, eq0)(*alpha))
     {
-      AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
+      AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, AOCL_get_requested_threads_count());
       AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
       return;
     }

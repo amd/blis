@@ -717,18 +717,10 @@ void AOCL_DTL_log_gemv_sizes(int8 loglevel,
     DTL_get_complex_parts(dt_type, beta, &beta_real, &beta_imag);
 
     // {S, D,C, Z} { transa, m, n, alpha, lda, incx, beta, incy}
-    if (dt_type == 'd' || dt_type == 'D' )
-    {
-        sprintf(buffer, "%c %c %ld %ld %lf %lf %ld %ld %lf %lf %ld", tolower(dt_type),
-            transa, (dim_t)m, (dim_t)n, alpha_real, alpha_imag,
-            (dim_t)lda, (dim_t)incx, beta_real, beta_imag, (dim_t)incy);
-    }
-    else
-    {
-        sprintf(buffer, "%c %c %ld %ld %lf %lf %ld %ld %lf %lf %ld\n", tolower(dt_type),
-            transa, (dim_t)m, (dim_t)n, alpha_real, alpha_imag,
-            (dim_t)lda, (dim_t)incx, beta_real, beta_imag, (dim_t)incy);
-    }
+    sprintf(buffer, "%c %c %ld %ld %lf %lf %ld %ld %lf %lf %ld\n", tolower(dt_type),
+        transa, (dim_t)m, (dim_t)n, alpha_real, alpha_imag,
+        (dim_t)lda, (dim_t)incx, beta_real, beta_imag, (dim_t)incy);
+
 
     DTL_Trace(loglevel, TRACE_TYPE_LOG, function_name, function_name, line, buffer);
 }

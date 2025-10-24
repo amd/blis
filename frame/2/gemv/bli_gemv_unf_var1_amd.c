@@ -247,7 +247,6 @@ void bli_dgemv_unf_var1
           NULL
         );
 
-        AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_3)
         return;
     }
@@ -385,7 +384,6 @@ void bli_dgemv_unf_var1
             );
           }
 
-          AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
           AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_3);
           return;
     }
@@ -404,7 +402,6 @@ void bli_dgemv_unf_var1
           cntx
         );
 
-        AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_3)
         return;
     }
@@ -495,8 +492,6 @@ void bli_dgemv_unf_var1
             cntx
         );
 
-        AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
-
 #if defined(BLIS_ENABLE_OPENMP)
       }
       else
@@ -574,7 +569,6 @@ void bli_dgemv_unf_var1
               cntx
           );
         }
-        AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, nt);
       }
 #endif
     }
@@ -594,7 +588,7 @@ void bli_dgemv_unf_var1
           y, incy,
           NULL
         );
-        AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
+
     }
 
     // If x was packed into x_temp, free the memory.
