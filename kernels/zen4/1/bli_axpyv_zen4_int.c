@@ -341,10 +341,10 @@ BLIS_EXPORT_BLIS void bli_daxpyv_zen4_int
                 _mm_storel_pd(y0, y_vec);
             }
 
-            AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_4)
+            AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_4);
             return;
         }
-        
+
         __m512d xv[8], yv[8], alphav;
 
         // Broadcast the alpha scalar to all elements of a vector register.

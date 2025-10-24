@@ -1179,7 +1179,6 @@ void bli_dgemv_m_zen4_int_40x8_mt_Mdiv
           y, incy,
           NULL
         );
-        AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_4)
         return;
     }
@@ -1225,7 +1224,7 @@ void bli_dgemv_m_zen4_int_40x8_mt_Mdiv
             cntx
         );
     }
-    AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, nt);
+    AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_4);
 } // end of function
 
 /*
@@ -1292,8 +1291,8 @@ void bli_dgemv_m_zen4_int_40x8_mt_Ndiv
           y, incy,
           NULL
         );
-        AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
-        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_4)
+
+        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_4);
         return;
     }
 
@@ -1345,7 +1344,6 @@ void bli_dgemv_m_zen4_int_40x8_mt_Ndiv
           NULL
         );
 
-        AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_4)
         return;
     }
@@ -1434,7 +1432,7 @@ void bli_dgemv_m_zen4_int_40x8_mt_Ndiv
         bli_pba_release(&rntm, &local_mem_buf);
     }
 
-    AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, nt);
+    AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_4);
 }
 #endif
 
@@ -1486,7 +1484,7 @@ void bli_dgemv_n_zen4_int (
         {
             ker_ft = bli_dgemv_n_zen4_int_32x8_st;
         }
-        AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
+
     }
     else
 #endif
@@ -1510,7 +1508,6 @@ void bli_dgemv_n_zen4_int (
         {
             ker_ft = bli_dgemv_n_zen4_int_32x8_st;
         }
-        AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
 #endif
     }
 
@@ -1519,10 +1516,6 @@ void bli_dgemv_n_zen4_int (
     if ( incy != 1 || transa != BLIS_NO_TRANSPOSE)
     {
         ker_ft = bli_dgemv_n_zen4_int_32x8_st;
-        // AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
-        // I am commenting out the above line because
-        // it ends up calling twice sometimes.
-        // Need to fix it later !!
     }
     // Call the function pointer
     ker_ft

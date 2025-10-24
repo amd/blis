@@ -80,10 +80,10 @@ void PASTEF772S(chx,cha,blasname) \
 \
 	if ((n0 <= 0) || (alpha == NULL) || (incx0 <= 0) || PASTEMAC(chau, eq1)(*alpha)) \
 	{ \
-    AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1); \
-		AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1); \
-		/* Finalize BLIS. */ \
-		bli_finalize_auto(); \
+      AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, AOCL_get_requested_threads_count()); \
+      AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1); \
+	  /* Finalize BLIS. */ \
+	  bli_finalize_auto(); \
 		return ; \
 	} \
 \
@@ -106,7 +106,7 @@ void PASTEF772S(chx,cha,blasname) \
 	  NULL  \
 	); \
 \
-  AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1); \
+    AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1); \
 	AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1) \
 	/* Finalize BLIS. */ \
 	bli_finalize_auto(); \
@@ -147,7 +147,7 @@ void sscal_blis_impl
     */
     if ((n0 <= 0) || (alpha == NULL) || (incx0 <= 0) || PASTEMAC(s, eq1)(*alpha))
     {
-      AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
+      AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, AOCL_get_requested_threads_count());
       AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
         /* Finalize BLIS. */
         // Call to bli_finalize_auto() is not needed here
@@ -238,7 +238,7 @@ void dscal_blis_impl
     */
     if ((n0 <= 0) || (alpha == NULL) || (incx0 <= 0) || PASTEMAC(d, eq1)(*alpha))
     {
-      AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
+      AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, AOCL_get_requested_threads_count());
       AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
         /* Finalize BLIS. */
         // Call to bli_finalize_auto() is not needed here
@@ -437,7 +437,7 @@ void zdscal_blis_impl
     */
     if ((n0 <= 0) || (alpha == NULL) || (incx0 <= 0) || PASTEMAC(d, eq1)(*alpha))
     {
-      AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
+      AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, AOCL_get_requested_threads_count());
       AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
         /* Finalize BLIS. */
         // Call to bli_finalize_auto() is not needed here
@@ -616,7 +616,7 @@ void cscal_blis_impl
     */
     if ((n0 <= 0) || (alpha == NULL) || (incx0 <= 0) || PASTEMAC(c, eq1)(*alpha))
     {
-      AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
+      AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, AOCL_get_requested_threads_count());
       AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
         /* Finalize BLIS. */
         // Call to bli_finalize_auto() is not needed here
@@ -711,7 +711,7 @@ void zscal_blis_impl
     */
     if ((n0 <= 0) || (alpha == NULL) || (incx0 <= 0) || PASTEMAC(z, eq1)(*alpha))
     {
-      AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
+      AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, AOCL_get_requested_threads_count());
       AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
         /* Finalize BLIS. */
         // Call to bli_finalize_auto() is not needed here
