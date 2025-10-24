@@ -121,6 +121,8 @@ err_t bli_l3_sup_thread_decorator
 		  thread
 		);
 
+		/* Synchronize all threads */
+        #pragma omp barrier
 		// Free the current thread's thrinfo_t structure.
 		bli_l3_sup_thrinfo_free( rntm_p, thread );
 	}
