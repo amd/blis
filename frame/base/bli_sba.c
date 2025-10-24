@@ -101,7 +101,7 @@ void* bli_sba_acquire
 	}
 #else
 
-	block = bli_malloc_user( req_size, &r_val );
+	block = bli_malloc_intl( req_size, &r_val );
 
 #endif
 
@@ -145,7 +145,7 @@ void bli_sba_release
 	}
 #else
 
-	bli_free_user( block );
+	bli_free_intl( block );
 
 #endif
 }
