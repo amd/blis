@@ -43,3 +43,7 @@ teams:
           - amd-main
       - type: CodePorting
         enabled: true
+      - type: CodePortingHistorical
+        enabled: true
+        branches:
+          - amd-main
