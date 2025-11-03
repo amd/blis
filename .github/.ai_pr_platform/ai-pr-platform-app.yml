@@ -1,0 +1,41 @@
+---
+error_notifications:
+  recipients:
+    - dl.CSG_AIEnablement@amd.com
+assistantDefaults:
+  skip_draft: true
+  label_exclusions: []
+  exclude_pr_authors: []
+  exclude_comment_authors: []
+  filtered_ticket_ids: []
+  skip_comment_from_pr_author: true
+  post_info_reply_comment: true
+teams:
+  - name: csg
+    branches:
+      - amd-staging
+    assistants:
+      - type: PRSummary
+        enabled: true
+        branches:
+          - amd-staging
+      - type: CodingStandard
+        enabled: true
+        branches:
+          - amd-staging
+      - type: AIReviewCommentFix
+        enabled: true
+        branches:
+          - amd-staging
+      - type: CodeQLHistorical
+        enabled: true
+        branches:
+          - amd-staging
+      - type: CodeQLScheduled
+        enabled: true
+      - type: CoverityHistorical
+        enabled: true
+        branches:
+          - amd-staging
+      - type: CodePorting
+        enabled: true
