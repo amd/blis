@@ -13,29 +13,29 @@ assistantDefaults:
 teams:
   - name: csg
     branches:
-      - amd-staging
+      - amd-main
     assistants:
       - type: PRSummary
         enabled: true
         branches:
-          - amd-staging
+          - amd-main
       - type: CodingStandard
         enabled: true
         branches:
-          - amd-staging
+          - amd-main
       - type: AIReviewCommentFix
         enabled: true
         branches:
-          - amd-staging
+          - amd-main
       - type: CodeQLHistorical
         enabled: true
         branches:
-          - amd-staging
+          - amd-main
       - type: CodeQLScheduled
         enabled: true
       - type: CoverityHistorical
         enabled: true
         branches:
-          - amd-staging
+          - amd-main
       - type: CodePorting
         enabled: true
