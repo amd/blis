@@ -1,0 +1,12 @@
+{
+  "csg": {
+    "server": "http://jenkinserver.amd.com:8082",
+    "projects": ["AOCL_RELEASE", "AOCL_OPENSOURCE", "AOCL_INTERNAL"],
+    "default_branch": "amd-main",
+    "default_issue_types": [],
+    "formatting": {
+      "ticket_id": "CPUPL-7574",
+      "email_recipients": ["dl.amdindia.aocl@amd.com"]
+    }
+  }
+}
