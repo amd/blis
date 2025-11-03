@@ -1,4 +1,3 @@
----
 error_notifications:
   recipients:
     - dl.CSG_AIEnablement@amd.com
@@ -9,11 +8,12 @@ assistantDefaults:
   exclude_comment_authors: []
   filtered_ticket_ids: []
   skip_comment_from_pr_author: true
-  post_info_reply_comment: true
+  post_info_reply_comment: false
 teams:
   - name: csg
     branches:
       - amd-main
+
     assistants:
       - type: PRSummary
         enabled: true
@@ -33,6 +33,10 @@ teams:
           - amd-main
       - type: CodeQLScheduled
         enabled: true
+        branches:
+          - amd-main
+        params:
+          schedule: 30 11 * * 7
       - type: CoverityHistorical
         enabled: true
         branches:
