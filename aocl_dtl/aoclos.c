@@ -45,6 +45,7 @@
 #include "aocldtlcf.h"
 
 #if defined(__linux__)
+
 #include <time.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
@@ -54,6 +55,10 @@
 #include <omp.h>
 #endif
 
+#endif
+
+#if BLIS_OS_WINDOWS
+#include <process.h>
 #endif
 
 // BLIS TODO: This is workaround to check if BLIS is built with
@@ -122,7 +127,9 @@ uint64 AOCL_getTimestamp(void)
     return micros;
 }
 
-#else  /* Non linux support */
+
+#elif BLIS_OS_WINDOWS
+
 AOCL_TID AOCL_gettid(void)
 {
 #ifdef BLIS_ENABLE_OPENMP
@@ -142,7 +149,37 @@ AOCL_TID AOCL_gettid(void)
 
 pid_t  AOCL_getpid(void)
 {
-	/* stub for other os's */
+    return (pid_t) _getpid();
+}
+
+uint64 AOCL_getTimestamp(void)
+{
+    /* stub for other os's */
+    return 0;
+}
+
+#else  /* Non linux, Non Windows support */
+
+AOCL_TID AOCL_gettid(void)
+{
+#ifdef BLIS_ENABLE_OPENMP
+  return omp_get_thread_num();
+#else
+#ifdef BLIS_ENABLE_PTHREADS
+  // pthread_self is not suitable for this purpose and may be replaced
+  // in a later release with something else. It returns a value of type
+  // pthread_t, whose type may depend upon the operating system. On
+  // freeBSD it is a pointer to an empty struct.
+  return (AOCL_TID) pthread_self();
+#else
+  return 0;
+#endif
+#endif
+}
+
+pid_t  AOCL_getpid(void)
+{
+    /* stub for other os's */
     return 0;
 }
 
