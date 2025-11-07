@@ -285,7 +285,6 @@ void bli_dgemv_unf_var1
 
     // Function pointer declaration for the functions that will be used.
     dgemv_ker_ft_conja   gemv_kr_ptr = NULL;     // DGEMV
-    dscalv_ker_ft        scalv_kr_ptr = NULL;    // DSCALV
     dcopyv_ker_ft        copyv_kr_ptr = NULL;    // DCOPYV
 
     /*
@@ -307,7 +306,6 @@ void bli_dgemv_unf_var1
       case BLIS_ARCH_ZEN5:
 #if defined(BLIS_KERNELS_ZEN5)
         gemv_kr_ptr   = bli_dgemv_t_zen4_int;    // DGEMV
-        scalv_kr_ptr  = bli_dscalv_zen4_int;     // DSCALV
         copyv_kr_ptr  = bli_dcopyv_zen5_asm;     // DCOPYV
 #if defined(BLIS_ENABLE_OPENMP) && defined(AOCL_DYNAMIC)
         fast_path_thresh = 12000;
@@ -318,7 +316,6 @@ void bli_dgemv_unf_var1
 
 #if defined(BLIS_KERNELS_ZEN4)
         gemv_kr_ptr   = bli_dgemv_t_zen4_int;    // DGEMV
-        scalv_kr_ptr  = bli_dscalv_zen4_int;     // DSCALV
         copyv_kr_ptr  = bli_dcopyv_zen4_asm;     // DCOPYV
 #if defined(BLIS_ENABLE_OPENMP) && defined(AOCL_DYNAMIC)
         fast_path_thresh = 11000;
@@ -331,7 +328,6 @@ void bli_dgemv_unf_var1
       case BLIS_ARCH_ZEN3:
 
         gemv_kr_ptr   = bli_dgemv_t_zen_int;     // DGEMV
-        scalv_kr_ptr  = bli_dscalv_zen_int;      // DSCALV
         copyv_kr_ptr  = bli_dcopyv_zen_int;      // DCOPYV
 
 #if defined(BLIS_ENABLE_OPENMP) && defined(AOCL_DYNAMIC)
@@ -386,24 +382,6 @@ void bli_dgemv_unf_var1
 
           AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_3);
           return;
-    }
-
-    // If alpha is zero, the GEMV operation is reduced to y := beta * y, thus,
-    // y is only scaled by beta and returned.
-    if( bli_deq0( *alpha ) )
-    {
-        // Invoke the SCALV function using the function pointer
-        scalv_kr_ptr
-        (
-          BLIS_NO_CONJUGATE,
-          n0,
-          beta,
-          y_buf, incy,
-          cntx
-        );
-
-        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_3)
-        return;
     }
 
     // If x has non-unit increments , x is packed and copied to a temp buffer (x_buf)

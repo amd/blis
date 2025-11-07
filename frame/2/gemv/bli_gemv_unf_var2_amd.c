@@ -475,12 +475,6 @@ void bli_dgemv_unf_var2 (
         );
     }
 
-    if( bli_deq0( *alpha ) )
-    {
-       AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_3)
-        return;
-    }
-
     for (i = 0; i < n_iter; i += f)
     {
         f = bli_determine_blocksize_dim_f(i, n_iter, b_fuse);

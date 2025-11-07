@@ -256,7 +256,7 @@ static dgemv_ker_ft_conja n_ker_fp[8] =
             rhov[7].v = _mm512_setzero_pd();
 
             // Loading the value of y into yv0
-            yv0.v = _mm512_loadu_pd( y_buf );                                   // yv0 = y_buf[0:7]
+            yv0.v = _mm512_maskz_loadu_pd( beta_mask, y_buf );                                   // yv0 = y_buf[0:7]
             yv0.v = _mm512_maskz_mul_pd( beta_mask, betav.v, yv0.v );           // yv0 = beta * y_buf[0:7]
 
             // Handles (a_buf[0:31, 0:7] * x_buf[0:31])
@@ -675,16 +675,23 @@ static dgemv_ker_ft_conja n_ker_fp[8] =
 
             // In case of non-unit stride y,
             // The inputs on vector y are manually moved to register yv0
-            yv0.d[0] = *( y_buf + (0 * incy) );                               // yv0[0] = y_buf[0]
-            yv0.d[1] = *( y_buf + (1 * incy) );                               // yv0[1] = y_buf[1]
-            yv0.d[2] = *( y_buf + (2 * incy) );                               // yv0[2] = y_buf[2]
-            yv0.d[3] = *( y_buf + (3 * incy) );                               // yv0[3] = y_buf[3]
-            yv0.d[4] = *( y_buf + (4 * incy) );                               // yv0[4] = y_buf[4]
-            yv0.d[5] = *( y_buf + (5 * incy) );                               // yv0[5] = y_buf[5]
-            yv0.d[6] = *( y_buf + (6 * incy) );                               // yv0[6] = y_buf[6]
-            yv0.d[7] = *( y_buf + (7 * incy) );                               // yv0[7] = y_buf[7]
+            if ( bli_deq0( *beta ) )
+            {
+                yv0.v = _mm512_setzero_pd();
+            }
+            else
+            {
+                yv0.d[0] = *( y_buf + (0 * incy) );                               // yv0[0] = y_buf[0]
+                yv0.d[1] = *( y_buf + (1 * incy) );                               // yv0[1] = y_buf[1]
+                yv0.d[2] = *( y_buf + (2 * incy) );                               // yv0[2] = y_buf[2]
+                yv0.d[3] = *( y_buf + (3 * incy) );                               // yv0[3] = y_buf[3]
+                yv0.d[4] = *( y_buf + (4 * incy) );                               // yv0[4] = y_buf[4]
+                yv0.d[5] = *( y_buf + (5 * incy) );                               // yv0[5] = y_buf[5]
+                yv0.d[6] = *( y_buf + (6 * incy) );                               // yv0[6] = y_buf[6]
+                yv0.d[7] = *( y_buf + (7 * incy) );                               // yv0[7] = y_buf[7]
 
-            yv0.v = _mm512_maskz_mul_pd( beta_mask, betav.v, yv0.v );           // yv0 = beta * y_buf[0:7]
+                yv0.v = _mm512_maskz_mul_pd( beta_mask, betav.v, yv0.v );           // yv0 = beta * y_buf[0:7]
+            }
 
             // Handles (a_buf[0:31, 0:7] * x_buf[0:31])
             for ( j = 0; (j + 31) < m; j += 32 )

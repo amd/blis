@@ -193,6 +193,10 @@ void bli_dgemv_t_zen_int
             rhov[6].v = _mm256_setzero_pd();
             rhov[7].v = _mm256_setzero_pd();
 
+            // Setting y register to zero before loading
+            yv0.v = _mm256_setzero_pd();
+            yv1.v = _mm256_setzero_pd();
+
             // Loading data from vector y
             yv0.v =  _mm256_maskload_pd( y_buf, beta_mask );                  // yv0 = y_buf[0:3]
             yv1.v =  _mm256_maskload_pd( y_buf + 4, beta_mask );              // yv1 = y_buf[4:7]
@@ -539,17 +543,6 @@ void bli_dgemv_t_zen_int
             rhov[6].v = _mm256_setzero_pd();
             rhov[7].v = _mm256_setzero_pd();
 
-            // Loading data from vector y
-            yv0.d[0] = *( y_buf + 0 * incy);                                // yv0[0] = y_buf[0]
-            yv0.d[1] = *( y_buf + 1 * incy);                                // yv0[1] = y_buf[1]
-            yv0.d[2] = *( y_buf + 2 * incy);                                // yv0[2] = y_buf[2]
-            yv0.d[3] = *( y_buf + 3 * incy);                                // yv0[3] = y_buf[3]
-
-            yv1.d[0] = *( y_buf + 4 * incy);                                // yv1[0] = y_buf[4]
-            yv1.d[1] = *( y_buf + 5 * incy);                                // yv1[1] = y_buf[5]
-            yv1.d[2] = *( y_buf + 6 * incy);                                // yv1[2] = y_buf[6]
-            yv1.d[3] = *( y_buf + 7 * incy);                                // yv1[3] = y_buf[7]
-
             // Calculating beta * y
             if (bli_deq0( *beta ))
             {
@@ -558,6 +551,17 @@ void bli_dgemv_t_zen_int
             }
             else
             {
+                // Loading data from vector y
+                yv0.d[0] = *( y_buf + 0 * incy);                                // yv0[0] = y_buf[0]
+                yv0.d[1] = *( y_buf + 1 * incy);                                // yv0[1] = y_buf[1]
+                yv0.d[2] = *( y_buf + 2 * incy);                                // yv0[2] = y_buf[2]
+                yv0.d[3] = *( y_buf + 3 * incy);                                // yv0[3] = y_buf[3]
+
+                yv1.d[0] = *( y_buf + 4 * incy);                                // yv1[0] = y_buf[4]
+                yv1.d[1] = *( y_buf + 5 * incy);                                // yv1[1] = y_buf[5]
+                yv1.d[2] = *( y_buf + 6 * incy);                                // yv1[2] = y_buf[6]
+                yv1.d[3] = *( y_buf + 7 * incy);                                // yv1[3] = y_buf[7]
+
                 yv0.v =  _mm256_mul_pd ( betav.v, yv0.v );                  // yv0 = beta * y_buf[0:3]
                 yv1.v =  _mm256_mul_pd ( betav.v, yv1.v );                  // yv1 = beta * y_buf[4:7]
             }
