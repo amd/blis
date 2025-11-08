@@ -287,6 +287,29 @@ void dgemv_blis_impl
         incy0 = ( inc_t )(*incy);
     }
 
+    // If alpha is zero, the GEMV operation is reduced to y := beta * y, thus,
+    // y is only scaled by beta and returned.
+    if( bli_deq0( *alpha ) == TRUE )
+    {
+        cntx_t* cntx = bli_gks_query_cntx();
+
+        // Query the context for the SCALV function pointer.
+        dscalv_ker_ft scalv_kr_ptr = bli_cntx_get_l1v_ker_dt( BLIS_DOUBLE, BLIS_SCALV_KER, cntx );
+
+        // Invoke the SCALV function using the function pointer
+        scalv_kr_ptr
+        (
+          BLIS_NO_CONJUGATE,
+          m_y,
+          (double*)beta,
+          y0, incy0,
+          cntx
+        );
+
+        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
+        return;
+    }
+
     /* Set the row and column strides of A. */
     rs_a = 1;
     cs_a = *lda;
@@ -526,6 +549,29 @@ void sgemv_blis_impl
         incy0 = ( inc_t )(*incy);
     }
 
+    // If alpha is zero, the GEMV operation is reduced to y := beta * y, thus,
+    // y is only scaled by beta and returned.
+    if( bli_seq0( *alpha ) == TRUE )
+    {
+        cntx_t* cntx = bli_gks_query_cntx();
+
+        // Query the context for the SCALV function pointer.
+        sscalv_ker_ft scalv_kr_ptr = bli_cntx_get_l1v_ker_dt( BLIS_FLOAT, BLIS_SCALV_KER, cntx );
+
+        // Invoke the SCALV function using the function pointer
+        scalv_kr_ptr
+        (
+          BLIS_NO_CONJUGATE,
+          m_y,
+          (float*)beta,
+          y0, incy0,
+          cntx
+        );
+
+        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
+        return;
+    }
+
     /* Set the row and column strides of A. */
     rs_a = 1;
     cs_a = *lda;
@@ -727,6 +773,29 @@ void cgemv_blis_impl
     {
         y0    = ((scomplex*)y);
         incy0 = ( inc_t )(*incy);
+    }
+
+    // If alpha is zero, the GEMV operation is reduced to y := beta * y, thus,
+    // y is only scaled by beta and returned.
+    if( bli_ceq0( *alpha ) == TRUE )
+    {
+        cntx_t* cntx = bli_gks_query_cntx();
+
+        // Query the context for the SCALV function pointer.
+        cscalv_ker_ft scalv_kr_ptr = bli_cntx_get_l1v_ker_dt( BLIS_SCOMPLEX, BLIS_SCALV_KER, cntx );
+
+        // Invoke the SCALV function using the function pointer
+        scalv_kr_ptr
+        (
+          BLIS_NO_CONJUGATE,
+          m_y,
+          (scomplex*)beta,
+          y0, incy0,
+          cntx
+        );
+
+        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
+        return;
     }
 
     /* Set the row and column strides of A. */
@@ -983,6 +1052,29 @@ void zgemv_blis_impl
     {
         y0    = ((dcomplex*)y);
         incy0 = ( inc_t )(*incy);
+    }
+
+    // If alpha is zero, the GEMV operation is reduced to y := beta * y, thus,
+    // y is only scaled by beta and returned.
+    if( bli_zeq0( *alpha ) == TRUE )
+    {
+        cntx_t* cntx = bli_gks_query_cntx();
+
+        // Query the context for the SCALV function pointer.
+        zscalv_ker_ft scalv_kr_ptr = bli_cntx_get_l1v_ker_dt( BLIS_DCOMPLEX, BLIS_SCALV_KER, cntx );
+
+        // Invoke the SCALV function using the function pointer
+        scalv_kr_ptr
+        (
+          BLIS_NO_CONJUGATE,
+          m_y,
+          (dcomplex*)beta,
+          y0, incy0,
+          cntx
+        );
+
+        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
+        return;
     }
 
     /* Set the row and column strides of A. */
