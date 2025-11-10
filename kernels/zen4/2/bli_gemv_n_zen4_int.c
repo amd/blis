@@ -1196,6 +1196,16 @@ void bli_dgemv_m_zen4_int_40x8_mt_Mdiv
         &nt
     );
 
+    if (nt == 1)
+    {
+        bli_dgemv_n_zen4_int_32x8_st
+        (
+            transa, conjx, m, n, alpha, a, rs_a, cs_a, x, incx, beta, y, incy, cntx
+        );
+        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_4)
+        return;
+    }
+
     /* Parallel region with work distribution along M dimension */
     _Pragma("omp parallel num_threads(nt)")
     {
@@ -1308,6 +1318,16 @@ void bli_dgemv_m_zen4_int_40x8_mt_Ndiv
         n,
         &nt
     );
+
+    if (nt == 1)
+    {
+        bli_dgemv_n_zen4_int_32x8_st
+        (
+            transa, conjx, m, n, alpha, a, rs_a, cs_a, x, incx, beta, y, incy, cntx
+        );
+        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_4)
+        return;
+    }
 
     /* Allocate temporary memory for partial results */
     rntm_t rntm;
