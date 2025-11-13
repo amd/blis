@@ -67,25 +67,29 @@ int main( int argc, char** argv )
     FILE* fin  = NULL;
     FILE* fout = NULL;
 
-    n_repeats = N_REPEAT;  // This macro will get from Makefile.
+    n_repeats = N_REPEAT; // This macro will get from Makefile.
 
     if (argc < 3)
-      {
-        printf("Usage: ./test_asumv_XX.x input.csv output.csv\n");
-        exit(1);
-      }
+    {
+      printf("Usage: ./test_asumv_XX.x input.csv output.csv\n");
+      exit(1);
+    }
     fin = fopen(argv[1], "r");
     if (fin == NULL)
-      {
-        printf("Error opening the file %s\n", argv[1]);
-        exit(1);
-      }
+    {
+      printf("Error opening the file %s\n", argv[1]);
+      exit(1);
+    }
     fout = fopen(argv[2], "w");
     if (fout == NULL)
-      {
-        printf("Error opening output file %s\n", argv[2]);
-        exit(1);
-      }
+    {
+      printf("Error opening output file %s\n", argv[2]);
+      exit(1);
+    }
+    if (argc > 3)
+    {
+      n_repeats = atoi(argv[3]);
+    }
 
     fprintf(fout, "Func Dt n incx gflops\n");
 
@@ -95,7 +99,7 @@ int main( int argc, char** argv )
 
 
     // {S,D,C,Z} {n incx}
-    while (fscanf(fin, "%s %c " INT_FS INT_FS "\n",
+    while (fscanf(fin, "%s %c " INT_FS INT_FS"%*[^\n]",
         tmp, &dt_ch, &n, &incx) == 4)
       {
 

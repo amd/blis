@@ -85,22 +85,26 @@ int main( int argc, char** argv )
     dt = DT;
 
     if (argc < 3)
-      {
-        printf("Usage: ./test_ger_XX.x input.csv output.csv\n");
-        exit(1);
-      }
+    {
+      printf("Usage: ./test_ger_XX.x input.csv output.csv\n");
+      exit(1);
+    }
     fin = fopen(argv[1], "r");
     if (fin == NULL)
-      {
-        printf("Error opening the file %s\n", argv[1]);
-        exit(1);
-      }
+    {
+      printf("Error opening the file %s\n", argv[1]);
+      exit(1);
+    }
     fout = fopen(argv[2], "w");
     if (fout == NULL)
-      {
-        printf("Error opening output file %s\n", argv[2]);
-        exit(1);
-      }
+    {
+      printf("Error opening output file %s\n", argv[2]);
+      exit(1);
+    }
+    if (argc > 3)
+    {
+      n_repeats = atoi(argv[3]);
+    }
 
     fprintf(fout, "Func Dt m n alphaR alphaI incx incy lda gflops\n");
 
@@ -117,7 +121,7 @@ int main( int argc, char** argv )
 #endif
 
     // {S,D,C,Z} {transa m n alpha incx incy lda}
-    while (fscanf(fin, "%s %c " INT_FS INT_FS " %lf %lf " INT_FS INT_FS INT_FS "\n",
+    while (fscanf(fin, "%s %c " INT_FS INT_FS " %lf %lf " INT_FS INT_FS INT_FS"%*[^\n]",
         tmp, &dt_ch, &m, &n,  &alpha_r, &alpha_i, &incx, &incy, &lda) == 9)
       {
 

@@ -95,6 +95,10 @@ int main( int argc, char** argv )
         printf("Error opening output file %s\n", argv[2]);
         exit(1);
     }
+    if (argc > 3)
+    {
+      n_repeats = atoi(argv[3]);
+    }
 
     fprintf(fout, "Func Dt n incx incy gflops\n");
 
@@ -104,7 +108,7 @@ int main( int argc, char** argv )
     char tmp[256]; // to store function name, line no present in logs.
 
     // {S,D,C,Z} {n incx incy}
-    while (fscanf(fin, "%s %c " INT_FS INT_FS INT_FS "\n",
+    while (fscanf(fin, "%s %c " INT_FS INT_FS INT_FS"%*[^\n]",
         tmp, &dt_ch, &n, &incx, &incy) == 5)
     {
 

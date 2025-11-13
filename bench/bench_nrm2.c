@@ -100,6 +100,7 @@ int main( int argc, char** argv )
       printf("Error opening output file %s\n", argv[2]);
       exit(1);
     }
+    
 
     fprintf(fout, "Func Dt n incx gflops\n");
     dim_t n;
@@ -108,7 +109,7 @@ int main( int argc, char** argv )
 
 
     // {S,D,C,Z} {n incx}
-    while (fscanf(fin, "%s %c" INT_FS INT_FS "\n",
+    while (fscanf(fin, "%s %c" INT_FS INT_FS"%*[^\n]",
         tmp, &dt_ch, &n, &incx) == 4)
       {
 
