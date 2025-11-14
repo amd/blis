@@ -35,6 +35,7 @@
 #pragma once
 
 #include "swapv.h"
+#include "level1/ref_swapv.h"
 #include "inc/check_error.h"
 
 /**
@@ -56,6 +57,7 @@ static void test_swapv( gtint_t n, gtint_t incx, gtint_t incy )
     std::vector<T> x_ref(x);
     std::vector<T> y_ref(y);
 
+    testinghelpers::ref_swapv<T>( n, x_ref.data(), incx, y_ref.data(), incy );
     //----------------------------------------------------------
     //                  Call BLIS function.
     //----------------------------------------------------------
@@ -64,7 +66,8 @@ static void test_swapv( gtint_t n, gtint_t incx, gtint_t incy )
     //----------------------------------------------------------
     //              Compute binary comparison
     //----------------------------------------------------------
-    computediff<T>( n, x.data(), x_ref.data(), y.data(), y_ref.data(), incx, incy, false );
+    computediff<T>( "x", n, x.data(), x_ref.data(), incx, false );
+    computediff<T>( "y", n, y.data(), y_ref.data(), incy, false );
 
 }
 
