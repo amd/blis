@@ -130,6 +130,11 @@ void bli_l3_sup_thrinfo_create_root
 	dim_t   work_id    = gl_comm_id / ( n_threads / xx_way );
 
 	// Create the root thrinfo_t node.
+	// NOTE: We set free_comm to FALSE because the global communicator (gl_comm)
+	// is freed by the master thread after the parallel region completes, rather
+	// than by the chief thread within the parallel region. This avoids a potential
+	// data race where non-chief threads could still hold pointers to gl_comm
+	// when the chief thread would free it inside bli_thrinfo_free().
 	*thread = bli_thrinfo_create
 	(
 	  rntm,
@@ -137,7 +142,7 @@ void bli_l3_sup_thrinfo_create_root
 	  gl_comm_id,
 	  xx_way,
 	  work_id,
-	  TRUE,
+	  FALSE,
 	  bszid,
 	  NULL
 	);
