@@ -34,7 +34,7 @@
 
 #pragma once
 
-#include "util/nrm2/nrm2.h"
+#include "level1/nrm2/nrm2.h"
 #include <limits>
 #include "util/ref_nrm2.h"
 #include "inc/check_error.h"
