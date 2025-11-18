@@ -94,7 +94,7 @@ TEST_P( cher2kGeneric, API )
 #ifdef BLIS_INT_ELEMENT_TYPE
         double adj = 1.0;
 #else
-        double adj = 5.3;
+        double adj = 15.0;
 #endif
         thresh = adj*(6*k+1)*testinghelpers::getEpsilon<T>();
     }

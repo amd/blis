@@ -158,6 +158,7 @@ template<typename T>
 void random_generator_with_INF_NAN( T* mat, char uploa, char storage, char trans, double from, double to, gtint_t m,
 gtint_t n, gtint_t ld, EVT_TYPE type = NO_EVT, bool is_a = false )
 {
+    using real_type = typename testinghelpers::type_info<T>::real_type;
     switch( type )
     {
         case ZERO:
@@ -165,21 +166,21 @@ gtint_t n, gtint_t ld, EVT_TYPE type = NO_EVT, bool is_a = false )
             break;
         case NaN:
         case INF:
-            testinghelpers::datagenerators::randomgenerators<T>( from, to, storage, m, n, mat, ld);
+            testinghelpers::datagenerators::randomgenerators<T>( real_type(from), real_type(to), storage, m, n, mat, ld);
             generate_NAN_INF(mat, uploa, (std::min)(m, n), ld, type, is_a);
             break;
         case DIAG_INF:
         case DIAG_NaN:
-            testinghelpers::datagenerators::randomgenerators<T>( from, to, storage, m, n, mat, ld);
+            testinghelpers::datagenerators::randomgenerators<T>( real_type(from), real_type(to), storage, m, n, mat, ld);
             generate_NAN_INF(mat, uploa, (std::min)(m, n), ld, type, is_a, true);
             break;
         case NaN_INF:
-            testinghelpers::datagenerators::randomgenerators<T>( from, to, storage, m, n, mat, ld);
+            testinghelpers::datagenerators::randomgenerators<T>( real_type(from), real_type(to), storage, m, n, mat, ld);
             generate_NAN_INF(mat, uploa, (std::min)(m, n), ld, type, is_a);
             generate_NAN_INF(mat, uploa, (std::min)(m, n), ld, INF, is_a);
             break;
         case NO_EVT:
-            testinghelpers::datagenerators::randomgenerators<T>( from, to, storage, m, n, mat, ld);
+            testinghelpers::datagenerators::randomgenerators<T>( real_type(from), real_type(to), storage, m, n, mat, ld);
             break;
         default: ;
     }

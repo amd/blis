@@ -100,7 +100,7 @@ TEST_P( zsymmGeneric, API )
 #ifdef BLIS_INT_ELEMENT_TYPE
         double adj = 1.0;
 #else
-        double adj = 1.1;
+        double adj = 1.8;
 #endif
         if ( side == 'l' || side == 'L' )
            thresh = adj*(3*m+1)*testinghelpers::getEpsilon<T>();

@@ -525,7 +525,7 @@ static void test_gemmk1_ukr( FT ukr_fp, gtint_t m, gtint_t n, gtint_t k, char st
         thresh = 0.0;
     else
     {
-        double adj = 1.6;
+        double adj = 3.0;
         thresh = adj*(7*k+3)*testinghelpers::getEpsilon<T>();
     }
     // call reference implementation

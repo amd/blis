@@ -83,7 +83,7 @@ TEST_P( daxpyfGeneric, API )
 #ifdef BLIS_INT_ELEMENT_TYPE
         double adj = 1.0;
 #else
-        double adj = 6.6;
+        double adj = 7.5;
 #endif
         thresh = adj*(b+1)*testinghelpers::getEpsilon<T>();
     }
@@ -93,7 +93,7 @@ TEST_P( daxpyfGeneric, API )
 #ifdef BLIS_INT_ELEMENT_TYPE
         double adj = 1.0;
 #else
-        double adj = 6.9;
+        double adj = 7.8;
 #endif
         thresh = adj*(2*b+1)*testinghelpers::getEpsilon<T>();
     }

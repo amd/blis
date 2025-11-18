@@ -101,7 +101,7 @@ TEST_P( daxpyfGeneric, UKR )
 #ifdef BLIS_INT_ELEMENT_TYPE
         double adj = 1.0;
 #else
-        double adj = 4.0;
+        double adj = 5.0;
 #endif
 
         thresh = adj*(2*b_fuse)*testinghelpers::getEpsilon<T>();

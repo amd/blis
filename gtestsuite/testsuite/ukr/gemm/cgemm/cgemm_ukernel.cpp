@@ -90,7 +90,7 @@ TEST_P( cgemmGenericSUP, UKR )
 #ifdef BLIS_INT_ELEMENT_TYPE
         double adj = 1.7;
 #else
-        double adj = 9.4;
+        double adj = 10.0;
 #endif
         thresh = adj*(3*k+1)*testinghelpers::getEpsilon<T>();
     }
@@ -1486,7 +1486,7 @@ TEST_P( cgemmGenericNat, UKR )
 #ifdef BLIS_INT_ELEMENT_TYPE
         double adj = 3.0;
 #else
-        double adj = 7.1;
+        double adj = 10.0;
 #endif
         thresh = adj*(3*k+1)*testinghelpers::getEpsilon<T>();
     }

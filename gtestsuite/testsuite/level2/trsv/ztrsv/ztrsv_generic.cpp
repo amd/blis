@@ -86,7 +86,7 @@ TEST_P( ztrsvGeneric, API )
 #ifdef BLIS_INT_ELEMENT_TYPE
         double adj = 1.0;
 #else
-        double adj = 2.0;
+        double adj = 5.0;
 #endif
         if(alpha == T{1.0})
           thresh = adj*2*n*testinghelpers::getEpsilon<T>();

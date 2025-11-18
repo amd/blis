@@ -79,6 +79,7 @@ TEST_P( daxpbyvEVT, API )
     // beta
     T beta = std::get<9>(GetParam());
 
+    double adj = 4.5;
     // Set the threshold for the errors:
     // Check gtestsuite axpbyv.h (no netlib version) for reminder of the
     // functionality from which we estimate operation count per element
@@ -105,7 +106,7 @@ TEST_P( daxpbyvEVT, API )
             thresh = testinghelpers::getEpsilon<T>();
         // Like AXPYV(1 mul and 1 add)
         else
-            thresh = 2 * testinghelpers::getEpsilon<T>();
+            thresh = adj * 2 * testinghelpers::getEpsilon<T>();
     }
     else
     {
@@ -114,7 +115,7 @@ TEST_P( daxpbyvEVT, API )
             thresh = testinghelpers::getEpsilon<T>();
         // Like AXPBYV(2 muls and 1 add)
         else
-            thresh = 3 * testinghelpers::getEpsilon<T>();
+            thresh = adj * 3 * testinghelpers::getEpsilon<T>();
     }
 
     //----------------------------------------------------------

@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2025, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -31,6 +31,7 @@
    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
+#pragma once
 
 #include <random>
 #include <type_traits>
@@ -61,17 +62,7 @@ static const ElementType GenericET = ElementType::FP;
  * @param[in, out] alpha the random fp
  */
 template<typename T1, typename T2, typename T3>
-void getfp(T2 from, T3 to, T1* alpha)
-{
-    using real_T = typename testinghelpers::type_info<T1>::real_type;
-    std::mt19937                              generator(94);
-    std::uniform_real_distribution<real_T>    distr(from, to);
-    if constexpr (testinghelpers::type_info<T1>::is_real)
-        *alpha = distr(generator);
-    else
-        *alpha = {distr(generator), distr(generator)};
-}
-
+void getfp(T2 from, T3 to, T1* alpha);
 /**
  * @brief Returns a random fp vector (float, double, scomplex, dcomplex)
  *        with elements that follow a uniform distribution in the range [from, to].
@@ -80,35 +71,7 @@ void getfp(T2 from, T3 to, T1* alpha)
  * @param[in, out] x the random fp vector
  */
 template<typename T1, typename T2, typename T3>
-void getfp(T2 from, T3 to, gtint_t n, gtint_t incx, T1* x)
-{
-    using real_T = typename testinghelpers::type_info<T1>::real_type;
-    T1* chi;
-
-    if (incx != 1)
-    {
-        // First initialize all elements in vector to unusual value to help
-        // catch if intervening elements have been incorrectly used or modified.
-        for ( gtint_t i = 0; i < testinghelpers::buff_dim(n, incx); ++i )
-        {
-            chi = x + i;
-            *chi = T1{-1.2345e38};
-        }
-    }
-
-    // Generate the values from the uniform distribution that
-    // the BLAS routine should read and/or modify.
-    std::mt19937                              generator(94);
-    std::uniform_real_distribution<real_T>    distr(from, to);
-    for ( gtint_t i = 0; i < n; ++i )
-    {
-        chi = x + i*std::abs(incx);
-        if constexpr (testinghelpers::type_info<T1>::is_real)
-            *chi = distr(generator);
-        else
-            *chi = {distr(generator), distr(generator)};
-    }
-}
+void getfp(T2 from, T3 to, gtint_t n, gtint_t incx, T1* x);
 
 /**
  * @brief Returns a random fp vector (float, double, scomplex, dcomplex)
@@ -120,103 +83,8 @@ void getfp(T2 from, T3 to, gtint_t n, gtint_t incx, T1* x)
  * @param[in] stridea stride between two "continuous" elements in matrix A
  */
 template<typename T1, typename T2, typename T3>
-void getfp(T2 from, T3 to, char storage, gtint_t m, gtint_t n, T1* a, gtint_t lda, gtint_t stridea = 1 )
-{
-    using real_T = typename testinghelpers::type_info<T1>::real_type;
-    std::mt19937                              generator(1994);
-    std::uniform_real_distribution<real_T>    distr(from, to);
+void getfp(T2 from, T3 to, char storage, gtint_t m, gtint_t n, T1* a, gtint_t lda, gtint_t stridea = 1 );
 
-    if((storage == 'c') || (storage == 'C'))
-    {
-        if (m > 0)
-        {
-            for(gtint_t j=0; j<n; j++)
-            {
-                if constexpr (testinghelpers::type_info<T1>::is_real)
-                {
-                    for(gtint_t i=0; i<m-1; i++)
-                    {
-                        for(gtint_t p=1; p<stridea; p++)
-                            a[i*stridea+p+j*lda] = T1{-1.2345e38};
-
-                        a[i*stridea+j*lda] = real_T(distr(generator));
-                    }
-                    a[(m-1)*stridea+j*lda] = real_T(distr(generator));
-                }
-                else
-                {
-                    for(gtint_t i=0; i<m-1; i++)
-                    {
-                        for(gtint_t p=1; p<stridea; p++)
-                            a[i*stridea+p+j*lda] = T1{-1.2345e38};
-
-                        a[i*stridea+j*lda] = {real_T(distr(generator)), real_T(distr(generator))};
-                    }
-                    a[(m-1)*stridea+j*lda] = {real_T(distr(generator)), real_T(distr(generator))};
-                }
-                for(gtint_t i=(m-1)*stridea+1; i<lda; i++)
-                {
-                    a[i+j*lda] = T1{-1.2345e38};
-                }
-            }
-        }
-        else
-        {
-            for(gtint_t j=0; j<n; j++)
-            {
-                for(gtint_t i=0; i<lda; i++)
-                {
-                    a[i+j*lda] = T1{-1.2345e38};
-                }
-            }
-        }
-    }
-    else if( (storage == 'r') || (storage == 'R') )
-    {
-        if (n > 0)
-        {
-            for(gtint_t i=0; i<m; i++)
-            {
-                if constexpr (testinghelpers::type_info<T1>::is_real)
-                {
-                    for(gtint_t j=0; j<n-1; j++)
-                    {
-                        for(gtint_t p=1; p<stridea; p++)
-                            a[j*stridea+p+i*lda] = T1{-1.2345e38};
-
-                        a[j*stridea+i*lda] = real_T(distr(generator));
-                    }
-                    a[(n-1)*stridea+i*lda] = real_T(distr(generator));
-                }
-                else
-                {
-                    for(gtint_t j=0; j<n-1; j++)
-                    {
-                        for(gtint_t p=1; p<stridea; p++)
-                            a[j*stridea+p+i*lda] = T1{-1.2345e38};
-
-                        a[j*stridea+i*lda] = {real_T(distr(generator)), real_T(distr(generator))};
-                    }
-                    a[(n-1)*stridea+i*lda] = {real_T(distr(generator)), real_T(distr(generator))};
-                }
-                for(gtint_t j=(n-1)*stridea+1; j<lda; j++)
-                {
-                    a[j+i*lda] = T1{-1.2345e38};
-                }
-            }
-        }
-        else
-        {
-            for(gtint_t i=0; i<m; i++)
-            {
-                for(gtint_t j=0; j<lda; j++)
-                {
-                    a[j+i*lda] = T1{-1.2345e38};
-                }
-            }
-        }
-    }
-}
 /**
  * @brief Returns a random fp vector (float, double, scomplex, dcomplex)
  *        with elements that follow a uniform distribution in the range [from, to].
@@ -228,13 +96,7 @@ void getfp(T2 from, T3 to, char storage, gtint_t m, gtint_t n, T1* a, gtint_t ld
  * @param[in] stridea stride between two "continuous" elements in matrix A
  */
 template<typename T1, typename T2, typename T3>
-void getfp(T2 from, T3 to, char storage, gtint_t m, gtint_t n, T1* a, char transa, gtint_t lda, gtint_t stridea = 1 )
-{
-    if( chktrans( transa )) {
-       swap_dims( &m, &n );
-    }
-    getfp<T1>( from, to, storage, m, n, a, lda, stridea );
-}
+void getfp(T2 from, T3 to, char storage, gtint_t m, gtint_t n, T1* a, char transa, gtint_t lda, gtint_t stridea = 1 );
 
 /***************************************************
  *              Integer Generators
@@ -246,16 +108,8 @@ void getfp(T2 from, T3 to, char storage, gtint_t m, gtint_t n, T1* a, char trans
  * @param[in, out] alpha the random fp
  */
 template<typename T>
-void getint(int from, int to, T* alpha)
-{
-    using real_T = typename testinghelpers::type_info<T>::real_type;
-    std::mt19937                          generator(94);
-    std::uniform_int_distribution<int>    distr(from, to);
-    if constexpr (testinghelpers::type_info<T>::is_real)
-        *alpha = real_T(distr(generator));
-    else
-        *alpha = {real_T(distr(generator)), real_T(distr(generator))};
-}
+void getint(int from, int to, T* alpha);
+
 /**
  * @brief Returns a random fp vector (float, double, scomplex, dcomplex)
  *        with elements that are integers and follow a uniform distribution in the range [from, to].
@@ -264,35 +118,7 @@ void getint(int from, int to, T* alpha)
  * @param[in, out] x the random fp vector
  */
 template<typename T>
-void getint(int from, int to, gtint_t n, gtint_t incx, T* x)
-{
-    using real_T = typename testinghelpers::type_info<T>::real_type;
-    T* chi;
-
-    if (incx != 1)
-    {
-        // First initialize all elements in vector to unusual value to help
-        // catch if intervening elements have been incorrectly used or modified.
-        for ( gtint_t i = 0; i < testinghelpers::buff_dim(n, incx); ++i )
-        {
-            chi = x + i;
-            *chi = T{-1.2345e38};
-        }
-    }
-
-    // Generate the values from the uniform distribution that
-    // the BLAS routine should read and/or modify.
-    std::mt19937                          generator(94);
-    std::uniform_int_distribution<int>    distr(from, to);
-    for ( gtint_t i = 0; i < n; ++i )
-    {
-        chi = x + i*std::abs(incx);
-        if constexpr (testinghelpers::type_info<T>::is_real)
-            *chi = real_T(distr(generator));
-        else
-            *chi = {real_T(distr(generator)), real_T(distr(generator))};
-    }
-}
+void getint(int from, int to, gtint_t n, gtint_t incx, T* x);
 
 /**
  * @brief Returns a random fp matrix (float, double, scomplex, dcomplex)
@@ -304,103 +130,7 @@ void getint(int from, int to, gtint_t n, gtint_t incx, T* x)
  * @param[in] stridea stride between two "continuous" elements in matrix A
  */
 template<typename T>
-void getint(int from, int to, char storage, gtint_t m, gtint_t n, T* a, gtint_t lda, gtint_t stridea = 1 )
-{
-    using real_T = typename testinghelpers::type_info<T>::real_type;
-    std::mt19937                          generator(94);
-    std::uniform_int_distribution<int>    distr(from, to);
-
-    if((storage == 'c') || (storage == 'C'))
-    {
-        if (m > 0)
-        {
-            for(gtint_t j=0; j<n; j++)
-            {
-                if constexpr (testinghelpers::type_info<T>::is_real)
-                {
-                    for(gtint_t i=0; i<m-1; i++)
-                    {
-                        for(gtint_t p=1; p<stridea; p++)
-                            a[i*stridea+p+j*lda] = T{-1.2345e38};
-
-                        a[i*stridea+j*lda] = real_T(distr(generator));
-                    }
-                    a[(m-1)*stridea+j*lda] = real_T(distr(generator));
-                }
-                else
-                {
-                    for(gtint_t i=0; i<m-1; i++)
-                    {
-                        for(gtint_t p=1; p<stridea; p++)
-                            a[i*stridea+p+j*lda] = T{-1.2345e38};
-
-                        a[i*stridea+j*lda] = {real_T(distr(generator)), real_T(distr(generator))};
-                    }
-                    a[(m-1)*stridea+j*lda] = {real_T(distr(generator)), real_T(distr(generator))};
-                }
-                for(gtint_t i=(m-1)*stridea+1; i<lda; i++)
-                {
-                    a[i+j*lda] = T{-1.2345e38};
-                }
-            }
-        }
-        else
-        {
-            for(gtint_t j=0; j<n; j++)
-            {
-                for(gtint_t i=0; i<lda; i++)
-                {
-                    a[i+j*lda] = T{-1.2345e38};
-                }
-            }
-        }
-    }
-    else if( (storage == 'r') || (storage == 'R') )
-    {
-        if (n > 0)
-        {
-            for(gtint_t i=0; i<m; i++)
-            {
-                if constexpr (testinghelpers::type_info<T>::is_real)
-                {
-                    for(gtint_t j=0; j<n-1; j++)
-                    {
-                        for(gtint_t p=1; p<stridea; p++)
-                            a[j*stridea+p+i*lda] = T{-1.2345e38};
-
-                        a[j*stridea+i*lda] = real_T(distr(generator));
-                    }
-                    a[(n-1)*stridea+i*lda] = real_T(distr(generator));
-                }
-                else
-                {
-                    for(gtint_t j=0; j<n-1; j++)
-                    {
-                        for(gtint_t p=1; p<stridea; p++)
-                            a[j*stridea+p+i*lda] = T{-1.2345e38};
-
-                        a[j*stridea+i*lda] = {real_T(distr(generator)), real_T(distr(generator))};
-                    }
-                    a[(n-1)*stridea+i*lda] = {real_T(distr(generator)), real_T(distr(generator))};
-                }
-                for(gtint_t j=(n-1)*stridea+1; j<lda; j++)
-                {
-                    a[j+i*lda] = T{-1.2345e38};
-                }
-            }
-        }
-        else
-        {
-            for(gtint_t i=0; i<m; i++)
-            {
-                for(gtint_t j=0; j<lda; j++)
-                {
-                    a[j+i*lda] = T{-1.2345e38};
-                }
-            }
-        }
-    }
-}
+void getint(int from, int to, char storage, gtint_t m, gtint_t n, T* a, gtint_t lda, gtint_t stridea = 1 );
 
 /**
  * @brief Returns a random fp matrix (float, double, scomplex, dcomplex)
@@ -413,347 +143,58 @@ void getint(int from, int to, char storage, gtint_t m, gtint_t n, T* a, gtint_t 
  * @param[in] stridea stride between two "continuous" elements in matrix A
  */
 template<typename T>
-void getint(int from, int to, char storage, gtint_t m, gtint_t n, T* a, char transa, gtint_t lda, gtint_t stridea = 1 )
-{
-    if( chktrans( transa )) {
-       swap_dims( &m, &n );
-    }
-    getint<T>( from, to, storage, m, n, a, lda, stridea );
-}
+void getint(int from, int to, char storage, gtint_t m, gtint_t n, T* a, char transa, gtint_t lda, gtint_t stridea = 1 );
 
 template<typename T1, typename T2, typename T3>
-void randomgenerators(T2 from, T3 to, gtint_t n, gtint_t incx, T1* x, ElementType datatype = GenericET) {
-
-    if( datatype == ElementType::INT )
-        getint<T1>( from, to, n, incx, x );
-    else
-        getfp<T1>( from, to, n, incx, x );
-}
+void randomgenerators(T2 from, T3 to, gtint_t n, gtint_t incx, T1* x, ElementType datatype = GenericET);
 
 template<typename T1, typename T2, typename T3>
 void randomgenerators( T2 from, T3 to, char storage, gtint_t m, gtint_t n,
-     T1* a, gtint_t lda, gtint_t stridea = 1, ElementType datatype = GenericET ) {
-
-    if( datatype == ElementType::INT )
-        getint<T1>( from, to, storage, m, n, a, lda, stridea );
-    else
-        getfp<T1>( from, to, storage, m, n, a, lda, stridea );
-}
+     T1* a, gtint_t lda, gtint_t stridea = 1, ElementType datatype = GenericET );
 
 template<typename T1, typename T2, typename T3>
 void randomgenerators( T2 from, T3 to, char storage, gtint_t m, gtint_t n,
-     T1* a, char transa, gtint_t lda, gtint_t stridea = 1, ElementType datatype = GenericET ) {
-
-    if( datatype == ElementType::INT )
-        getint<T1>( from, to, storage, m, n, a, transa, lda, stridea );
-    else
-        getfp<T1>( from, to, storage, m, n, a, transa, lda, stridea );
-}
+     T1* a, char transa, gtint_t lda, gtint_t stridea = 1, ElementType datatype = GenericET );
 
 template<typename T1, typename T2, typename T3>
 void randomgenerators( T2 from, T3 to, char storage, char uplo, gtint_t k,
-                    T1* a, gtint_t lda, ElementType datatype = GenericET ) {
-    testinghelpers::datagenerators::randomgenerators<T1>(from, to, storage, k, k, a, lda, 1, datatype);
-    if( (storage=='c')||(storage=='C') )
-    {
-        for(gtint_t j=0; j<k; j++)
-        {
-            for(gtint_t i=0; i<k; i++)
-            {
-                if( (uplo=='u')||(uplo=='U') )
-                {
-                    if(i>j) a[i+j*lda] = T1{2.987e38};
-                }
-                else if ( (uplo=='l')||(uplo=='L') )
-                {
-                    if (i<j) a[i+j*lda] = T1{2.987e38};
-                }
-                else
-                    throw std::runtime_error("Error in common/data_generators.cpp: side must be 'u' or 'l'.");
-            }
-        }
-    }
-    else
-    {
-        for(gtint_t i=0; i<k; i++)
-        {
-            for(gtint_t j=0; j<k; j++)
-            {
-                if( (uplo=='u')||(uplo=='U') )
-                {
-                    if(i>j) a[j+i*lda] = T1{2.987e38};
-                }
-                else if ( (uplo=='l')||(uplo=='L') )
-                {
-                    if (i<j) a[j+i*lda] = T1{2.987e38};
-                }
-                else
-                    throw std::runtime_error("Error in common/data_generators.cpp: side must be 'u' or 'l'.");
-            }
-        }
-    }
-}
+                    T1* a, gtint_t lda, ElementType datatype = GenericET );
 
 } //end of namespace datagenerators
 
 template<typename T1, typename T2, typename T3>
 std::vector<T1> get_random_matrix(T2 from, T3 to, char storage, char trans, gtint_t m, gtint_t n,
-                    gtint_t lda, gtint_t stridea = 1, datagenerators::ElementType datatype = datagenerators::GenericET)
-{
-    std::vector<T1> a(matsize(storage, trans, m, n, lda));
-    testinghelpers::datagenerators::randomgenerators<T1>( from, to, storage, m, n, a.data(), trans, lda, stridea, datatype );
-    return a;
-}
+                    gtint_t lda, gtint_t stridea = 1, datagenerators::ElementType datatype = datagenerators::GenericET);
 
 template<typename T1, typename T2, typename T3>
-std::vector<T1> get_random_matrix(T2 from, T3 to, char storage, char uplo, gtint_t k, gtint_t lda, datagenerators::ElementType datatype = datagenerators::GenericET )
-{
-    // Create matrix for the given sizes.
-    std::vector<T1> a( testinghelpers::matsize( storage, 'n', k, k, lda ) );
-    testinghelpers::datagenerators::randomgenerators<T1>( from, to, storage, uplo, k, a.data(), lda, datatype );
-    return a;
-}
+std::vector<T1> get_random_matrix(T2 from, T3 to, char storage, char uplo, gtint_t k, gtint_t lda, datagenerators::ElementType datatype = datagenerators::GenericET );
 
 template<typename T1, typename T2, typename T3>
-std::vector<T1> get_random_vector(T2 from, T3 to, gtint_t n, gtint_t incx, datagenerators::ElementType datatype = datagenerators::GenericET)
-{
-    // Create vector for the given sizes.
-    std::vector<T1> x( testinghelpers::buff_dim(n, incx) );
-    testinghelpers::datagenerators::randomgenerators<T1>( from, to, n, incx, x.data(), datatype );
-    return x;
-}
+std::vector<T1> get_random_vector(T2 from, T3 to, gtint_t n, gtint_t incx, datagenerators::ElementType datatype = datagenerators::GenericET);
 
 template<typename T>
-void set_vector( gtint_t n, gtint_t incx, T* x, T value )
-{
-    T* chi;
-
-    if (incx != 1)
-    {
-        // First initialize all elements in vector to unusual value to help
-        // catch if intervening elements have been incorrectly used or modified.
-        for ( gtint_t i = 0; i < testinghelpers::buff_dim(n, incx); ++i )
-        {
-            chi = x + i;
-            *chi = T{-1.2345e38};
-        }
-    }
-
-    for ( gtint_t i = 0; i < n; ++i )
-    {
-        chi = x + i*std::abs(incx);
-        *chi = value ;
-    }
-}
+void set_vector( gtint_t n, gtint_t incx, T* x, T value );
 
 template<typename T>
-void set_matrix( char storage, gtint_t m, gtint_t n, T* a, char transa, gtint_t lda, T value )
-{
-    if( chktrans( transa )) {
-       swap_dims( &m, &n );
-    }
-
-    if((storage == 'c') || (storage == 'C'))
-    {
-        for( gtint_t j = 0 ; j < n ; j++ )
-        {
-            for( gtint_t i = 0 ; i < m ; i++ )
-            {
-                a[i+j*lda] = value ;
-            }
-            for(gtint_t i=m; i<lda; i++)
-            {
-                a[i+j*lda] = T{-1.2345e38};
-            }
-        }
-    }
-    else if( (storage == 'r') || (storage == 'R') )
-    {
-        for( gtint_t i = 0 ; i < m ; i++ )
-        {
-            for( gtint_t j = 0 ; j < n ; j++ )
-            {
-                a[j+i*lda] = value ;
-            }
-            for(gtint_t j=n; j<lda; j++)
-            {
-                a[j+i*lda] = T{-1.2345e38};
-            }
-        }
-    }
-}
+void set_matrix( char storage, gtint_t m, gtint_t n, T* a, char transa, gtint_t lda, T value );
 
 template<typename T>
-void set_matrix( char storage, gtint_t n, T* a, char uplo, gtint_t lda, T value )
-{
-    testinghelpers::set_matrix<T>(storage, n, n, a, 'n', lda, value );
-    if( (storage=='c')||(storage=='C') )
-    {
-        for(gtint_t j=0; j<n; j++)
-        {
-            for(gtint_t i=0; i<n; i++)
-            {
-                if( (uplo=='u')||(uplo=='U') )
-                {
-                    if(i>j) a[i+j*lda] = T{2.987e38};
-                }
-                else if ( (uplo=='l')||(uplo=='L') )
-                {
-                    if (i<j) a[i+j*lda] = T{2.987e38};
-                }
-                else
-                    throw std::runtime_error("Error in common/data_generators.cpp: side must be 'u' or 'l'.");
-            }
-        }
-    }
-    else
-    {
-        for(gtint_t i=0; i<n; i++)
-        {
-            for(gtint_t j=0; j<n; j++)
-            {
-                if( (uplo=='u')||(uplo=='U') )
-                {
-                    if(i>j) a[j+i*lda] = T{2.987e38};
-                }
-                else if ( (uplo=='l')||(uplo=='L') )
-                {
-                    if (i<j) a[j+i*lda] = T{2.987e38};
-                }
-                else
-                    throw std::runtime_error("Error in common/data_generators.cpp: side must be 'u' or 'l'.");
-            }
-        }
-    }
-}
+void set_matrix( char storage, gtint_t n, T* a, char uplo, gtint_t lda, T value );
 
 template<typename T>
-std::vector<T> get_vector( gtint_t n, gtint_t incx, T value )
-{
-    // Create vector for the given sizes.
-    std::vector<T> x( testinghelpers::buff_dim(n, incx) );
-    testinghelpers::set_vector( n, incx, x.data(), value );
-    return x;
-}
+std::vector<T> get_vector( gtint_t n, gtint_t incx, T value );
 
 template<typename T>
-std::vector<T> get_matrix( char storage, char trans, gtint_t m, gtint_t n, gtint_t lda, T value )
-{
-    std::vector<T> a( matsize( storage, trans, m, n, lda ) );
-    testinghelpers::set_matrix<T>( storage, m, n, a.data(), trans, lda, value );
-    return a;
-}
+std::vector<T> get_matrix( char storage, char trans, gtint_t m, gtint_t n, gtint_t lda, T value );
 
 template<typename T>
-void set_ev_mat( char storage, char trns, gtint_t ld, gtint_t i, gtint_t j, T exval, T* m )
-{
-    // Setting the exception values on the indices passed as arguments
-    if ( storage == 'c' || storage == 'C' )
-    {
-      if ( trns == 'n' || trns == 'N' )
-        m[i + j*ld] = exval;
-      else
-        m[j + i*ld] = exval;
-    }
-    else
-    {
-      if ( trns == 'n' || trns == 'N' )
-        m[i*ld + j] = exval;
-      else
-        m[j*ld + i] = exval;
-    }
-}
+void set_ev_mat( char storage, char trns, gtint_t ld, gtint_t i, gtint_t j, T exval, T* m );
 
 /*
     Function to set few values of a matrix to values relative to DBL_MAX/DBL_MIN
     These values are used to create overflow and underflow scenarios
 */
 template<typename T>
-void set_overflow_underflow_mat(char storage, char trns, gtint_t ld, gtint_t i, gtint_t j, T* a, gtint_t mode, gtint_t input_range)
-{
-    /* Calculate index where overflow/underflow values need to be inserted */
-    gtint_t indexA = 0;
-
-    if ( storage == 'c' || storage == 'C' )
-    {
-      if ( trns == 'n' || trns == 'N' )
-      {
-        indexA = i + j*ld;
-      }
-      else
-      {
-        indexA = j + i*ld;
-      }
-    }
-    else
-    {
-      if ( trns == 'n' || trns == 'N' )
-      {
-        indexA = i*ld + j;
-      }
-      else
-      {
-        indexA = j*ld + i;
-      }
-    }
-
-    using RT = typename testinghelpers::type_info<T>::real_type;
-    std::vector<int> exponent(12);
-
-    if (std::is_same<RT, double>::value)
-    {
-      exponent = {23, 203, 18, 180, 123, 130, 185, 178, 108, 158, 185, 220};
-    }
-    else if (std::is_same<RT, float>::value)
-    {
-      exponent = {3, 20, 8, 2, 30, 28, 8, 10, 33, 24, 8, 22};
-    }
-
-    T limits_val;
-
-    /* When mode is set to 0, values relative to DBL_MAX are inserted into the input matrices */
-    if(mode == 0)
-    {
-        limits_val = (std::numeric_limits<RT>::max)();
-        switch(input_range)
-        {
-            case -1:
-                     a[0] = limits_val/ pow(10, exponent[0]);
-                     a[indexA] = limits_val/ pow(10, exponent[1]);
-                     break;
-
-            case 0:
-                     a[0] = -(limits_val/ pow(10, exponent[4]));
-                     a[indexA] = -(limits_val/ pow(10, exponent[5]));
-                     break;
-
-            case 1:
-                     a[0] = limits_val/ pow(10, exponent[8]);
-                     a[indexA] = limits_val/ pow(10, exponent[9]);
-        }
-    }
-    /* When mode is set to 1, values relative to DBL_MIN are inserted into the input matrices*/
-    else
-    {
-        limits_val = (std::numeric_limits<RT>::min)();
-        switch(input_range)
-        {
-            case -1:
-                     a[0] = limits_val * pow(10, exponent[0]);
-                     a[indexA] = limits_val * pow(10, exponent[1]);
-                     break;
-
-            case 0:
-                     a[0] = -(limits_val * pow(10, exponent[4]));
-                     a[indexA] = -(limits_val * pow(10, exponent[5]));
-                     break;
-
-            case 1:
-                     a[0] = limits_val * pow(10, exponent[8]);
-                     a[indexA] = limits_val * pow(10, exponent[9]);
-        }
-
-    }
-}
+void set_overflow_underflow_mat(char storage, char trns, gtint_t ld, gtint_t i, gtint_t j, T* a, gtint_t mode, gtint_t input_range);
 
 } //end of namespace testinghelpers

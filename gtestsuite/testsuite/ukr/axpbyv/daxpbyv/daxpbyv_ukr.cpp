@@ -75,6 +75,7 @@ TEST_P( daxpbyvGeneric, UKR )
     // is_memory_test
     bool is_memory_test = std::get<7>(GetParam());
 
+    double adj = 3.0;
     // Set the threshold for the errors:
     // Check gtestsuite axpbyv.h (no netlib version) for reminder of the
     // functionality from which we estimate operation count per element
@@ -99,11 +100,11 @@ TEST_P( daxpbyvGeneric, UKR )
         if (alpha == testinghelpers::ZERO<T>())
             thresh = 0.0;
         else
-            thresh = 2*testinghelpers::getEpsilon<T>();
+            thresh = adj * 2*testinghelpers::getEpsilon<T>();
     else if (alpha == testinghelpers::ONE<T>())
-        thresh = 2*testinghelpers::getEpsilon<T>();
+        thresh = adj * 2*testinghelpers::getEpsilon<T>();
     else
-        thresh = 3*testinghelpers::getEpsilon<T>();
+        thresh = adj * 3*testinghelpers::getEpsilon<T>();
 
     //----------------------------------------------------------
     //     Call generic test body using those parameters

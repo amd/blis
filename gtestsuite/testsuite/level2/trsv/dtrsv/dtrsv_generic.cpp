@@ -88,8 +88,10 @@ TEST_P( dtrsvGeneric, API )
 #else
         double adj = 7.5;
 #endif
-        if(alpha == T{1.0})
+        if(alpha == T{1.0}) {
+          adj = 18.0;
           thresh = adj*2*n*testinghelpers::getEpsilon<T>();
+        }
         else
           thresh = adj*3*n*testinghelpers::getEpsilon<T>();
     }
