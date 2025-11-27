@@ -343,7 +343,8 @@ LPGEMM_5LOOP_AVX512BF16(bfloat16,bfloat16,float,bf16bf16f32of32)
 #if (defined(BLIS_KERNELS_ZEN4) && (!defined(LPGEMM_BF16_JIT)))
 	// Handle using LPGEMV when m or/and n equal to 1
 	// The avx512 check will be removed when avx2 kernels added in future
-	if ( (n == 1) || ( m == 1 ) )
+	// Avoiding m == 1 rerouting on AVX512 codepath for now
+	if ( n == 1 )
 	{
 		lpgemv_rowvar_bf16bf16f32of32( m, n, k,
 		                               a, rs_a, cs_a, mtag_a,
