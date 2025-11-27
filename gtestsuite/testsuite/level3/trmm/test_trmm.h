@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2025, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -39,6 +39,7 @@
 #include "inc/check_error.h"
 #include <stdexcept>
 #include <algorithm>
+#include "inc/data_pool.h"
 
 template<typename T>
 void test_trmm( char storage, char side, char uploa, char transa, char diaga,
@@ -52,10 +53,12 @@ void test_trmm( char storage, char side, char uploa, char transa, char diaga,
     //----------------------------------------------------------
     //        Initialize matrics with random values.
     //----------------------------------------------------------
-    std::vector<T> a = testinghelpers::get_random_matrix<T>( -2, 8, storage, transa, mn, mn, lda );
-    std::vector<T> b( testinghelpers::matsize( storage, 'n', m, n, ldb ) );
+    // Set index to a starting position for this test
+    get_pool<T>().set_index(m, n, ldb_inc);
+    std::vector<T> a = get_pool<T>().get_random_matrix( storage, transa, mn, mn, lda );
+    std::vector<T> b = get_pool<T>().get_random_matrix( storage, 'n', m, n, ldb );
     if (alpha != testinghelpers::ZERO<T>())
-        testinghelpers::datagenerators::randomgenerators<T>( -5, 2, storage, m, n, b.data(), 'n', ldb );
+        get_pool<T>().randomgenerators( storage, m, n, b.data(), 'n', ldb );
     else
     {
         // Matrix B should not be read, only set.

@@ -37,11 +37,11 @@
 #include "axpyv.h"
 #include "level1/ref_axpyv.h"
 #include "inc/check_error.h"
+#include "inc/data_pool.h"
 
 /**
  * @brief Generic test body for axpyv operation.
  */
-
 template<typename T>
 static void test_axpyv( char conjx, gtint_t n, gtint_t incx, gtint_t incy,
                         T alpha, double thresh )
@@ -49,8 +49,11 @@ static void test_axpyv( char conjx, gtint_t n, gtint_t incx, gtint_t incy,
     //----------------------------------------------------------
     //        Initialize vectors with random numbers.
     //----------------------------------------------------------
-    std::vector<T> x = testinghelpers::get_random_vector<T>( -10, 10, n, incx );
-    std::vector<T> y = testinghelpers::get_random_vector<T>( -10, 10, n, incy );
+    // Set index based on n and incx to get varied data
+    get_pool<T>().set_index(n, incx);
+    std::vector<T> x = get_pool<T>().get_random_vector(n, incx);
+    // This will use the index from where it was
+    std::vector<T> y = get_pool<T>().get_random_vector(n, incy);
 
     //----------------------------------------------------------
     //    Call reference implementation to get ref results.
@@ -78,8 +81,10 @@ static void test_axpyv( char conjx, gtint_t n, gtint_t incx, gtint_t incy,
     //----------------------------------------------------------
     //        Initialize vectors with random numbers.
     //----------------------------------------------------------
-    std::vector<T> x = testinghelpers::get_random_vector<T>( -10, 10, n, incx );
-    std::vector<T> y = testinghelpers::get_random_vector<T>( -10, 10, n, incy );
+    // Set index based on n and incx to get varied data
+    get_pool<T>().set_index(n, incy);
+    std::vector<T> x = get_pool<T>().get_random_vector(n, incx);
+    std::vector<T> y = get_pool<T>().get_random_vector(n, incy);
 
     // Update the value at index xi to an extreme value, x_exval.
     if ( -1 < xi && xi < n ) x[xi * abs(incx)] = xexval;

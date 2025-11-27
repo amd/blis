@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2025, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -39,6 +39,7 @@
 #include "inc/check_error.h"
 #include <stdexcept>
 #include <algorithm>
+#include "inc/data_pool.h"
 
 template<typename T>
 void test_hemv( char storage, char uploa, char conja, char conjx, gtint_t n,
@@ -50,14 +51,16 @@ void test_hemv( char storage, char uploa, char conja, char conjx, gtint_t n,
     //----------------------------------------------------------
     //        Initialize matrics with random integer numbers.
     //----------------------------------------------------------
-    std::vector<T> a = testinghelpers::get_random_matrix<T>( -2, 5, storage, 'n', n, n, lda );
+    // Set index to a starting position for this test
+    get_pool<T>().set_index(n, incy, incx);
+    std::vector<T> a = get_pool<T>().get_random_matrix( storage, 'n', n, n, lda );
     testinghelpers::make_herm<T>( storage, uploa, n, a.data(), lda );
     testinghelpers::make_triangular<T>( storage, uploa, n, a.data(), lda );
 
-    std::vector<T> x = testinghelpers::get_random_vector<T>( -3, 3, n, incx );
+    std::vector<T> x = get_pool<T>().get_random_vector( n, incx );
     std::vector<T> y( testinghelpers::buff_dim(n, incy) );
     if (beta != testinghelpers::ZERO<T>())
-        testinghelpers::datagenerators::randomgenerators<T>( -3, 3, n, incy, y.data() );
+        get_pool<T>().randomgenerators( n, incy, y.data() );
     else
     {
         // Vector Y should not be read, only set.

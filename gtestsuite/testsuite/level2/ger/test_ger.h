@@ -39,6 +39,7 @@
 #include "inc/check_error.h"
 #include <stdexcept>
 #include <algorithm>
+#include "inc/data_pool.h"
 
 template<typename T>
 void test_ger( char storage, char conjx, char conjy, gtint_t m, gtint_t n,
@@ -50,9 +51,11 @@ void test_ger( char storage, char conjx, char conjy, gtint_t m, gtint_t n,
     //----------------------------------------------------------
     //        Initialize matrics with random integer numbers.
     //----------------------------------------------------------
-    std::vector<T> a = testinghelpers::get_random_matrix<T>( -2, 5, storage, 'n', m, n, lda );
-    std::vector<T> x = testinghelpers::get_random_vector<T>( -3, 3, m, incx );
-    std::vector<T> y = testinghelpers::get_random_vector<T>( -3, 3, n, incy );
+    // Set index to a starting position for this test
+    get_pool<T>().set_index(m, n, incx);
+    std::vector<T> a = get_pool<T>().get_random_matrix( storage, 'n', m, n, lda );
+    std::vector<T> x = get_pool<T>().get_random_vector( m, incx );
+    std::vector<T> y = get_pool<T>().get_random_vector( n, incy );
 
     // Create a copy of c so that we can check reference results.
     std::vector<T> a_ref(a);
@@ -91,9 +94,11 @@ void test_ger( char storage, char conjx, char conjy, gtint_t m, gtint_t n,
     //----------------------------------------------------------
     //        Initialize matrics with random integer numbers.
     //----------------------------------------------------------
-    std::vector<T> a = testinghelpers::get_random_matrix<T>( -2, 5, storage, 'n', m, n, lda );
-    std::vector<T> x = testinghelpers::get_random_vector<T>( -3, 3, m, incx );
-    std::vector<T> y = testinghelpers::get_random_vector<T>( -3, 3, n, incy );
+    // Set index to a starting position for this test
+    get_pool<T>().set_index(n, incy, m);
+    std::vector<T> a = get_pool<T>().get_random_matrix( storage, 'n', m, n, lda );
+    std::vector<T> x = get_pool<T>().get_random_vector( m, incx );
+    std::vector<T> y = get_pool<T>().get_random_vector( n, incy );
 
     testinghelpers::set_ev_mat( storage, 'n', lda, ai, aj, a_exval, a.data() );
     // Update the value at index xi to an extreme value, x_exval.

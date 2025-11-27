@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2025, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -40,6 +40,7 @@
 #include "common/testing_helpers.h"
 #include <stdexcept>
 #include <algorithm>
+#include "inc/data_pool.h"
 
 template<typename T>
 void test_gemv( char storage, char transa, char conjx, gtint_t m, gtint_t n,
@@ -53,7 +54,9 @@ void test_gemv( char storage, char transa, char conjx, gtint_t m, gtint_t n,
 
     dim_t size_a = testinghelpers::matsize( storage, 'n', m, n, lda ) * sizeof(T);
     testinghelpers::ProtectedBuffer a_buf(size_a, false, is_memory_test);
-    testinghelpers::datagenerators::randomgenerators<T>( 1, 5, storage, m, n, (T*)(a_buf.greenzone_1), 'n', lda );
+    // Set index to a starting position for this test
+    get_pool<T>().set_index(m, n, incy);
+    get_pool<T>().randomgenerators( storage, m, n, (T*)(a_buf.greenzone_1), 'n', lda );
 
     // Get correct vector lengths.
     gtint_t lenx = ( testinghelpers::chknotrans( transa ) ) ? n : m ;
@@ -68,9 +71,9 @@ void test_gemv( char storage, char transa, char conjx, gtint_t m, gtint_t n,
     // Thus, we pass is_memory_test as false
     testinghelpers::ProtectedBuffer y_ref_buffer( size_y, false, false );
 
-    testinghelpers::datagenerators::randomgenerators<T>( 1, 3, lenx, incx, (T*)(x_buf.greenzone_1) );
+    get_pool<T>().randomgenerators( lenx, incx, (T*)(x_buf.greenzone_1) );
     if (beta != testinghelpers::ZERO<T>())
-        testinghelpers::datagenerators::randomgenerators<T>( 1, 3, leny, incy, (T*)(y_buf.greenzone_1) );
+        get_pool<T>().randomgenerators( leny, incy, (T*)(y_buf.greenzone_1) );
     else
     {
         // Vector Y should not be read, only set.

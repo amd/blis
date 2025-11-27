@@ -40,6 +40,7 @@
 #include <stdexcept>
 #include <algorithm>
 #include "common/blis_version_defs.h"
+#include "inc/data_pool.h"
 
 #ifdef E_GEMM_COMPUTE
 
@@ -56,11 +57,13 @@ void test_gemm_compute( char storage, char trnsa, char trnsb, char pcka, char pc
     //----------------------------------------------------------
     //         Initialize matrics with random numbers
     //----------------------------------------------------------
-    std::vector<T> a = testinghelpers::get_random_matrix<T>( -2, 8, storage, trnsa, m, k, lda );
-    std::vector<T> b = testinghelpers::get_random_matrix<T>( -5, 2, storage, trnsb, k, n, ldb );
+    // Set index to a starting position for this test
+    get_pool<T>().set_index(m, n, k);
+    std::vector<T> a = get_pool<T>().get_random_matrix( storage, trnsa, m, k, lda );
+    std::vector<T> b = get_pool<T>().get_random_matrix( storage, trnsb, k, n, ldb );
     std::vector<T> c( testinghelpers::matsize( storage, 'n', m, n, ldc ) );
     if (beta != testinghelpers::ZERO<T>())
-        testinghelpers::datagenerators::randomgenerators<T>( -3, 5, storage, m, n, c.data(), 'n', ldc );
+        get_pool<T>().randomgenerators( storage, m, n, c.data(), 'n', ldc );
     else
     {
         // Matrix C should not be read, only set.

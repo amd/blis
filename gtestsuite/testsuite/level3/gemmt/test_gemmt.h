@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2025, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -40,6 +40,7 @@
 #include <stdexcept>
 #include <algorithm>
 #include "common/testing_helpers.h"
+#include "inc/data_pool.h"
 
 template<typename T>
 void test_gemmt( char storage, char uploc, char transa, char transb, gtint_t n,
@@ -59,7 +60,9 @@ void test_gemmt( char storage, char uploc, char transa, char transb, gtint_t n,
     dim_t size_a = testinghelpers::matsize(storage, transa, n, k, lda) * sizeof(T);
     testinghelpers::ProtectedBuffer a(size_a, false, is_mem_test );
     a_ptr = (T*)a.greenzone_1;
-    testinghelpers::datagenerators::randomgenerators<T>( -2, 8, storage, n, k, a_ptr, transa, lda);
+    // Set index to a starting position for this test
+    get_pool<T>().set_index(n, lda_inc, k);
+    get_pool<T>().randomgenerators( storage, n, k, a_ptr, transa, lda);
 
     if ( is_evt_test )
     {
@@ -71,7 +74,7 @@ void test_gemmt( char storage, char uploc, char transa, char transb, gtint_t n,
     dim_t size_b = testinghelpers::matsize(storage, transb, k, n, ldb) * sizeof(T);
     testinghelpers::ProtectedBuffer b(size_b, false, is_mem_test );
     b_ptr = (T*)b.greenzone_1;
-    testinghelpers::datagenerators::randomgenerators<T>( -5, 2, storage, k, n, b_ptr, transb, ldb);
+    get_pool<T>().randomgenerators( storage, k, n, b_ptr, transb, ldb);
 
     if ( is_evt_test )
     {
@@ -86,7 +89,7 @@ void test_gemmt( char storage, char uploc, char transa, char transb, gtint_t n,
     //if (beta != testinghelpers::ZERO<T>())
     if (1)
     {
-        testinghelpers::datagenerators::randomgenerators<T>( -3, 5, storage, n, n, c_ptr, 'n', ldc);
+        get_pool<T>().randomgenerators( storage, n, n, c_ptr, 'n', ldc);
         if ( is_evt_test )
         {
             dim_t n_rand = rand() % n;

@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2024-2025, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -40,8 +40,7 @@
 #include "level3/ref_trsm.h"
 #include "inc/check_error.h"
 #include "common/testing_helpers.h"
-#include "level3/trsm/test_trsm.h"
-
+#include "inc/data_pool.h"
 
 // function pointer for TRSM small kernels
 typedef err_t (*trsm_small_ker_ft)
@@ -77,8 +76,9 @@ static void test_trsm_ukr( FT ukr_fp, char storage, char uploa, char diaga,
     T* b01 = (T*)b01_buffer.greenzone_1; // row major
 
     // Initialize vectors with random numbers.
-    random_generator_with_INF_NAN( a10, uploa, 'c', 'n', -0.1, 0.1, m, (k+m), lda);
-    random_generator_with_INF_NAN( b01, uploa, 'r', 'n', -0.1, 0.1, (k+m), n, ldb);
+    get_tiny_pool<T>().set_index(m, n, k);
+    get_tiny_pool<T>().randomgenerators('c', m, (k+m), a10, lda);
+    get_tiny_pool<T>().randomgenerators('r', (k+m), n, b01, ldb);
 
     // Get A11(A10 + sizeof(A01)) and B11(B10 + sizeof(B10))
     T* a11  = a10 + (k*lda);
@@ -355,9 +355,10 @@ static void test_trsm_small_ukr( FT ukr_fp, char side, char uploa, char diaga,
     T* b = (T*)b_buf.greenzone_1;
     T* b_ref = (T*)malloc( n * cs_b * sizeof(T) ); // col major
 
-    // Initialize buffers with random numbers.
-    random_generator_with_INF_NAN( a, uploa, 'c', 'n', -0.1, 0.1, mn0_a, mn0_a, cs_a);
-    random_generator_with_INF_NAN( b, uploa, 'c', 'n', -0.1, 0.1, m, n, cs_b);
+    // Initialize matrices with random numbers.
+    get_tiny_pool<T>().set_index(m, n);
+    get_tiny_pool<T>().randomgenerators('c', gtint_t(mn0_a), gtint_t(mn0_a), a, gtint_t(cs_a));
+    get_tiny_pool<T>().randomgenerators('c', gtint_t(m), gtint_t(n), b, gtint_t(cs_b));
 
     // copy contents of b to b_ref
     memcpy(b_ref, b, n * cs_b * sizeof(T));

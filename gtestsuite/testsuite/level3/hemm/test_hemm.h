@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2025, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -39,6 +39,7 @@
 #include "inc/check_error.h"
 #include <stdexcept>
 #include <algorithm>
+#include "inc/data_pool.h"
 
 template<typename T>
 void test_hemm( char storage, char side, char uplo, char conja, char transb,
@@ -55,14 +56,16 @@ void test_hemm( char storage, char side, char uplo, char conja, char transb,
     //----------------------------------------------------------
     //        Initialize matrics with random integer numbers.
     //----------------------------------------------------------
+    // Set index to a starting position for this test
+    get_pool<T>().set_index(m, n, ldc_inc);
     // Since matrix A, stored in a, is symmetric and we only use the upper or lower
     // part in the computation of hemm and zero-out the rest to ensure
     // that code operates as expected.
-    std::vector<T> a = testinghelpers::get_random_matrix<T>( -5, 2, storage, uplo, k, lda );
-    std::vector<T> b = testinghelpers::get_random_matrix<T>( -5, 2, storage, transb, m, n, ldb );
+    std::vector<T> a = get_pool<T>().get_random_matrix( storage, uplo, k, lda );
+    std::vector<T> b = get_pool<T>().get_random_matrix( storage, transb, m, n, ldb );
     std::vector<T> c( testinghelpers::matsize( storage, 'n', m, n, ldc ) );
     if (beta != testinghelpers::ZERO<T>())
-        testinghelpers::datagenerators::randomgenerators<T>( -3, 5, storage, m, n, c.data(), 'n', ldc );
+        get_pool<T>().randomgenerators( storage, m, n, c.data(), 'n', ldc );
     else
     {
         // Matrix C should not be read, only set.

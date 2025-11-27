@@ -53,6 +53,110 @@ static const ElementType GenericET = ElementType::FP;
 #endif
 
 /***************************************************
+ *             High-Performance Data Pool
+****************************************************/
+/**
+ * @brief High-performance random data generator using pre-generated pools
+ * 
+ * This class generates a large pool of random numbers once and then cycles
+ * through them for maximum performance. Each pool contains 100,000 random
+ * numbers with a fixed seed (94) for reproducible testing.
+ * 
+ * @tparam T Data type (float, double, scomplex, dcomplex)
+ */
+template<typename T>
+class RandomDataPool {
+private:
+    using real_T = typename testinghelpers::type_info<T>::real_type;
+    static constexpr size_t DEFAULT_POOL_SIZE = 12346;
+    
+    // Self-contained generator with fixed seed 94
+    std::mt19937 pool_generator_;
+    std::vector<real_T> pool_;
+    std::uniform_real_distribution<real_T> dist_fp_;
+    std::uniform_int_distribution<gtint_t> dist_int_;
+    size_t pool_size_ = DEFAULT_POOL_SIZE;
+    size_t index_;
+    ElementType internal_datatype_ = GenericET;
+    real_T from_, to_;
+    
+    void fill_pool();
+
+public:
+    explicit RandomDataPool(real_T from, real_T to, ElementType datatype = GenericET);
+    explicit RandomDataPool(real_T from, real_T to, size_t pool_size, ElementType datatype = GenericET);
+    
+    // Fast random access - cycles through the same pool repeatedly
+    inline __attribute__((__always_inline__)) real_T next();
+    // Return the size of the pool
+    size_t size() const;
+    // Set starting index for a specific test
+    // This is set so that different tests use different parts of the pool
+    // but in a way that it is truly reproducible when we run the same test
+    // as part of a full suite or in isolation.
+    // We have two versions, one for vectors and one for matrices.
+    void set_index(gtint_t m, gtint_t n);
+    void set_index(gtint_t m, gtint_t n, gtint_t k);
+    // Reset the range of generated random numbers
+    // This will re-generate the pool with the appropriate range
+    void reset(real_T from, real_T to);
+    // Optimized vector generation
+    std::vector<T> get_random_vector(gtint_t n, gtint_t inc);
+
+    /**
+    * @brief Returns a random fp type (float, double, scomplex, dcomplex)
+    *        that lies in the range [from, to].
+    *
+    * @param[in, out] alpha the random fp
+    */
+    void getfp(T* alpha);
+    /**
+    * @brief Returns a random fp vector (float, double, scomplex, dcomplex)
+    *        with elements that follow a uniform distribution in the range [from, to].
+    * @param[in] n length of vector x
+    * @param[in] incx increments of vector x
+    * @param[in, out] x the random fp vector
+    */
+    void getfp(gtint_t n, gtint_t incx, T* x);
+    /**
+    * @brief Returns a random fp vector (float, double, scomplex, dcomplex)
+    *        with elements that follow a uniform distribution in the range [from, to].
+    * @param[in] storage storage type of matrix A, row or column major
+    * @param[in] m, n dimensions of matrix A
+    * @param[in, out] a the random fp matrix A
+    * @param[in] lda leading dimension of matrix A
+    * @param[in] stridea stride between two "continuous" elements in matrix A
+    */
+    void getfp(char storage, gtint_t m, gtint_t n, T* a, gtint_t lda, gtint_t stridea = 1);
+    /**
+    * @brief Returns a random fp vector (float, double, scomplex, dcomplex)
+    *        with elements that follow a uniform distribution in the range [from, to].
+    * @param[in] storage storage type of matrix A, row or column major
+    * @param[in] m, n dimensions of matrix A
+    * @param[in, out] a the random fp matrix A
+    * @param[in] trans transposition of matrix A
+    * @param[in] lda leading dimension of matrix A
+    * @param[in] stridea stride between two "continuous" elements in matrix A
+    */
+    void getfp(char storage, gtint_t m, gtint_t n, T* a, char transa, gtint_t lda, gtint_t stridea = 1);
+
+    void randomgenerators(gtint_t n, gtint_t incx, T* x);
+
+    void randomgenerators(char storage, gtint_t m, gtint_t n,
+        T* a, gtint_t lda, gtint_t stridea = 1);
+
+    void randomgenerators(char storage, gtint_t m, gtint_t n,
+        T* a, char transa, gtint_t lda, gtint_t stridea = 1);
+
+    void randomgenerators(char storage, char uplo, gtint_t k, T* a, gtint_t lda);
+
+    std::vector<T> get_random_matrix(char storage, char trans, gtint_t m, gtint_t n,
+                        gtint_t lda, gtint_t stridea = 1);
+
+    std::vector<T> get_random_matrix(char storage, char uplo, gtint_t k, gtint_t lda);
+};
+
+/***************************************************
  *             Floating Point Generators
 ****************************************************/
 /**
@@ -77,7 +181,7 @@ void getfp(T2 from, T3 to, gtint_t n, gtint_t incx, T1* x);
  * @brief Returns a random fp vector (float, double, scomplex, dcomplex)
  *        with elements that follow a uniform distribution in the range [from, to].
  * @param[in] storage storage type of matrix A, row or column major
- * @param[in] m, n dimentions of matrix A
+ * @param[in] m, n dimensions of matrix A
  * @param[in, out] a the random fp matrix A
  * @param[in] lda leading dimension of matrix A
  * @param[in] stridea stride between two "continuous" elements in matrix A
@@ -89,7 +193,7 @@ void getfp(T2 from, T3 to, char storage, gtint_t m, gtint_t n, T1* a, gtint_t ld
  * @brief Returns a random fp vector (float, double, scomplex, dcomplex)
  *        with elements that follow a uniform distribution in the range [from, to].
  * @param[in] storage storage type of matrix A, row or column major
- * @param[in] m, n dimentions of matrix A
+ * @param[in] m, n dimensions of matrix A
  * @param[in, out] a the random fp matrix A
  * @param[in] trans transposition of matrix A
  * @param[in] lda leading dimension of matrix A
@@ -124,7 +228,7 @@ void getint(int from, int to, gtint_t n, gtint_t incx, T* x);
  * @brief Returns a random fp matrix (float, double, scomplex, dcomplex)
  *        with elements that are integers and follow a uniform distribution in the range [from, to].
  * @param[in] storage storage type of matrix A, row or column major
- * @param[in] m, n dimentions of matrix A
+ * @param[in] m, n dimensions of matrix A
  * @param[in, out] a the random fp matrix A
  * @param[in] lda leading dimension of matrix A
  * @param[in] stridea stride between two "continuous" elements in matrix A
@@ -136,7 +240,7 @@ void getint(int from, int to, char storage, gtint_t m, gtint_t n, T* a, gtint_t 
  * @brief Returns a random fp matrix (float, double, scomplex, dcomplex)
  *        with elements that are integers and follow a uniform distribution in the range [from, to].
  * @param[in] storage storage type of matrix A, row or column major
- * @param[in] m, n dimentions of matrix A
+ * @param[in] m, n dimensions of matrix A
  * @param[in, out] a the random fp matrix A
  * @param[in] trans transposition of matrix A
  * @param[in] lda leading dimension of matrix A

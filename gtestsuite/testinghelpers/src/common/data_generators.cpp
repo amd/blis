@@ -40,6 +40,345 @@
 namespace testinghelpers {
 namespace datagenerators {
 
+constexpr int RANDOM_POOL_SEED = 94;
+
+/***************************************************
+ *             Data Pool Generators
+****************************************************/
+template<typename T>
+RandomDataPool<T>::RandomDataPool(real_T from, real_T to, ElementType datatype)
+    : pool_generator_(RANDOM_POOL_SEED),           // Initialize with seed
+        pool_(DEFAULT_POOL_SIZE),      // Initialize with size
+        index_(0),
+        internal_datatype_(datatype),
+        from_(from),
+        to_(to){
+    if (datatype == ElementType::FP) {
+        dist_fp_ = std::uniform_real_distribution<real_T>(from, to);
+    } else {
+        dist_int_ = std::uniform_int_distribution<gtint_t>(static_cast<gtint_t>(from), static_cast<gtint_t>(to));
+    }
+    fill_pool();  // Generate random values ONCE during construction
+}
+    
+template<typename T>
+RandomDataPool<T>::RandomDataPool(real_T from, real_T to, size_t pool_size, ElementType datatype)
+    : pool_generator_(RANDOM_POOL_SEED),           // Initialize with seed
+        pool_(pool_size),      // Initialize with pool_size
+        pool_size_(pool_size),
+        index_(0),
+        internal_datatype_(datatype),
+        from_(from),
+        to_(to){
+    if (pool_size_ % 2 != 0) {
+        throw std::runtime_error("RandomDataPool: pool_size must be a multiple of 2 for complex number support");
+    }
+    if (datatype == ElementType::FP) {
+        dist_fp_ = std::uniform_real_distribution<real_T>(from, to);
+    } else {
+        dist_int_ = std::uniform_int_distribution<gtint_t>(static_cast<gtint_t>(from), static_cast<gtint_t>(to));
+    }
+    fill_pool();  // Generate random values ONCE during construction
+}
+
+template<typename T>
+void RandomDataPool<T>::fill_pool() {
+    // Generate exactly pool_size_ random numbers ONCE
+    if (internal_datatype_ == ElementType::FP) {
+        for (size_t i = 0; i < pool_size_; ++i) {
+                pool_[i] = dist_fp_(pool_generator_);
+        }
+    } else {
+        for (size_t i = 0; i < pool_size_; ++i) {
+                pool_[i] = dist_int_(pool_generator_);
+        }
+    }
+}
+
+template<typename T>
+void RandomDataPool<T>::set_index(gtint_t m, gtint_t n) {
+    gtint_t start_index = m * 5 + (n + 4) * 3;
+    // Use modulo operation to ensure we stay within pool size
+    index_ = start_index % pool_size_;
+    // Ensure index is even for complex number optimization
+    if (index_ % 2 != 0) index_ += 1;
+}
+
+template<typename T>
+void RandomDataPool<T>::set_index(gtint_t m, gtint_t n, gtint_t k) { 
+    gtint_t start_index = m * 6 + (n + 5) * 4 + (k + 3) * 2;
+    // Use modulo operation to ensure we stay within pool size
+    index_ = start_index % pool_size_;
+    // Ensure index is even for complex number optimization
+    if (index_ % 2 != 0) index_ += 1;
+}
+
+// Fast random access - cycles through the same pool repeatedly
+template<typename T>
+inline __attribute__((__always_inline__)) typename RandomDataPool<T>::real_T RandomDataPool<T>::next() {
+    typename RandomDataPool<T>::real_T value = pool_[index_];  // Copy current element
+    ++index_;
+    
+    // When we reach the end, wrap around to the beginning (reuse same numbers)
+    if (index_ >= pool_size_) {
+        index_ = 0;  // Reset to first element, reuse existing values
+    }
+    return value;
+} 
+
+template<typename T>
+void RandomDataPool<T>::reset(real_T from, real_T to) {
+    from_ = from;
+    to_ = to;
+    if (internal_datatype_ == ElementType::FP) {
+        dist_fp_.param(typename std::uniform_real_distribution<real_T>::param_type(from, to));
+    } else {
+        dist_int_.param(typename std::uniform_int_distribution<gtint_t>::param_type(static_cast<gtint_t>(from), static_cast<gtint_t>(to)));
+    }
+    fill_pool();  // Only regenerate when range changes
+    index_ = 0;   // Reset position
+}
+
+template<typename T>
+size_t RandomDataPool<T>::size() const {
+    return pool_size_;
+}
+
+/**
+ * @brief Returns a random fp type (float, double, scomplex, dcomplex)
+ *        that lies in the range [from, to].
+ *
+ * @param[in, out] alpha the random fp
+ */
+template<typename T>
+void RandomDataPool<T>::getfp(T* alpha) {
+    if constexpr (testinghelpers::type_info<T>::is_real)
+        *alpha = next();
+    else
+        *alpha = {next(), next()};
+}
+
+/**
+ * @brief Returns a random fp vector (float, double, scomplex, dcomplex)
+ *        with elements that follow a uniform distribution in the range [from, to].
+ * @param[in] n length of vector x
+ * @param[in] incx increments of vector x
+ * @param[in, out] x the random fp vector
+ */
+template<typename T>
+void RandomDataPool<T>::getfp(gtint_t n, gtint_t incx, T* x)
+{
+    if (incx == 1) {
+        real_T* pool_data = pool_.data();
+        real_T* x_as_real;
+        gtint_t n_real;
+        
+        if constexpr (testinghelpers::type_info<T>::is_real) {
+            x_as_real = reinterpret_cast<real_T*>(x);
+            n_real = n;
+        } else {
+            // For complex: treat n complex numbers as 2*n real numbers
+            // Since set_index ensures index is always a multiple of 2,
+            // we can safely reinterpret complex array as real array
+            x_as_real = reinterpret_cast<real_T*>(x);
+            n_real = n * 2;
+        }
+        
+        // Common fast path: direct memory copy for contiguous data
+        gtint_t remaining = n_real;
+        gtint_t dest_idx = 0;
+        
+        while (remaining > 0) {
+            gtint_t chunk_size = (std::min)(remaining, static_cast<gtint_t>(pool_size_ - index_));
+            
+            // Direct memory copy - much faster than individual assignments
+            memcpy(&x_as_real[dest_idx], &pool_data[index_], chunk_size * sizeof(real_T));
+            
+            dest_idx += chunk_size;
+            remaining -= chunk_size;
+            index_ += chunk_size;
+            
+            if (index_ >= pool_size_) {
+                index_ = 0;
+            }
+        }
+    } else {
+        // First initialize all elements in vector to unusual value to help
+        // catch if intervening elements have been incorrectly used or modified.
+        // Use vectorized fill instead of element-by-element loop
+        std::fill_n(x, testinghelpers::buff_dim(n, incx), T{-1.2345e38});
+        // General case with stride
+        const gtint_t abs_incx = std::abs(incx);
+        if constexpr (testinghelpers::type_info<T>::is_real) {
+            for (gtint_t i = 0; i < n; ++i) {
+                x[i * abs_incx] = next();  // Cycles through pool
+            }
+        } else {
+            for (gtint_t i = 0; i < n; ++i) {
+                x[i * abs_incx] = {next(), next()};  // Cycles through pool
+            }
+        }
+    }
+    
+}
+
+/**
+ * @brief Returns a random fp vector (float, double, scomplex, dcomplex)
+ *        with elements that follow a uniform distribution in the range [from, to].
+ * @param[in] storage storage type of matrix A, row or column major
+ * @param[in] m, n dimensions of matrix A
+ * @param[in, out] a the random fp matrix A
+ * @param[in] lda leading dimension of matrix A
+ * @param[in] stridea stride between two "continuous" elements in matrix A
+ */
+template<typename T>
+void RandomDataPool<T>::getfp(char storage, gtint_t m, gtint_t n, T* a, gtint_t lda, gtint_t stridea )
+{
+    if((storage == 'c') || (storage == 'C')) {
+        if (m > 0)
+        {
+            // Fill each column by calling the vector version
+            for(gtint_t j=0; j<n; j++)
+            {
+                getfp(m, stridea, &a[j * lda]);
+                // Fill trailing elements with sentinel value
+                gtint_t last_filled = (m - 1) * stridea + 1;
+                if (last_filled < lda) {
+                    std::fill_n(&a[last_filled + j*lda], lda - last_filled, T{-1.2345e38});
+                }
+            }
+        }
+        else
+        {
+            std::fill_n(a, static_cast<size_t>(n * lda), T{-1.2345e38});
+        }
+    }
+    else if( (storage == 'r') || (storage == 'R') )
+    {
+        if (n > 0)
+        {
+            for(gtint_t i=0; i<m; i++)
+            {
+                getfp(n, stridea, &a[i * lda]);
+                // Fill trailing elements with sentinel value
+                gtint_t last_filled = (n - 1) * stridea + 1;
+                if (last_filled < lda) {
+                    std::fill_n(&a[last_filled + i*lda], lda - last_filled, T{-1.2345e38});
+                }
+            }
+        }
+        else
+        {
+            std::fill_n(a, static_cast<size_t>(m * lda), T{-1.2345e38});
+        }
+    }
+}
+
+/**
+ * @brief Returns a random fp vector (float, double, scomplex, dcomplex)
+ *        with elements that follow a uniform distribution in the range [from, to].
+ * @param[in] storage storage type of matrix A, row or column major
+ * @param[in] m, n dimensions of matrix A
+ * @param[in, out] a the random fp matrix A
+ * @param[in] trans transposition of matrix A
+ * @param[in] lda leading dimension of matrix A
+ * @param[in] stridea stride between two "continuous" elements in matrix A
+ */
+template<typename T>
+void RandomDataPool<T>::getfp(char storage, gtint_t m, gtint_t n, T* a, char transa, gtint_t lda, gtint_t stridea ) {
+    if( chktrans( transa )) {
+       swap_dims( &m, &n );
+    }
+    this->getfp(storage, m, n, a, lda, stridea );
+}
+
+// Optimized vector generation
+template<typename T>
+std::vector<T> RandomDataPool<T>::get_random_vector(gtint_t n, gtint_t inc) {
+    // Create vector for the given sizes.
+    std::vector<T> x( testinghelpers::buff_dim(n, inc) );
+    this->randomgenerators( n, inc, x.data());
+    return x;
+}
+
+// Optimized vrandom generation for matrices
+template<typename T>
+void RandomDataPool<T>::randomgenerators(gtint_t n, gtint_t incx, T* x) {
+    this->getfp(n, incx, x );
+}
+
+template<typename T>
+void RandomDataPool<T>::randomgenerators(char storage, gtint_t m, gtint_t n, T* a, gtint_t lda, gtint_t stridea) {
+    this->getfp(storage, m, n, a, lda, stridea);
+}
+
+// This is used in gemv and needs to be optimized
+template<typename T>
+void RandomDataPool<T>::randomgenerators(char storage, gtint_t m, gtint_t n,
+    T* a, char transa, gtint_t lda, gtint_t stridea){
+    this->getfp(storage, m, n, a, transa, lda, stridea);
+}
+
+template<typename T>
+void RandomDataPool<T>::randomgenerators(char storage, char uplo, gtint_t k, T* a, gtint_t lda){
+    this->randomgenerators(storage, k, k, a, lda, 1);
+    if( (storage=='c')||(storage=='C') )
+    {
+        for(gtint_t j=0; j<k; j++)
+        {
+            for(gtint_t i=0; i<k; i++)
+            {
+                if( (uplo=='u')||(uplo=='U') )
+                {
+                    if(i>j) a[i+j*lda] = T{2.987e38};
+                }
+                else if ( (uplo=='l')||(uplo=='L') )
+                {
+                    if (i<j) a[i+j*lda] = T{2.987e38};
+                }
+                else
+                    throw std::runtime_error("Error in common/data_generators.cpp: side must be 'u' or 'l'.");
+            }
+        }
+    }
+    else
+    {
+        for(gtint_t i=0; i<k; i++)
+        {
+            for(gtint_t j=0; j<k; j++)
+            {
+                if( (uplo=='u')||(uplo=='U') )
+                {
+                    if(i>j) a[j+i*lda] = T{2.987e38};
+                }
+                else if ( (uplo=='l')||(uplo=='L') )
+                {
+                    if (i<j) a[j+i*lda] = T{2.987e38};
+                }
+                else
+                    throw std::runtime_error("Error in common/data_generators.cpp: side must be 'u' or 'l'.");
+            }
+        }
+    }
+}
+    
+template<typename T>
+std::vector<T> RandomDataPool<T>::get_random_matrix(char storage, char trans, gtint_t m, gtint_t n,
+                        gtint_t lda, gtint_t stridea) {
+    std::vector<T> a(matsize(storage, trans, m, n, lda));
+    this->randomgenerators(storage, m, n, a.data(), trans, lda, stridea);
+    return a;
+}
+
+template<typename T>
+std::vector<T> RandomDataPool<T>::get_random_matrix(char storage, char uplo, gtint_t k, gtint_t lda) {
+    // Create matrix for the given sizes.
+    std::vector<T> a( testinghelpers::matsize( storage, 'n', k, k, lda ) );
+    this->randomgenerators(storage, uplo, k, a.data(), lda);
+    return a;
+}
+
+
 /***************************************************
  *             Floating Point Generators
 ****************************************************/
@@ -53,7 +392,7 @@ template<typename T1, typename T2, typename T3>
 void getfp(T2 from, T3 to, T1* alpha)
 {
     using real_T = typename testinghelpers::type_info<T1>::real_type;
-    std::mt19937                              generator(94);
+    std::mt19937                              generator(RANDOM_POOL_SEED);
     std::uniform_real_distribution<real_T>    distr(from, to);
     if constexpr (testinghelpers::type_info<T1>::is_real)
         *alpha = distr(generator);
@@ -72,7 +411,7 @@ template<typename T1, typename T2, typename T3>
 void getfp(T2 from, T3 to, gtint_t n, gtint_t incx, T1* x)
 {
     using real_T = typename testinghelpers::type_info<T1>::real_type;
-    std::mt19937                              generator(94);
+    std::mt19937                              generator(RANDOM_POOL_SEED);
     // Generate the values from the uniform distribution that
     // the BLAS routine should read and/or modify.
     std::uniform_real_distribution<real_T>    distr(from, to);
@@ -112,7 +451,7 @@ void getfp(T2 from, T3 to, gtint_t n, gtint_t incx, T1* x)
  * @brief Returns a random fp vector (float, double, scomplex, dcomplex)
  *        with elements that follow a uniform distribution in the range [from, to].
  * @param[in] storage storage type of matrix A, row or column major
- * @param[in] m, n dimentions of matrix A
+ * @param[in] m, n dimensions of matrix A
  * @param[in, out] a the random fp matrix A
  * @param[in] lda leading dimension of matrix A
  * @param[in] stridea stride between two "continuous" elements in matrix A
@@ -121,7 +460,7 @@ template<typename T1, typename T2, typename T3>
 void getfp(T2 from, T3 to, char storage, gtint_t m, gtint_t n, T1* a, gtint_t lda, gtint_t stridea )
 {
     using real_T = typename testinghelpers::type_info<T1>::real_type;
-    std::mt19937                              generator(94);
+    std::mt19937                              generator(RANDOM_POOL_SEED);
     std::uniform_real_distribution<real_T>    distr(from, to);
 
     if((storage == 'c') || (storage == 'C'))
@@ -219,7 +558,7 @@ void getfp(T2 from, T3 to, char storage, gtint_t m, gtint_t n, T1* a, gtint_t ld
  * @brief Returns a random fp vector (float, double, scomplex, dcomplex)
  *        with elements that follow a uniform distribution in the range [from, to].
  * @param[in] storage storage type of matrix A, row or column major
- * @param[in] m, n dimentions of matrix A
+ * @param[in] m, n dimensions of matrix A
  * @param[in, out] a the random fp matrix A
  * @param[in] trans transposition of matrix A
  * @param[in] lda leading dimension of matrix A
@@ -247,7 +586,7 @@ template<typename T>
 void getint(int from, int to, T* alpha)
 {
     using real_T = typename testinghelpers::type_info<T>::real_type;
-    std::mt19937                              generator(94);
+    std::mt19937                              generator(RANDOM_POOL_SEED);
     std::uniform_int_distribution<int>    distr(from, to);
     if constexpr (testinghelpers::type_info<T>::is_real)
         *alpha = real_T(distr(generator));
@@ -265,7 +604,7 @@ template<typename T>
 void getint(int from, int to, gtint_t n, gtint_t incx, T* x)
 {
     using real_T = typename testinghelpers::type_info<T>::real_type;
-    std::mt19937                              generator(94);
+    std::mt19937                              generator(RANDOM_POOL_SEED);
     // Generate the values from the uniform distribution that
     // the BLAS routine should read and/or modify.
     std::uniform_int_distribution<int>    distr(from, to);
@@ -302,7 +641,7 @@ void getint(int from, int to, gtint_t n, gtint_t incx, T* x)
  * @brief Returns a random fp matrix (float, double, scomplex, dcomplex)
  *        with elements that are integers and follow a uniform distribution in the range [from, to].
  * @param[in] storage storage type of matrix A, row or column major
- * @param[in] m, n dimentions of matrix A
+ * @param[in] m, n dimensions of matrix A
  * @param[in, out] a the random fp matrix A
  * @param[in] lda leading dimension of matrix A
  * @param[in] stridea stride between two "continuous" elements in matrix A
@@ -311,7 +650,7 @@ template<typename T>
 void getint(int from, int to, char storage, gtint_t m, gtint_t n, T* a, gtint_t lda, gtint_t stridea )
 {
     using real_T = typename testinghelpers::type_info<T>::real_type;
-    std::mt19937                              generator(94);
+    std::mt19937                              generator(RANDOM_POOL_SEED);
     std::uniform_int_distribution<int>    distr(from, to);
 
     if((storage == 'c') || (storage == 'C'))
@@ -410,7 +749,7 @@ void getint(int from, int to, char storage, gtint_t m, gtint_t n, T* a, gtint_t 
  * @brief Returns a random fp matrix (float, double, scomplex, dcomplex)
  *        with elements that are integers and follow a uniform distribution in the range [from, to].
  * @param[in] storage storage type of matrix A, row or column major
- * @param[in] m, n dimentions of matrix A
+ * @param[in] m, n dimensions of matrix A
  * @param[in, out] a the random fp matrix A
  * @param[in] trans transposition of matrix A
  * @param[in] lda leading dimension of matrix A
@@ -986,3 +1325,9 @@ template void testinghelpers::set_overflow_underflow_mat<float>(char, char, gtin
 template void testinghelpers::set_overflow_underflow_mat<double>(char, char, gtint_t, gtint_t, gtint_t, double*, gtint_t, gtint_t);
 template void testinghelpers::set_overflow_underflow_mat<scomplex>(char, char, gtint_t, gtint_t, gtint_t, scomplex*, gtint_t, gtint_t);
 template void testinghelpers::set_overflow_underflow_mat<dcomplex>(char, char, gtint_t, gtint_t, gtint_t, dcomplex*, gtint_t, gtint_t);
+
+// RandomDataPool explicit instantiations
+template class testinghelpers::datagenerators::RandomDataPool<float>;
+template class testinghelpers::datagenerators::RandomDataPool<double>;
+template class testinghelpers::datagenerators::RandomDataPool<scomplex>;
+template class testinghelpers::datagenerators::RandomDataPool<dcomplex>;

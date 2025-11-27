@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2025, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -41,6 +41,7 @@
 #include "common/testing_helpers.h"
 #include <stdexcept>
 #include <algorithm>
+#include "inc/data_pool.h"
 
 // ENUM for extreme value testing
 typedef enum
@@ -146,8 +147,6 @@ void generate_NAN_INF( T* mat, char uploa, gtint_t m, gtint_t ld, EVT_TYPE type,
  * @param uploa   // upper of lower triangulat matrix
  * @param storage // storage scheme of the matrix
  * @param trans   // is matrix transposed
- * @param from    // starting range for the random values to be inserted in input matrix
- * @param to      // enduing range for the random values to be inserted in input matrix
  * @param m       // m dim of input matrix
  * @param n       // n dim of input matrix
  * @param ld      // leading dimension of the matrix
@@ -155,35 +154,35 @@ void generate_NAN_INF( T* mat, char uploa, gtint_t m, gtint_t ld, EVT_TYPE type,
  * @param is_a    // is input matrix a triangular matrix
  */
 template<typename T>
-void random_generator_with_INF_NAN( T* mat, char uploa, char storage, char trans, double from, double to, gtint_t m,
+void random_generator_with_INF_NAN( T* mat, char uploa, char storage, char trans, gtint_t m,
 gtint_t n, gtint_t ld, EVT_TYPE type = NO_EVT, bool is_a = false )
 {
-    using real_type = typename testinghelpers::type_info<T>::real_type;
-    switch( type )
+    if( type == ZERO )
     {
-        case ZERO:
-            testinghelpers::datagenerators::randomgenerators<T>( 0, 0, storage, m, n, mat, ld);
-            break;
-        case NaN:
-        case INF:
-            testinghelpers::datagenerators::randomgenerators<T>( real_type(from), real_type(to), storage, m, n, mat, ld);
-            generate_NAN_INF(mat, uploa, (std::min)(m, n), ld, type, is_a);
-            break;
-        case DIAG_INF:
-        case DIAG_NaN:
-            testinghelpers::datagenerators::randomgenerators<T>( real_type(from), real_type(to), storage, m, n, mat, ld);
-            generate_NAN_INF(mat, uploa, (std::min)(m, n), ld, type, is_a, true);
-            break;
-        case NaN_INF:
-            testinghelpers::datagenerators::randomgenerators<T>( real_type(from), real_type(to), storage, m, n, mat, ld);
-            generate_NAN_INF(mat, uploa, (std::min)(m, n), ld, type, is_a);
-            generate_NAN_INF(mat, uploa, (std::min)(m, n), ld, INF, is_a);
-            break;
-        case NO_EVT:
-            testinghelpers::datagenerators::randomgenerators<T>( real_type(from), real_type(to), storage, m, n, mat, ld);
-            break;
-        default: ;
+        testinghelpers::set_matrix<T>( storage, m, n, mat, 'n', ld, testinghelpers::ZERO<T>() );
+    } else {
+        get_tiny_pool<T>().set_index(n, m, ld);
+        get_tiny_pool<T>().randomgenerators(storage, m, n, mat, ld);
+        switch( type )
+        {
+            case NaN:
+            case INF:
+                generate_NAN_INF(mat, uploa, (std::min)(m, n), ld, type, is_a);
+                break;
+            case DIAG_INF:
+            case DIAG_NaN:
+                generate_NAN_INF(mat, uploa, (std::min)(m, n), ld, type, is_a, true);
+                break;
+            case NaN_INF:
+                generate_NAN_INF(mat, uploa, (std::min)(m, n), ld, type, is_a);
+                generate_NAN_INF(mat, uploa, (std::min)(m, n), ld, INF, is_a);
+                break;
+            case NO_EVT:
+                break;
+            default: ;
+        }
     }
+    
 }
 
 template<typename T>
@@ -199,21 +198,57 @@ void test_trsm( char storage, char side, char uploa, char transa, char diaga,
     //----------------------------------------------------------
     //        Initialize matrics with random values.
     //----------------------------------------------------------
-    gtint_t lower = (diaga = 'n')||(diaga = 'N') ? 3 : 0;
-    gtint_t upper = (diaga = 'n')||(diaga = 'N') ? 10 : 1;
     std::vector<T> a( testinghelpers::matsize(storage, transa, mn, mn, lda) );
     std::vector<T> b( testinghelpers::matsize(storage, 'n', m, n, ldb) );
     srand(time(0));
-    random_generator_with_INF_NAN( a.data(), uploa, storage, transa, lower, upper, mn, mn, lda, NO_EVT, true);
+    random_generator_with_INF_NAN( a.data(), uploa, storage, transa, mn, mn, lda, NO_EVT, true);
 
-    // Make A matix diagonal dominant to make sure that algorithm doesn't diverge
-    for ( dim_t a_dim = 0; a_dim < mn; ++a_dim )
+    // Make A matrix diagonally dominant with reasonable numerical scaling
+    // Scale off-diagonal elements to [0, 0.1] and set diagonal appropriately
+    for ( dim_t i = 0; i < mn; ++i )
     {
-        a[a_dim + (a_dim* lda)] = a[a_dim + (a_dim* lda)] * T{10};
+        for ( dim_t j = 0; j < mn; ++j )
+        {
+            if (i != j) {
+                // Scale off-diagonal elements down to [0, 0.1]
+                a[i + j*lda] = a[i + j*lda] * T{0.1};
+            }
+        }
+    }
+    
+    // Set diagonal: for each row, ensure |a_ii| >= sum of |a_ij| for j != i
+    for ( dim_t i = 0; i < mn; ++i )
+    {
+        using real_type = typename testinghelpers::type_info<T>::real_type;
+        real_type row_sum = real_type(0);
+        
+        // Compute sum of off-diagonal magnitudes
+        for ( dim_t j = 0; j < mn; ++j )
+        {
+            if (i != j) {
+                T val = a[i + j*lda];
+                if constexpr (testinghelpers::type_info<T>::is_real) {
+                    row_sum += std::abs(val);
+                } else {
+                    row_sum += std::sqrt(val.real*val.real + val.imag*val.imag);
+                }
+            }
+        }
+        
+        // Set diagonal >= row_sum (with small buffer)
+        // For complex, put the value on the real part to ensure magnitude >= row_sum
+        real_type diag_val = row_sum + real_type(0.1);
+        if constexpr (testinghelpers::type_info<T>::is_real) {
+            a[i + i*lda] = a[i + i*lda] + T{diag_val};
+        } else {
+            // For complex, create diagonal element with real part = diag_val, imag part = 0
+            // This ensures |a_ii| = diag_val >= row_sum
+            a[i + i*lda] = a[i + i*lda] + T{diag_val, 0.0};
+        }
     }
 
     if (alpha != testinghelpers::ZERO<T>())
-        random_generator_with_INF_NAN( b.data(), uploa, storage, 'n', 3, 10, m, n, ldb, b_init, false);
+        random_generator_with_INF_NAN( b.data(), uploa, storage, 'n', m, n, ldb, b_init, false);
     else
     {
         // Matrix B should not be read, only set.

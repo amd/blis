@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2025, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -40,6 +40,7 @@
 #include <stdexcept>
 #include <algorithm>
 #include "common/testing_helpers.h"
+#include "inc/data_pool.h"
 
 template<typename T>
 void test_trsv(
@@ -70,11 +71,14 @@ void test_trsv(
 
     // Buffers for A matrix and X vector are always unaligned
     testinghelpers::ProtectedBuffer a(size_a, false, is_memory_test );
-    testinghelpers::datagenerators::randomgenerators<T>( 0, 1, storage, n, n, (T*)(a.greenzone_1), transa, lda );
+    // Set index to a starting position for this test
+    get_tiny_pool<T>().set_index(n, n, lda_inc);
+    get_tiny_pool<T>().randomgenerators( storage, n, n, (T*)(a.greenzone_1), transa, lda );
 
     dim_t size_x = testinghelpers::buff_dim(n, incx) * sizeof(T);
     testinghelpers::ProtectedBuffer x(size_x, false, is_memory_test );
-    testinghelpers::datagenerators::randomgenerators<T>( 1, 3, n, incx, (T*)(x.greenzone_1) );
+    // Index already set in previous call
+    get_tiny_pool<T>().randomgenerators( n, incx, (T*)(x.greenzone_1) );
 
     T* a_ptr = (T*)(a.greenzone_1);
     T* x_ptr = (T*)(x.greenzone_1);

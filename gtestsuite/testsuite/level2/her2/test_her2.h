@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2025, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -39,6 +39,7 @@
 #include "inc/check_error.h"
 #include <stdexcept>
 #include <algorithm>
+#include "inc/data_pool.h"
 
 template<typename T>
 void test_her2( char storage, char uploa, char conjx, char conjy, gtint_t n,
@@ -50,9 +51,11 @@ void test_her2( char storage, char uploa, char conjx, char conjy, gtint_t n,
     //----------------------------------------------------------
     //        Initialize matrics with random integer numbers.
     //----------------------------------------------------------
-    std::vector<T> a = testinghelpers::get_random_matrix<T>( -2, 5, storage, 'n', n, n, lda );
-    std::vector<T> x = testinghelpers::get_random_vector<T>( -3, 3, n, incx );
-    std::vector<T> y = testinghelpers::get_random_vector<T>( -2, 5, n, incy );
+    // Set index to a starting position for this test
+    get_pool<T>().set_index(incx, n, incy);
+    std::vector<T> a = get_pool<T>().get_random_matrix( storage, 'n', n, n, lda );
+    std::vector<T> x = get_pool<T>().get_random_vector( n, incx );
+    std::vector<T> y = get_pool<T>().get_random_vector( n, incy );
 
     testinghelpers::make_herm<T>( storage, uploa, n, a.data(), lda );
     testinghelpers::make_triangular<T>( storage, uploa, n, a.data(), lda );

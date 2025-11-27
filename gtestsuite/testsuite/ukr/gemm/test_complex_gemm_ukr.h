@@ -39,6 +39,7 @@
 #include "inc/check_error.h"
 #include "blis.h"
 #include "common/testing_helpers.h"
+#include "inc/data_pool.h"
 
 /**********************************************************************/
 /************    Code path when memory test is disabled  **************/
@@ -101,9 +102,11 @@ static void test_complex_gemmsup_ukr( char storage, char trnsa, char trnsb, gtin
     T* buf_c    = (T*)buf_c_ptrs.greenzone_1;
     T* buf_cref = (T*)buf_cref_ptrs.greenzone_1;
 
-    testinghelpers::datagenerators::randomgenerators<T>( -2, 8, storage, m, k, (T*)(buf_a), trnsa, lda);
-    testinghelpers::datagenerators::randomgenerators<T>( -5, 2, storage, k, n, (T*)(buf_b), trnsb, ldb);
-    testinghelpers::datagenerators::randomgenerators<T>( -3, 5, storage, m, n, (T*)(buf_c), 'n', ldc);
+    // Set index to a starting position for this test
+    get_pool<T>().set_index(m, n, k);
+    get_pool<T>().randomgenerators( storage, m, k, (T*)(buf_a), trnsa, lda);
+    get_pool<T>().randomgenerators( storage, k, n, (T*)(buf_b), trnsb, ldb);
+    get_pool<T>().randomgenerators( storage, m, n, (T*)(buf_c), 'n', ldc);
 
     // Create a copy of c so that we can check reference results.
     memcpy(buf_cref, buf_c, sizec);
@@ -309,10 +312,12 @@ static void test_gemmnat_ukr( char storage, gtint_t m, gtint_t n, gtint_t k, T a
     T* buf_c    = (T*)buf_c_ptrs.greenzone_1;
     T* buf_cref = (T*)buf_c_ref_ptrs.greenzone_1;
 
+    // Set index to a starting position for this test
+    get_pool<T>().set_index(m, n, k);
     /* Initialize Matrices with random numbers */
-    testinghelpers::datagenerators::randomgenerators<T>( -2, 8, 'c', m, k, (T*)(buf_a), 'n', lda);
-    testinghelpers::datagenerators::randomgenerators<T>( -5, 2, 'r', k, n, (T*)(buf_b), 'n', ldb);
-    testinghelpers::datagenerators::randomgenerators<T>( -5, 2, storage , m, n, (T*)(buf_c), 'n', ldc);
+    get_pool<T>().randomgenerators( 'c', m, k, (T*)(buf_a), 'n', lda);
+    get_pool<T>().randomgenerators( 'r', k, n, (T*)(buf_b), 'n', ldb);
+    get_pool<T>().randomgenerators( storage , m, n, (T*)(buf_c), 'n', ldc);
 
     // Create a copy of c so that we can check reference results.
     memcpy(buf_cref, buf_c, sizec);
@@ -439,9 +444,11 @@ static void test_gemmk1_ukr( FT ukr_fp, gtint_t m, gtint_t n, gtint_t k, char st
         printf("Memory not allocated for input and output Matrix.\n");
         return ;
     }
-    testinghelpers::datagenerators::randomgenerators<T>( -2, 8, storage, m, k, (T*)(buf_a), 'n', lda);
-    testinghelpers::datagenerators::randomgenerators<T>( -5, 2, storage, k, n, (T*)(buf_b), 'n', ldb);
-    testinghelpers::datagenerators::randomgenerators<T>( -3, 5, storage, m, n, (T*)(buf_c), 'n', ldc);
+    // Set index to a starting position for this test
+    get_pool<T>().set_index(m, n, k);
+    get_pool<T>().randomgenerators( storage, m, k, (T*)(buf_a), 'n', lda);
+    get_pool<T>().randomgenerators( storage, k, n, (T*)(buf_b), 'n', ldb);
+    get_pool<T>().randomgenerators( storage, m, n, (T*)(buf_c), 'n', ldc);
 
     // Create a copy of c so that we can check reference results.
     memcpy(buf_cref, buf_c, sizec);

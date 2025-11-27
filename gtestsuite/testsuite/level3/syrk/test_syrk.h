@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2025, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -39,6 +39,7 @@
 #include "inc/check_error.h"
 #include <stdexcept>
 #include <algorithm>
+#include "inc/data_pool.h"
 
 template<typename T>
 void test_syrk( char storage, char uplo, char transa, gtint_t n, gtint_t k,
@@ -51,13 +52,15 @@ void test_syrk( char storage, char uplo, char transa, gtint_t n, gtint_t k,
     //----------------------------------------------------------
     //        Initialize matrics with random integer numbers.
     //----------------------------------------------------------
-    std::vector<T> a = testinghelpers::get_random_matrix<T>( -2, 8, storage, transa, n, k, lda );
+    // Set index to a starting position for this test
+    get_pool<T>().set_index(n, k, lda_inc);
+    std::vector<T> a = get_pool<T>().get_random_matrix( storage, transa, n, k, lda );
     std::vector<T> c( testinghelpers::matsize( storage, 'n', n, n, ldc ) );
     if (beta != testinghelpers::ZERO<T>())
         // Since matrix C, stored in c, is symmetric, we only use the upper or lower
         // part in the computation of syrk and zero-out the rest to ensure
         // that code operates as expected.
-        testinghelpers::datagenerators::randomgenerators<T>( -3, 5, storage, uplo, n, c.data(), ldc );
+        get_pool<T>().randomgenerators( storage, uplo, n, c.data(), ldc );
     else
     {
         // Matrix C should not be read, only set.

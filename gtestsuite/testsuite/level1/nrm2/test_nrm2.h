@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2025, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -38,6 +38,7 @@
 #include <limits>
 #include "util/ref_nrm2.h"
 #include "inc/check_error.h"
+#include "inc/data_pool.h"
 
 // Used for generic tests with random values in x.
 template<typename T>
@@ -48,7 +49,9 @@ void test_nrm2( gtint_t n, gtint_t incx, double thresh )
     //----------------------------------------------------------
     //        Initialize vectors with random numbers.
     //----------------------------------------------------------
-    std::vector<T> x = testinghelpers::get_random_vector<T>( -10, -10, n, incx );
+    // Set index based on n and incx to get varied data
+    get_pool<T>().set_index(n, incx);
+    std::vector<T> x = get_pool<T>().get_random_vector(n, incx);
 
     //----------------------------------------------------------
     //    Call reference implementation to get ref results.
@@ -78,7 +81,8 @@ void test_nrm2( gtint_t n, gtint_t incx, gtint_t i, T iexval, gtint_t j = 0, T j
     //----------------------------------------------------------
     //        Initialize vectors with random numbers.
     //----------------------------------------------------------
-    std::vector<T> x = testinghelpers::get_random_vector<T>(-10, 10, n, incx);
+    get_pool<T>().set_index(n, incx);
+    std::vector<T> x = get_pool<T>().get_random_vector(n, incx);
     // Initialize ith element of vector x to iexval.
     x[i*std::abs(incx)] = iexval;
     // Initialize jth element of vector x to jexval.
