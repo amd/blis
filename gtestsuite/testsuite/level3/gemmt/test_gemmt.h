@@ -54,7 +54,7 @@ void test_gemmt( char storage, char uploc, char transa, char transb, gtint_t n,
     gtint_t ldc = testinghelpers::get_leading_dimension( storage, 'n', n, n, ldc_inc );
 
     //----------------------------------------------------------
-    //         Initialize matrics with random numbers
+    //         Initialize matrices with random numbers
     //----------------------------------------------------------
     T *a_ptr, *b_ptr, *c_ptr;
     dim_t size_a = testinghelpers::matsize(storage, transa, n, k, lda) * sizeof(T);

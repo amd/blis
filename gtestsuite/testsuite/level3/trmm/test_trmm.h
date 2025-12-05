@@ -51,7 +51,7 @@ void test_trmm( char storage, char side, char uploa, char transa, char diaga,
     gtint_t ldb = testinghelpers::get_leading_dimension( storage, 'n', m, n, ldb_inc );
 
     //----------------------------------------------------------
-    //        Initialize matrics with random values.
+    //        Initialize matrices with random values.
     //----------------------------------------------------------
     // Set index to a starting position for this test
     get_pool<T>().set_index(m, n, ldb_inc);

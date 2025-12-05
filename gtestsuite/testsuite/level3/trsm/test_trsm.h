@@ -196,7 +196,7 @@ void test_trsm( char storage, char side, char uploa, char transa, char diaga,
     gtint_t ldb = testinghelpers::get_leading_dimension( storage, 'n', m, n, ldb_inc );
 
     //----------------------------------------------------------
-    //        Initialize matrics with random values.
+    //        Initialize matrices with random values.
     //----------------------------------------------------------
     std::vector<T> a( testinghelpers::matsize(storage, transa, mn, mn, lda) );
     std::vector<T> b( testinghelpers::matsize(storage, 'n', m, n, ldb) );

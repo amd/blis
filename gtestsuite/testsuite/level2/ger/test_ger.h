@@ -49,7 +49,7 @@ void test_ger( char storage, char conjx, char conjy, gtint_t m, gtint_t n,
     gtint_t lda = testinghelpers::get_leading_dimension( storage, 'n', m, n, lda_inc );
 
     //----------------------------------------------------------
-    //        Initialize matrics with random integer numbers.
+    //        Initialize matrices with random integer numbers.
     //----------------------------------------------------------
     // Set index to a starting position for this test
     get_pool<T>().set_index(m, n, incx);
@@ -92,7 +92,7 @@ void test_ger( char storage, char conjx, char conjy, gtint_t m, gtint_t n,
     gtint_t lda = testinghelpers::get_leading_dimension( storage, 'n', m, n, lda_inc );
 
     //----------------------------------------------------------
-    //        Initialize matrics with random integer numbers.
+    //        Initialize matrices with random integer numbers.
     //----------------------------------------------------------
     // Set index to a starting position for this test
     get_pool<T>().set_index(n, incy, m);

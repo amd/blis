@@ -48,7 +48,7 @@ void test_symv( char storage, char uploa, char conja, char conjx, gtint_t n,
     gtint_t lda = testinghelpers::get_leading_dimension( storage, 'n', n, n, lda_inc );
 
     //----------------------------------------------------------
-    //        Initialize matrics with random integer numbers.
+    //        Initialize matrices with random integer numbers.
     //----------------------------------------------------------
     std::vector<T> a = testinghelpers::get_random_matrix<T>( -2, 5, storage, 'n', n, n, lda );
     testinghelpers::make_symm<T>( storage, uploa, n, a.data(), lda );

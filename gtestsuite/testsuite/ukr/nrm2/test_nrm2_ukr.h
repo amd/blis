@@ -36,7 +36,7 @@
 
 #include "level1/nrm2/nrm2.h"
 #include <limits>
-#include "util/ref_nrm2.h"
+#include "level1/ref_nrm2.h"
 #include "inc/check_error.h"
 
 // Defining the function pointer type for ?norm2fv vectorized kernels

@@ -54,7 +54,7 @@ void test_hemm( char storage, char side, char uplo, char conja, char transb,
     gtint_t ldc = testinghelpers::get_leading_dimension( storage, 'n', m, n, ldc_inc );
 
     //----------------------------------------------------------
-    //        Initialize matrics with random integer numbers.
+    //        Initialize matrices with random integer numbers.
     //----------------------------------------------------------
     // Set index to a starting position for this test
     get_pool<T>().set_index(m, n, ldc_inc);

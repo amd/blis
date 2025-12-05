@@ -77,7 +77,7 @@ TYPED_TEST(syr2_IIT_ERS, invalid_storage)
     // Copy so that we check that the elements of C are not modified.
     std::vector<T> a_ref(a);
 
-    // Call BLIS syr2 with a invalid value for TRANS value for A.
+    // Call BLIS syr2 with a invalid value for storage.
     syr2<T>( 'x', UPLO, CONJ, CONJ, N, &alpha, x.data(), incx, y.data(), incy, a.data(), LDA );
     // Use bitwise comparison (no threshold).
     computediff<T>( "C", STORAGE, N, N, a.data(), a_ref.data(), LDA);
@@ -137,7 +137,7 @@ TYPED_TEST(syr2_IIT_ERS, invalid_uplo)
     // Copy so that we check that the elements of C are not modified.
     std::vector<T> a_ref(a);
 
-    // Call BLIS syr2 with a invalid value for TRANS value for A.
+    // Call BLIS syr2 with a invalid value for uplo.
     syr2<T>( STORAGE, 'p', CONJ, CONJ, N, &alpha, x.data(), incx, y.data(), incy, a.data(), LDA );
     // Use bitwise comparison (no threshold).
     computediff<T>( "C", STORAGE, N, N, a.data(), a_ref.data(), LDA);
@@ -181,7 +181,7 @@ TYPED_TEST(syr2_IIT_ERS, n_lt_zero)
     // Copy so that we check that the elements of C are not modified.
     std::vector<T> a_ref(a);
 
-    // Call BLIS syr2 with a invalid value for m.
+    // Call BLIS syr2 with a invalid value for n.
     syr2<T>( STORAGE, UPLO, CONJ, CONJ, -1, &alpha, x.data(), incx, y.data(), incy, a.data(), LDA );
     // Use bitwise comparison (no threshold).
     computediff<T>( "C", STORAGE, N, N, a.data(), a_ref.data(), LDA);
@@ -225,7 +225,7 @@ TYPED_TEST(syr2_IIT_ERS, incx_eq_zero)
     // Copy so that we check that the elements of C are not modified.
     std::vector<T> a_ref(a);
 
-    // Call BLIS syr2 with a invalid value for lda.
+    // Call BLIS syr2 with a invalid value for incx.
     syr2<T>( STORAGE, UPLO, CONJ, CONJ, N, &alpha, x.data(), 0, y.data(), incy, a.data(), LDA );
     // Use bitwise comparison (no threshold).
     computediff<T>( "C", STORAGE, N, N, a.data(), a_ref.data(), LDA);
@@ -269,7 +269,7 @@ TYPED_TEST(syr2_IIT_ERS, incy_eq_zero)
     // Copy so that we check that the elements of C are not modified.
     std::vector<T> a_ref(a);
 
-    // Call BLIS syr2 with a invalid value for lda.
+    // Call BLIS syr2 with a invalid value for incy.
     syr2<T>( STORAGE, UPLO, CONJ, CONJ, N, &alpha, x.data(), incx, y.data(), 0, a.data(), LDA );
     // Use bitwise comparison (no threshold).
     computediff<T>( "C", STORAGE, N, N, a.data(), a_ref.data(), LDA);

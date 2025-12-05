@@ -55,7 +55,7 @@ void test_gemm_compute( char storage, char trnsa, char trnsb, char pcka, char pc
     gtint_t ldc = testinghelpers::get_leading_dimension( storage, 'n', m, n, ldc_inc );
 
     //----------------------------------------------------------
-    //         Initialize matrics with random numbers
+    //         Initialize matrices with random numbers
     //----------------------------------------------------------
     // Set index to a starting position for this test
     get_pool<T>().set_index(m, n, k);

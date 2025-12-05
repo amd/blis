@@ -52,7 +52,7 @@ void test_her2k( char storage, char uplo, char transa, char transb,
     gtint_t ldc = testinghelpers::get_leading_dimension( storage, 'n', n, n, ldc_inc );
 
     //----------------------------------------------------------
-    //         Initialize matrics with random numbers
+    //         Initialize matrices with random numbers
     //----------------------------------------------------------
     // Set index to a starting position for this test
     get_pool<T>().set_index(n, k, ldb_inc);

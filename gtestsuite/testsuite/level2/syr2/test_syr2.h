@@ -49,7 +49,7 @@ void test_syr2( char storage, char uploa, char conjx, char conjy, gtint_t n,
     gtint_t lda = testinghelpers::get_leading_dimension( storage, 'n', n, n, lda_inc );
 
     //----------------------------------------------------------
-    //        Initialize matrics with random integer numbers.
+    //        Initialize matrices with random integer numbers.
     //----------------------------------------------------------
     // Set index to a starting position for this test
     get_pool<T>().set_index(incx, n, incy);

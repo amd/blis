@@ -36,7 +36,7 @@
 
 #include "nrm2.h"
 #include <limits>
-#include "util/ref_nrm2.h"
+#include "level1/ref_nrm2.h"
 #include "inc/check_error.h"
 #include "inc/data_pool.h"
 

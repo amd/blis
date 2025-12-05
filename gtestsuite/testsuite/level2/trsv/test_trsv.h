@@ -64,7 +64,7 @@ void test_trsv(
     gtint_t lda = testinghelpers::get_leading_dimension( storage, transa, n, n, lda_inc );
 
     //----------------------------------------------------------
-    //        Initialize matrics with random integer numbers.
+    //        Initialize matrices with random integer numbers.
     //----------------------------------------------------------
 
     dim_t size_a = testinghelpers::matsize(storage, transa, n, n, lda) * sizeof(T);
@@ -83,7 +83,7 @@ void test_trsv(
     T* a_ptr = (T*)(a.greenzone_1);
     T* x_ptr = (T*)(x.greenzone_1);
 
-    // Make A matix diagonal dominant to make sure that algorithm doesn't diverge
+    // Make A matrix diagonally dominant to make sure that algorithm doesn't diverge
     // This makes sure that the TRSV problem is solvable
     for ( dim_t a_dim = 0; a_dim < n; ++a_dim )
     {
@@ -107,7 +107,7 @@ void test_trsv(
 
     // skipped making A triangular
     // A matrix being a non triangular matrix could be a better test
-    // because we are exepcted to read only from the upper or lower triangular
+    // because we are expected to read only from the upper or lower triangular
     // part of the data, contents of the rest of the matrix should not change the
     // result.
     // testinghelpers::make_triangular<T>( storage, uploa, n, a_ptr, lda );

@@ -77,7 +77,7 @@ TYPED_TEST(her_IIT_ERS, invalid_storage)
     // Copy so that we check that the elements of C are not modified.
     std::vector<T> a_ref(a);
 
-    // Call BLIS her with a invalid value for TRANS value for A.
+    // Call BLIS her with a invalid value for storage.
     her<T>( 'x', UPLO, CONJ, N, &alpha, x.data(), incx, a.data(), LDA );
     // Use bitwise comparison (no threshold).
     computediff<T>( "C", STORAGE, N, N, a.data(), a_ref.data(), LDA);
@@ -99,8 +99,7 @@ TYPED_TEST(her_IIT_ERS, invalid_storage)
     1. When UPLO != 'U' || UPLO != 'L' (info = 1)
     2. When n < 0 (info = 2)
     3. When incx = 0 (info = 5)
-    4. When incy = 0 (info = 7)
-    5. When LDA < max(1, n) (info = 9)
+    4. When LDA < max(1, n) (info = 7)
 
 */
 
@@ -136,7 +135,7 @@ TYPED_TEST(her_IIT_ERS, invalid_uplo)
     // Copy so that we check that the elements of C are not modified.
     std::vector<T> a_ref(a);
 
-    // Call BLIS her with a invalid value for TRANS value for A.
+    // Call BLIS her with a invalid value for uplo.
     her<T>( STORAGE, 'p', CONJ, N, &alpha, x.data(), incx, a.data(), LDA );
     // Use bitwise comparison (no threshold).
     computediff<T>( "C", STORAGE, N, N, a.data(), a_ref.data(), LDA);
@@ -179,7 +178,7 @@ TYPED_TEST(her_IIT_ERS, n_lt_zero)
     // Copy so that we check that the elements of C are not modified.
     std::vector<T> a_ref(a);
 
-    // Call BLIS her with a invalid value for m.
+    // Call BLIS her with a invalid value for n.
     her<T>( STORAGE, UPLO, CONJ, -1, &alpha, x.data(), incx, a.data(), LDA );
     // Use bitwise comparison (no threshold).
     computediff<T>( "C", STORAGE, N, N, a.data(), a_ref.data(), LDA);
@@ -222,7 +221,7 @@ TYPED_TEST(her_IIT_ERS, incx_eq_zero)
     // Copy so that we check that the elements of C are not modified.
     std::vector<T> a_ref(a);
 
-    // Call BLIS her with a invalid value for lda.
+    // Call BLIS her with a invalid value for incx.
     her<T>( STORAGE, UPLO, CONJ, N, &alpha, x.data(), 0, a.data(), LDA );
     // Use bitwise comparison (no threshold).
     computediff<T>( "C", STORAGE, N, N, a.data(), a_ref.data(), LDA);

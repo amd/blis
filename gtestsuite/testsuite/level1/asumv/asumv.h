@@ -61,7 +61,7 @@ static RT asumv_(gtint_t n, T* x, gtint_t incx){
     else if constexpr (std::is_same<T, dcomplex>::value)
         return dzasum_( &n, x, &incx );
     else
-      throw std::runtime_error("Error in testsuite/util/asumv.h: Invalid typename in asumv_().");
+      throw std::runtime_error("Error in testsuite/level1/asumv.h: Invalid typename in asumv_().");
 }
 
 template<typename T, typename RT = typename testinghelpers::type_info<T>::real_type>
@@ -75,7 +75,7 @@ static RT asumv_blis_impl(gtint_t n, T* x, gtint_t incx){
     else if constexpr (std::is_same<T, dcomplex>::value)
         return dzasum_blis_impl( &n, x, &incx );
     else
-      throw std::runtime_error("Error in testsuite/util/asumv.h: Invalid typename in asumv_blis_impl().");
+      throw std::runtime_error("Error in testsuite/level1/asumv.h: Invalid typename in asumv_blis_impl().");
 }
 
 template<typename T, typename RT = typename testinghelpers::type_info<T>::real_type>
@@ -89,7 +89,7 @@ static RT cblas_asumv(gtint_t n, T* x, gtint_t incx){
     else if constexpr (std::is_same<T, dcomplex>::value)
         return cblas_dzasum( n, x, incx );
     else
-      throw std::runtime_error("Error in testsuite/util/asumv.h: Invalid typename in cblas_asumv().");
+      throw std::runtime_error("Error in testsuite/level1/asumv.h: Invalid typename in cblas_asumv().");
 }
 
 template<typename T, typename RT = typename testinghelpers::type_info<T>::real_type>
@@ -104,7 +104,7 @@ static RT typed_asumv(gtint_t n, T* x, gtint_t incx){
     else if constexpr (std::is_same<T, dcomplex>::value)
         bli_zasumv(n, x, incx, &asum);
     else
-      throw std::runtime_error("Error in testsuite/util/asumv.h: Invalid typename in cblas_asumv().");
+      throw std::runtime_error("Error in testsuite/level1/asumv.h: Invalid typename in cblas_asumv().");
     return asum;
 }
 
@@ -136,7 +136,7 @@ static RT asumv(gtint_t n, T* x, gtint_t incx)
 #elif TEST_BLIS_TYPED
     return typed_asumv<T>(n, x, incx);
 #else
-    throw std::runtime_error("Error in testsuite/util/asumv.h: No interfaces are set to be tested.");
+    throw std::runtime_error("Error in testsuite/level1/asumv.h: No interfaces are set to be tested.");
 #endif
 
 #ifdef TEST_INPUT_ARGS

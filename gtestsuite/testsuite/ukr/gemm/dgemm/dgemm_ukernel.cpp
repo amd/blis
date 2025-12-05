@@ -842,7 +842,7 @@ TEST_P( dgemmGenericSmall, gemm_small)
     else
     {
         //----------------------------------------------------------
-        //         Initialize matrics with random numbers
+        //         Initialize matrices with random numbers
         //----------------------------------------------------------
         std::vector<T> a = testinghelpers::get_random_matrix<T>( -2, 8, storageC, 'n', m, k, lda );
         std::vector<T> b = testinghelpers::get_random_matrix<T>( -5, 2, storageC, 'n', k, n, ldb );

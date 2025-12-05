@@ -148,11 +148,11 @@ static void test_trsm_ukr( FT ukr_fp, char storage, char uploa, char diaga,
         }
     }
 
-    // Make A11 diagonal dominant in order to make sure that
-    // input matrics are solvable
+    // Make A11 diagonally dominant in order to make sure that
+    // input matrices are solvable
     // In case BLIS_ENABLE_TRSM_PREINVERSION is enabled,
     // diagonal elements of A11 have to be inverted twice,
-    // once for making it diagonal dominant, and once for packing with
+    // once for making it diagonally dominant, and once for packing with
     // inversion, inverting it twice is equivalent to not inverting it at all.
     // Therefore, in case of BLIS_ENABLE_TRSM_PREINVERSION, diagonal elements
     // of A11 are not inverted.
@@ -366,8 +366,8 @@ static void test_trsm_small_ukr( FT ukr_fp, char side, char uploa, char diaga,
     // make A triangular
     testinghelpers::make_triangular<T>( 'c', uploa, mn0_a, a, cs_a );
 
-    // Make A11 diagonal dominant in order to make sure that
-    // input matrics are solvable
+    // Make A11 diagonally dominant in order to make sure that
+    // input matrices are solvable
     for (gtint_t i = 0; i < mn0_a; i++)
     {
         a[i+i*cs_a] = T{1} / a[i+i*cs_a];

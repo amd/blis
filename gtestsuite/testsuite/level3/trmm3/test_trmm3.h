@@ -52,7 +52,7 @@ void test_trmm3( char storage, char side, char uploa, char transa, char diaga,
     gtint_t ldc = testinghelpers::get_leading_dimension( storage, 'n', m, n, ldc_inc );
 
     //----------------------------------------------------------
-    //        Initialize matrics with random values.
+    //        Initialize matrices with random values.
     //----------------------------------------------------------
     std::vector<T> a = testinghelpers::get_random_matrix<T>( -2, 8, storage, transa, mn, mn, lda );
     std::vector<T> b = testinghelpers::get_random_matrix<T>( -5, 2, storage, transb, m, n, ldb );

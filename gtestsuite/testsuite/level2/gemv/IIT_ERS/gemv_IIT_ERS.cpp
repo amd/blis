@@ -73,7 +73,7 @@ TYPED_TEST(gemv_IIT_ERS, invalid_storage)
     // Test with all arguments correct except for the value we are choosing to test.
 
     //----------------------------------------------------------
-    //        Initialize matrics with random integer numbers.
+    //        Initialize matrices with random integer numbers.
     //----------------------------------------------------------
     std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, TRANS, M, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 1, 3, N, incx );
@@ -141,7 +141,7 @@ TYPED_TEST(gemv_IIT_ERS, invalid_trans)
     // Test with all arguments correct except for the value we are choosing to test.
 
     //----------------------------------------------------------
-    //        Initialize matrics with random integer numbers.
+    //        Initialize matrices with random integer numbers.
     //----------------------------------------------------------
     std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, TRANS, M, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 1, 3, N, incx );
@@ -193,7 +193,7 @@ TYPED_TEST(gemv_IIT_ERS, m_lt_zero)
     // Test with all arguments correct except for the value we are choosing to test.
 
     //----------------------------------------------------------
-    //        Initialize matrics with random integer numbers.
+    //        Initialize matrices with random integer numbers.
     //----------------------------------------------------------
     std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, TRANS, M, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 1, 3, N, incx );
@@ -245,7 +245,7 @@ TYPED_TEST(gemv_IIT_ERS, n_lt_zero)
     // Test with all arguments correct except for the value we are choosing to test.
 
     //----------------------------------------------------------
-    //        Initialize matrics with random integer numbers.
+    //        Initialize matrices with random integer numbers.
     //----------------------------------------------------------
     std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, TRANS, M, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 1, 3, N, incx );
@@ -297,7 +297,7 @@ TYPED_TEST(gemv_IIT_ERS, invalid_lda)
     // Test with all arguments correct except for the value we are choosing to test.
 
     //----------------------------------------------------------
-    //        Initialize matrics with random integer numbers.
+    //        Initialize matrices with random integer numbers.
     //----------------------------------------------------------
     std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, TRANS, M, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 1, 3, N, incx );
@@ -349,7 +349,7 @@ TYPED_TEST(gemv_IIT_ERS, incx_eq_zero)
     // Test with all arguments correct except for the value we are choosing to test.
 
     //----------------------------------------------------------
-    //        Initialize matrics with random integer numbers.
+    //        Initialize matrices with random integer numbers.
     //----------------------------------------------------------
     std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, TRANS, M, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 1, 3, N, incx );
@@ -401,7 +401,7 @@ TYPED_TEST(gemv_IIT_ERS, incy_eq_zero)
     // Test with all arguments correct except for the value we are choosing to test.
 
     //----------------------------------------------------------
-    //        Initialize matrics with random integer numbers.
+    //        Initialize matrices with random integer numbers.
     //----------------------------------------------------------
     std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, TRANS, M, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 1, 3, N, incx );
@@ -462,7 +462,7 @@ TYPED_TEST(gemv_IIT_ERS, m_eq_zero)
     // Test with all arguments correct except for the value we are choosing to test.
 
     //----------------------------------------------------------
-    //        Initialize matrics with random integer numbers.
+    //        Initialize matrices with random integer numbers.
     //----------------------------------------------------------
     std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, TRANS, M, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 1, 3, N, incx );
@@ -514,7 +514,7 @@ TYPED_TEST(gemv_IIT_ERS, n_eq_zero)
     // Test with all arguments correct except for the value we are choosing to test.
 
     //----------------------------------------------------------
-    //        Initialize matrics with random integer numbers.
+    //        Initialize matrices with random integer numbers.
     //----------------------------------------------------------
     std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, TRANS, M, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 1, 3, N, incx );
@@ -567,7 +567,7 @@ TYPED_TEST(gemv_IIT_ERS, m_eq_zero_Unitbeta)
     // Test with all arguments correct except for the value we are choosing to test.
 
     //----------------------------------------------------------
-    //        Initialize matrics with random integer numbers.
+    //        Initialize matrices with random integer numbers.
     //----------------------------------------------------------
     std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, TRANS, M, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 1, 3, N, incx );
@@ -615,7 +615,7 @@ TYPED_TEST(gemv_IIT_ERS, n_eq_zero_UnitAlphaBeta)
     // Test with all arguments correct except for the value we are choosing to test.
 
     //----------------------------------------------------------
-    //        Initialize matrics with random integer numbers.
+    //        Initialize matrices with random integer numbers.
     //----------------------------------------------------------
     std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, TRANS, M, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 1, 3, N, incx );
@@ -662,7 +662,7 @@ TYPED_TEST(gemv_IIT_ERS, ZeroAlpha_UnitBeta)
     // Test with all arguments correct except for the value we are choosing to test.
 
     //----------------------------------------------------------
-    //        Initialize matrics with random integer numbers.
+    //        Initialize matrices with random integer numbers.
     //----------------------------------------------------------
     std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, TRANS, M, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 1, 3, N, incx );
@@ -718,7 +718,7 @@ TYPED_TEST(gemv_IIT_ERS, ZeroAlpha_ZeroBeta)
     // Test with all arguments correct except for the value we are choosing to test.
 
     //----------------------------------------------------------
-    //        Initialize matrics with random integer numbers.
+    //        Initialize matrices with random integer numbers.
     //----------------------------------------------------------
     std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, TRANS, M, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 0, 1, M, incx );
@@ -753,7 +753,7 @@ TYPED_TEST(gemv_IIT_ERS, ZeroAlpha_OtherBeta)
     double thresh = testinghelpers::getEpsilon<T>();
 
     //----------------------------------------------------------
-    //        Initialize matrics with random integer numbers.
+    //        Initialize matrices with random integer numbers.
     //----------------------------------------------------------
     std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, TRANS, M, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 0, 1, M, incx );
