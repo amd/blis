@@ -9,14 +9,14 @@
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
    met:
-	- Redistributions of source code must retain the above copyright
-	  notice, this list of conditions and the following disclaimer.
-	- Redistributions in binary form must reproduce the above copyright
-	  notice, this list of conditions and the following disclaimer in the
-	  documentation and/or other materials provided with the distribution.
-	- Neither the name(s) of the copyright holder(s) nor the names of its
-	  contributors may be used to endorse or promote products derived
-	  from this software without specific prior written permission.
+    - Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+    - Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
+      documentation and/or other materials provided with the distribution.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -584,10 +584,43 @@ void unpackb_nr64_bf16_f32_row_major
 
 }
 
+void
+unpackb_nr64_bf16_f32_gemv(const bfloat16* b,
+						float*          unpack_b_buffer,
+						const dim_t      KC)
+{
+	/* For true GEMV (N=1 reordered matrices): contiguous storage
+		In the N=1 case, the reordered matrix is stored contiguously,
+		so we just need to convert bf16 to f32 without unpacking. */
+	__m256  a_reg;
+	dim_t    k0 = 0;
+	__m256i store_mask;
+
+	// Process 8 elements at a time
+	for (; (k0 + 8) < KC; k0 += 8) {
+		a_reg = CVT_BF16_F32_SHIFT_AVX2(
+			(__m128i)_mm_loadu_si128((const __m128i*)((b + k0))));
+		_mm256_storeu_ps((unpack_b_buffer + k0), a_reg);
+	}
+
+	// Handle remaining elements (< 8)
+	dim_t k_left = (KC - k0);
+	if (k_left > 0) {
+		bfloat16 buff[8] = { 0 };
+		for (int i = 0; i < k_left; i++)
+			buff[i] = (*(b + (k0 + i)));
+
+		a_reg = CVT_BF16_F32_SHIFT_AVX2(
+			(__m128i)_mm_loadu_si128((const __m128i*)(buff)));
+		GET_STORE_MASK(k_left, store_mask);
+		_mm256_maskstore_ps((unpack_b_buffer + k0), store_mask, a_reg);
+	}
+}
+
 void unpackb_nr64_bf16_f32
 	(
 	  const bfloat16* b,
-	  float*       unpack_b_buffer,
+	  float*       	  unpack_b_buffer,
 	  const dim_t	  KC,
 	  const dim_t     NC,
 	  dim_t           rs_b,

@@ -668,6 +668,13 @@ typedef enum
 
 #define BLIS_NUM_LEVEL1F_KERS 5
 
+typedef enum
+{
+	BLIS_GEMV_KER = 0,
+	BLIS_TRSV_KER
+} l2kr_t;
+
+#define BLIS_NUM_LEVEL2_KERS 2
 
 typedef enum
 {
@@ -1036,7 +1043,9 @@ typedef enum
 typedef struct
 {
     void* ukr_fp;            // Generic function pointer for tiny(SUP) kernels
+    void* pack_fp;           // Generic function pointer for packing kernels
     bool stor_pref;          // Storage preference of the kernel
+    bool enable_pack;        // Enabling/Disabling packing of the load matrix
     dim_t MR;                // Blocking dimension MR
     dim_t NR;                // Blocking dimension NR
 } gemmtiny_ukr_info_t;
@@ -1530,11 +1539,21 @@ typedef struct cntx_s
 
 
 // -- Runtime type --
+#define BLIS_ALIGN 64
 
+#if defined(_WIN32)
+   #if defined(__clang__)
+       #define BLIS_ATTRIB_ALIGN __attribute__((aligned(BLIS_ALIGN)))
+   #else
+       #define BLIS_ATTRIB_ALIGN
+   #endif
+#else
+   #define BLIS_ATTRIB_ALIGN __attribute__((aligned(BLIS_ALIGN)))
+#endif
 // NOTE: The order of these fields must be kept consistent with the definition
 // of the BLIS_RNTM_INITIALIZER macro in bli_rntm.h.
 
-typedef struct __attribute__((aligned(64))) rntm_s
+typedef struct BLIS_ATTRIB_ALIGN rntm_s
 {
 	// "External" fields: these may be queried by the end-user.
 	bool      auto_factor;

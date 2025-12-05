@@ -44,10 +44,10 @@
 // function bli_dynamic_blkszs_zen5
 #define BLI_CNTX_DEFAULT_BLKSZ_LIST_TURIN(blkszs) \
 	/*                                           s      d      c      z */  \
-	bli_blksz_init_easy( &blkszs[ BLIS_MR ],    32,     8,     3,    12 );  \
-	bli_blksz_init_easy( &blkszs[ BLIS_NR ],    12,    24,     8,     4 );  \
+	bli_blksz_init_easy( &blkszs[ BLIS_MR ],    32,     8,    24,    12 );  \
+	bli_blksz_init_easy( &blkszs[ BLIS_NR ],    12,    24,     4,     4 );  \
 	bli_blksz_init_easy( &blkszs[ BLIS_MC ],   512,    80,   144,    60 );  \
-	bli_blksz_init_easy( &blkszs[ BLIS_KC ],   480,   384,   256,   512 );  \
+	bli_blksz_init_easy( &blkszs[ BLIS_KC ],   480,   384,   512,   512 );  \
 	bli_blksz_init_easy( &blkszs[ BLIS_NC ],  6144,  4032,  4080,  2004 );  \
 	                                                                        \
 	bli_blksz_init_easy( &blkszs[ BLIS_AF ],     5,     5,    -1,    -1 );  \
@@ -56,10 +56,10 @@
 /* Blocksizes for double(d) datetype are tuned for Turin, rest are copied from Bergamo */
 #define BLI_CNTX_DEFAULT_BLKSZ_LIST_TURIN_DENSE(blkszs) \
 	/*                                           s      d      c      z */  \
-	bli_blksz_init_easy( &blkszs[ BLIS_MR ],    32,     8,     3,    12 );  \
-	bli_blksz_init_easy( &blkszs[ BLIS_NR ],    12,    24,     8,     4 );  \
+	bli_blksz_init_easy( &blkszs[ BLIS_MR ],    32,     8,    24,    12 );  \
+	bli_blksz_init_easy( &blkszs[ BLIS_NR ],    12,    24,     4,     4 );  \
 	bli_blksz_init_easy( &blkszs[ BLIS_MC ],   512,    88,   144,    60 );  \
-	bli_blksz_init_easy( &blkszs[ BLIS_KC ],   480,   384,   256,   512 );  \
+	bli_blksz_init_easy( &blkszs[ BLIS_KC ],   480,   384,   512,   512 );  \
 	bli_blksz_init_easy( &blkszs[ BLIS_NC ],  6144,  4032,  4080,  2004 );  \
 	                                                                        \
 	bli_blksz_init_easy( &blkszs[ BLIS_AF ],     5,     5,    -1,    -1 );  \
@@ -79,17 +79,18 @@ void bli_cntx_init_zen5( cntx_t* cntx )
 	// their storage preferences.
 	bli_cntx_set_l3_nat_ukrs
 	(
-	  13,
+	  14,
 	  // gemm
 	  BLIS_GEMM_UKR,       BLIS_FLOAT,    bli_sgemm_skx_asm_32x12_l2,   FALSE,
-	  BLIS_GEMM_UKR,       BLIS_DOUBLE,   bli_dgemm_avx512_asm_8x24,    TRUE,
-	  BLIS_GEMM_UKR,       BLIS_SCOMPLEX, bli_cgemm_haswell_asm_3x8,    TRUE,
+	  BLIS_GEMM_UKR,       BLIS_DOUBLE,   bli_dgemm_zen4_asm_8x24,      TRUE,
+	  BLIS_GEMM_UKR,       BLIS_SCOMPLEX, bli_cgemm_zen4_asm_24x4,      FALSE,
 	  /*bli_zgemm_zen4_asm_12x4 is a column preferred kernel*/
 	  BLIS_GEMM_UKR,       BLIS_DCOMPLEX, bli_zgemm_zen4_asm_12x4,      FALSE,
 
 	  // Different  GEMM kernels are used for TRSM for zen4 architecture
 	  BLIS_GEMM_FOR_TRSM_UKR,       BLIS_FLOAT,    bli_sgemm_haswell_asm_6x16,  TRUE,
-	  BLIS_GEMM_FOR_TRSM_UKR,       BLIS_DOUBLE,   bli_dgemm_avx512_asm_8x24,   TRUE,
+	  BLIS_GEMM_FOR_TRSM_UKR,       BLIS_DOUBLE,   bli_dgemm_zen4_asm_8x24,     TRUE,
+	  BLIS_GEMM_FOR_TRSM_UKR,       BLIS_SCOMPLEX, bli_cgemm_haswell_asm_3x8,   TRUE,
 	  BLIS_GEMM_FOR_TRSM_UKR,       BLIS_DCOMPLEX, bli_zgemm_zen4_asm_4x12,     TRUE,
 
 	  // gemmtrsm_l
@@ -119,13 +120,15 @@ void bli_cntx_init_zen5( cntx_t* cntx )
 	// Update the context with optimized packm kernels.
 	bli_cntx_set_packm_kers
 	(
-	  11,
+	  13,
 	  BLIS_PACKM_6XK_KER,  BLIS_FLOAT,    bli_spackm_haswell_asm_6xk,
 	  BLIS_PACKM_16XK_KER, BLIS_FLOAT,    bli_spackm_haswell_asm_16xk,
 	  BLIS_PACKM_6XK_KER,  BLIS_DOUBLE,   bli_dpackm_haswell_asm_6xk,
 	  BLIS_PACKM_8XK_KER,  BLIS_DOUBLE,   bli_dpackm_zen4_asm_8xk,
 	  BLIS_PACKM_24XK_KER, BLIS_DOUBLE,   bli_dpackm_zen4_asm_24xk,
 	  BLIS_PACKM_32XK_KER, BLIS_DOUBLE,   bli_dpackm_zen4_asm_32xk,
+	  BLIS_PACKM_4XK_KER,  BLIS_SCOMPLEX, bli_cpackm_zen4_asm_4xk,
+	  BLIS_PACKM_24XK_KER, BLIS_SCOMPLEX, bli_cpackm_zen4_asm_24xk,
 	  BLIS_PACKM_3XK_KER,  BLIS_SCOMPLEX, bli_cpackm_haswell_asm_3xk,
 	  BLIS_PACKM_8XK_KER,  BLIS_SCOMPLEX, bli_cpackm_haswell_asm_8xk,
 	  BLIS_PACKM_3XK_KER,  BLIS_DCOMPLEX, bli_zpackm_haswell_asm_3xk,
@@ -158,29 +161,29 @@ void bli_cntx_init_zen5( cntx_t* cntx )
 	(
 	  32,
 	  // addv
-	  BLIS_ADDV_KER,  BLIS_DOUBLE,     bli_daddv_zen_int_avx512,
+	  BLIS_ADDV_KER,  BLIS_DOUBLE,     bli_daddv_zen4_int,
 
 	  // amaxv
-	  BLIS_AMAXV_KER,  BLIS_FLOAT,    bli_samaxv_zen_int_avx512,
-	  BLIS_AMAXV_KER,  BLIS_DOUBLE,   bli_damaxv_zen_int_avx512,
+	  BLIS_AMAXV_KER,  BLIS_FLOAT,    bli_samaxv_zen4_int,
+	  BLIS_AMAXV_KER,  BLIS_DOUBLE,   bli_damaxv_zen4_int,
 
 	  // axpbyv
-	  BLIS_AXPBYV_KER, BLIS_FLOAT,    bli_saxpbyv_zen_int10,
-	  BLIS_AXPBYV_KER, BLIS_DOUBLE,   bli_daxpbyv_zen_int_avx512,
+	  BLIS_AXPBYV_KER, BLIS_FLOAT,    bli_saxpbyv_zen_int_10,
+	  BLIS_AXPBYV_KER, BLIS_DOUBLE,   bli_daxpbyv_zen4_int,
 	  BLIS_AXPBYV_KER, BLIS_SCOMPLEX, bli_caxpbyv_zen_int,
 	  BLIS_AXPBYV_KER, BLIS_DCOMPLEX, bli_zaxpbyv_zen_int,
 
 	  // axpyv
-	  BLIS_AXPYV_KER,  BLIS_FLOAT,    bli_saxpyv_zen_int_avx512,
-	  BLIS_AXPYV_KER,  BLIS_DOUBLE,   bli_daxpyv_zen_int_avx512,
-	  BLIS_AXPYV_KER,  BLIS_SCOMPLEX, bli_caxpyv_zen_int5,
-	  BLIS_AXPYV_KER,  BLIS_DCOMPLEX, bli_zaxpyv_zen_int_avx512,
+	  BLIS_AXPYV_KER,  BLIS_FLOAT,    bli_saxpyv_zen4_int,
+	  BLIS_AXPYV_KER,  BLIS_DOUBLE,   bli_daxpyv_zen4_int,
+	  BLIS_AXPYV_KER,  BLIS_SCOMPLEX, bli_caxpyv_zen_int_5,
+	  BLIS_AXPYV_KER,  BLIS_DCOMPLEX, bli_zaxpyv_zen4_int,
 
 	  // dotv
-	  BLIS_DOTV_KER,   BLIS_FLOAT,    bli_sdotv_zen_int_avx512,
-	  BLIS_DOTV_KER,   BLIS_DOUBLE,   bli_ddotv_zen_int_avx512,
-	  BLIS_DOTV_KER,   BLIS_SCOMPLEX, bli_cdotv_zen_int5,
-	  BLIS_DOTV_KER,   BLIS_DCOMPLEX, bli_zdotv_zen_int_avx512,
+	  BLIS_DOTV_KER,   BLIS_FLOAT,    bli_sdotv_zen4_int,
+	  BLIS_DOTV_KER,   BLIS_DOUBLE,   bli_ddotv_zen4_int,
+	  BLIS_DOTV_KER,   BLIS_SCOMPLEX, bli_cdotv_zen_int_5,
+	  BLIS_DOTV_KER,   BLIS_DCOMPLEX, bli_zdotv_zen4_int,
 
 	  // dotxv
 	  BLIS_DOTXV_KER,  BLIS_FLOAT,    bli_sdotxv_zen_int,
@@ -188,27 +191,27 @@ void bli_cntx_init_zen5( cntx_t* cntx )
 	  BLIS_DOTXV_KER,  BLIS_DCOMPLEX, bli_zdotxv_zen_int,
 
 	  // scalv
-	  BLIS_SCALV_KER,  BLIS_FLOAT,    bli_sscalv_zen_int_avx512,
-	  BLIS_SCALV_KER,  BLIS_DOUBLE,   bli_dscalv_zen_int_avx512,
-	  BLIS_SCALV_KER,  BLIS_SCOMPLEX, bli_cscalv_zen_int_avx512,
-	  BLIS_SCALV_KER,  BLIS_DCOMPLEX, bli_zscalv_zen_int_avx512,
+	  BLIS_SCALV_KER,  BLIS_FLOAT,    bli_sscalv_zen4_int,
+	  BLIS_SCALV_KER,  BLIS_DOUBLE,   bli_dscalv_zen4_int,
+	  BLIS_SCALV_KER,  BLIS_SCOMPLEX, bli_cscalv_zen4_int,
+	  BLIS_SCALV_KER,  BLIS_DCOMPLEX, bli_zscalv_zen4_int,
 
 	  // swapv
-	  BLIS_SWAPV_KER,  BLIS_FLOAT,    bli_sswapv_zen_int8,
-	  BLIS_SWAPV_KER,  BLIS_DOUBLE,   bli_dswapv_zen_int8,
+	  BLIS_SWAPV_KER,  BLIS_FLOAT,    bli_sswapv_zen_int_8,
+	  BLIS_SWAPV_KER,  BLIS_DOUBLE,   bli_dswapv_zen_int_8,
 
 	  // copyv
-	  BLIS_COPYV_KER,  BLIS_FLOAT,    bli_scopyv_zen4_asm_avx512,
-	  BLIS_COPYV_KER,  BLIS_DOUBLE,   bli_dcopyv_zen4_asm_avx512,
-	  BLIS_COPYV_KER,  BLIS_DCOMPLEX, bli_zcopyv_zen4_asm_avx512,
+	  BLIS_COPYV_KER,  BLIS_FLOAT,    bli_scopyv_zen4_asm,
+	  BLIS_COPYV_KER,  BLIS_DOUBLE,   bli_dcopyv_zen5_asm,
+	  BLIS_COPYV_KER,  BLIS_DCOMPLEX, bli_zcopyv_zen4_asm,
 
 	  // setv
-	  BLIS_SETV_KER,   BLIS_FLOAT,    bli_ssetv_zen_int_avx512,
-	  BLIS_SETV_KER,   BLIS_DOUBLE,   bli_dsetv_zen_int_avx512,
-	  BLIS_SETV_KER,   BLIS_DCOMPLEX, bli_zsetv_zen_int_avx512,
+	  BLIS_SETV_KER,   BLIS_FLOAT,    bli_ssetv_zen4_int,
+	  BLIS_SETV_KER,   BLIS_DOUBLE,   bli_dsetv_zen4_int,
+	  BLIS_SETV_KER,   BLIS_DCOMPLEX, bli_zsetv_zen4_int,
 
 	  // scal2v
-	  BLIS_SCAL2V_KER, BLIS_DOUBLE,   bli_dscal2v_zen_int_avx512,
+	  BLIS_SCAL2V_KER, BLIS_DOUBLE,   bli_dscal2v_zen4_int,
 	  BLIS_SCAL2V_KER, BLIS_DCOMPLEX, bli_zscal2v_zen_int,
 	  cntx
 	);
@@ -300,31 +303,33 @@ void bli_cntx_init_zen5( cntx_t* cntx )
 	// Update the context with optimized small/unpacked gemm kernels.
 	bli_cntx_set_l3_sup_kers
 	(
-	  30,
-	  BLIS_RRR, BLIS_DOUBLE, bli_dgemmsup_rv_zen5_asm_24x8m, FALSE,
-	  BLIS_RRC, BLIS_DOUBLE, bli_dgemmsup_rv_zen5_asm_24x8m, FALSE,
-	  BLIS_RCR, BLIS_DOUBLE, bli_dgemmsup_rv_zen5_asm_24x8m, FALSE,
-	  BLIS_RCC, BLIS_DOUBLE, bli_dgemmsup_rv_zen5_asm_24x8m, FALSE,
-	  BLIS_CRR, BLIS_DOUBLE, bli_dgemmsup_rv_zen5_asm_24x8m, FALSE,
-	  BLIS_CRC, BLIS_DOUBLE, bli_dgemmsup_rv_zen5_asm_24x8m, FALSE,
-	  BLIS_CCR, BLIS_DOUBLE, bli_dgemmsup_rv_zen5_asm_24x8m, FALSE,
-	  BLIS_CCC, BLIS_DOUBLE, bli_dgemmsup_rv_zen5_asm_24x8m, FALSE,
+	  32,
+	  BLIS_RRR, BLIS_DOUBLE, bli_dgemmsup_cv_zen5_asm_24x8m, FALSE,
+	  BLIS_RRC, BLIS_DOUBLE, bli_dgemmsup_cv_zen5_asm_24x8m, FALSE,
+	  BLIS_RCR, BLIS_DOUBLE, bli_dgemmsup_cv_zen5_asm_24x8m, FALSE,
+	  BLIS_RCC, BLIS_DOUBLE, bli_dgemmsup_cv_zen5_asm_24x8m, FALSE,
+	  BLIS_CRR, BLIS_DOUBLE, bli_dgemmsup_cv_zen5_asm_24x8m, FALSE,
+	  BLIS_CRC, BLIS_DOUBLE, bli_dgemmsup_cv_zen5_asm_24x8m, FALSE,
+	  BLIS_CCR, BLIS_DOUBLE, bli_dgemmsup_cv_zen5_asm_24x8m, FALSE,
+	  BLIS_CCC, BLIS_DOUBLE, bli_dgemmsup_cv_zen5_asm_24x8m, FALSE,
 
-	  BLIS_RRR, BLIS_FLOAT, bli_sgemmsup_rv_zen_asm_6x64m_avx512, TRUE,
-	  BLIS_RRC, BLIS_FLOAT, bli_sgemmsup_rd_zen_asm_6x64m_avx512, TRUE,
-	  BLIS_RCR, BLIS_FLOAT, bli_sgemmsup_rv_zen_asm_6x64m_avx512, TRUE,
-	  BLIS_RCC, BLIS_FLOAT, bli_sgemmsup_rv_zen_asm_6x64n_avx512, TRUE,
-	  BLIS_CRR, BLIS_FLOAT, bli_sgemmsup_rv_zen_asm_6x64m_avx512, TRUE,
-	  BLIS_CRC, BLIS_FLOAT, bli_sgemmsup_rd_zen_asm_6x64n_avx512, TRUE,
-	  BLIS_CCR, BLIS_FLOAT, bli_sgemmsup_rv_zen_asm_6x64n_avx512, TRUE,
-	  BLIS_CCC, BLIS_FLOAT, bli_sgemmsup_rv_zen_asm_6x64n_avx512, TRUE,
+	  BLIS_RRR, BLIS_FLOAT, bli_sgemmsup_rv_zen4_asm_6x64m, TRUE,
+	  BLIS_RRC, BLIS_FLOAT, bli_sgemmsup_rd_zen4_asm_6x64m, TRUE,
+	  BLIS_RCR, BLIS_FLOAT, bli_sgemmsup_rv_zen4_asm_6x64m, TRUE,
+	  BLIS_RCC, BLIS_FLOAT, bli_sgemmsup_rv_zen4_asm_6x64n, TRUE,
+	  BLIS_CRR, BLIS_FLOAT, bli_sgemmsup_rv_zen4_asm_6x64m, TRUE,
+	  BLIS_CRC, BLIS_FLOAT, bli_sgemmsup_rd_zen4_asm_6x64n, TRUE,
+	  BLIS_CCR, BLIS_FLOAT, bli_sgemmsup_rv_zen4_asm_6x64n, TRUE,
+	  BLIS_CCC, BLIS_FLOAT, bli_sgemmsup_rv_zen4_asm_6x64n, TRUE,
 
-	  BLIS_RRR, BLIS_SCOMPLEX, bli_cgemmsup_rv_zen_asm_3x8m, TRUE,
-	  BLIS_RCR, BLIS_SCOMPLEX, bli_cgemmsup_rv_zen_asm_3x8m, TRUE,
-	  BLIS_CRR, BLIS_SCOMPLEX, bli_cgemmsup_rv_zen_asm_3x8m, TRUE,
-	  BLIS_RCC, BLIS_SCOMPLEX, bli_cgemmsup_rv_zen_asm_3x8n, TRUE,
-	  BLIS_CCR, BLIS_SCOMPLEX, bli_cgemmsup_rv_zen_asm_3x8n, TRUE,
-	  BLIS_CCC, BLIS_SCOMPLEX, bli_cgemmsup_rv_zen_asm_3x8n, TRUE,
+	  BLIS_RRR, BLIS_SCOMPLEX, bli_cgemmsup_cv_zen4_asm_24x4m, FALSE,
+	  BLIS_RRC, BLIS_SCOMPLEX, bli_cgemmsup_cv_zen4_asm_24x4m, FALSE,
+	  BLIS_RCR, BLIS_SCOMPLEX, bli_cgemmsup_cv_zen4_asm_24x4m, FALSE,
+	  BLIS_CRR, BLIS_SCOMPLEX, bli_cgemmsup_cv_zen4_asm_24x4m, FALSE,
+	  BLIS_RCC, BLIS_SCOMPLEX, bli_cgemmsup_cv_zen4_asm_24x4m, FALSE,
+	  BLIS_CRC, BLIS_SCOMPLEX, bli_cgemmsup_cv_zen4_asm_24x4m, FALSE,
+	  BLIS_CCR, BLIS_SCOMPLEX, bli_cgemmsup_cv_zen4_asm_24x4m, FALSE,
+	  BLIS_CCC, BLIS_SCOMPLEX, bli_cgemmsup_cv_zen4_asm_24x4m, FALSE,
 
 	  BLIS_RRR, BLIS_DCOMPLEX, bli_zgemmsup_cv_zen4_asm_12x4m, FALSE,
 	  BLIS_RRC, BLIS_DCOMPLEX, bli_zgemmsup_cd_zen4_asm_12x4m, FALSE,
@@ -340,11 +345,11 @@ void bli_cntx_init_zen5( cntx_t* cntx )
 	// Initialize level-3 sup blocksize objects with architecture-specific
 	// values.
 	//                                           s      d      c      z
-	bli_blksz_init_easy( &blkszs[ BLIS_MR ],     6,    24,     3,    12 );
-	bli_blksz_init_easy( &blkszs[ BLIS_NR ],    64,     8,     8,     4 );
-	bli_blksz_init_easy( &blkszs[ BLIS_MC ],   192,   144,    72,    48 );
-	bli_blksz_init_easy( &blkszs[ BLIS_KC ],   512,   384,   128,    64 );
-	bli_blksz_init_easy( &blkszs[ BLIS_NC ],  8064,  4032,  2040,  1020 );
+	bli_blksz_init_easy( &blkszs[ BLIS_MR ],     6,    24,    24,    12 );
+	bli_blksz_init_easy( &blkszs[ BLIS_NR ],    64,     8,     4,     4 );
+	bli_blksz_init_easy( &blkszs[ BLIS_MC ],   192,   144,   120,    48 );
+	bli_blksz_init_easy( &blkszs[ BLIS_KC ],   512,   384,   512,    64 );
+	bli_blksz_init_easy( &blkszs[ BLIS_NC ],  8064,  4032,  4080,  1020 );
 
 	// Update the context with the current architecture's register and cache
 	// blocksizes for small/unpacked level-3 problems.
@@ -396,14 +401,14 @@ void bli_cntx_init_zen5( cntx_t* cntx )
 	  BLIS_CCR, BLIS_FLOAT, bli_sgemmsup_rv_zen_asm_6x16n, TRUE,
 	  BLIS_CCC, BLIS_FLOAT, bli_sgemmsup_rv_zen_asm_6x16n, TRUE,
 
-	  BLIS_RRR, BLIS_DOUBLE, bli_dgemmsup_rv_zen5_asm_24x8m,   FALSE,
+	  BLIS_RRR, BLIS_DOUBLE, bli_dgemmsup_cv_zen5_asm_24x8m,   FALSE,
 	  BLIS_RRC, BLIS_DOUBLE, bli_dgemmsup_rd_haswell_asm_6x8m, TRUE,
-	  BLIS_RCR, BLIS_DOUBLE, bli_dgemmsup_rv_zen5_asm_24x8m,   FALSE,
-	  BLIS_RCC, BLIS_DOUBLE, bli_dgemmsup_rv_zen5_asm_24x8m,   FALSE,
-	  BLIS_CRR, BLIS_DOUBLE, bli_dgemmsup_rv_zen5_asm_24x8m,   FALSE,
+	  BLIS_RCR, BLIS_DOUBLE, bli_dgemmsup_cv_zen5_asm_24x8m,   FALSE,
+	  BLIS_RCC, BLIS_DOUBLE, bli_dgemmsup_cv_zen5_asm_24x8m,   FALSE,
+	  BLIS_CRR, BLIS_DOUBLE, bli_dgemmsup_cv_zen5_asm_24x8m,   FALSE,
 	  BLIS_CRC, BLIS_DOUBLE, bli_dgemmsup_rd_haswell_asm_6x8n, TRUE,
-	  BLIS_CCR, BLIS_DOUBLE, bli_dgemmsup_rv_zen5_asm_24x8m,   FALSE,
-	  BLIS_CCC, BLIS_DOUBLE, bli_dgemmsup_rv_zen5_asm_24x8m,   FALSE,
+	  BLIS_CCR, BLIS_DOUBLE, bli_dgemmsup_cv_zen5_asm_24x8m,   FALSE,
+	  BLIS_CCC, BLIS_DOUBLE, bli_dgemmsup_cv_zen5_asm_24x8m,   FALSE,
 
 	  BLIS_RRR, BLIS_SCOMPLEX, bli_cgemmsup_rv_zen_asm_3x8m, TRUE,
 	  BLIS_RCR, BLIS_SCOMPLEX, bli_cgemmsup_rv_zen_asm_3x8m, TRUE,

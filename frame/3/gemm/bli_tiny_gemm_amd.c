@@ -147,6 +147,7 @@ err_t PASTEMAC( ch, tfuncname ) \
     /* Unwrapping the object details associated with the kernel */ \
     PASTECH2( ch, gemmsup, _ker_ft ) ukr_fp = ( PASTECH2( ch, gemmsup, _ker_ft ) )gemmtiny_ukr_info.ukr_fp; \
     bool ukr_pref = gemmtiny_ukr_info.stor_pref; \
+    bool enable_pack = gemmtiny_ukr_info.enable_pack; \
     dim_t MR = gemmtiny_ukr_info.MR; \
     dim_t NR = gemmtiny_ukr_info.NR; \
     /* Setting a boolean to check for operation transpose(induce) */ \
@@ -177,67 +178,295 @@ err_t PASTEMAC( ch, tfuncname ) \
       m = n0; \
       n = m0; \
     } \
-    /* Setting up the auxillary kernel info */ \
+    /* Declaring the pointers and auxillary kernel info */ \
     /* Since we are primarily using the m-var SUP kernels, we need
        to set the panel stride for A matrix */ \
+    /* The panel stride for A matrix would depend on whether we pack A or not */ \
     auxinfo_t aux; \
-    inc_t ps_a_use = ( MR * rs_a ); \
-    bli_auxinfo_set_ps_a( ps_a_use, &aux ); \
+    ftype *a_panel = a; \
+    ftype *b_panel = b; \
+    ftype *c_panel = c; \
+    inc_t ps_a_use, ps_b_use; \
 \
-    /* Setting up the variables for blocked iterations */ \
-    /* The m-var SUP kernels operate on A(m x k), B(k x NR)
-       and C(m x NR). Thus, we need to block the data in the
-       n-dimension before calling the kernel(that is, the NR loop) */ \
-    dim_t n_iter = n / NR; \
-    dim_t n_rem = n - ( n_iter * NR ); \
-    dim_t j = 0; \
-    ftype *b_panel, *c_panel; \
-    /* Operating on the main-case of n(NR) */ \
-    for( ; j < n_iter; j += 1 ) \
+    /* Pack the appropriate matrix, based on the toggle in the lookup table(i.e, enable_pack) */ \
+    if( enable_pack == TRUE ) \
     { \
-      b_panel = b + ( j * NR * cs_b ); \
-      c_panel = c + ( j * NR * cs_c ); \
-      ukr_fp \
-      ( \
-        BLIS_NO_CONJUGATE, \
-        BLIS_NO_CONJUGATE, \
-        m, \
-        NR, \
-        k, \
-        (ftype* restrict)alpha, \
-        (ftype* restrict)a, rs_a, cs_a, \
-        (ftype* restrict)b_panel, rs_b, cs_b, \
-        (ftype* restrict)beta, \
-        (ftype* restrict)c_panel, rs_c, cs_c, \
-        &aux, \
-        NULL \
-      ); \
+      /* Acquire the packing kernel */ \
+      PASTECH2( ch, packm_cxk, _ker_ft ) pack_fp = ( PASTECH2( ch, packm_cxk, _ker_ft ) )gemmtiny_ukr_info. pack_fp; \
+      /* The kernel's storage preference will suggest if we have to pack A or B matrix */ \
+      /* This is because a row-stored kernel loads from B, while a column stored kernel loads from A */ \
+      /* The metadata for the packed matrix should be changed accordingly */ \
+      /* Declaring the variables/pointers for packing */ \
+      ftype *input_buf, *pack_buf; \
+      dim_t pack_size; \
+      dim_t loop_iter, loop_left; \
+      dim_t rs_input, cs_input, pack_dim; \
+      /* Setting up a local variable to a scale factor of 1.0, to be passed to the packing kernel */ \
+      ftype local_one; \
+      PASTEMAC( ch, sets )( 1.0, 0.0, local_one ); \
+      /* Declaring the necessary objects for acquiring memory from memory pool */ \
+      mem_t mem_local; \
+      rntm_t rntm_local; \
+      if( ukr_pref == TRUE ) \
+      { \
+        dim_t n_pack = ( ( n + NR - 1 ) / NR ) * NR; \
+        pack_size = n_pack * k; \
+      } \
+      else \
+      { \
+        dim_t m_pack = ( ( m + MR - 1 ) / MR ) * MR; \
+        pack_size = m_pack * k; \
+      } \
+\
+      /* Querying the pack-block allocator and attaching to the local runtime */ \
+      bli_pba_rntm_set_pba( &rntm_local ); \
+\
+      /* Acquire the memory from the memory pool */ \
+      bli_pba_acquire_m( &rntm_local, pack_size * sizeof( ftype ) , BLIS_BUFFER_FOR_A_BLOCK, &mem_local ); \
+      ftype *buf_addr = bli_mem_buffer( &mem_local ); /* malloc( pack_size * sizeof( ftype ) ); */ \
+\
+      /* Exit if memory was not allocated */ \
+      if( buf_addr == NULL )  return BLIS_FAILURE; \
+      pack_buf = buf_addr; \
+\
+      /* Setting the metadata based on the ukr preference */ \
+      if( ukr_pref == TRUE ) \
+      { \
+        /* Pack B matrix, since ukr is row-preferential */ \
+        input_buf = b; \
+        rs_input = cs_b; cs_input = rs_b; \
+        loop_iter = n / NR; loop_left = n - ( loop_iter * NR ); \
+        pack_dim = NR; \
+        rs_b = NR; cs_b = 1; \
+        ps_a_use = ( MR * rs_a ); \
+        ps_b_use = ( NR * k ); \
+        b_panel = buf_addr; \
+      } \
+      else \
+      { \
+        /* Pack A matrix, since ukr is col-preferential */ \
+        input_buf = a; \
+        rs_input = rs_a; cs_input = cs_a; \
+        loop_iter = m / MR; loop_left = m - ( loop_iter * MR ); \
+        pack_dim = MR; \
+        rs_a = 1; cs_a = MR; \
+        ps_a_use = ( MR * k ); \
+        ps_b_use = ( NR * cs_b ); \
+        a_panel = buf_addr; \
+      } \
+\
+      /* Packing the appropriate matrix iteratively */ \
+      for( dim_t i = 0; i < loop_iter; i += 1 ) \
+      { \
+        /* Call the packing kernel */ \
+        pack_fp( BLIS_NO_CONJUGATE, BLIS_PACKED_ROWS, pack_dim, k, k, &local_one, input_buf, rs_input, cs_input, pack_buf, pack_dim, NULL ); \
+\
+        /* Update the pointer for the next iteration */ \
+        input_buf += pack_dim * rs_input; \
+        pack_buf += pack_dim * k; \
+      } \
+      if( loop_left ) \
+      { \
+        /* Call the packing kernel */ \
+        pack_fp( BLIS_NO_CONJUGATE, BLIS_PACKED_ROWS, loop_left, k, k, &local_one, input_buf, rs_input, cs_input, pack_buf, pack_dim, NULL ); \
+      } \
+\
+      /* Set the panel stride info for A matrix(since we use m-var kernels) */ \
+      bli_auxinfo_set_ps_a( ps_a_use, &aux ); \
+      /* Setting up the variables for blocked iterations */ \
+      /* The m-var SUP kernels operate on A(m x k), B(k x NR)
+          and C(m x NR). Thus, we need to block the data in the
+          n-dimension before calling the kernel(that is, the NR loop) */ \
+      dim_t n_iter = n / NR; \
+      dim_t n_rem = n - ( n_iter * NR ); \
+      dim_t j = 0; \
+      /* Operating on the main-case of n(NR) */ \
+      for( ; j < n_iter; j += 1 ) \
+      { \
+        ukr_fp \
+        ( \
+          BLIS_NO_CONJUGATE, \
+          BLIS_NO_CONJUGATE, \
+          m, \
+          NR, \
+          k, \
+          (ftype* restrict)alpha, \
+          (ftype* restrict)a_panel, rs_a, cs_a, \
+          (ftype* restrict)b_panel, rs_b, cs_b, \
+          (ftype* restrict)beta, \
+          (ftype* restrict)c_panel, rs_c, cs_c, \
+          &aux, \
+          NULL \
+        ); \
+        b_panel += ps_b_use; \
+        c_panel += NR * cs_c; \
+      } \
+      /* Operating on the fringe case of n(<NR) */ \
+      if( n_rem ) \
+      { \
+        ukr_fp \
+        ( \
+          BLIS_NO_CONJUGATE, \
+          BLIS_NO_CONJUGATE, \
+          m, \
+          n_rem, \
+          k, \
+          (ftype* restrict)alpha, \
+          (ftype* restrict)a_panel, rs_a, cs_a, \
+          (ftype* restrict)b_panel, rs_b, cs_b, \
+          (ftype* restrict)beta, \
+          (ftype* restrict)c_panel, rs_c, cs_c, \
+          &aux, \
+          NULL \
+        ); \
+      } \
+\
+      /* Release the memory back to the pool */ \
+      bli_pba_release( &rntm_local, &mem_local ); \
+      /* free( buf_addr ); */ \
     } \
-    /* Operating on the fringe case of n(<NR) */ \
-    if( n_rem ) \
+    else \
     { \
-      b_panel = b + ( j * NR * cs_b ); \
-      c_panel = c + ( j * NR * cs_c ); \
-      ukr_fp \
-      ( \
-        BLIS_NO_CONJUGATE, \
-        BLIS_NO_CONJUGATE, \
-        m, \
-        n_rem, \
-        k, \
-        (ftype* restrict)alpha, \
-        (ftype* restrict)a, rs_a, cs_a, \
-        (ftype* restrict)b_panel, rs_b, cs_b, \
-        (ftype* restrict)beta, \
-        (ftype* restrict)c_panel, rs_c, cs_c, \
-        &aux, \
-        NULL \
-      ); \
+      /* Set the panel stride info for A matrix(since we use m-var kernels) */ \
+      ps_a_use = ( MR * rs_a ); \
+      ps_b_use = ( NR * cs_b ); \
+      bli_auxinfo_set_ps_a( ps_a_use, &aux ); \
+      /* Setting up the variables for blocked iterations */ \
+      /* The m-var SUP kernels operate on A(m x k), B(k x NR)
+          and C(m x NR). Thus, we need to block the data in the
+          n-dimension before calling the kernel(that is, the NR loop) */ \
+      dim_t n_iter = n / NR; \
+      dim_t n_rem = n - ( n_iter * NR ); \
+      dim_t j = 0; \
+      /* Operating on the main-case of n(NR) */ \
+      for( ; j < n_iter; j += 1 ) \
+      { \
+        ukr_fp \
+        ( \
+          BLIS_NO_CONJUGATE, \
+          BLIS_NO_CONJUGATE, \
+          m, \
+          NR, \
+          k, \
+          (ftype* restrict)alpha, \
+          (ftype* restrict)a_panel, rs_a, cs_a, \
+          (ftype* restrict)b_panel, rs_b, cs_b, \
+          (ftype* restrict)beta, \
+          (ftype* restrict)c_panel, rs_c, cs_c, \
+          &aux, \
+          NULL \
+        ); \
+        b_panel += ps_b_use; \
+        c_panel += NR * cs_c; \
+      } \
+      /* Operating on the fringe case of n(<NR) */ \
+      if( n_rem ) \
+      { \
+        ukr_fp \
+        ( \
+          BLIS_NO_CONJUGATE, \
+          BLIS_NO_CONJUGATE, \
+          m, \
+          n_rem, \
+          k, \
+          (ftype* restrict)alpha, \
+          (ftype* restrict)a_panel, rs_a, cs_a, \
+          (ftype* restrict)b_panel, rs_b, cs_b, \
+          (ftype* restrict)beta, \
+          (ftype* restrict)c_panel, rs_c, cs_c, \
+          &aux, \
+          NULL \
+        ); \
+      } \
     } \
+\
     return BLIS_SUCCESS; \
 } \
 
+GENTFUNC( scomplex, c, gemm_tiny )
 GENTFUNC( dcomplex, z, gemm_tiny )
+
+
+/*
+ * blis_dgemm_single_threaded:
+ *
+ * Decide whether a DGEMM of size (M × N × K) should run
+ * single-threaded (ST) or multi-threaded (MT).
+ *
+ * Arguments:
+ *   M, N, K    : matrix dimensions
+ *   MR, NR     : Microtile of kernel
+ *   GF_core    : performance per core in GFLOPs
+ *   T_over_us  : per-call threading overhead in microseconds
+ *
+ * Method:
+ *   - The model expects MR and NR of microkernel.
+ *   - Each microkernel tile performs:
+ *         FLOPs_per_K_iter = 2 * 24 * 8 = 384 FLOPs per inner-K iteration
+ *   - The function computes a K-threshold:
+ *
+ *         base = (T_over_s * GF_core * 1e9) / FLOPs_per_K_iter
+ *         K_thresh = (alpha * base) / tiles_per_thread
+ *
+ *     where alpha (≈0.3) is an amortization factor that accounts
+ *     for partial overlap of compute and overhead. It can be tuned
+ *     as per requirement.
+ *
+ * Decision:
+ *   - If K ≥ K_thresh → problem is "long" enough in the K-loop,
+ *     so overhead is amortized → MT is beneficial.
+ *   - If K < K_thresh → inner loop too short, overhead dominates,
+ *     so ST is safer.
+ *
+ * Example:
+ *   Input:  M=114, N=114, K=45, GF_core=50 GF/s, T_over=15 µs
+ *
+ *   tiles_M = ceil(114/24) = 5
+ *   tiles_N = ceil(114/8)  = 15
+ *   total_tiles = 5 × 15 = 75
+ *   tiles_per_thread ≈ 38
+ *
+ *   FLOPs_per_K = 384
+ *   base = (15e-6 * 50e9) / 384 ≈ 1953
+ *   K_thresh = 0.3 × 1953 / 38 ≈ 15.4
+ *
+ *   Since K=45 > K_thresh=15.4, → MT chosen.
+ *
+ * Return:
+ *   - true  → prefer single-thread
+ *   - false → prefer multi-thread
+ */
+
+static bool bli_dgemm_single_threaded(dim_t M, dim_t N, dim_t K, dim_t MR, dim_t NR, double GF_core, double T_over_us)
+{
+    const double alpha = 0.3; // amortization factor
+    double K_thresh = 0; 
+
+    // Convert thread overhead to seconds
+    double T_over_s = T_over_us * 1e-6;
+
+    // Compute tiles in M and N
+    dim_t tiles_M = (M + MR - 1) / MR;
+    dim_t tiles_N = (N + NR - 1) / NR;
+
+	dim_t thread_num = 2;/* Considering 2 threads */
+    // Tiles assigned to each thread (assuming splitting along M)
+    dim_t tiles_per_thread = ( ( (tiles_M + thread_num - 1 ) / thread_num ) * tiles_N );
+
+    // Compute K threshold
+	dim_t FLOPS_per_k_iter = ((MR * NR) * 2);
+	// base depends on parameters T_over_s and GF_core and FLOPS_per_k_iter.
+	// Where FLOPS_per_k_iter is computed based on flops per cycle and micro-kernel shape.
+	// T_over_s is thread overhead time(time of forking, barrier, joining).
+	// GF_core is calculated based on flops per cycle * clock frequency of CPU. Currently it is
+	// considered as 16 flops * 3.7GHz.
+	// Note: It may change from platform to platform and even may vary among various threading library
+	// implementations, versions.
+    double base = (T_over_s * GF_core * 1e9) / FLOPS_per_k_iter;
+    K_thresh = alpha * base / (double)tiles_per_thread;
+
+    return (K >= K_thresh) ? false : true;
+}
 
 err_t bli_dgemm_tiny
 (
@@ -255,61 +484,10 @@ err_t bli_dgemm_tiny
 {
     // Query the architecture ID
     arch_t arch_id = bli_arch_query_id();
-    //for the below tiny sizes of matrix, we force it to be ST compute.
-    if(m <= 24 && n <= 24 && k <= 20)
-    {
-        switch (arch_id)
-        {
-          case BLIS_ARCH_ZEN5:
-	  case BLIS_ARCH_ZEN4:
-#if defined(BLIS_FAMILY_ZEN5) || defined(BLIS_FAMILY_ZEN4) || defined(BLIS_FAMILY_AMDZEN) || defined(BLIS_FAMILY_X86_64)
-		return bli_dgemm_tiny_24x8
-			(
-			 1 * (transa == BLIS_CONJ_NO_TRANSPOSE),
-			 1 * (transb == BLIS_CONJ_NO_TRANSPOSE),
-			 transa,
-			 transb,
-			 m,
-			 n,
-			 k,
-			 alpha,
-			 a, rs_a0, cs_a0,
-			 b, rs_b0, cs_b0,
-			 beta,
-			 c, rs_c0, cs_c0
-			);
-#endif
-		break;
-
-          case BLIS_ARCH_ZEN:
-          case BLIS_ARCH_ZEN2:
-          case BLIS_ARCH_ZEN3:
-	      return bli_dgemm_tiny_6x8
-		      (
-		       1 * (transa == BLIS_CONJ_NO_TRANSPOSE),
-		       1 * (transb == BLIS_CONJ_NO_TRANSPOSE),
-		       transa,
-		       transb,
-		       m,
-		       n,
-		       k,
-		       alpha,
-		       a, rs_a0, cs_a0,
-		       b, rs_b0, cs_b0,
-		       beta,
-		       c, rs_c0, cs_c0
-		      );
-	      break;
-          default:
-              return BLIS_FAILURE;
-        }
-
-    }
-
-    if( FALSE == bli_thread_get_is_parallel() )
+    bool is_mt = bli_thread_get_is_parallel();
     {
         // Pick the kernel based on the architecture ID
-        switch (arch_id)
+        switch ( arch_id )
         {
           case BLIS_ARCH_ZEN5:
           case BLIS_ARCH_ZEN4:
@@ -319,21 +497,26 @@ err_t bli_dgemm_tiny
               ((m + k-n) < 1500) && ((n + k-m) < 1500) ) ||
               ((n <= 100) && (k <=100)))))
               {
-                  return bli_dgemm_tiny_24x8
-                          (
-                              1 * (transa == BLIS_CONJ_NO_TRANSPOSE),
-                              1 * (transb == BLIS_CONJ_NO_TRANSPOSE),
-                              transa,
-                              transb,
-                              m,
-                              n,
-                              k,
-                              alpha,
-                              a, rs_a0, cs_a0,
-                              b, rs_b0, cs_b0,
-                              beta,
-                              c, rs_c0, cs_c0
-                          );
+                  if( (is_mt == FALSE) ||
+                  ( bli_dgemm_single_threaded(m, n, k, 24/*MR*/, 8/*NR*/, 60/*Core's Gflops*/, 15/*Threading_overhead*/) == TRUE ) )
+                  {
+                      /* single threaded execution */
+                      return bli_dgemm_tiny_zen4_24x8
+                      (
+                       1 * (transa == BLIS_CONJ_NO_TRANSPOSE),
+                       1 * (transb == BLIS_CONJ_NO_TRANSPOSE),
+                       transa,
+					   transb,
+					   m,
+					   n,
+					   k,
+					   alpha,
+					   a, rs_a0, cs_a0,
+					   b, rs_b0, cs_b0,
+					   beta,
+					   c, rs_c0, cs_c0
+                      );
+                  }
               }
 #endif
               break;
@@ -341,9 +524,11 @@ err_t bli_dgemm_tiny
           case BLIS_ARCH_ZEN:
           case BLIS_ARCH_ZEN2:
           case BLIS_ARCH_ZEN3:
-              if( ( (m <= 8)  || ( (m <= 1000) && (n <= 24) && (k >= 4) ) ) && (k <= 1500) )
+              if( is_mt == FALSE )
               {
-                  return bli_dgemm_tiny_6x8
+                  if( ( (m <= 8)  || ( (m <= 1000) && (n <= 24) && (k >= 4) ) ) && (k <= 1500) )
+                  {
+                  return bli_dgemm_tiny_zen_6x8
                           (
                               1 * (transa == BLIS_CONJ_NO_TRANSPOSE),
                               1 * (transb == BLIS_CONJ_NO_TRANSPOSE),
@@ -358,6 +543,7 @@ err_t bli_dgemm_tiny
                               beta,
                               c, rs_c0, cs_c0
                           );
+                  }
               }
               break;
           default:

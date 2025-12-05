@@ -9,14 +9,14 @@
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
    met:
-	- Redistributions of source code must retain the above copyright
-	  notice, this list of conditions and the following disclaimer.
-	- Redistributions in binary form must reproduce the above copyright
-	  notice, this list of conditions and the following disclaimer in the
-	  documentation and/or other materials provided with the distribution.
-	- Neither the name(s) of the copyright holder(s) nor the names of its
-	  contributors may be used to endorse or promote products derived
-	  from this software without specific prior written permission.
+    - Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+    - Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
+      documentation and/or other materials provided with the distribution.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -53,6 +53,47 @@
 #define LOAD_AND_CONVERT_BF16_F32(reg, ic )   \
         reg = CVT_BF16_F32_SHIFT_AVX2( (__m128i)_mm_loadu_si128( \
                 (const __m128i*)( a + ( ic * rs_a ) + ( kr * cs_a ) ) ) );
+// GEMV conversion for true K=1 matrices(for B matrix) with contiguous output
+// This is a fast path for matrix-vector operations where the output is stored
+// contiguously
+void
+cvt_bf16_f32_gemv_row_major
+    (
+        float*          cvt_buffer,
+        const bfloat16* a,
+        const dim_t     rs_a,
+        const dim_t     MC
+    )
+{
+    /* For true GEMV (K=1 matrices with contiguous output):
+       If A-matrix is col-major MC = k due to swapping,
+       if B-matrix is row-major MC = k.
+       This function stores converted values contiguously in memory. */
+    __m256  a_reg;
+    dim_t    m0;
+    __m256i store_mask;
+
+    // Process 8 elements at a time
+    for (m0 = 0; (m0 + 8) < MC; m0 += 8) {
+        bfloat16 buff[8] = { 0 };
+        for (int i = 0; i < 8; i++)
+            buff[i] = (*(a + (m0 + i) * rs_a));
+        a_reg = CVT_BF16_F32_SHIFT_AVX2(
+            (__m128i)_mm_loadu_si128((const __m128i*)(buff)));
+        _mm256_storeu_ps((cvt_buffer + m0), a_reg);
+    }
+
+    // Handle remaining elements (< 8)
+    if (m0 < MC) {
+        bfloat16 buff[8] = { 0 };
+        for (int i = 0; i < (MC - m0); i++)
+            buff[i] = (*(a + (m0 + i) * rs_a));
+        a_reg = CVT_BF16_F32_SHIFT_AVX2(
+            (__m128i)_mm_loadu_si128((const __m128i*)(buff)));
+        GET_STORE_MASK((MC - m0), store_mask);
+        _mm256_maskstore_ps((cvt_buffer + m0), store_mask, a_reg);
+    }
+}
 
 void cvt_bf16_f32_row_major
     (
@@ -76,9 +117,9 @@ void cvt_bf16_f32_row_major
     dim_t ic = 0, kr = 0;
 
     for( ic = 0; ( ic + MR - 1 ) < MC; ic += MR )
-	{
-		for( kr = 0; ( kr + 8 - 1) < KC; kr += 8 )
-		{
+    {
+        for( kr = 0; ( kr + 8 - 1) < KC; kr += 8 )
+        {
             /*Load 8 BF16 elements from 16 rows, and convert them to F32 elements*/
             LOAD_AND_CONVERT_BF16_F32(a_reg[0], ( ic + 0 ) );
             LOAD_AND_CONVERT_BF16_F32(a_reg[1], ( ic + 1 ) );
@@ -669,7 +710,7 @@ void cvt_bf16_f32_col_major
             SHUFFLE_8x8_AVX2
             PERMUTE_8x8_AVX2
             GET_STORE_MASK(4, store_mask);
-            MASKED_STORE_2COLS_AVX2(store_mask);
+            _mm256_maskstore_ps( ( cvt_buffer + ( ( ic + 0 ) * rs_p ) + kr ), store_mask, b_reg[0] );    \
         }
         for( ; ( kr + 1 ) < KC; kr += 2 )
         {
@@ -683,7 +724,7 @@ void cvt_bf16_f32_col_major
             SHUFFLE_8x8_AVX2
             PERMUTE_8x8_AVX2
             GET_STORE_MASK(2, store_mask);
-            MASKED_STORE_2COLS_AVX2(store_mask);
+            _mm256_maskstore_ps( ( cvt_buffer + ( ( ic + 0 ) * rs_p ) + kr ), store_mask, b_reg[0] );
         }
         for( ; kr < KC; kr += 1 )
         {
@@ -695,10 +736,12 @@ void cvt_bf16_f32_col_major
             SHUFFLE_8x8_AVX2
             PERMUTE_8x8_AVX2
             GET_STORE_MASK(1, store_mask);
-            MASKED_STORE_2COLS_AVX2(store_mask);
+            _mm256_maskstore_ps( ( cvt_buffer + ( ( ic + 0 ) * rs_p ) + kr ), store_mask, b_reg[0] );    \
         }
     }
 }
+
+
 void cvt_bf16_f32(
       float*	      cvt_buffer,
       const bfloat16* a,

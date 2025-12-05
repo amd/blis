@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2019 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2019 - 2025, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -44,8 +44,8 @@
 
     #define HERK_BLIS_IMPL(ch, blasname) \
         PASTEF77S(ch,blasname) ( uploc, transa, m, k, alpha, a, lda, beta, c, ldc ); \
-        arch_t id = bli_arch_query_id(); \
-        if (id == BLIS_ARCH_ZEN5 || id == BLIS_ARCH_ZEN4) \
+        arch_t arch_id = bli_arch_query_id(); \
+        if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4) \
         { \
             bli_zero_zmm(); \
         } \
@@ -80,10 +80,11 @@ void PASTEF77S(ch,blasname) \
 	inc_t   rs_a, cs_a; \
 	inc_t   rs_c, cs_c; \
 \
-	AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1) \
-	AOCL_DTL_LOG_HERK_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(ch), *uploc, *transa, *m, *k, (void*)alpha, *lda, (void*)beta, *ldc);\
 	/* Initialize BLIS. */ \
 	bli_init_auto(); \
+\
+	AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1) \
+	AOCL_DTL_LOG_HERK_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(ch), *uploc, *transa, *m, *k, (void*)alpha, *lda, (void*)beta, *ldc);\
 \
 	/* Perform BLAS parameter checking. */ \
 	PASTEBLACHK(blasname) \
@@ -217,10 +218,11 @@ void PASTEF77S(ch,blasname) \
 	trans_t blis_transa; \
 	dim_t   m0, k0; \
 \
-	AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1) \
-	AOCL_DTL_LOG_HERK_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(ch), *MKSTR(uploc), *transa, *m, *k, (void*)alpha, *lda, (void*)beta, *ldc);\
 	/* Initialize BLIS. */ \
 	bli_init_auto(); \
+\
+	AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1) \
+	AOCL_DTL_LOG_HERK_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(ch), *MKSTR(uploc), *transa, *m, *k, (void*)alpha, *lda, (void*)beta, *ldc);\
 \
 	/* Perform BLAS parameter checking. */ \
 	PASTEBLACHK(blasname) \

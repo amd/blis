@@ -5,7 +5,7 @@
 #  libraries.
 #
 #  Copyright (C) 2014, The University of Texas at Austin
-#  Copyright (C) 2020 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+#  Copyright (C) 2020 - 2025, Advanced Micro Devices, Inc. All rights reserved.
 #
 #  Redistribution and use in source and binary forms, with or without
 #  modification, are permitted provided that the following conditions are
@@ -260,15 +260,58 @@ print_usage()
 	echo "                 only be enabled when mixed domain/precision support is"
 	echo "                 enabled."
 	echo " "
-	echo "   --disable-sup-handling, --enable-sup-handling"
+	echo "   --disable-mnk1-matrix, --enable-mnk1-matrix"
+	echo " "
+	echo "                 Disable (enabled by default) handling of matrix problem"
+	echo "                 where M, N or K = 1 via separate code branches. When disabled,"
+	echo "                 these operations will be performed by gemm rather than gemv"
+	echo "                 or other optimized implementations."
+	echo " "
+	echo "   --disable-tiny-matrix, --enable-tiny-matrix"
+	echo " "
+	echo "                 Disable (enabled by default) handling of tiny"
+	echo "                 matrix problems via tiny code branches. When disabled,"
+	echo "                 these tiny level-3 operations will be performed by"
+	echo "                 the conventional implementation, which is optimized for"
+	echo "                 medium and large problems. Note that what qualifies as"
+	echo "                 \"tiny\" depends on thresholds that may vary by sub-"
+	echo "                 configuration."
+	echo "                 Currently only of relevance on configs that include"
+	echo "                 AMD Zen sub-configs"
+	echo " "
+	echo "   --disable-small-matrix, --enable-small-matrix"
 	echo " "
 	echo "                 Disable (enabled by default) handling of small/skinny"
-	echo "                 matrix problems via separate code branches. When disabled,"
+	echo "                 matrix problems via small code branches. When disabled,"
 	echo "                 these small/skinny level-3 operations will be performed by"
 	echo "                 the conventional implementation, which is optimized for"
 	echo "                 medium and large problems. Note that what qualifies as"
 	echo "                 \"small\" depends on thresholds that may vary by sub-"
 	echo "                 configuration."
+	echo "                 Currently only of relevance on configs that include"
+	echo "                 AMD Zen sub-configs"
+	echo " "
+	echo "   --disable-sup-handling, --enable-sup-handling"
+	echo " "
+	echo "                 Disable (enabled by default) handling of small/skinny"
+	echo "                 matrix problems via SUP code branches. When disabled,"
+	echo "                 these small/skinny level-3 operations will be performed by"
+	echo "                 the conventional implementation, which is optimized for"
+	echo "                 medium and large problems. Note that what qualifies as"
+	echo "                 \"SUP\" depends on thresholds that may vary by sub-"
+	echo "                 configuration."
+	echo " "
+	echo "   --disable-small-matrix-trsm, --enable-small-matrix-trsm"
+	echo " "
+	echo "                 Disable (enabled by default) handling of small/skinny"
+	echo "                 TRSM problems via small code branches. When disabled,"
+	echo "                 these small/skinny level-3 operations will be performed by"
+	echo "                 the conventional implementation, which is optimized for"
+	echo "                 medium and large problems. Note that what qualifies as"
+	echo "                 \"small\" depends on thresholds that may vary by sub-"
+	echo "                 configuration."
+	echo "                 Currently only of relevance on configs that include"
+	echo "                 AMD Zen sub-configs"
 	echo " "
 	echo "   -a NAME --enable-addon=NAME"
 	echo " "
@@ -359,6 +402,12 @@ print_usage()
 	echo "                 Num_threads is derived from either environment variable"
 	echo "                 OMP_NUM_THREADS or BLIS_NUM_THREADS' or bli_set_num_threads() API."
 	echo " "
+	echo "   --enable-security-flags, --disable-security-flags"
+	echo " "
+	echo "                 Disable (Enabled by default) addition of compiler and linker"
+	echo "                 security hardening flags (e.g. -D_FORTIFY_SOURCE=2 -fstack-protector-strong"
+	echo "                 and -Wl,-z,relro -Wl,-z,now on ELF platforms)."
+	echo " "
 	echo "   --enable-blis-arch-type, --disable-blis-arch-type"
 	echo " "
 	echo "                 Disable support for AOCL_ENABLE_INSTRUCTIONS, BLIS_ARCH_TYPE and"
@@ -377,6 +426,27 @@ print_usage()
 	echo " "
 	echo "                 Change environment variable used to select architecture model specific"
 	echo "                 optimizations from BLIS_MODEL_TYPE to STRING"
+	echo " "
+	echo "   --enable-aocl-dtl=OPTION, --disable-aocl-dtl"
+	echo " "
+	echo "                 Enable DTL tracing and/or logging functionality"
+	echo "                 OPTION={all,trace,log,off}. The default is 'off'."
+	echo "                 Unrecognized options will be treated as 'off'."
+	echo "                 Details of the options:"
+	echo "                 * logging records basic information for each BLAS"
+	echo "                   call, with some APIs including timing information."
+	echo "                 * tracing records more detailed information on"
+	echo "                   the call stack within the BLAS APIs, and is mostly"
+	echo "                   of use for BLIS developers. The level of detail is"
+	echo "                   controlled by --aocl-dtl-trace-level option. More detailed"
+	echo "                   tracing will significantly increase API runtime."
+	echo " "
+	echo "   --aocl-dtl-trace-level=OPTION"
+	echo " "
+	echo "                 Sets the level of detail in tracing, see the description"
+	echo "                 in aocl_dtl/aocldtlcf.h for more details."
+	echo "                 OPTION=1..10, used to set different levels of detail in"
+	echo "                 tracing. Default value is 5."
 	echo " "
 	echo "   -q, --quiet   Suppress informational output. By default, configure"
 	echo "                 is verbose. (NOTE: -q is not yet implemented)"
@@ -1547,7 +1617,7 @@ check_compiler()
 	# Specific:
 	#
 	#   skx: icc 15.0.1+, gcc 6.0+, clang 3.9+
-	#   knl: icc 14.0.1+, gcc 5.0+, clang 3.9+
+	#   knl: icc 14.0.1+, gcc 5.0-14, clang 3.9+
 	#   haswell: any
 	#   sandybridge: any
 	#   penryn: any
@@ -1597,7 +1667,7 @@ check_compiler()
 				blacklistcc_add "zen"
 			fi
 		fi
-		if [ ${cc_major} -lt 5 ]; then
+		if [[ ${cc_major} -lt 5 ]] || [[ ${cc_major} -gt 14 ]]; then
 			blacklistcc_add "knl"
 		fi
 		if [ ${cc_major} -lt 6 ]; then
@@ -2108,15 +2178,26 @@ main()
 	enable_cblas='no'
 	enable_mixed_dt='yes'
 	enable_mixed_dt_extra_mem='yes'
+
+	enable_mnk1_matrix='yes'
+	enable_tiny_matrix='yes'
+	enable_small_matrix='yes'
 	enable_sup_handling='yes'
-	enable_memkind='' # The default memkind value is determined later on.
+	enable_small_matrix_trsm='yes'
 	enable_trsm_preinversion='yes'
+
+	enable_memkind='' # The default memkind value is determined later on.
 	enable_aocl_dynamic='yes'
+	enable_security_flags='yes'
 	force_version='no'
 	complex_return='default'
 	disable_blis_arch_type='unset'
 	rename_blis_arch_type='BLIS_ARCH_TYPE'
 	rename_blis_model_type='BLIS_MODEL_TYPE'
+
+	# DTL tracing/logging flag.
+	enable_aocl_dtl='off'
+	aocl_dtl_trace_level_number='unset'
 
 	# The addon flag and names.
 	addon_flag=''
@@ -2319,11 +2400,35 @@ main()
 						disable-mixed-dt-extra-mem)
 							enable_mixed_dt_extra_mem='no'
 							;;
+						enable-mnk1-matrix)
+							enable_mnk1_matrix='yes'
+							;;
+						disable-mnk1-matrix)
+							enable_mnk1_matrix='no'
+							;;
+						enable-tiny-matrix)
+							enable_tiny_matrix='yes'
+							;;
+						disable-tiny-matrix)
+							enable_tiny_matrix='no'
+							;;
+						enable-small-matrix)
+							enable_small_matrix='yes'
+							;;
+						disable-small-matrix)
+							enable_small_matrix='no'
+							;;
 						enable-sup-handling)
 							enable_sup_handling='yes'
 							;;
 						disable-sup-handling)
 							enable_sup_handling='no'
+							;;
+						enable-small-matrix-trsm)
+							enable_small_matrix_trsm='yes'
+							;;
+						disable-small-matrix-trsm)
+							enable_small_matrix_trsm='no'
 							;;
 						with-memkind)
 							enable_memkind='yes'
@@ -2342,6 +2447,12 @@ main()
 							;;
 						disable-aocl-dynamic)
 							enable_aocl_dynamic='no'
+							;;
+						enable-security-flags)
+							enable_security_flags='yes'
+							;;
+						disable-security-flags)
+							enable_security_flags='no'
 							;;
 						force-version=*)
 							force_version=${OPTARG#*=}
@@ -2363,6 +2474,15 @@ main()
 							;;
 						rename-blis-model-type=*)
 							rename_blis_model_type=${OPTARG#*=}
+							;;
+						enable-aocl-dtl=*)
+							enable_aocl_dtl=${OPTARG#*=}
+							;;
+						disable-aocl-dtl=*)
+							enable_aocl_dtl='off'
+							;;
+						aocl-dtl-trace-level=*)
+							aocl_dtl_trace_level_number=${OPTARG#*=}
 							;;
 						*)
 							print_usage
@@ -3133,9 +3253,7 @@ main()
 		echo "${script_name}: internal memory pools for small blocks are enabled."
 		enable_sba_pools_01=1
 	else
-		#echo "${script_name}: internal memory pools for small blocks are disabled."
-		echo "${script_name}: *** disabling memory pools for small blocks is currently disabled, awaiting fixes to this functionality."
-		exit 1
+		echo "${script_name}: internal memory pools for small blocks are disabled."
 		enable_sba_pools_01=0
 	fi
 	if [ "x${enable_mem_tracing}" = "xyes" ]; then
@@ -3213,12 +3331,40 @@ main()
 		enable_mixed_dt_extra_mem_01=0
 		enable_mixed_dt_01=0
 	fi
-	if [ "x${enable_sup_handling}" = "xyes" ]; then
+	if [ "x${enable_mnk1_matrix}" = "xyes" ]; then
+		echo "${script_name}: M,N,K=1 matrix handling is enabled."
+		enable_mnk1_matrix_01=1
+	else
+		echo "${script_name}: M,N,K=1 matrix handling is disabled."
+		enable_mnk1_matrix_01=0
+	fi
+	if [ "x${enable_tiny_matrix}" = "xyes" ]; then
+		echo "${script_name}: tiny matrix handling is enabled."
+		enable_tiny_matrix_01=1
+	else
+		echo "${script_name}: tiny matrix handling is disabled."
+		enable_tiny_matrix_01=0
+	fi
+	if [ "x${enable_small_matrix}" = "xyes" ]; then
 		echo "${script_name}: small matrix handling is enabled."
-		enable_sup_handling_01=1
+		enable_small_matrix_01=1
 	else
 		echo "${script_name}: small matrix handling is disabled."
+		enable_small_matrix_01=0
+	fi
+	if [ "x${enable_sup_handling}" = "xyes" ]; then
+		echo "${script_name}: SUP matrix handling is enabled."
+		enable_sup_handling_01=1
+	else
+		echo "${script_name}: SUP matrix handling is disabled."
 		enable_sup_handling_01=0
+	fi
+	if [ "x${enable_small_matrix_trsm}" = "xyes" ]; then
+		echo "${script_name}: TRSM small matrix handling is enabled."
+		enable_small_matrix_trsm_01=1
+	else
+		echo "${script_name}: TRSM small matrix handling is disabled."
+		enable_small_matrix_trsm_01=0
 	fi
 	if [ "x${enable_trsm_preinversion}" = "xyes" ]; then
 		echo "${script_name}: trsm diagonal element pre-inversion is enabled."
@@ -3226,6 +3372,28 @@ main()
 	else
 		echo "${script_name}: trsm diagonal element pre-inversion is disabled."
 		enable_trsm_preinversion_01=0
+	fi
+
+	if [ "x${enable_security_flags}" = "xyes" ]; then
+		echo "${script_name}: security hardening flags are enabled."
+	else
+		echo "${script_name}: security hardening flags are disabled."
+	fi
+
+	# Check AOCL DTL flag configuration
+	enable_aocl_dtl_trace_01=0
+	enable_aocl_dtl_log_01=0
+	if [ "x${enable_aocl_dtl}" = "xtrace" ]; then
+		enable_aocl_dtl_trace_01=1
+	elif [ "x${enable_aocl_dtl}" = "xlog" ]; then
+		enable_aocl_dtl_log_01=1
+	elif [ "x${enable_aocl_dtl}" = "xall" ]; then
+		enable_aocl_dtl_trace_01=1
+		enable_aocl_dtl_log_01=1
+	fi
+
+	if [ "x${aocl_dtl_trace_level_number}" = "xunset" ]; then
+		aocl_dtl_trace_level_number=5
 	fi
 
 	# Check aocl dynamic threading configuration and enable it only if
@@ -3522,6 +3690,9 @@ main()
 		| sed -e "s/@gcc_older_than_11_2_0@/${gcc_older_than_11_2_0}/g" \
 		| sed -e "s/@CC@/${cc_esc}/g" \
 		| sed -e "s/@CXX@/${cxx_esc}/g" \
+		| sed -e "s/@cc_major@/${cc_major}/g" \
+		| sed -e "s/@cc_minor@/${cc_minor}/g" \
+		| sed -e "s/@cc_revision@/${cc_revision}/g" \
 		| sed -e "s/@RANLIB@/${ranlib_esc}/g" \
 		| sed -e "s/@AR@/${ar_esc}/g" \
 		| sed -e "s/@PYTHON@/${python_esc}/g" \
@@ -3551,6 +3722,7 @@ main()
 		| sed -e "s/@sandbox@/${sandbox}/g" \
 		| sed -e "s/@enable_trsm_preinversion@/${enable_trsm_preinversion}/g" \
 		| sed -e "s/@enable_aocl_dynamic@/${enable_aocl_dynamic}/g" \
+		| sed -e "s/@enable_security_flags@/${enable_security_flags}/g" \
 		| sed -e "s/@complex_return@/${complex_return}/g" \
 		| sed -e "s/@blas_int_type_size@/${blas_int_type_size}/g" \
 		| sed   -e "s/\@enable_aocl_zen\@/${enable_aocl_zen}/g" \
@@ -3583,9 +3755,13 @@ main()
 		| sed   -e "s/@enable_cblas@/${enable_cblas_01}/g" \
 		| sed   -e "s/@enable_mixed_dt@/${enable_mixed_dt_01}/g" \
 		| sed   -e "s/@enable_mixed_dt_extra_mem@/${enable_mixed_dt_extra_mem_01}/g" \
+		| sed   -e "s/@enable_mnk1_matrix@/${enable_mnk1_matrix_01}/g" \
+		| sed   -e "s/@enable_tiny_matrix@/${enable_tiny_matrix_01}/g" \
+		| sed   -e "s/@enable_small_matrix@/${enable_small_matrix_01}/g" \
 		| sed   -e "s/@enable_sup_handling@/${enable_sup_handling_01}/g" \
-		| sed   -e "s/@enable_memkind@/${enable_memkind_01}/g" \
+		| sed   -e "s/@enable_small_matrix_trsm@/${enable_small_matrix_trsm_01}/g" \
 		| sed   -e "s/@enable_trsm_preinversion@/${enable_trsm_preinversion_01}/g" \
+		| sed   -e "s/@enable_memkind@/${enable_memkind_01}/g" \
 		| sed   -e "s/@enable_aocl_dynamic@/${enable_aocl_dynamic_01}/g" \
 		| sed   -e "s/@enable_pragma_omp_simd@/${enable_pragma_omp_simd_01}/g" \
 		| sed   -e "s/@enable_sandbox@/${enable_sandbox_01}/g" \
@@ -3594,6 +3770,9 @@ main()
 		| sed   -e "s/@disable_blis_arch_type@/${disable_blis_arch_type_01}/g" \
 		| sed   -e "s/@rename_blis_arch_type@/${rename_blis_arch_type}/g" \
 		| sed   -e "s/@rename_blis_model_type@/${rename_blis_model_type}/g" \
+		| sed   -e "s/@enable_aocl_dtl_trace@/${enable_aocl_dtl_trace_01}/g" \
+		| sed   -e "s/@enable_aocl_dtl_log@/${enable_aocl_dtl_log_01}/g" \
+		| sed   -e "s/@aocl_dtl_trace_level_number@/${aocl_dtl_trace_level_number}/g" \
 		> "${bli_config_h_out_path}"
 
 	# -- Instantiate bli_addon.h file from template ----------------------------

@@ -184,28 +184,33 @@ err_t lpgemm_translate_to_group_postops_list
 		AOCL_STORAGE_TYPE tmp_zp_stor_type = NONE; //get_stor_type( ( post_op_unparsed->a_zp )->zero_point_type );
 
 		// At this point we are sure that sf and zp types of both matrices match.
-		AOCL_STORAGE_TYPE tmp_sf_stor_type = get_stor_type( ( post_op_unparsed->a_scl )->scale_factor_type );
+		AOCL_STORAGE_TYPE tmp_sf_stor_type = NONE;
+		if ( post_op_unparsed->a_scl != NULL )
+		{
+			tmp_sf_stor_type =
+				get_stor_type( ( post_op_unparsed->a_scl )->scale_factor_type );
+		}
 
 		lpgemm_set_group_post_ops_node_params
 		(
 			post_op_list,
 			group_size,
 			// A zero-point
-			post_op_unparsed->a_zp == NULL ? NULL : ( post_op_unparsed->a_zp )->zero_point,
+			( post_op_unparsed->a_zp == NULL ) ? NULL : ( post_op_unparsed->a_zp )->zero_point,
 			// A scale factor
-			( post_op_unparsed->a_scl )->scale_factor,
+			( post_op_unparsed->a_scl == NULL ) ? NULL : ( post_op_unparsed->a_scl )->scale_factor,
 			// A zero-point length
-			post_op_unparsed->a_zp == NULL ? 0 : ( post_op_unparsed->a_zp )->zero_point_len,
+			( post_op_unparsed->a_zp == NULL ) ? 0 : ( post_op_unparsed->a_zp )->zero_point_len,
 			// A scale factor length
-			( post_op_unparsed->a_scl )->scale_factor_len,
+			( post_op_unparsed->a_scl == NULL ) ? 0 : ( post_op_unparsed->a_scl )->scale_factor_len,
 			// B zero-point
-			post_op_unparsed->b_zp == NULL ? NULL : ( post_op_unparsed->b_zp )->zero_point,
+			( post_op_unparsed->b_zp == NULL ) ? NULL : ( post_op_unparsed->b_zp )->zero_point,
 			// B scale factor
-			( post_op_unparsed->b_scl )->scale_factor,
+			( post_op_unparsed->b_scl == NULL ) ? NULL : ( post_op_unparsed->b_scl )->scale_factor,
 			// B zero-point length
-			post_op_unparsed->b_zp == NULL ? 0 : ( post_op_unparsed->b_zp )->zero_point_len,
+			( post_op_unparsed->b_zp == NULL ) ? 0 : ( post_op_unparsed->b_zp )->zero_point_len,
 			// B scale factor length
-			( post_op_unparsed->b_scl )->scale_factor_len,
+			( post_op_unparsed->b_scl == NULL ) ? 0 : ( post_op_unparsed->b_scl )->scale_factor_len,
 			tmp_sf_stor_type,
 			tmp_zp_stor_type
 		);
@@ -282,11 +287,12 @@ err_t lpgemm_translate_to_pre_ops_list
 		(
 			pre_op_list,
 			group_size,
-			pre_op_unparsed->b_zp==NULL? NULL: (pre_op_unparsed->b_zp)->zero_point,
-			(pre_op_unparsed->b_scl)->scale_factor,
-			pre_op_unparsed->b_zp==NULL? 0: (pre_op_unparsed->b_zp)->zero_point_len,
-			(pre_op_unparsed->b_scl)->scale_factor_len,
-			(pre_op_unparsed->b_scl)->scale_factor_type == AOCL_GEMM_BF16 ? BF16 : F32
+			(pre_op_unparsed->b_zp == NULL) ? NULL: (pre_op_unparsed->b_zp)->zero_point,
+			(pre_op_unparsed->b_scl == NULL) ? NULL : (pre_op_unparsed->b_scl)->scale_factor,
+			(pre_op_unparsed->b_zp == NULL) ? 0: (pre_op_unparsed->b_zp)->zero_point_len,
+			(pre_op_unparsed->b_scl == NULL) ? 0 : (pre_op_unparsed->b_scl)->scale_factor_len,
+			(pre_op_unparsed->b_scl == NULL) ? NULLTYPE :
+				(((pre_op_unparsed->b_scl)->scale_factor_type == AOCL_GEMM_BF16) ? BF16 : F32)
 		);
 
 		// Simulating linked link using an array.
@@ -299,7 +305,8 @@ err_t lpgemm_translate_to_pre_ops_list
 	return BLIS_SUCCESS;
 }
 
-BLIS_INLINE void lpgemm_set_node_params(
+BLIS_INLINE void lpgemm_set_node_params
+(
 	lpgemm_post_op *post_op_node,
 	LPGEMM_POST_OP_CODE op_code,
 	void *op1,
@@ -309,7 +316,9 @@ BLIS_INLINE void lpgemm_set_node_params(
 	dim_t scale_factor_len,
 	bool is_power_of_2,
 	AOCL_STORAGE_TYPE stor_type,
-	AOCL_STORAGE_TYPE zp_stor_type)
+	AOCL_STORAGE_TYPE zp_stor_type,
+	AOCL_STORAGE_TYPE sf_stor_type
+)
 {
 	post_op_node->op_code = op_code;
 	post_op_node->op_args1 = op1;
@@ -320,6 +329,7 @@ BLIS_INLINE void lpgemm_set_node_params(
 	post_op_node->is_power_of_2 = is_power_of_2;
 	post_op_node->stor_type = stor_type;
 	post_op_node->zp_stor_type = zp_stor_type;
+	post_op_node->sf_stor_type = sf_stor_type;
 	post_op_node->next = NULL;
 }
 
@@ -341,7 +351,8 @@ err_t lpgemm_translate_to_post_ops_list
 		lpgemm_set_node_params
 		(
 		  post_op_list, POST_OPS_DISABLE,
-		  NULL, NULL, NULL, NULL, 0, FALSE, NONE, NONE
+		  NULL, NULL, NULL, NULL, 0, FALSE, NONE,
+		  NONE, NONE
 		);
 
 		return BLIS_SUCCESS;
@@ -352,10 +363,11 @@ err_t lpgemm_translate_to_post_ops_list
 		lpgemm_set_node_params
 		(
 		  post_op_list, POST_OPS_DISABLE,
-		  NULL, NULL, NULL, NULL, 0, FALSE, NONE, NONE
+		  NULL, NULL, NULL, NULL, 0, FALSE, NONE,
+		  NONE, NONE
 		);
 
-		bli_print_msg(" Max supported post-ops is 5, supplied input post-ops" \
+		bli_print_msg(" Max supported post-ops is 8, supplied input post-ops" \
 						" are more. Exiting..", __FILE__, __LINE__ );
 		return BLIS_UNEXPECTED_VECTOR_DIM; //Error, seq length exceeds max post ops permitted.
 	}
@@ -381,7 +393,7 @@ err_t lpgemm_translate_to_post_ops_list
 						  ( post_op_unparsed->sum + s_i )->scale_factor,
 						  ( post_op_unparsed->sum + s_i )->scale_factor_len,
 						  ( post_op_unparsed->sum + s_i )->is_power_of_2,
-						  NONE, NONE
+						  NONE, NONE, NONE
 						);
 
 						s_i += 1;
@@ -445,7 +457,7 @@ err_t lpgemm_translate_to_post_ops_list
 						  ( post_op_unparsed->eltwise + e_i )->scale_factor,
 						  ( post_op_unparsed->eltwise + e_i )->scale_factor_len,
 						  ( post_op_unparsed->eltwise + e_i )->is_power_of_2,
-						  NONE, NONE
+						  NONE, NONE, NONE
 						);
 						e_i += 1;
 					}
@@ -463,7 +475,7 @@ err_t lpgemm_translate_to_post_ops_list
 						(
 						  ( post_op_list + i ), POST_OPS_BIAS,
 						  ( post_op_unparsed->bias + b_i )->bias,
-						  meta_arg, NULL, NULL, 0, FALSE, tmp_stor_type, NONE
+						  meta_arg, NULL, NULL, 0, FALSE, tmp_stor_type, NONE, NONE
 						);
 
 						b_i += 1;
@@ -502,6 +514,8 @@ err_t lpgemm_translate_to_post_ops_list
 
 						AOCL_STORAGE_TYPE tmp_zp_stor_type  =
 							get_stor_type( ( post_op_unparsed->sum + s_i )->zp_stor_type );
+						AOCL_STORAGE_TYPE tmp_sf_stor_type  =
+							get_stor_type( ( post_op_unparsed->sum + s_i )->sf_stor_type );
 
 						lpgemm_set_node_params
 						(
@@ -510,7 +524,7 @@ err_t lpgemm_translate_to_post_ops_list
 						  meta_arg, &( ( post_op_unparsed->sum + s_i )->zero_point_len ),
 						  ( post_op_unparsed->sum + s_i )->scale_factor,
 						  ( post_op_unparsed->sum + s_i )->scale_factor_len,
-						  FALSE, NONE, tmp_zp_stor_type 
+						  FALSE, NONE, tmp_zp_stor_type, tmp_sf_stor_type
 						);
 
 						s_i += 1;
@@ -535,7 +549,7 @@ err_t lpgemm_translate_to_post_ops_list
 						  meta_arg, &( ( post_op_unparsed->matrix_add + m_i )->ldm ),
 						  ( post_op_unparsed->matrix_add + m_i )->scale_factor,
 						  ( post_op_unparsed->matrix_add + m_i )->scale_factor_len,
-						  FALSE, tmp_stor_type, NONE
+						  FALSE, tmp_stor_type, NONE, NONE
 						);
 
 						m_i += 1;
@@ -560,7 +574,7 @@ err_t lpgemm_translate_to_post_ops_list
 						  meta_arg, &( ( post_op_unparsed->matrix_mul + mul_i )->ldm ),
 						  ( post_op_unparsed->matrix_mul + mul_i )->scale_factor,
 						  ( post_op_unparsed->matrix_mul + mul_i )->scale_factor_len,
-						  FALSE, tmp_stor_type, NONE
+						  FALSE, tmp_stor_type, NONE, NONE
 						);
 
 						mul_i += 1;

@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2025, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -50,9 +50,12 @@ f77_int dgemm_pack_get_size_blis_impl
        const f77_int* pk
      )
 {
-    AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
+    /* Initialize BLIS. */
+    bli_init_auto();
 
-    bli_init_auto(); // initialize blis
+    AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
+    AOCL_DTL_LOG_GEMM_GET_SIZE_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(d), *identifier, *pm, *pn, *pk);
+
     cntx_t* cntx = bli_gks_query_cntx(); // Get processor specific context.
 
     /* Perform BLAS parameter checking. */
@@ -176,9 +179,12 @@ f77_int sgemm_pack_get_size_blis_impl
        const f77_int* pk
      )
 {
-    AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
+    /* Initialize BLIS. */
+    bli_init_auto();
 
-    bli_init_auto(); // initialize blis
+    AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
+    AOCL_DTL_LOG_GEMM_GET_SIZE_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(s), *identifier, *pm, *pn, *pk);
+
     cntx_t* cntx = bli_gks_query_cntx(); // Get processor specific context.
 
     /* Perform BLAS parameter checking. */

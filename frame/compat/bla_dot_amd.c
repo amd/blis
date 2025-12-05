@@ -60,17 +60,18 @@ ftype PASTEF772S(ch,blasname,chc) \
        const ftype*   y, const f77_int* incy  \
      ) \
 { \
+    /* Initialize BLIS. */ \
+    bli_init_auto(); \
+\
     AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1); \
     AOCL_DTL_LOG_DOTV_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(ch), *MKSTR(blis_conjx), *n, *incx, *incy); \
+\
     dim_t  n0; \
     ftype* x0; \
     ftype* y0; \
     inc_t  incx0; \
     inc_t  incy0; \
     ftype  rho; \
-\
-    /* Initialize BLIS. */ \
-    bli_init_auto(); \
 \
     /* Convert/typecast negative values of n to zero. */ \
     bli_convert_blas_dim1( *n, n0 ); \
@@ -119,34 +120,35 @@ float sdot_blis_impl
        const float*   y, const f77_int* incy
      )
 {
+    /* Initialize BLIS. */
+    // Call to bli_init_auto() is not needed here
+    AOCL_DTL_INITIALIZE();
+
     AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
     AOCL_DTL_LOG_DOTV_INPUTS(AOCL_DTL_LEVEL_TRACE_1, 'S', 'N', *n, *incx, *incy);
+
     dim_t  n0;
     float* x0;
     float* y0;
     inc_t  incx0;
     inc_t  incy0;
-    float  rho;
+    float  rho = 0.0f;
 
-    /* Initialize BLIS. */
-    //  bli_init_auto();
-
-    // If the vector dimension is less than or equal to zero, return.
+    // BLAS Exception: Return early when n <= 0.
     if (*n <= 0)
     {
-      rho = 0.0f;
-
-      AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
-      return rho;
+        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+        /* Finalize BLIS. */
+        // Call to bli_finalize_auto() is not needed here
+        return rho;
     }
     else
     {
-      n0 = ( dim_t )(*n);
+        n0 = ( dim_t )(*n);
     }
 
     /* If the input increments are negative, adjust the pointers so we can
        use positive increments instead. */
-
     if ( *incx < 0 )
     {
         /* The semantics of negative stride in BLAS are that the vector
@@ -189,21 +191,19 @@ float sdot_blis_impl
     // Query the architecture ID
     arch_t arch_id = bli_arch_query_id();
 
-    /*
-      Function pointer declaration for the function
-      that will be used by this API
-    */
-    sdotv_ker_ft dotv_ker_ptr; // SDOTV
+    // Function pointer declaration for the function
+    // that will be used by this API
+    sdotv_ker_ft dotv_ker_ptr = NULL; // SDOTV
 
     // Pick the kernel based on the architecture ID
-    switch (arch_id)
+    switch ( arch_id )
     {
         case BLIS_ARCH_ZEN5:
         case BLIS_ARCH_ZEN4:
 #if defined(BLIS_KERNELS_ZEN4)
 
             // AVX-512 Kernel
-            dotv_ker_ptr = bli_sdotv_zen_int_avx512;
+            dotv_ker_ptr = bli_sdotv_zen4_int;
 
         break;
 #endif
@@ -212,7 +212,7 @@ float sdot_blis_impl
         case BLIS_ARCH_ZEN3:
 
             // AVX-2 Kernel
-            dotv_ker_ptr = bli_sdotv_zen_int10;
+            dotv_ker_ptr = bli_sdotv_zen_int_10;
 
             break;
         default:
@@ -235,9 +235,9 @@ float sdot_blis_impl
       cntx
     );
 
-    /* Finalize BLIS. */
-    //  bli_finalize_auto();
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+    /* Finalize BLIS. */
+    // Call to bli_finalize_auto() is not needed here
     return rho;
 }
 #ifdef BLIS_ENABLE_BLAS
@@ -254,13 +254,18 @@ float sdot_
 double ddot_blis_impl
      (
        const f77_int* n,
-       const double*   x, const f77_int* incx,
-       const double*   y, const f77_int* incy
+       const double*  x, const f77_int* incx,
+       const double*  y, const f77_int* incy
      )
 {
+    /* Initialize BLIS. */
+    // Call to bli_init_auto() is not needed here
+    AOCL_DTL_INITIALIZE();
+
     AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
     AOCL_DTL_LOG_DOTV_INPUTS(AOCL_DTL_LEVEL_TRACE_1, 'D', 'N', *n, *incx, *incy);
-    dim_t  n_elem;
+
+    dim_t  n0;
     double* x0;
     double* y0;
     inc_t  incx0;
@@ -268,19 +273,20 @@ double ddot_blis_impl
     double  rho = 0.0;
 
     // BLAS Exception: Return early when n <= 0.
-    if((*n) <= 0)
+    if (*n <= 0)
     {
-        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
-        return 0.0;
+        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+        /* Finalize BLIS. */
+        // Call to bli_finalize_auto() is not needed here
+        return rho;
     }
     else
     {
-        n_elem = ( dim_t )(*n);
+        n0 = ( dim_t )(*n);
     }
 
     /* If the input increments are negative, adjust the pointers so we can
        use positive increments instead. */
-
     if ( *incx < 0 )
     {
         /* The semantics of negative stride in BLAS are that the vector
@@ -296,7 +302,7 @@ double ddot_blis_impl
         pass in the address to the (n-1)th (i.e., the bottom-most or
         right-most) element along with a negative stride. */
 
-        x0    = ((double*)x) + (n_elem-1)*(-*incx);
+        x0    = ((double*)x) + (n0-1)*(-*incx);
         incx0 = ( inc_t )(*incx);
 
     }
@@ -308,7 +314,7 @@ double ddot_blis_impl
 
     if ( *incy < 0 )
     {
-        y0    = ((double*)y) + (n_elem-1)*(-*incy);
+        y0    = ((double*)y) + (n0-1)*(-*incy);
         incy0 = ( inc_t )(*incy);
 
     }
@@ -318,29 +324,30 @@ double ddot_blis_impl
         incy0 = ( inc_t )(*incy);
     }
 
-     // Definition of function pointer
-    ddotv_ker_ft dotv_ker_ptr;
-
-    cntx_t *cntx = NULL;
-
- #if defined(BLIS_ENABLE_OPENMP) && defined(AOCL_DYNAMIC)
+#if defined(BLIS_ENABLE_OPENMP) && defined(AOCL_DYNAMIC)
     // Setting the threshold to invoke the fast-path
     // The fast-path is intended to directly call the kernel
     // in case the criteria for single threaded execution is met.
     dim_t fast_path_thresh = 0;
 #endif
 
+    cntx_t *cntx = NULL;
+
     // Query the architecture ID
-    arch_t arch_id_local = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id();
+
+    // Function pointer declaration for the function
+    // that will be used by this API
+    ddotv_ker_ft dotv_ker_ptr = NULL;
 
     // Pick the kernel based on the architecture ID
-    switch (arch_id_local)
+    switch ( arch_id )
     {
       case BLIS_ARCH_ZEN5:
 
 #if defined(BLIS_KERNELS_ZEN5)
           // AVX-512 Kernel
-          dotv_ker_ptr = bli_ddotv_zen_int_avx512;
+          dotv_ker_ptr = bli_ddotv_zen4_int;
 #if defined(BLIS_ENABLE_OPENMP) && defined(AOCL_DYNAMIC)
           fast_path_thresh = 6600;
 #endif
@@ -351,7 +358,7 @@ double ddot_blis_impl
 
 #if defined(BLIS_KERNELS_ZEN4)
           // AVX-512 Kernel
-          dotv_ker_ptr = bli_ddotv_zen_int_avx512;
+          dotv_ker_ptr = bli_ddotv_zen4_int;
 #if defined(BLIS_ENABLE_OPENMP) && defined(AOCL_DYNAMIC)
           fast_path_thresh = 5600;
 #endif
@@ -363,7 +370,7 @@ double ddot_blis_impl
       case BLIS_ARCH_ZEN3:
 
           // AVX2 Kernel
-          dotv_ker_ptr = bli_ddotv_zen_int10;
+          dotv_ker_ptr = bli_ddotv_zen_int_10;
 #if defined(BLIS_ENABLE_OPENMP) && defined(AOCL_DYNAMIC)
           fast_path_thresh = 2500;
 #endif
@@ -387,13 +394,13 @@ double ddot_blis_impl
       function directly. This ensures that performance of ddotv
       does not drop for single  thread when OpenMP is enabled.
     */
-    if (n_elem <= fast_path_thresh)
+    if (n0 <= fast_path_thresh)
     {
         dotv_ker_ptr
         (
           BLIS_NO_CONJUGATE,
           BLIS_NO_CONJUGATE,
-          n_elem,
+          n0,
           x0, incx0,
           y0, incy0,
           &rho,
@@ -422,8 +429,8 @@ double ddot_blis_impl
       BLIS_DOTV_KER,
       BLIS_DOUBLE,
       BLIS_DOUBLE,
-      arch_id_local,
-      n_elem,
+      arch_id,
+      n0,
       &nt
     );
 
@@ -438,7 +445,7 @@ double ddot_blis_impl
         (
           BLIS_NO_CONJUGATE,
           BLIS_NO_CONJUGATE,
-          n_elem,
+          n0,
           x0, incx0,
           y0, incy0,
           &rho,
@@ -525,7 +532,7 @@ double ddot_blis_impl
         (
           BLIS_NO_CONJUGATE,
           BLIS_NO_CONJUGATE,
-          n_elem,
+          n0,
           x0, incx0,
           y0, incy0,
           &rho,
@@ -552,7 +559,7 @@ double ddot_blis_impl
         */
         bli_thread_vector_partition
         (
-          n_elem,
+          n0,
           nt_use,
           &start, &length,
           thread_id
@@ -591,17 +598,17 @@ double ddot_blis_impl
     }
 #endif
 
-    /* Finalize BLIS. */
-    //  bli_finalize_auto();
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+    /* Finalize BLIS. */
+    // Call to bli_finalize_auto() is not needed here
     return rho;
 }
 #ifdef BLIS_ENABLE_BLAS
 double ddot_
      (
        const f77_int* n,
-       const double*   x, const f77_int* incx,
-       const double*   y, const f77_int* incy
+       const double*  x, const f77_int* incx,
+       const double*  y, const f77_int* incy
      )
 {
   return ddot_blis_impl( n, x, incx, y, incy );
@@ -611,13 +618,18 @@ double ddot_
 #ifdef BLIS_DISABLE_COMPLEX_RETURN_INTEL
 scomplex cdotu_blis_impl
      (
-       const f77_int* n,
-       const scomplex*   x, const f77_int* incx,
-       const scomplex*   y, const f77_int* incy
+       const f77_int*  n,
+       const scomplex* x, const f77_int* incx,
+       const scomplex* y, const f77_int* incy
      )
 {
+    /* Initialize BLIS. */
+    // Call to bli_init_auto() is not needed here
+    AOCL_DTL_INITIALIZE();
+
     AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
     AOCL_DTL_LOG_DOTV_INPUTS(AOCL_DTL_LEVEL_TRACE_1, 'C', 'N', *n, *incx, *incy);
+
     dim_t  n0;
     scomplex* x0;
     scomplex* y0;
@@ -625,16 +637,23 @@ scomplex cdotu_blis_impl
     inc_t  incy0;
     scomplex  rho;
 
-    /* Initialize BLIS. */
-    //  bli_init_auto();
+    PASTEMAC(c,set0s)( rho );   // Initializing rho to 0.
 
-    /* Convert/typecast negative values of n to zero. */
-    if ( *n < 0 ) n0 = ( dim_t )0;
-    else          n0 = ( dim_t )(*n);
+    // BLAS Exception: Return early when n <= 0.
+    if (*n <= 0)
+    {
+        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+        /* Finalize BLIS. */
+        // Call to bli_finalize_auto() is not needed here
+        return rho;
+    }
+    else
+    {
+        n0 = ( dim_t )(*n);
+    }
 
     /* If the input increments are negative, adjust the pointers so we can
        use positive increments instead. */
-
     if ( *incx < 0 )
     {
         /* The semantics of negative stride in BLAS are that the vector
@@ -677,7 +696,7 @@ scomplex cdotu_blis_impl
     if (bli_cpuid_is_avx2fma3_supported() == TRUE)
     {
         /* Call BLIS kernel. */
-        bli_cdotv_zen_int5
+        bli_cdotv_zen_int_5
         (
         BLIS_NO_CONJUGATE,
         BLIS_NO_CONJUGATE,
@@ -704,17 +723,17 @@ scomplex cdotu_blis_impl
         );
     }
 
-    /* Finalize BLIS. */
-    //  bli_finalize_auto();
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+    /* Finalize BLIS. */
+    // Call to bli_finalize_auto() is not needed here
     return rho;
 }
 #ifdef BLIS_ENABLE_BLAS
 scomplex cdotu_
      (
-       const f77_int* n,
-       const scomplex*   x, const f77_int* incx,
-       const scomplex*   y, const f77_int* incy
+       const f77_int*  n,
+       const scomplex* x, const f77_int* incx,
+       const scomplex* y, const f77_int* incy
      )
 {
   return cdotu_blis_impl( n, x, incx, y, incy );
@@ -722,11 +741,18 @@ scomplex cdotu_
 #endif
 dcomplex zdotu_blis_impl
      (
-       const f77_int* n,
-       const dcomplex*   x, const f77_int* incx,
-       const dcomplex*   y, const f77_int* incy
+       const f77_int*  n,
+       const dcomplex* x, const f77_int* incx,
+       const dcomplex* y, const f77_int* incy
      )
 {
+    /* Initialize BLIS. */
+    // Call to bli_init_auto() is not needed here
+    AOCL_DTL_INITIALIZE();
+
+    AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
+    AOCL_DTL_LOG_DOTV_INPUTS(AOCL_DTL_LEVEL_TRACE_1, 'Z', 'N', *n, *incx, *incy);
+
     dim_t  n0;
     dcomplex* x0;
     dcomplex* y0;
@@ -736,19 +762,21 @@ dcomplex zdotu_blis_impl
 
     PASTEMAC(z,set0s)( rho );   // Initializing rho to 0.
 
-    AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
-    AOCL_DTL_LOG_DOTV_INPUTS(AOCL_DTL_LEVEL_TRACE_1, 'Z', 'N', *n, *incx, *incy);
-
-    /* Initialize BLIS. */
-    //  bli_init_auto();
-
-    /* Convert/typecast negative values of n to zero. */
-    if ( *n < 0 ) n0 = ( dim_t )0;
-    else          n0 = ( dim_t )(*n);
+    // BLAS Exception: Return early when n <= 0.
+    if (*n <= 0)
+    {
+        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+        /* Finalize BLIS. */
+        // Call to bli_finalize_auto() is not needed here
+        return rho;
+    }
+    else
+    {
+        n0 = ( dim_t )(*n);
+    }
 
     /* If the input increments are negative, adjust the pointers so we can
        use positive increments instead. */
-
     if ( *incx < 0 )
     {
         /* The semantics of negative stride in BLAS are that the vector
@@ -789,22 +817,25 @@ dcomplex zdotu_blis_impl
     cntx_t *cntx = NULL;
 
     // Query the architecture ID
-    arch_t arch_id_local = bli_arch_query_id();
-    zdotv_ker_ft zdotv_ker_ptr;
+    arch_t arch_id = bli_arch_query_id();
 
-    switch ( arch_id_local )
+    // Function pointer declaration for the function
+    // that will be used by this API
+    zdotv_ker_ft zdotv_ker_ptr = NULL;
+
+    switch ( arch_id )
     {
         case BLIS_ARCH_ZEN5:
         case BLIS_ARCH_ZEN4:
 #if defined(BLIS_KERNELS_ZEN4)
-            zdotv_ker_ptr = bli_zdotv_zen_int_avx512;
+            zdotv_ker_ptr = bli_zdotv_zen4_int;
             break;
 #endif
 
         case BLIS_ARCH_ZEN3:
         case BLIS_ARCH_ZEN2:
         case BLIS_ARCH_ZEN:
-            zdotv_ker_ptr = bli_zdotv_zen_int5;
+            zdotv_ker_ptr = bli_zdotv_zen_int_5;
             break;
 
         default:
@@ -825,7 +856,7 @@ dcomplex zdotu_blis_impl
       BLIS_DOTV_KER,
       BLIS_DCOMPLEX,
       BLIS_DCOMPLEX,
-      arch_id_local,
+      arch_id,
       n0,
       &nt
     );
@@ -999,19 +1030,17 @@ dcomplex zdotu_blis_impl
     }
 #endif
 
-    /* Finalize BLIS. */
-    //  bli_finalize_auto();
-
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
-
+    /* Finalize BLIS. */
+    // Call to bli_finalize_auto() is not needed here
     return rho;
 }
 #ifdef BLIS_ENABLE_BLAS
 dcomplex zdotu_
      (
-       const f77_int* n,
-       const dcomplex*   x, const f77_int* incx,
-       const dcomplex*   y, const f77_int* incy
+       const f77_int*  n,
+       const dcomplex* x, const f77_int* incx,
+       const dcomplex* y, const f77_int* incy
      )
 {
   return zdotu_blis_impl( n, x, incx, y, incy );
@@ -1019,11 +1048,18 @@ dcomplex zdotu_
 #endif
 scomplex cdotc_blis_impl
      (
-       const f77_int* n,
-       const scomplex*   x, const f77_int* incx,
-       const scomplex*   y, const f77_int* incy
+       const f77_int*  n,
+       const scomplex* x, const f77_int* incx,
+       const scomplex* y, const f77_int* incy
      )
 {
+    /* Initialize BLIS. */
+    // Call to bli_init_auto() is not needed here
+    AOCL_DTL_INITIALIZE();
+
+    AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
+    AOCL_DTL_LOG_DOTV_INPUTS(AOCL_DTL_LEVEL_TRACE_1, 'C', 'C', *n, *incx, *incy);
+
     dim_t  n0;
     scomplex* x0;
     scomplex* y0;
@@ -1031,19 +1067,23 @@ scomplex cdotc_blis_impl
     inc_t  incy0;
     scomplex  rho;
 
-    AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
-    AOCL_DTL_LOG_DOTV_INPUTS(AOCL_DTL_LEVEL_TRACE_1, 'C', 'C', *n, *incx, *incy);
+    PASTEMAC(c,set0s)( rho );   // Initializing rho to 0.
 
-    /* Initialize BLIS. */
-    //  bli_init_auto();
-
-    /* Convert/typecast negative values of n to zero. */
-    if ( *n < 0 ) n0 = ( dim_t )0;
-    else          n0 = ( dim_t )(*n);
+    // BLAS Exception: Return early when n <= 0.
+    if (*n <= 0)
+    {
+        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+        /* Finalize BLIS. */
+        // Call to bli_finalize_auto() is not needed here
+        return rho;
+    }
+    else
+    {
+        n0 = ( dim_t )(*n);
+    }
 
     /* If the input increments are negative, adjust the pointers so we can
        use positive increments instead. */
-
     if ( *incx < 0 )
     {
         /* The semantics of negative stride in BLAS are that the vector
@@ -1086,7 +1126,7 @@ scomplex cdotc_blis_impl
     if (bli_cpuid_is_avx2fma3_supported() == TRUE)
     {
         /* Call BLIS kernel. */
-        bli_cdotv_zen_int5
+        bli_cdotv_zen_int_5
         (
         BLIS_CONJUGATE,
         BLIS_NO_CONJUGATE,
@@ -1113,18 +1153,17 @@ scomplex cdotc_blis_impl
         );
     }
 
-    /* Finalize BLIS. */
-    //  bli_finalize_auto();
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
-
+    /* Finalize BLIS. */
+    // Call to bli_finalize_auto() is not needed here
     return rho;
 }
 #ifdef BLIS_ENABLE_BLAS
 scomplex cdotc_
      (
-       const f77_int* n,
-       const scomplex*   x, const f77_int* incx,
-       const scomplex*   y, const f77_int* incy
+       const f77_int*  n,
+       const scomplex* x, const f77_int* incx,
+       const scomplex* y, const f77_int* incy
      )
 {
   return cdotc_blis_impl( n, x, incx, y, incy );
@@ -1132,13 +1171,18 @@ scomplex cdotc_
 #endif
 dcomplex zdotc_blis_impl
      (
-       const f77_int* n,
-       const dcomplex*   x, const f77_int* incx,
-       const dcomplex*   y, const f77_int* incy
+       const f77_int*  n,
+       const dcomplex* x, const f77_int* incx,
+       const dcomplex* y, const f77_int* incy
      )
 {
+    /* Initialize BLIS. */
+    // Call to bli_init_auto() is not needed here
+    AOCL_DTL_INITIALIZE();
+
     AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
     AOCL_DTL_LOG_DOTV_INPUTS(AOCL_DTL_LEVEL_TRACE_1, 'Z', 'C', *n, *incx, *incy);
+
     dim_t  n0;
     dcomplex* x0;
     dcomplex* y0;
@@ -1148,16 +1192,21 @@ dcomplex zdotc_blis_impl
 
     PASTEMAC(z,set0s)( rho );   // Initializing rho to 0.
 
-    /* Initialize BLIS. */
-    //  bli_init_auto();
-
-    /* Convert/typecast negative values of n to zero. */
-    if ( *n < 0 ) n0 = ( dim_t )0;
-    else          n0 = ( dim_t )(*n);
+    // BLAS Exception: Return early when n <= 0.
+    if (*n <= 0)
+    {
+        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+        /* Finalize BLIS. */
+        // Call to bli_finalize_auto() is not needed here
+        return rho;
+    }
+    else
+    {
+        n0 = ( dim_t )(*n);
+    }
 
     /* If the input increments are negative, adjust the pointers so we can
        use positive increments instead. */
-
     if ( *incx < 0 )
     {
         /* The semantics of negative stride in BLAS are that the vector
@@ -1198,24 +1247,27 @@ dcomplex zdotc_blis_impl
     cntx_t *cntx = NULL;
 
     // Query the architecture ID
-    arch_t arch_id_local = bli_arch_query_id();
-    zdotv_ker_ft zdotv_ker_ptr;
+    arch_t arch_id = bli_arch_query_id();
 
-    switch ( arch_id_local )
+    // Function pointer declaration for the function
+    // that will be used by this API
+    zdotv_ker_ft zdotv_ker_ptr = NULL;
+
+    switch ( arch_id )
     {
         case BLIS_ARCH_ZEN5:
         case BLIS_ARCH_ZEN4:
 #if defined(BLIS_KERNELS_ZEN4)
             // Currently only the AVX512 intrinsic kernel is enabled.
-            zdotv_ker_ptr = bli_zdotv_zen_int_avx512;
-            // zdotv_ker_ptr = bli_zdotv_zen4_asm_avx512;
+            zdotv_ker_ptr = bli_zdotv_zen4_int;
+            // zdotv_ker_ptr = bli_zdotv_zen4_asm;
             break;
 #endif
 
         case BLIS_ARCH_ZEN3:
         case BLIS_ARCH_ZEN2:
         case BLIS_ARCH_ZEN:
-            zdotv_ker_ptr = bli_zdotv_zen_int5;
+            zdotv_ker_ptr = bli_zdotv_zen_int_5;
             break;
         
         default:
@@ -1236,7 +1288,7 @@ dcomplex zdotc_blis_impl
       BLIS_DOTV_KER,
       BLIS_DCOMPLEX,
       BLIS_DCOMPLEX,
-      arch_id_local,
+      arch_id,
       n0,
       &nt
     );
@@ -1410,19 +1462,17 @@ dcomplex zdotc_blis_impl
     }
 #endif
 
-    /* Finalize BLIS. */
-    //  bli_finalize_auto();
-
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
-
+    /* Finalize BLIS. */
+    // Call to bli_finalize_auto() is not needed here
     return rho;
 }
 #ifdef BLIS_ENABLE_BLAS
 dcomplex zdotc_
      (
-       const f77_int* n,
-       const dcomplex*   x, const f77_int* incx,
-       const dcomplex*   y, const f77_int* incy
+       const f77_int*  n,
+       const dcomplex* x, const f77_int* incx,
+       const dcomplex* y, const f77_int* incy
      )
 {
   return zdotc_blis_impl( n, x, incx, y, incy );
@@ -1442,17 +1492,18 @@ void PASTEF772S(ch,blasname,chc) \
        const ftype*   y, const f77_int* incy  \
      ) \
 { \
-  AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1); \
-  AOCL_DTL_LOG_DOTV_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(ch), *MKSTR(blis_conjx), *n, *incx, *incy); \
+        /* Initialize BLIS. */ \
+        bli_init_auto(); \
+\
+	AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1); \
+	AOCL_DTL_LOG_DOTV_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(ch), *MKSTR(blis_conjx), *n, *incx, *incy); \
+\
         dim_t  n0; \
         ftype* x0; \
         ftype* y0; \
         inc_t  incx0; \
         inc_t  incy0; \
         ftype  rho; \
-\
-        /* Initialize BLIS. */ \
-        bli_init_auto(); \
 \
         /* Convert/typecast negative values of n to zero. */ \
         bli_convert_blas_dim1( *n, n0 ); \
@@ -1475,8 +1526,8 @@ void PASTEF772S(ch,blasname,chc) \
           NULL  \
         ); \
 \
-        /* Finalize BLIS. */ \
         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1); \
+        /* Finalize BLIS. */ \
         bli_finalize_auto(); \
 \
         *rhop = rho; \
@@ -1543,27 +1594,38 @@ double PASTEF77S(d,sdot)
        const float*   y, const f77_int* incy
      )
 {
+    /* Initialize BLIS. */
+    // Call to bli_init_auto() is not needed here
+    AOCL_DTL_INITIALIZE();
+
+    AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
+    AOCL_DTL_LOG_DOTV_INPUTS(AOCL_DTL_LEVEL_TRACE_1, 'D', 'N', *n, *incx, *incy);
+
     dim_t   n0;
     float*  x0;
     float*  y0;
     inc_t   incx0;
     inc_t   incy0;
-    double  rho;
+    double  rho = 0.0;
     dim_t   i;
 
-    AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
-    AOCL_DTL_LOG_DOTV_INPUTS(AOCL_DTL_LEVEL_TRACE_1, 'D', 'N', *n, *incx, *incy);
-    /* Initialization of BLIS is not required. */
-
-    /* Convert/typecast negative values of n to zero. */
-    bli_convert_blas_dim1( *n, n0 );
+    // BLAS Exception: Return early when n <= 0.
+    if (*n <= 0)
+    {
+        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+        /* Finalize BLIS. */
+        // Call to bli_finalize_auto() is not needed here
+        return rho;
+    }
+    else
+    {
+        n0 = ( dim_t )(*n);
+    }
 
     /* If the input increments are negative, adjust the pointers so we can
        use positive increments instead. */
     bli_convert_blas_incv( n0, (float*)x, *incx, x0, incx0 );
     bli_convert_blas_incv( n0, (float*)y, *incy, y0, incy0 );
-
-    rho = 0.0;
 
     for ( i = 0; i < n0; i++ )
     {
@@ -1574,10 +1636,9 @@ double PASTEF77S(d,sdot)
                    (( double )(*psi1)), rho );
     }
 
-    /* Finalization of BLIS is not required, because initialization was
-       not required. */
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
-
+    /* Finalize BLIS. */
+    // Call to bli_finalize_auto() is not needed here
     return rho;
 }
 

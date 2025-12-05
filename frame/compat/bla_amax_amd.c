@@ -47,6 +47,9 @@ f77_int PASTEF772S(i,chx,blasname) \
        const ftype_x* x, const f77_int* incx  \
      ) \
 { \
+    /* Initialize BLIS. */ \
+    bli_init_auto(); \
+\
     AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1) \
     AOCL_DTL_LOG_AMAX_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(chx), *n, *incx) \
 \
@@ -71,9 +74,6 @@ f77_int PASTEF772S(i,chx,blasname) \
       return 1;                                   \
     }\
 \
-    /* Initialize BLIS. */ \
-    bli_init_auto(); \
-\
     /* Convert/typecast negative values of n to zero. */ \
     bli_convert_blas_dim1( *n, n0 ); \
 \
@@ -96,10 +96,9 @@ f77_int PASTEF772S(i,chx,blasname) \
        integer size, that typecast occurs here. */ \
     f77_index = bli_index + 1; \
 \
+    AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1) \
     /* Finalize BLIS. */ \
     bli_finalize_auto(); \
-\
-    AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1) \
     return f77_index; \
 }\
 \
@@ -117,9 +116,12 @@ f77_int PASTEF772(i,chx,blasname) \
 f77_int isamax_blis_impl
      (
        const f77_int* n,
-       const float* x, const f77_int* incx
+       const float*   x, const f77_int* incx
      )
 {
+    /* Initialize BLIS. */
+    // Call to bli_init_auto() is not needed here
+    AOCL_DTL_INITIALIZE();
 
     AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
     AOCL_DTL_LOG_AMAX_INPUTS(AOCL_DTL_LEVEL_TRACE_1, 'S', *n, *incx);
@@ -148,12 +150,9 @@ f77_int isamax_blis_impl
       return 1;
     }
 
-    /* Initialize BLIS. */
-//  bli_init_auto();
-
     /* Convert/typecast negative values of n to zero. */
     if ( *n < 0 ) n0 = ( dim_t )0;
-    else              n0 = ( dim_t )(*n);
+    else          n0 = ( dim_t )(*n);
 
     /* If the input increments are negative, adjust the pointers so we can
        use positive increments instead. */
@@ -214,18 +213,16 @@ f77_int isamax_blis_impl
        integer size, that typecast occurs here. */
     f77_index = bli_index + 1;
 
-    /* Finalize BLIS. */
-//    bli_finalize_auto();
-
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
-
+    /* Finalize BLIS. */
+    // Call to bli_finalize_auto() is not needed here
     return f77_index;
 }
 #ifdef BLIS_ENABLE_BLAS
 f77_int isamax_
      (
        const f77_int* n,
-       const float* x, const f77_int* incx
+       const float*   x, const f77_int* incx
      )
 {
   return isamax_blis_impl( n, x, incx ); 
@@ -234,9 +231,13 @@ f77_int isamax_
 f77_int idamax_blis_impl
      (
        const f77_int* n,
-       const double* x, const f77_int* incx
+       const double*  x, const f77_int* incx
      )
 {
+    /* Initialize BLIS. */
+    // Call to bli_init_auto() is not needed here
+    AOCL_DTL_INITIALIZE();
+
     AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
     AOCL_DTL_LOG_AMAX_INPUTS(AOCL_DTL_LEVEL_TRACE_1, 'D', *n, *incx);
 
@@ -266,17 +267,12 @@ f77_int idamax_blis_impl
       return 1;
     }
 
-    /* Initialize BLIS. */
-    //  bli_init_auto();
-
     /* Convert/typecast negative values of n to zero. */
-    if ( *n < 0 )     n0 = ( dim_t )0;
-    else              n0 = ( dim_t )(*n);
+    if ( *n < 0 ) n0 = ( dim_t )0;
+    else          n0 = ( dim_t )(*n);
 
-    /*
-      If the input increments are negative, adjust the pointers so we can
-      use positive increments instead.
-    */
+    /* If the input increments are negative, adjust the pointers so we can
+       use positive increments instead. */
     if ( *incx < 0 )
     {
       /*
@@ -307,18 +303,20 @@ f77_int idamax_blis_impl
     cntx_t* cntx = NULL;
 
     // Query the architecture ID
-    arch_t id = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id();
 
+    // Function pointer declaration for the function
+    // that will be used by this API
     damaxv_ker_ft amaxv_fun_ptr = NULL;
 
     // Pick the kernel based on the architecture ID
-    switch (id)
+    switch ( arch_id )
     {
       case BLIS_ARCH_ZEN5:
       case BLIS_ARCH_ZEN4:
 #if defined(BLIS_KERNELS_ZEN4)
           // AVX512 Kernel
-          amaxv_fun_ptr = bli_damaxv_zen_int_avx512;
+          amaxv_fun_ptr = bli_damaxv_zen4_int;
           break;
 #endif
       case BLIS_ARCH_ZEN:
@@ -354,17 +352,16 @@ f77_int idamax_blis_impl
     */
     f77_index = bli_index + 1;
 
-    /* Finalize BLIS. */
-    // bli_finalize_auto();
-
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+    /* Finalize BLIS. */
+    // Call to bli_finalize_auto() is not needed here
     return f77_index;
 }
 #ifdef BLIS_ENABLE_BLAS
 f77_int idamax_
      (
        const f77_int* n,
-       const double* x, const f77_int* incx
+       const double*  x, const f77_int* incx
      )
 {
   return idamax_blis_impl( n, x, incx ); 

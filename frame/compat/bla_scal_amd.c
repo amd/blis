@@ -65,13 +65,14 @@ void PASTEF772S(chx,cha,blasname) \
      ( \
        const f77_int* n, \
        const ftype_a* alpha, \
-       ftype_x* x, const f77_int* incx  \
+             ftype_x* x, const f77_int* incx  \
      ) \
 { \
-	AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1) \
-\
 	/* Initialize BLIS. */ \
 	bli_init_auto(); \
+\
+	AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1) \
+	AOCL_DTL_LOG_SCAL_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(ch), (void *) alpha, *n, *incx ); \
 \
 	dim_t n0 = (dim_t)(*n); \
 	ftype_x *x0 = x; \
@@ -79,9 +80,10 @@ void PASTEF772S(chx,cha,blasname) \
 \
 	if ((n0 <= 0) || (alpha == NULL) || (incx0 <= 0) || PASTEMAC(chau, eq1)(*alpha)) \
 	{ \
-		AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1); \
-		/* Finalize BLIS. */ \
-		bli_finalize_auto(); \
+      AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, AOCL_get_requested_threads_count()); \
+      AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1); \
+	  /* Finalize BLIS. */ \
+	  bli_finalize_auto(); \
 		return ; \
 	} \
 \
@@ -104,6 +106,7 @@ void PASTEF772S(chx,cha,blasname) \
 	  NULL  \
 	); \
 \
+    AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1); \
 	AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1) \
 	/* Finalize BLIS. */ \
 	bli_finalize_auto(); \
@@ -113,7 +116,7 @@ void PASTEF772(chx,cha,blasname) \
      ( \
        const f77_int* n, \
        const ftype_a* alpha, \
-       ftype_x* x, const f77_int* incx  \
+             ftype_x* x, const f77_int* incx  \
      ) \
 { \
   PASTEF772S(chx,cha,blasname)( n, alpha, x, incx ); \
@@ -123,15 +126,16 @@ void PASTEF772(chx,cha,blasname) \
 void sscal_blis_impl
      (
        const f77_int* n,
-       const float* alpha,
-       float*   x, const f77_int* incx
+       const float*   alpha,
+             float*   x, const f77_int* incx
      )
 {
+    /* Initialize BLIS. */
+    // Call to bli_init_auto() is not needed here
+    AOCL_DTL_INITIALIZE();
+
     AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1)
     AOCL_DTL_LOG_SCAL_INPUTS(AOCL_DTL_LEVEL_TRACE_1, 'S', (void *) alpha, *n, *incx );
-
-    /* Initialize BLIS. */
-    //bli_init_auto();
 
     dim_t n0 = (dim_t)(*n);
     float *x0 = x;
@@ -143,33 +147,35 @@ void sscal_blis_impl
     */
     if ((n0 <= 0) || (alpha == NULL) || (incx0 <= 0) || PASTEMAC(s, eq1)(*alpha))
     {
-        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+      AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, AOCL_get_requested_threads_count());
+      AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
         /* Finalize BLIS. */
-        //bli_finalize_auto();
+        // Call to bli_finalize_auto() is not needed here
         return;
     }
-
-    // Definition of function pointer
-    sscalv_ker_ft scalv_ker_ptr;
 
     cntx_t *cntx = NULL;
 
     // Query the architecture ID
-    arch_t id = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id();
+
+    // Function pointer declaration for the function
+    // that will be used by this API
+    sscalv_ker_ft scalv_ker_ptr = NULL;
 
     // Pick the kernel based on the architecture ID
-    switch (id)
+    switch ( arch_id )
     {
         case BLIS_ARCH_ZEN5:
         case BLIS_ARCH_ZEN4:
 #if defined(BLIS_KERNELS_ZEN4)
-          scalv_ker_ptr = bli_sscalv_zen_int_avx512;
+          scalv_ker_ptr = bli_sscalv_zen4_int;
           break;
 #endif
         case BLIS_ARCH_ZEN:
         case BLIS_ARCH_ZEN2:
         case BLIS_ARCH_ZEN3:
-          scalv_ker_ptr = bli_sscalv_zen_int10;
+          scalv_ker_ptr = bli_sscalv_zen_int_10;
           break;
 
         default:
@@ -192,16 +198,17 @@ void sscal_blis_impl
       cntx
     );
 
-    AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
+    AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
+    AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
     /* Finalize BLIS. */
-    //bli_finalize_auto();
+    // Call to bli_finalize_auto() is not needed here
 }
 #ifdef BLIS_ENABLE_BLAS
 void sscal_
      (
        const f77_int* n,
-       const float* alpha,
-       float*   x, const f77_int* incx
+       const float*   alpha,
+             float*   x, const f77_int* incx
      )
 {
     sscal_blis_impl( n, alpha, x, incx );
@@ -210,15 +217,16 @@ void sscal_
 void dscal_blis_impl
      (
        const f77_int* n,
-       const double* alpha,
-       double*   x, const f77_int* incx
+       const double*  alpha,
+             double*  x, const f77_int* incx
      )
 {
+    /* Initialize BLIS. */
+    // Call to bli_init_auto() is not needed here
+    AOCL_DTL_INITIALIZE();
+
     AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1)
     AOCL_DTL_LOG_SCAL_INPUTS(AOCL_DTL_LEVEL_TRACE_1, 'D', (void *)alpha, *n, *incx );
-
-    /* Initialize BLIS. */
-    //bli_init_auto();
 
     dim_t n0 = (dim_t)(*n);
     double *x0 = x;
@@ -230,31 +238,33 @@ void dscal_blis_impl
     */
     if ((n0 <= 0) || (alpha == NULL) || (incx0 <= 0) || PASTEMAC(d, eq1)(*alpha))
     {
-        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+      AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, AOCL_get_requested_threads_count());
+      AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
         /* Finalize BLIS. */
-        //bli_finalize_auto();
+        // Call to bli_finalize_auto() is not needed here
         return;
     }
-
-    // Definition of function pointer
-    dscalv_ker_ft scalv_ker_ptr;
-
-    cntx_t *cntx = NULL;
 
 #ifdef BLIS_ENABLE_OPENMP
     dim_t ST_THRESH = 30000;
 #endif
 
+    cntx_t *cntx = NULL;
+
     // Query the architecture ID
-    arch_t id = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id();
+
+    // Function pointer declaration for the function
+    // that will be used by this API
+    dscalv_ker_ft scalv_ker_ptr = NULL;
 
     // Pick the kernel based on the architecture ID
-    switch (id)
+    switch ( arch_id )
     {
         case BLIS_ARCH_ZEN5:
 #if defined(BLIS_KERNELS_ZEN5)
           // AVX512 Kernel
-          scalv_ker_ptr = bli_dscalv_zen_int_avx512;
+          scalv_ker_ptr = bli_dscalv_zen4_int;
   #ifdef BLIS_ENABLE_OPENMP
           ST_THRESH = 63894;
   #endif
@@ -263,7 +273,7 @@ void dscal_blis_impl
         case BLIS_ARCH_ZEN4:
 #if defined(BLIS_KERNELS_ZEN4)
           // AVX512 Kernel
-          scalv_ker_ptr = bli_dscalv_zen_int_avx512;
+          scalv_ker_ptr = bli_dscalv_zen4_int;
   #ifdef BLIS_ENABLE_OPENMP
           ST_THRESH = 27500;
   #endif
@@ -274,7 +284,7 @@ void dscal_blis_impl
         case BLIS_ARCH_ZEN3:
 
           // AVX2 Kernel
-          scalv_ker_ptr = bli_dscalv_zen_int10;
+          scalv_ker_ptr = bli_dscalv_zen_int_10;
 #ifdef BLIS_ENABLE_OPENMP
           ST_THRESH = 30000;
 #endif
@@ -287,7 +297,6 @@ void dscal_blis_impl
 
           // Query the function pointer using the context
           scalv_ker_ptr = bli_cntx_get_l1v_ker_dt(BLIS_DOUBLE, BLIS_SCALV_KER, cntx);
-
     }
 
 #ifdef BLIS_ENABLE_OPENMP
@@ -311,9 +320,10 @@ void dscal_blis_impl
           cntx
         );
 
+        AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
         /* Finalize BLIS. */
-        //bli_finalize_auto();
+        // Call to bli_finalize_auto() is not needed here
         return;
 #ifdef BLIS_ENABLE_OPENMP
     }
@@ -334,7 +344,7 @@ void dscal_blis_impl
       BLIS_SCALV_KER,
       BLIS_DOUBLE,
       BLIS_DOUBLE,
-      id,
+      arch_id,
       n0,
       &nt
     );
@@ -386,18 +396,18 @@ void dscal_blis_impl
           cntx
         );
     }
-
+    AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, nt);
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
     /* Finalize BLIS. */
-    //bli_finalize_auto();
+    // Call to bli_finalize_auto() is not needed here
 #endif
 }
 #ifdef BLIS_ENABLE_BLAS
 void dscal_
      (
        const f77_int* n,
-       const double* alpha,
-       double*   x, const f77_int* incx
+       const double*  alpha,
+             double*  x, const f77_int* incx
      )
 {
     dscal_blis_impl( n, alpha, x, incx );
@@ -405,16 +415,17 @@ void dscal_
 #endif
 void zdscal_blis_impl
      (
-       const f77_int* n,
-       const double* alpha,
-       dcomplex*   x, const f77_int* incx
+       const f77_int*  n,
+       const double*   alpha,
+             dcomplex* x, const f77_int* incx
      )
 {
+    /* Initialize BLIS. */
+    // Call to bli_init_auto() is not needed here
+    AOCL_DTL_INITIALIZE();
+
     AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1)
     AOCL_DTL_LOG_SCAL_INPUTS(AOCL_DTL_LEVEL_TRACE_1, 'Z', (void *) alpha, *n, *incx );
-
-    /* Initialize BLIS. */
-    //bli_init_auto();
 
     dim_t  n0 = (dim_t)(*n);
     dcomplex* x0 = x;
@@ -426,9 +437,10 @@ void zdscal_blis_impl
     */
     if ((n0 <= 0) || (alpha == NULL) || (incx0 <= 0) || PASTEMAC(d, eq1)(*alpha))
     {
-        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+      AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, AOCL_get_requested_threads_count());
+      AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
         /* Finalize BLIS. */
-        //bli_finalize_auto();
+        // Call to bli_finalize_auto() is not needed here
         return;
     }
 
@@ -436,26 +448,27 @@ void zdscal_blis_impl
     alpha_cast.real = *alpha;
     alpha_cast.imag = 0.0;
 
-    // Definition of function pointer
-    zscalv_ker_ft scalv_ker_ptr;
-
-    cntx_t *cntx = NULL;
-
 #ifdef BLIS_ENABLE_OPENMP
     dim_t ST_THRESH = 10000;
 #endif
 
+    cntx_t *cntx = NULL;
+
     // Query the architecture ID
-    arch_t id = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id();
+
+    // Function pointer declaration for the function
+    // that will be used by this API
+    zscalv_ker_ft scalv_ker_ptr = NULL;
 
     // Pick the kernel based on the architecture ID
-    switch (id)
+    switch ( arch_id )
     {
         case BLIS_ARCH_ZEN5:
         case BLIS_ARCH_ZEN4:
 #if defined(BLIS_KERNELS_ZEN4)
           // AVX512 Kernel
-          scalv_ker_ptr = bli_zdscalv_zen_int_avx512;
+          scalv_ker_ptr = bli_zdscalv_zen4_int;
           break;
 #endif
         case BLIS_ARCH_ZEN:
@@ -463,7 +476,7 @@ void zdscal_blis_impl
         case BLIS_ARCH_ZEN3:
 
           // AVX2 Kernel
-          scalv_ker_ptr = bli_zdscalv_zen_int10;
+          scalv_ker_ptr = bli_zdscalv_zen_int_10;
           break;
 
         default:
@@ -495,10 +508,10 @@ void zdscal_blis_impl
           x0, incx0,
           cntx
         );
-
+        AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
         /* Finalize BLIS. */
-        //bli_finalize_auto();
+        // Call to bli_finalize_auto() is not needed here
         return;
 #ifdef BLIS_ENABLE_OPENMP
     }
@@ -519,7 +532,7 @@ void zdscal_blis_impl
       BLIS_SCALV_KER,
       BLIS_DCOMPLEX,
       BLIS_DOUBLE,
-      id,
+      arch_id,
       n0,
       &nt
     );
@@ -561,17 +574,18 @@ void zdscal_blis_impl
         );
     }
 
+    AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, nt);
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
     /* Finalize BLIS. */
-    //bli_finalize_auto();
+    // Call to bli_finalize_auto() is not needed here
 #endif
 }
 #ifdef BLIS_ENABLE_BLAS
 void zdscal_
      (
-       const f77_int* n,
-       const double* alpha,
-       dcomplex*   x, const f77_int* incx
+       const f77_int*  n,
+       const double*   alpha,
+             dcomplex* x, const f77_int* incx
      )
 {
     zdscal_blis_impl( n, alpha, x, incx );
@@ -585,11 +599,12 @@ void cscal_blis_impl
              scomplex* x, const f77_int* incx
      )
 {
+    /* Initialize BLIS. */
+    // Call to bli_init_auto() is not needed here
+    AOCL_DTL_INITIALIZE();
+
     AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1)
     AOCL_DTL_LOG_SCAL_INPUTS(AOCL_DTL_LEVEL_TRACE_1, 'C', (void *)alpha, *n, *incx);
-
-    /* Initialize BLIS. */
-    //bli_init_auto();
 
     dim_t n0 = (dim_t)(*n);
     scomplex *x0 = x;
@@ -601,28 +616,30 @@ void cscal_blis_impl
     */
     if ((n0 <= 0) || (alpha == NULL) || (incx0 <= 0) || PASTEMAC(c, eq1)(*alpha))
     {
-        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+      AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, AOCL_get_requested_threads_count());
+      AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
         /* Finalize BLIS. */
-        //bli_finalize_auto();
+        // Call to bli_finalize_auto() is not needed here
         return;
     }
-
-    // Definition of function pointer
-    cscalv_ker_ft scalv_ker_ptr;
 
     cntx_t* cntx = NULL;
 
     // Query the architecture ID
-    arch_t id = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id();
+
+    // Function pointer declaration for the function
+    // that will be used by this API
+    cscalv_ker_ft scalv_ker_ptr = NULL;
 
     // Pick the kernel based on the architecture ID
-    switch (id)
+    switch ( arch_id )
     {
         case BLIS_ARCH_ZEN5:
         case BLIS_ARCH_ZEN4:
 #if defined(BLIS_KERNELS_ZEN4)
           // AVX512 Kernel
-          scalv_ker_ptr = bli_cscalv_zen_int_avx512;
+          scalv_ker_ptr = bli_cscalv_zen4_int;
           break;
 #endif
         case BLIS_ARCH_ZEN:
@@ -652,11 +669,12 @@ void cscal_blis_impl
       x0, incx0,
       cntx
     );
-
+    AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1)
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
     /* Finalize BLIS. */
-    //bli_finalize_auto();
+    // Call to bli_finalize_auto() is not needed here
 }
+
 #ifdef BLIS_ENABLE_BLAS
 void cscal_
      (
@@ -671,16 +689,17 @@ void cscal_
 
 void zscal_blis_impl
      (
-       const f77_int* n,
+       const f77_int*  n,
        const dcomplex* alpha,
-       dcomplex*   x, const f77_int* incx
+             dcomplex* x, const f77_int* incx
      )
 {
+    /* Initialize BLIS. */
+    // Call to bli_init_auto() is not needed here
+    AOCL_DTL_INITIALIZE();
+
     AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1)
     AOCL_DTL_LOG_SCAL_INPUTS(AOCL_DTL_LEVEL_TRACE_1, 'Z', (void *)alpha, *n, *incx);
-
-    /* Initialize BLIS. */
-    //bli_init_auto();
 
     dim_t n0 = (dim_t)(*n);
     dcomplex *x0 = x;
@@ -692,28 +711,30 @@ void zscal_blis_impl
     */
     if ((n0 <= 0) || (alpha == NULL) || (incx0 <= 0) || PASTEMAC(z, eq1)(*alpha))
     {
-        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+      AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, AOCL_get_requested_threads_count());
+      AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
         /* Finalize BLIS. */
-        //bli_finalize_auto();
+        // Call to bli_finalize_auto() is not needed here
         return;
     }
-
-    // Definition of function pointer
-    zscalv_ker_ft scalv_ker_ptr;
 
     cntx_t* cntx = NULL;
 
     // Query the architecture ID
-    arch_t id = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id();
+
+    // Function pointer declaration for the function
+    // that will be used by this API
+    zscalv_ker_ft scalv_ker_ptr = NULL;
 
     // Pick the kernel based on the architecture ID
-    switch (id)
+    switch ( arch_id )
     {
         case BLIS_ARCH_ZEN5:
         case BLIS_ARCH_ZEN4:
 #if defined(BLIS_KERNELS_ZEN4)
           // AVX512 Kernel
-          scalv_ker_ptr = bli_zscalv_zen_int_avx512;
+          scalv_ker_ptr = bli_zscalv_zen4_int;
           break;
 #endif
         case BLIS_ARCH_ZEN:
@@ -743,17 +764,17 @@ void zscal_blis_impl
       x0, incx0,
       cntx
     );
-
+    AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1)
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
     /* Finalize BLIS. */
-    //bli_finalize_auto();
+    // Call to bli_finalize_auto() is not needed here
 }
 #ifdef BLIS_ENABLE_BLAS
 void zscal_
      (
-       const f77_int* n,
+       const f77_int*  n,
        const dcomplex* alpha,
-       dcomplex*   x, const f77_int* incx
+             dcomplex* x, const f77_int* incx
      )
 {
     zscal_blis_impl(n, alpha, x, incx);

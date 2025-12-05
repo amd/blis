@@ -1,11 +1,43 @@
+/*
+
+   BLIS
+   An object-based framework for developing high-performance BLAS-like
+   libraries.
+
+   Copyright (C) 2020 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+
+   Redistribution and use in source and binary forms, with or without
+   modification, are permitted provided that the following conditions are
+   met:
+    - Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+    - Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
+      documentation and/or other materials provided with the distribution.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
+
+   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+   HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+*/
+
 /*===================================================================
  * File Name :  aocldtl.h
  *
  * Description : This is main interface file for the end user
  *               It provides defination for all macros to be
  *               used by user to add debug/trace information.
- *
- * Copyright (C) 2020 - 2023, Advanced Micro Devices, Inc. All rights reserved.
  *
  *==================================================================*/
 
@@ -120,19 +152,20 @@ uint64 AOCL_DTL_get_time_spent(void);
  * The global flag is maintain in the code to track the final
  * state of the logging feature.
  */
-extern Bool gbIsLoggingEnabled;
+extern BLIS_THREAD_LOCAL bool tlIsLoggingEnabled;
+extern bool                   gbIsLoggingEnabled;
 
 /* API to enable logging at runtime */
 #define AOCL_DTL_Enable_Logs() \
-    /* Initialize DTL if not alredy done so */ \
-    AOCL_DTL_INITIALIZE(AOCL_DTL_TRACE_LEVEL); \
-    gbIsLoggingEnabled = TRUE;
+    /* Initialize DTL if not already done so */ \
+    AOCL_DTL_INITIALIZE(); \
+    tlIsLoggingEnabled = TRUE;
 
 /* API to disable logging at runtime */
 #define AOCL_DTL_Disable_Logs() \
-    /* Initialize DTL if not alredy done so */ \
-    AOCL_DTL_INITIALIZE(AOCL_DTL_TRACE_LEVEL); \
-    gbIsLoggingEnabled = FALSE;
+    /* Initialize DTL if not already done so */ \
+    AOCL_DTL_INITIALIZE(); \
+    tlIsLoggingEnabled = FALSE;
 
 /* Macro to log the Data */
 #define AOCL_DTL_START_PERF_TIMER() \
@@ -144,11 +177,11 @@ extern Bool gbIsLoggingEnabled;
 
 /* Macro to initialize the prerequisite for debuging */
 #ifdef AOCL_DTL_INITIALIZE_ENABLE
-#define AOCL_DTL_INITIALIZE(CURRENT_LOG_LEVEL) \
-    DTL_Initialize(CURRENT_LOG_LEVEL);
+#define AOCL_DTL_INITIALIZE() \
+    DTL_Initialize();
 #else
 /* Dummy macro definition if the AOCL_DTL_INITIALIZE macro is not enabled */
-#define AOCL_DTL_INITIALIZE(CURRENT_LOG_LEVEL)
+#define AOCL_DTL_INITIALIZE()
 #endif
 
 /* Macro for uninitializing the prerequisite */
@@ -162,8 +195,9 @@ extern Bool gbIsLoggingEnabled;
 
 #ifdef AOCL_DTL_INITIALIZE_ENABLE
 /* Prototypes for initializing and uninitializing the debug functions */
-void DTL_Initialize(
-    uint32 ui32CurrentLogLevel);
+void DTL_Initialize(void);
+void DTL_Initialize_Global(void);
+void DTL_Initialize_TL(void);
 void DTL_Uninitialize(void);
 #endif
 

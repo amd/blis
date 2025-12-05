@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2019 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2019 - 2025, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -70,7 +70,7 @@ void PASTEF77S(ch,blasname) \
 \
 	AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1); \
 	AOCL_DTL_LOG_GEMM_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(ch), *transa, *transb, *m, *n, *k, \
-				(void*)alpha, *lda, *ldb, (void*)beta, *ldc); \
+				 (void*)alpha, *lda, *ldb, (void*)beta, *ldc); \
 \
 	/* Perform BLAS parameter checking. */ \
 	PASTEBLACHK(blasname) \
@@ -214,7 +214,7 @@ void PASTEF77S(ch,blasname) \
 \
 	AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1); \
 	AOCL_DTL_LOG_GEMM_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(ch), *transa, *transb, *m, *n, *k, \
-				(void*)alpha, *lda, *ldb, (void*)beta, *ldc); \
+				 (void*)alpha, *lda, *ldb, (void*)beta, *ldc); \
 \
 	/* Perform BLAS parameter checking. */ \
 	PASTEBLACHK(blasname) \
@@ -285,6 +285,7 @@ void PASTEF77S(ch,blasname) \
 	const inc_t rs_c = 1; \
 	const inc_t cs_c = *ldc; \
 \
+IF_BLIS_ENABLE_MNK1_MATRIX(\
 	if( n0 == 1 ) \
 	{ \
 		if(bli_is_notrans(blis_transa)) \
@@ -357,6 +358,7 @@ void PASTEF77S(ch,blasname) \
   		bli_finalize_auto(); \
 		return; \
 	} \
+) /* End of IF_BLIS_ENABLE_MNK1_MATRIX */ \
 \
 	const num_t dt     = PASTEMAC(ch,type); \
 \
@@ -424,11 +426,11 @@ void dzgemm_blis_impl
        const f77_int*  m,
        const f77_int*  n,
        const f77_int*  k,
-       const dcomplex*    alpha,
-       const double*    a, const f77_int* lda,
-       const dcomplex*    b, const f77_int* ldb,
-       const dcomplex*    beta,
-             dcomplex*    c, const f77_int* ldc
+       const dcomplex* alpha,
+       const double*   a, const f77_int* lda,
+       const dcomplex* b, const f77_int* ldb,
+       const dcomplex* beta,
+             dcomplex* c, const f77_int* ldc
      )
 {
 
@@ -569,11 +571,11 @@ void dzgemm_
        const f77_int*  m,
        const f77_int*  n,
        const f77_int*  k,
-       const dcomplex*    alpha,
-       const double*    a, const f77_int* lda,
-       const dcomplex*    b, const f77_int* ldb,
-       const dcomplex*    beta,
-             dcomplex*    c, const f77_int* ldc
+       const dcomplex* alpha,
+       const double*   a, const f77_int* lda,
+       const dcomplex* b, const f77_int* ldb,
+       const dcomplex* beta,
+             dcomplex* c, const f77_int* ldc
      )
 {
     dzgemm_blis_impl( transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc );

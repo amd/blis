@@ -209,42 +209,6 @@ static inline float eltwise_ops_accuracy_check_downscale_bf16obf16
     return out_temp_accum;
 }
 
-static inline float convert_zp_store_type_to_float
-     (
-       aocl_post_op*  post_op,
-       AOCL_PARAMS_STORAGE_TYPES zp_stor_type,
-       dim_t j_zp
-     )
-{
-    float zp_float = 0.0;
-    if(zp_stor_type == AOCL_GEMM_BF16)
-    {
-        bfloat16_to_float( *( ( bfloat16* )( post_op->sum )->zero_point + j_zp ),
-                            &zp_float );
-    }
-    else if(zp_stor_type == AOCL_GEMM_INT32)
-    {
-        int32_t_to_float( *( ( int32_t* )( post_op->sum )->zero_point + j_zp ),
-                            &zp_float );
-    }
-    else if(zp_stor_type == AOCL_GEMM_INT8)
-    {
-        int8_t_to_float( *( ( int8_t* )( post_op->sum )->zero_point + j_zp ),
-                            &zp_float );
-    }
-    else if(zp_stor_type == AOCL_GEMM_UINT8)
-    {
-        uint8_t_to_float( *( ( uint8_t* )( post_op->sum )->zero_point + j_zp ),
-                            &zp_float );
-    }
-    else
-    {
-        zp_float = *( ( float* )( post_op->sum )->zero_point + j_zp );
-    }
-    return zp_float;
-}
-
-
 static inline float eltwise_ops_accuracy_check_downscale_f32of32
      (
        float temp_accum,
@@ -415,6 +379,14 @@ GEN_GET_MATRIX_MUL_POST_OP_VAL(float,f32obf16)
 GEN_GET_MATRIX_MUL_POST_OP_VAL(float,f32os8)
 GEN_GET_MATRIX_MUL_POST_OP_VAL(float,f32ou8)
 
+GEN_CLIP_POST_OP_VAL_FLOAT(bf16of32)
+GEN_CLIP_POST_OP_VAL_FLOAT(bf16obf16)
+GEN_CLIP_POST_OP_VAL_FLOAT(f32of32)
+GEN_CLIP_POST_OP_VAL_FLOAT(f32obf16)
+GEN_CLIP_POST_OP_VAL_INT(f32os32)
+GEN_CLIP_POST_OP_VAL_INT(f32os8)
+GEN_CLIP_POST_OP_VAL_INT(f32ou8)
+
 GEN_MAT_MUL_GET_OUTPUT_TYPE_VALUE(float,float)
 GEN_MAT_MUL_GET_OUTPUT_TYPE_VALUE(int32_t,float)
 GEN_MAT_MUL_GET_OUTPUT_TYPE_VALUE(int8_t,float)
@@ -557,17 +529,11 @@ void eltwise_ops_accuracy_check_driver_ ## LP_SFX \
                                 CLIP ) /* CLIP*/ \
                         { \
                             temp_accum = \
-                                min \
-                                ( \
-                                  max \
-                                  ( \
-                                    temp_accum, \
-                                    *( ( ACCUM_type* ) \
-                                       ( post_op->eltwise + ele_i )->algo.alpha ) \
-                                  ), \
-                                  *( ( ACCUM_type* ) \
-                                     ( post_op->eltwise + ele_i )->algo.beta) \
-                                ); \
+                            GEN_FUNC_NAME(get_clip_post_op_val_,LP_SFX) \
+                            ( temp_accum, \
+                              ( post_op->eltwise + ele_i )->algo.alpha, \
+                              ( post_op->eltwise + ele_i )->algo.beta \
+                            ); \
                             ele_i += 1; \
                         } \
                         else \

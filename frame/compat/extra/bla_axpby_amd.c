@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2024 - 2025, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -50,16 +50,17 @@ void PASTEF77S(ch,blasname) \
              ftype*   y, const f77_int* incy  \
      ) \
 { \
+    /* Initialize BLIS. */ \
+    bli_init_auto(); \
+\
     AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1) \
     AOCL_DTL_LOG_AXPBY_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(ch), *n, (void*)alpha, *incx, (void*)beta, *incy) \
+\
     dim_t  n0; \
     ftype* x0; \
     ftype* y0; \
     inc_t  incx0; \
     inc_t  incy0; \
-\
-    /* Initialize BLIS. */ \
-    bli_init_auto(); \
 \
     /* Convert/typecast negative values of n to zero. */ \
     bli_convert_blas_dim1( *n, n0 ); \
@@ -108,19 +109,25 @@ void saxpby_blis_impl
  const float*   alpha,
  const float*   x, const f77_int* incx,
  const float*   beta,
- float*   y, const f77_int* incy
+       float*   y, const f77_int* incy
 )
 {
-  AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1)
-  AOCL_DTL_LOG_AXPY_INPUTS(AOCL_DTL_LEVEL_TRACE_1, 'S', *n, (float *)alpha, *incx, *incy)
+    /* Initialize BLIS. */
+    // Call to bli_init_auto() is not needed here
+    AOCL_DTL_INITIALIZE();
 
-  /* Early exit in case n is 0, or alpha is 0 and beta is 1 */
-  if ( ( *n <= 0 ) ||
-     ( PASTEMAC( s, eq0 )( *alpha ) && PASTEMAC( s, eq1 )( *beta ) ) )
-  {
-    AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
-    return;
-  }
+    AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1)
+    AOCL_DTL_LOG_AXPY_INPUTS(AOCL_DTL_LEVEL_TRACE_1, 'S', *n, (float *)alpha, *incx, *incy)
+
+    /* Early exit in case n is 0, or alpha is 0 and beta is 1 */
+    if ( ( *n <= 0 ) ||
+       ( PASTEMAC( s, eq0 )( *alpha ) && PASTEMAC( s, eq1 )( *beta ) ) )
+    {
+      AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+      /* Finalize BLIS. */
+      // Call to bli_finalize_auto() is not needed here
+      return;
+    }
 
     dim_t n0;
     float *x0;
@@ -128,15 +135,10 @@ void saxpby_blis_impl
     inc_t incx0;
     inc_t incy0;
 
-    /* Initialize BLIS. */
-    //    bli_init_auto();
-
     n0 = ( dim_t )( *n );
 
-    /*
-      If the input increments are negative, adjust the pointers so we can
-      use positive increments instead.
-    */
+    /* If the input increments are negative, adjust the pointers so we can
+       use positive increments instead. */
     if ( *incx < 0 )
     {
       /* The semantics of negative stride in BLAS are that the vector
@@ -174,23 +176,21 @@ void saxpby_blis_impl
     cntx_t *cntx = NULL;
 
     // Query the architecture ID
-    arch_t id = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id();
 
-    /*
-      Function pointer declaration for the function
-      that will be used by this API
-    */
-    saxpbyv_ker_ft axpbyv_ker_ptr; // DAXPBYV
+    // Function pointer declaration for the function
+    // that will be used by this API
+    saxpbyv_ker_ft axpbyv_ker_ptr = NULL; // DAXPBYV
 
     // Pick the kernel based on the architecture ID
-    switch (id)
+    switch ( arch_id )
     {
       case BLIS_ARCH_ZEN5:
       case BLIS_ARCH_ZEN4:
       case BLIS_ARCH_ZEN:
       case BLIS_ARCH_ZEN2:
       case BLIS_ARCH_ZEN3:
-        axpbyv_ker_ptr = bli_saxpbyv_zen_int10;
+        axpbyv_ker_ptr = bli_saxpbyv_zen_int_10;
 
         break;
       default:
@@ -214,9 +214,9 @@ void saxpby_blis_impl
       cntx
     );
 
-    /* Finalize BLIS. */
-    //    bli_finalize_auto();
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+    /* Finalize BLIS. */
+    // Call to bli_finalize_auto() is not needed here
 }
 
 #ifdef BLIS_ENABLE_BLAS
@@ -226,7 +226,7 @@ void saxpby_
  const float*   alpha,
  const float*   x, const f77_int* incx,
  const float*   beta,
- float*   y, const f77_int* incy
+       float*   y, const f77_int* incy
 )
 {
   saxpby_blis_impl( n, alpha, x, incx, beta, y, incy ) ;
@@ -238,22 +238,28 @@ void saxpby_
 void daxpby_blis_impl
 (
  const f77_int* n,
- const double*   alpha,
- const double*   x, const f77_int* incx,
- const double*   beta,
- double*   y, const f77_int* incy
+ const double*  alpha,
+ const double*  x, const f77_int* incx,
+ const double*  beta,
+       double*  y, const f77_int* incy
 )
 {
-  AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1)
-  AOCL_DTL_LOG_AXPY_INPUTS(AOCL_DTL_LEVEL_TRACE_1, 'D', *n, (double *)alpha, *incx, *incy)
+    /* Initialize BLIS. */
+    // Call to bli_init_auto() is not needed here
+    AOCL_DTL_INITIALIZE();
 
-  /* Early exit in case n is 0, or alpha is 0 and beta is 1 */
-  if ( ( *n <= 0 ) ||
-     ( PASTEMAC( d, eq0 )( *alpha ) && PASTEMAC( d, eq1 )( *beta ) ) )
-  {
-    AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
-    return;
-  }
+    AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1)
+    AOCL_DTL_LOG_AXPY_INPUTS(AOCL_DTL_LEVEL_TRACE_1, 'D', *n, (double *)alpha, *incx, *incy)
+
+    /* Early exit in case n is 0, or alpha is 0 and beta is 1 */
+    if ( ( *n <= 0 ) ||
+       ( PASTEMAC( d, eq0 )( *alpha ) && PASTEMAC( d, eq1 )( *beta ) ) )
+    {
+      AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+      /* Finalize BLIS. */
+      // Call to bli_finalize_auto() is not needed here
+      return;
+    }
 
     dim_t n0;
     double *x0;
@@ -261,15 +267,10 @@ void daxpby_blis_impl
     inc_t incx0;
     inc_t incy0;
 
-    /* Initialize BLIS. */
-    //    bli_init_auto();
-
     n0 = ( dim_t )( *n );
 
-    /*
-      If the input increments are negative, adjust the pointers so we can
-      use positive increments instead.
-    */
+    /* If the input increments are negative, adjust the pointers so we can
+       use positive increments instead. */
     if ( *incx < 0 )
     {
       /* The semantics of negative stride in BLAS are that the vector
@@ -307,28 +308,26 @@ void daxpby_blis_impl
     cntx_t *cntx = NULL;
 
     // Query the architecture ID
-    arch_t id = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id();
 
-    /*
-      Function pointer declarations for the function
-      that will be used by this API
-    */
-    daxpbyv_ker_ft axpbyv_ker_ptr; // DAXPBYV
+    // Function pointer declaration for the function
+    // that will be used by this API
+    daxpbyv_ker_ft axpbyv_ker_ptr = NULL; // DAXPBYV
 
     // Pick the kernel based on the architecture ID
-    switch (id)
+    switch ( arch_id )
     {
       case BLIS_ARCH_ZEN5:
       case BLIS_ARCH_ZEN4:
 #if defined(BLIS_KERNELS_ZEN4)
-        axpbyv_ker_ptr = bli_daxpbyv_zen_int_avx512;
+        axpbyv_ker_ptr = bli_daxpbyv_zen4_int;
 
         break;
 #endif
       case BLIS_ARCH_ZEN:
       case BLIS_ARCH_ZEN2:
       case BLIS_ARCH_ZEN3:
-        axpbyv_ker_ptr = bli_daxpbyv_zen_int10;
+        axpbyv_ker_ptr = bli_daxpbyv_zen_int_10;
 
         break;
       default:
@@ -352,19 +351,19 @@ void daxpby_blis_impl
       cntx
     );
 
-    /* Finalize BLIS. */
-    //    bli_finalize_auto();
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+    /* Finalize BLIS. */
+    // Call to bli_finalize_auto() is not needed here
 }
 
 #ifdef BLIS_ENABLE_BLAS
 void daxpby_
 (
  const f77_int* n,
- const double*   alpha,
- const double*   x, const f77_int* incx,
- const double*   beta,
- double*   y, const f77_int* incy
+ const double*  alpha,
+ const double*  x, const f77_int* incx,
+ const double*  beta,
+       double*  y, const f77_int* incy
 )
 {
   daxpby_blis_impl( n, alpha, x, incx, beta, y, incy ) ;
@@ -375,23 +374,29 @@ void daxpby_
 
 void caxpby_blis_impl
 (
- const f77_int*    n,
- const scomplex*   alpha,
- const scomplex*   x, const f77_int* incx,
- const scomplex*   beta,
- scomplex*         y, const f77_int* incy
+ const f77_int*  n,
+ const scomplex* alpha,
+ const scomplex* x, const f77_int* incx,
+ const scomplex* beta,
+       scomplex* y, const f77_int* incy
 )
 {
-  AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1)
-  AOCL_DTL_LOG_AXPY_INPUTS(AOCL_DTL_LEVEL_TRACE_1, 'C', *n, (scomplex *)alpha, *incx, *incy)
+    /* Initialize BLIS. */
+    // Call to bli_init_auto() is not needed here
+    AOCL_DTL_INITIALIZE();
 
-  /* Early exit in case n is 0, or alpha is 0 and beta is 1 */
-  if ( ( *n <= 0 ) ||
-     ( PASTEMAC( c, eq0 )( *alpha ) && PASTEMAC( c, eq1 )( *beta ) ) )
-  {
-    AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
-    return;
-  }
+    AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1)
+    AOCL_DTL_LOG_AXPY_INPUTS(AOCL_DTL_LEVEL_TRACE_1, 'C', *n, (scomplex *)alpha, *incx, *incy)
+
+    /* Early exit in case n is 0, or alpha is 0 and beta is 1 */
+    if ( ( *n <= 0 ) ||
+       ( PASTEMAC( c, eq0 )( *alpha ) && PASTEMAC( c, eq1 )( *beta ) ) )
+    {
+      AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+      /* Finalize BLIS. */
+      // Call to bli_finalize_auto() is not needed here
+      return;
+    }
 
     dim_t n0;
     scomplex *x0;
@@ -399,15 +404,10 @@ void caxpby_blis_impl
     inc_t incx0;
     inc_t incy0;
 
-    /* Initialize BLIS. */
-    //    bli_init_auto();
-
     n0 = ( dim_t )( *n );
 
-    /*
-      If the input increments are negative, adjust the pointers so we can
-      use positive increments instead.
-    */
+    /* If the input increments are negative, adjust the pointers so we can
+       use positive increments instead. */
     if ( *incx < 0 )
     {
       /* The semantics of negative stride in BLAS are that the vector
@@ -445,16 +445,14 @@ void caxpby_blis_impl
     cntx_t *cntx = NULL;
 
     // Query the architecture ID
-    arch_t id = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id();
 
-    /*
-      Function pointer declarations for the function
-      that will be used by this API
-    */
-    caxpbyv_ker_ft axpbyv_ker_ptr; // caxpbyV
+    // Function pointer declaration for the function
+    // that will be used by this API
+    caxpbyv_ker_ft axpbyv_ker_ptr = NULL; // CAXPBYV
 
     // Pick the kernel based on the architecture ID
-    switch (id)
+    switch ( arch_id )
     {
       case BLIS_ARCH_ZEN5:
       case BLIS_ARCH_ZEN4:
@@ -485,19 +483,19 @@ void caxpby_blis_impl
       cntx
     );
 
-    /* Finalize BLIS. */
-    //    bli_finalize_auto();
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+    /* Finalize BLIS. */
+    // Call to bli_finalize_auto() is not needed here
 }
 
 #ifdef BLIS_ENABLE_BLAS
 void caxpby_
 (
- const f77_int* n,
- const scomplex*   alpha,
- const scomplex*   x, const f77_int* incx,
- const scomplex*   beta,
- scomplex*   y, const f77_int* incy
+ const f77_int*  n,
+ const scomplex* alpha,
+ const scomplex* x, const f77_int* incx,
+ const scomplex* beta,
+       scomplex* y, const f77_int* incy
 )
 {
   caxpby_blis_impl( n, alpha, x, incx, beta, y, incy ) ;
@@ -508,23 +506,29 @@ void caxpby_
 
 void zaxpby_blis_impl
 (
- const f77_int*    n,
- const dcomplex*   alpha,
- const dcomplex*   x, const f77_int* incx,
- const dcomplex*   beta,
- dcomplex*         y, const f77_int* incy
+ const f77_int*  n,
+ const dcomplex* alpha,
+ const dcomplex* x, const f77_int* incx,
+ const dcomplex* beta,
+       dcomplex* y, const f77_int* incy
 )
 {
-  AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1)
-  AOCL_DTL_LOG_AXPY_INPUTS(AOCL_DTL_LEVEL_TRACE_1, 'Z', *n, (dcomplex *)alpha, *incx, *incy)
+    /* Initialize BLIS. */
+    // Call to bli_init_auto() is not needed here
+    AOCL_DTL_INITIALIZE();
 
-  /* Early exit in case n is 0, or alpha is 0 and beta is 1 */
-  if ( ( *n <= 0 ) ||
-     ( PASTEMAC( c, eq0 )( *alpha ) && PASTEMAC( c, eq1 )( *beta ) ) )
-  {
-    AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
-    return;
-  }
+    AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1)
+    AOCL_DTL_LOG_AXPY_INPUTS(AOCL_DTL_LEVEL_TRACE_1, 'Z', *n, (dcomplex *)alpha, *incx, *incy)
+
+    /* Early exit in case n is 0, or alpha is 0 and beta is 1 */
+    if ( ( *n <= 0 ) ||
+       ( PASTEMAC( c, eq0 )( *alpha ) && PASTEMAC( c, eq1 )( *beta ) ) )
+    {
+      AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+      /* Finalize BLIS. */
+      // Call to bli_finalize_auto() is not needed here
+      return;
+    }
 
     dim_t n0;
     dcomplex *x0;
@@ -532,15 +536,10 @@ void zaxpby_blis_impl
     inc_t incx0;
     inc_t incy0;
 
-    /* Initialize BLIS. */
-    //    bli_init_auto();
-
     n0 = ( dim_t )( *n );
 
-    /*
-      If the input increments are negative, adjust the pointers so we can
-      use positive increments instead.
-    */
+    /* If the input increments are negative, adjust the pointers so we can
+       use positive increments instead. */
     if ( *incx < 0 )
     {
       /* The semantics of negative stride in BLAS are that the vector
@@ -578,16 +577,14 @@ void zaxpby_blis_impl
     cntx_t *cntx = NULL;
 
     // Query the architecture ID
-    arch_t id = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id();
 
-    /*
-      Function pointer declarations for the function
-      that will be used by this API
-    */
-    zaxpbyv_ker_ft axpbyv_ker_ptr; // zaxpbyV
+    // Function pointer declaration for the function
+    // that will be used by this API
+    zaxpbyv_ker_ft axpbyv_ker_ptr = NULL; // ZAXPBYV
 
     // Pick the kernel based on the architecture ID
-    switch (id)
+    switch ( arch_id )
     {
       case BLIS_ARCH_ZEN5:
       case BLIS_ARCH_ZEN4:
@@ -618,19 +615,19 @@ void zaxpby_blis_impl
       cntx
     );
 
+     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
     /* Finalize BLIS. */
-    //    bli_finalize_auto();
-    AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+    // Call to bli_finalize_auto() is not needed here
 }
 
 #ifdef BLIS_ENABLE_BLAS
 void zaxpby_
 (
- const f77_int* n,
- const dcomplex*   alpha,
- const dcomplex*   x, const f77_int* incx,
- const dcomplex*   beta,
- dcomplex*   y, const f77_int* incy
+ const f77_int*  n,
+ const dcomplex* alpha,
+ const dcomplex* x, const f77_int* incx,
+ const dcomplex* beta,
+       dcomplex* y, const f77_int* incy
 )
 {
   zaxpby_blis_impl( n, alpha, x, incx, beta, y, incy ) ;

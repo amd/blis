@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2020 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2020 - 2025, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -33,8 +33,6 @@
 */
 
 #include "blis.h"
-
-#ifdef BLIS_ENABLE_BLAS
 
 static dim_t bli_siMatCopy_cn
              (
@@ -156,7 +154,7 @@ static dim_t bli_ziMatCopy_cc
                dim_t          ldb
              );
 
-void simatcopy_
+void simatcopy_blis_impl
      (
        f77_char*    trans,
        f77_int*     rows,
@@ -167,9 +165,13 @@ void simatcopy_
        f77_int*     ldb
      )
 {
-    //printf("I am from simatcopy_\n");
+    /* Initialize BLIS. */
+    // Call to bli_init_auto() is not needed here
+    AOCL_DTL_INITIALIZE();
     AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
-    //bli_init_once();
+    AOCL_DTL_LOG_MATCOPY_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(s), *trans, *rows, *cols,
+                                (void*)alpha, *lda, *ldb );
+
     if ( !( *trans == 'n' || *trans == 'N' ||
         *trans == 't' || *trans == 'T' ||
         *trans == 'c' || *trans == 'C' ||
@@ -226,8 +228,23 @@ void simatcopy_
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
     return ;
 }
+#ifdef BLIS_ENABLE_BLAS
+void simatcopy_
+     (
+       f77_char*    trans,
+       f77_int*     rows,
+       f77_int*     cols,
+       const float* alpha,
+       float*       aptr,
+       f77_int*     lda,
+       f77_int*     ldb
+     )
+{
+    simatcopy_blis_impl(trans,rows,cols,alpha,aptr,lda,ldb);
+}
+#endif
 
-void dimatcopy_
+void dimatcopy_blis_impl
      (
        f77_char*     trans,
        f77_int*      rows,
@@ -238,8 +255,13 @@ void dimatcopy_
        f77_int*      ldb
      )
 {
+    /* Initialize BLIS. */
+    // Call to bli_init_auto() is not needed here
+    AOCL_DTL_INITIALIZE();
     AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
-    //bli_init_once();
+    AOCL_DTL_LOG_MATCOPY_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(d), *trans, *rows, *cols,
+                                (void*)alpha, *lda, *ldb );
+
     if ( !( *trans == 'n' || *trans == 'N' ||
         *trans == 't' || *trans == 'T' ||
         *trans == 'c' || *trans == 'C' ||
@@ -296,8 +318,23 @@ void dimatcopy_
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
     return ;
 }
+#ifdef BLIS_ENABLE_BLAS
+void dimatcopy_
+     (
+       f77_char*     trans,
+       f77_int*      rows,
+       f77_int*      cols,
+       const double* alpha,
+       double*       aptr,
+       f77_int*      lda,
+       f77_int*      ldb
+     )
+{
+    dimatcopy_blis_impl(trans,rows,cols,alpha,aptr,lda,ldb);
+}
+#endif
 
-void cimatcopy_
+void cimatcopy_blis_impl
      (
        f77_char*       trans,
        f77_int*        rows,
@@ -308,8 +345,13 @@ void cimatcopy_
        f77_int*        ldb
      )
 {
+    /* Initialize BLIS. */
+    // Call to bli_init_auto() is not needed here
+    AOCL_DTL_INITIALIZE();
     AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
-    //bli_init_once();
+    AOCL_DTL_LOG_MATCOPY_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(c), *trans, *rows, *cols,
+                                (void*)alpha, *lda, *ldb );
+
     if ( !( *trans == 'n' || *trans == 'N' ||
         *trans == 't' || *trans == 'T' ||
         *trans == 'c' || *trans == 'C' ||
@@ -366,8 +408,23 @@ void cimatcopy_
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
     return ;
 }
+#ifdef BLIS_ENABLE_BLAS
+void cimatcopy_
+     (
+       f77_char*       trans,
+       f77_int*        rows,
+       f77_int*        cols,
+       const scomplex* alpha,
+       scomplex*       aptr,
+       f77_int*        lda,
+       f77_int*        ldb
+     )
+{
+    cimatcopy_blis_impl(trans,rows,cols,alpha,aptr,lda,ldb);
+}
+#endif
 
-void zimatcopy_
+void zimatcopy_blis_impl
      (
        f77_char*       trans,
        f77_int*        rows,
@@ -378,8 +435,13 @@ void zimatcopy_
        f77_int*        ldb
      )
 {
+    /* Initialize BLIS. */
+    // Call to bli_init_auto() is not needed here
+    AOCL_DTL_INITIALIZE();
     AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
-    //bli_init_once();
+    AOCL_DTL_LOG_MATCOPY_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(z), *trans, *rows, *cols,
+                                (void*)alpha, *lda, *ldb );
+
     if ( !( *trans == 'n' || *trans == 'N' ||
         *trans == 't' || *trans == 'T' ||
         *trans == 'c' || *trans == 'C' ||
@@ -436,6 +498,21 @@ void zimatcopy_
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
     return ;
 }
+#ifdef BLIS_ENABLE_BLAS
+void zimatcopy_
+     (
+       f77_char*       trans,
+       f77_int*        rows,
+       f77_int*        cols,
+       const dcomplex* alpha,
+       dcomplex*       aptr,
+       f77_int*        lda,
+       f77_int*        ldb
+     )
+{
+    zimatcopy_blis_impl(trans,rows,cols,alpha,aptr,lda,ldb);
+}
+#endif
 
 // suffix cn means - column major & non-trans
 static dim_t bli_siMatCopy_cn(dim_t rows,dim_t cols,const float alpha,float* a,dim_t lda,dim_t ldb)
@@ -513,7 +590,7 @@ static dim_t bli_siMatCopy_cn(dim_t rows,dim_t cols,const float alpha,float* a,d
         else
         {
             f77_int mem_fail_info = -10;
-            xerbla_(MKSTR(bli_siMatCopy_cn), &mem_fail_info, (f77_int)16);
+            xerbla_blis_impl(MKSTR(bli_siMatCopy_cn), &mem_fail_info, (f77_int)16);
         }
     }
 
@@ -596,7 +673,7 @@ static dim_t bli_diMatCopy_cn(dim_t rows,dim_t cols,const double alpha,double* a
         else
         {
             f77_int mem_fail_info = -10;
-            xerbla_(MKSTR(bli_diMatCopy_cn), &mem_fail_info, (f77_int)16);
+            xerbla_blis_impl(MKSTR(bli_diMatCopy_cn), &mem_fail_info, (f77_int)16);
         }
     }
 
@@ -683,7 +760,7 @@ static dim_t bli_ciMatCopy_cn(dim_t rows,dim_t cols,const scomplex alpha,scomple
         else
         {
             f77_int mem_fail_info = -10;
-            xerbla_(MKSTR(bli_ciMatCopy_cn), &mem_fail_info, (f77_int)16);
+            xerbla_blis_impl(MKSTR(bli_ciMatCopy_cn), &mem_fail_info, (f77_int)16);
         }
     }
 
@@ -770,7 +847,7 @@ static dim_t bli_ziMatCopy_cn(dim_t rows,dim_t cols,const dcomplex alpha,dcomple
         else
         {
             f77_int mem_fail_info = -10;
-            xerbla_(MKSTR(bli_ziMatCopy_cn), &mem_fail_info, (f77_int)16);
+            xerbla_blis_impl(MKSTR(bli_ziMatCopy_cn), &mem_fail_info, (f77_int)16);
         }
     }
 
@@ -851,7 +928,7 @@ static dim_t bli_siMatCopy_ct(dim_t rows,dim_t cols,const float alpha,float* a,d
     else
     {
         f77_int mem_fail_info = -10;
-        xerbla_(MKSTR(bli_siMatCopy_ct), &mem_fail_info, (f77_int)16);
+        xerbla_blis_impl(MKSTR(bli_siMatCopy_ct), &mem_fail_info, (f77_int)16);
     }
 
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_2);
@@ -931,7 +1008,7 @@ static dim_t bli_diMatCopy_ct(dim_t rows,dim_t cols,const double alpha,double* a
     else
     {
         f77_int mem_fail_info = -10;
-        xerbla_(MKSTR(bli_diMatCopy_ct), &mem_fail_info, (f77_int)16);
+        xerbla_blis_impl(MKSTR(bli_diMatCopy_ct), &mem_fail_info, (f77_int)16);
     }
 
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_2);
@@ -1013,7 +1090,7 @@ static dim_t bli_ciMatCopy_ct(dim_t rows,dim_t cols,const scomplex alpha,scomple
     else
     {
         f77_int mem_fail_info = -10;
-        xerbla_(MKSTR(bli_ciMatCopy_ct), &mem_fail_info, (f77_int)16);
+        xerbla_blis_impl(MKSTR(bli_ciMatCopy_ct), &mem_fail_info, (f77_int)16);
     }
 
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_2);
@@ -1095,7 +1172,7 @@ static dim_t bli_ziMatCopy_ct(dim_t rows,dim_t cols,const dcomplex alpha,dcomple
     else
     {
         f77_int mem_fail_info = -10;
-        xerbla_(MKSTR(bli_ziMatCopy_ct), &mem_fail_info, (f77_int)16);
+        xerbla_blis_impl(MKSTR(bli_ziMatCopy_ct), &mem_fail_info, (f77_int)16);
     }
 
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_2);
@@ -1178,7 +1255,7 @@ static dim_t bli_ciMatCopy_cr(dim_t rows,dim_t cols,const scomplex alpha,scomple
         else
         {
             f77_int mem_fail_info = -10;
-            xerbla_(MKSTR(bli_ciMatCopy_cr), &mem_fail_info, (f77_int)16);
+            xerbla_blis_impl(MKSTR(bli_ciMatCopy_cr), &mem_fail_info, (f77_int)16);
         }
     }
 
@@ -1262,7 +1339,7 @@ static dim_t bli_ziMatCopy_cr(dim_t rows,dim_t cols,const dcomplex alpha,dcomple
         else
         {
             f77_int mem_fail_info = -10;
-            xerbla_(MKSTR(bli_ziMatCopy_cr), &mem_fail_info, (f77_int)16);
+            xerbla_blis_impl(MKSTR(bli_ziMatCopy_cr), &mem_fail_info, (f77_int)16);
         }
     }
 
@@ -1331,7 +1408,7 @@ static dim_t bli_ciMatCopy_cc(dim_t rows,dim_t cols,const scomplex alpha,scomple
     else
     {
         f77_int mem_fail_info = -10;
-        xerbla_(MKSTR(bli_ciMatCopy_ct), &mem_fail_info, (f77_int)16);
+        xerbla_blis_impl(MKSTR(bli_ciMatCopy_ct), &mem_fail_info, (f77_int)16);
     }
 
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_2);
@@ -1399,11 +1476,9 @@ static dim_t bli_ziMatCopy_cc(dim_t rows,dim_t cols,const dcomplex alpha,dcomple
     else
     {
         f77_int mem_fail_info = -10;
-        xerbla_(MKSTR(bli_ziMatCopy_ct), &mem_fail_info, (f77_int)16);
+        xerbla_blis_impl(MKSTR(bli_ziMatCopy_ct), &mem_fail_info, (f77_int)16);
     }
 
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_2);
     return ( 0 );
 }
-
-#endif

@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2019 - 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2019 - 2025, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -262,10 +262,32 @@
 
 
 #ifdef BLIS_OS_WINDOWS
-  #define BLIS_TLS_TYPE __declspec(thread)
+  #ifdef BLIS_IS_BUILDING_LIBRARY
+    #define BLIS_TLS_TYPE __declspec(thread)
+  #else
+    #define BLIS_TLS_TYPE
+  #endif
 #else
   #define BLIS_TLS_TYPE __thread
 #endif
 
 #endif
 
+// -- CODE PATH ENABLEMENT --------------------------------------------------
+#ifdef BLIS_ENABLE_MNK1_MATRIX
+  #define IF_BLIS_ENABLE_MNK1_MATRIX(...) __VA_ARGS__
+#else
+  #define IF_BLIS_ENABLE_MNK1_MATRIX(...)
+#endif
+
+#ifdef BLIS_ENABLE_TINY_MATRIX
+  #define IF_BLIS_ENABLE_TINY_MATRIX(...) __VA_ARGS__
+#else
+  #define IF_BLIS_ENABLE_TINY_MATRIX(...)
+#endif
+
+#ifdef BLIS_ENABLE_SMALL_MATRIX
+  #define IF_BLIS_ENABLE_SMALL_MATRIX(...) __VA_ARGS__
+#else
+  #define IF_BLIS_ENABLE_SMALL_MATRIX(...)
+#endif

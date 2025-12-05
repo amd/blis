@@ -1,11 +1,43 @@
+/*
+
+   BLIS
+   An object-based framework for developing high-performance BLAS-like
+   libraries.
+
+   Copyright (C) 2020 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+
+   Redistribution and use in source and binary forms, with or without
+   modification, are permitted provided that the following conditions are
+   met:
+    - Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+    - Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
+      documentation and/or other materials provided with the distribution.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
+
+   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+   HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+*/
+
 /*=======================================================================
  * File Name :  aocldtl.c
  *
  * Description : This file contains main logging functions.
  *               These functions are invoked though macros by
  *               end user.
- *
- * Copyright (C) 2020 - 2023, Advanced Micro Devices, Inc. All rights reserved.
  *
  *=======================================================================*/
 #include "blis.h"
@@ -21,6 +53,31 @@
 #define __USE_GNU
 #include <dlfcn.h>
 #endif
+#endif
+
+/*
+ * A pthread_once_t variable is a pthread structure used in pthread_once().
+ * pthread_once() is guaranteed to execute exactly once among all threads that
+ * pass in this control object (until/unless the variable is reset).
+ */
+#ifdef AOCL_DTL_INITIALIZE_ENABLE
+static bli_pthread_once_t dtl_once_init     = BLIS_PTHREAD_ONCE_INIT;
+static bli_pthread_once_t dtl_once_finalize = BLIS_PTHREAD_ONCE_INIT;
+#endif
+
+#if (AOCL_DTL_LOG_ENABLE || AOCL_DTL_DUMP_ENABLE)
+
+/* Thread local variable to handle initialization of thread local DTL data
+ * from global DTL data.
+ */
+BLIS_THREAD_LOCAL bool initialize_DTL_TL = TRUE;
+
+/* Global flag to check if logging is enabled or not and
+ * thread local copy of it
+ */
+bool BLIS_THREAD_LOCAL tlIsLoggingEnabled = FALSE;
+bool                   gbIsLoggingEnabled = FALSE;
+
 #endif
 
 /*
@@ -57,9 +114,6 @@ static char *pchDTL_LOG_FILE = AOCL_DTL_LOG_FILE;
 /* Global file pointer for logging the results */
 AOCL_FLIST_Node *gpLogFileList = NULL;
 
-
-/* Global flag to check if logging is enabled or not */
-Bool gbIsLoggingEnabled = TRUE;
 #endif
 
 #if AOCL_DTL_AUTO_TRACE_ENABLE
@@ -76,15 +130,13 @@ AOCL_FLIST_Node *gpAutoTraceFileList = NULL;
 *  Function Name           :  DTL_Initialize
 *  Description             :  Creates/Opens log file and initializes the
 *                             global trace log level
-*  Input Parameter(s)      :  ui32CurrentLogLevel - current log level
-*                             which user can configure at run time
+*  Input Parameter(s)      :  void
 *  Output Parameter(s)     :  None
 *  Return parameter(s)     :  None
 *==================================================================*/
 #ifdef AOCL_DTL_INITIALIZE_ENABLE
 
-void DTL_Initialize(
-    uint32 ui32CurrentLogLevel)
+void DTL_Initialize()
 {
     /*
      * This function can be invoked multiple times either via library
@@ -96,15 +148,39 @@ void DTL_Initialize(
      * method to ensure this.
      */
 
-    static Bool bIsDTLInitDone = FALSE;
-    
-    if (bIsDTLInitDone) 
-    {
-        return;
-    }
+    /* Initialize all global DTL data structures */
+    bli_pthread_once( &dtl_once_init, DTL_Initialize_Global );
 
-    /* If user selects invalid trace log level then the dafault trace log level
-      will be AOCL_DTL_LEVEL_ALL */
+    /*
+     * Reset the control variable that will allow finalization.
+     * NOTE: We must initialize a fresh pthread_once_t object and THEN copy the
+     * contents to the static control variable because some implementations of
+     * pthreads define pthread_once_t as a struct and BLIS_PTHREAD_ONCE_INIT as
+     * a struct initializer expression (i.e. { ... }), which cannot be used in
+     * post-declaration struct assignment in strict C99.
+     */
+    const bli_pthread_once_t dtl_once_new = BLIS_PTHREAD_ONCE_INIT;
+    dtl_once_finalize = dtl_once_new;
+
+#if (AOCL_DTL_LOG_ENABLE || AOCL_DTL_DUMP_ENABLE)
+    if (initialize_DTL_TL)
+    {
+        /* Initialize from global, which reflects any setting of AOCL_VERBOSE */
+        DTL_Initialize_TL();
+
+        initialize_DTL_TL = FALSE;
+    }
+#endif
+
+} /* DTL_Initialize */
+
+void DTL_Initialize_Global()
+{
+    /* Get desired trace level from blis.h */
+    uint32 ui32CurrentLogLevel = AOCL_DTL_TRACE_LEVEL;
+
+    /* If user selects invalid trace log level then the default trace log level
+       will be AOCL_DTL_LEVEL_ALL */
     if ((ui32CurrentLogLevel < 1) || (ui32CurrentLogLevel > AOCL_DTL_LEVEL_ALL))
     {
         gui32TraceLogLevel = AOCL_DTL_LEVEL_ALL;
@@ -148,11 +224,31 @@ void DTL_Initialize(
     /* Save Id for main thread */
     gtidMainThreadID = AOCL_gettid();
 
-    // Ensure that this function is executed only once
-    bIsDTLInitDone = TRUE;
+} /* DTL_Initialize_Global */
 
-} /* DTL_Initialize */
+
+void DTL_Initialize_TL()
+{
+    /*
+     * This function can be invoked multiple times either via library
+     * initialization function (e.g. bli_init()) or when user changes
+     * logging state using API. However we want it to run only once
+     * This flag ensure that it is executed only once.
+     *
+     * DTL can be used with many libraries hence it needs its own
+     * method to ensure this.
+     */
+
+    /* Initialize thread local data as a copy of global_rntm
+     * Need to do this once per application thread
+     */
+#if (AOCL_DTL_LOG_ENABLE || AOCL_DTL_DUMP_ENABLE)
+    tlIsLoggingEnabled = gbIsLoggingEnabled;
 #endif
+
+} /* DTL_Initialize_TL */
+
+#endif // AOCL_DTL_INITIALIZE_ENABLE
 
 /*===================================================================
 *  Function Name           :  DTL_Uninitialize
@@ -218,7 +314,7 @@ void DTL_Trace(
      * macros, this is just an additional check in case the function
      * is invoked from any other context.
      */
-    if (gbIsLoggingEnabled == FALSE && ui8LogType == TRACE_TYPE_LOG)
+    if (tlIsLoggingEnabled == FALSE && ui8LogType == TRACE_TYPE_LOG)
     {
         return;
     }
@@ -235,11 +331,11 @@ void DTL_Trace(
         pOutFile = AOCL_FLIST_GetFile(gpLogFileList, AOCL_gettid());
 
         /* If trace file pointer is equal to NULL then return with out dumping data
-         to the file */
+           to the file */
         if (NULL == pOutFile)
         {
             /* It might be the first call from the current thread, try to create
-         new trace for this thread. */
+               new trace for this thread. */
             pOutFile = AOCL_FLIST_AddFile(pchDTL_LOG_FILE, &gpLogFileList, AOCL_gettid());
 
             if (NULL == pOutFile)
@@ -256,11 +352,11 @@ void DTL_Trace(
      pOutFile = AOCL_FLIST_GetFile(gpTraceFileList, AOCL_gettid());
 
         /* If trace file pointer is equal to NULL then return with out dumping data
-         to file */
+           to file */
         if (NULL == pOutFile)
         {
             /* It might be the first call from the current thread, try to create
-         new trace for this thread. */
+               new trace for this thread. */
             pOutFile = AOCL_FLIST_AddFile(pchDTL_TRACE_FILE, &gpTraceFileList, AOCL_gettid());
 
             if (NULL == pOutFile)
@@ -273,7 +369,7 @@ void DTL_Trace(
     }
 
     /* Log the message only if the log level is less than or equal to global log
-      level set while initialization */
+       level set while initialization */
     if (ui8LogLevel <= gui32TraceLogLevel)
     {
         /* Indent as per level if is function call trace */
@@ -378,7 +474,7 @@ void DTL_DumpData(
     }
 #endif /* Dump enabled */
     /* Log the message only if the log level is less than or equal to global log
-      level set while initialization */
+       level set while initialization */
     if (ui8LogLevel > gui32TraceLogLevel)
     {
         return;
@@ -391,10 +487,10 @@ void DTL_DumpData(
     }
 
     /* Assuming that if the Data type for character = 1
-   * the Data type for uint32 = 2
-   * the data type for uint32 = 4
-   * the data type for string = 3
-   */
+     * the Data type for uint32 = 2
+     * the data type for uint32 = 4
+     * the data type for string = 3
+     */
     if (ui8DataType == AOCL_STRING_DATA_TYPE)
     {
         /* Typecast the void buffer to character buffer */
@@ -485,7 +581,7 @@ void AOCL_DTL_start_perf_timer(void)
 
     if (NULL == pFileNode) {
         /* It might be the first call from the current thread, try to create
-        new trace for this thread. */
+           new trace for this thread. */
         AOCL_FAL_FILE *pOutFile = AOCL_FLIST_AddFile(pchDTL_LOG_FILE, &gpLogFileList, current_thread);
 
         if (NULL == pOutFile)
@@ -518,7 +614,7 @@ uint64 AOCL_DTL_get_time_spent(void)
 
     if (NULL == pFileNode) {
         /* It might be the first call from the current thread, try to create
-        new trace for this thread. */
+           new trace for this thread. */
         AOCL_FAL_FILE *pOutFile = AOCL_FLIST_AddFile(pchDTL_LOG_FILE, &gpLogFileList, AOCL_gettid());
 
         if (NULL == pOutFile)
@@ -541,7 +637,7 @@ uint64 AOCL_DTL_get_time_spent(void)
 /*
     Disable instrumentation for these functions as they will also be
     called from compiler generated instrumentation code to trace
-   function execution.
+    function execution.
 
     It needs to be part of declaration in the C file so can't be
     moved to header file.
@@ -573,11 +669,11 @@ void __cyg_profile_func_enter(void *pvThisFunc, void *pvCaller)
     pOutFile = AOCL_FLIST_GetFile(gpAutoTraceFileList, AOCL_gettid());
 
     /* If trace file pointer is equal to NULL then return with out dumping data
-        to the file */
+       to the file */
     if (NULL == pOutFile)
     {
         /* It might be the first call from the current thread, try to create
-        new trace for this thread. */
+           new trace for this thread. */
         pOutFile = AOCL_FLIST_AddFile(pchDTL_AUTO_TRACE_FILE, &gpAutoTraceFileList, AOCL_gettid());
 
         if (NULL == pOutFile)
@@ -612,11 +708,11 @@ void __cyg_profile_func_exit(void *pvThisFunc, void *pvCaller)
     pOutFile = AOCL_FLIST_GetFile(gpAutoTraceFileList, AOCL_gettid());
 
     /* If trace file pointer is equal to NULL then return with out dumping data
-        to the file */
+       to the file */
     if (NULL == pOutFile)
     {
         /* It might be the first call from the current thread, try to create
-        new trace for this thread. */
+           new trace for this thread. */
         pOutFile = AOCL_FLIST_AddFile(pchDTL_AUTO_TRACE_FILE, &gpAutoTraceFileList, AOCL_gettid());
 
         if (NULL == pOutFile)

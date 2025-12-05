@@ -698,7 +698,9 @@ TYPED_TEST(gemv_IIT_ERS, ZeroAlpha_ZeroBeta)
     testinghelpers::initzero<T>( alpha );
     testinghelpers::initzero<T>( beta );
 
-    std::vector<T> y = testinghelpers::get_random_vector<T>( 0, 1, N, incy );
+    // Vector y should not be read, only set.
+    std::vector<T> y( testinghelpers::buff_dim(N, incy) );
+    testinghelpers::set_vector( N, incy, y.data(), testinghelpers::aocl_extreme<T>() );
     std::vector<T> y2(y);
     // Create a zero vector, since the output for alpha = beta = 0 should be a
     // zero vector.

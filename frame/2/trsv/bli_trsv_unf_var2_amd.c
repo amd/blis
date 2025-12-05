@@ -308,17 +308,20 @@ void bli_dtrsv_unf_var2
         else  // m > 200
         {
 #if defined(BLIS_KERNELS_ZEN4)
-            arch_t id = bli_arch_query_id();
-            if (id == BLIS_ARCH_ZEN5 || id == BLIS_ARCH_ZEN4 )
+
+            // Query the architecture ID
+            arch_t arch_id = bli_arch_query_id();
+
+            if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4 )
             {
                 if ( m < 2500 )
                 {
-                    kfp_af = bli_daxpyf_zen_int8_avx512;
+                    kfp_af = bli_daxpyf_zen4_int_8;
                     b_fuse = 8;
                 }
                 else
                 {
-                    kfp_af = bli_daxpyf_zen_int12_avx512;
+                    kfp_af = bli_daxpyf_zen4_int_12;
                     b_fuse = 12;
                 }
 #if defined(BLIS_ENABLE_OPENMP)
@@ -331,13 +334,13 @@ void bli_dtrsv_unf_var2
                     // If NT == 1, don't use MT kernel.
                     if ( n_threads > 1 )
                     {
-                        kfp_af = bli_daxpyf_zen_int32_avx512_mt;
+                        kfp_af = bli_daxpyf_zen4_int_32_mt;
                         b_fuse = 32;
                     }
                 }
 #endif //BLIS_ENABLE_OPENMP
             }
-            else // (id != BLIS_ARCH_ZEN5 && id != BLIS_ARCH_ZEN4 )
+            else // (arch_id != BLIS_ARCH_ZEN5 && arch_id != BLIS_ARCH_ZEN4 )
 #endif //BLIS_KERNELS_ZEN4
             {
                 kfp_af = bli_daxpyf_zen_int_16x4;

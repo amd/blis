@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2025, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -53,13 +53,16 @@ void sgemm_pack_blis_impl
              float*    dest
      )
 {
+    /* Initialize BLIS. */
+    bli_init_auto();
+
     AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
+    AOCL_DTL_LOG_GEMM_PACK_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(s), *identifier, *trans, *mm, *nn, *kk,
+                                  (void*)alpha, *pld);
 
     dim_t m;
     dim_t n;
     dim_t k;
-
-    bli_init_auto(); // initialize blis
 
     /* Perform BLAS parameter checking. */
     PASTEBLACHK(gemm_pack)
@@ -132,6 +135,7 @@ void sgemm_pack_blis_impl
     return;
 }
 
+#ifdef BLIS_ENABLE_BLAS
 void sgemm_pack_
      (
        const f77_char* identifier,
@@ -146,6 +150,7 @@ void sgemm_pack_
 {
     sgemm_pack_blis_impl( identifier, trans, mm, nn, kk, alpha, src, pld, dest );
 }
+#endif
 
 void dgemm_pack_blis_impl
      (
@@ -159,13 +164,16 @@ void dgemm_pack_blis_impl
              double*   dest
      )
 {
+    /* Initialize BLIS. */
+    bli_init_auto();
+
     AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
+    AOCL_DTL_LOG_GEMM_PACK_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(d), *identifier, *trans, *mm, *nn, *kk,
+                                  (void*)alpha, *pld);
 
     dim_t m;
     dim_t n;
     dim_t k;
-
-    bli_init_auto(); // initialize blis
 
     /* Perform BLAS parameter checking. */
     PASTEBLACHK(gemm_pack)
@@ -237,6 +245,7 @@ void dgemm_pack_blis_impl
     return;
 }
 
+#ifdef BLIS_ENABLE_BLAS
 void dgemm_pack_
      (
        const f77_char* identifier,
@@ -251,3 +260,4 @@ void dgemm_pack_
 {
     dgemm_pack_blis_impl( identifier, trans, mm, nn, kk, alpha, src, pld, dest );
 }
+#endif

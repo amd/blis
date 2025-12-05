@@ -63,6 +63,9 @@ void PASTEF77S(ch,blasname) \
              ftype*   y, const f77_int* incy  \
      ) \
 { \
+    /* Initialize BLIS. */ \
+    bli_init_auto(); \
+\
     AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1) \
     AOCL_DTL_LOG_AXPY_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(ch), *n, (void*)alpha, *incx, *incy) \
 \
@@ -71,32 +74,30 @@ void PASTEF77S(ch,blasname) \
     */ \
     if ((*n) <= 0 || PASTEMAC(ch, eq0)(*alpha)) \
     { \
+      AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1); \
       AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1); \
       return; \
     } \
 \
-    dim_t  n_elem; \
+    dim_t  n0; \
     ftype* x0; \
     ftype* y0; \
     inc_t  incx0; \
     inc_t  incy0; \
 \
-    /* Initialize BLIS. */ \
-    bli_init_auto(); \
-\
     /* Convert/typecast negative values of n to zero. */ \
-    bli_convert_blas_dim1( *n, n_elem ); \
+    bli_convert_blas_dim1( *n, n0 ); \
 \
     /* If the input increments are negative, adjust the pointers so we can
        use positive increments instead. */ \
-    bli_convert_blas_incv( n_elem, (ftype*)x, *incx, x0, incx0 ); \
-    bli_convert_blas_incv( n_elem, (ftype*)y, *incy, y0, incy0 ); \
+    bli_convert_blas_incv( n0, (ftype*)x, *incx, x0, incx0 ); \
+    bli_convert_blas_incv( n0, (ftype*)y, *incy, y0, incy0 ); \
 \
     /* Call BLIS interface. */ \
     PASTEMAC2(ch,blisname,BLIS_TAPI_EX_SUF) \
     ( \
       BLIS_NO_CONJUGATE, \
-      n_elem, \
+      n0, \
       (ftype*)alpha, \
       x0, incx0, \
       y0, incy0, \
@@ -104,8 +105,9 @@ void PASTEF77S(ch,blasname) \
       NULL  \
     ); \
 \
+     AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1); \
      AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1) \
-        /* Finalize BLIS. */ \
+     /* Finalize BLIS. */ \
      bli_finalize_auto();  \
 }\
 \
@@ -129,9 +131,13 @@ void saxpy_blis_impl
  const f77_int* n,
  const float*   alpha,
  const float*   x, const f77_int* incx,
- float*   y, const f77_int* incy
+       float*   y, const f77_int* incy
  )
 {
+    /* Initialize BLIS. */
+    // Call to bli_init_auto() is not needed here
+    AOCL_DTL_INITIALIZE();
+
     AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1)
     AOCL_DTL_LOG_AXPY_INPUTS(AOCL_DTL_LEVEL_TRACE_1, 'S', *n, (float *)alpha, *incx, *incy)
 
@@ -140,165 +146,23 @@ void saxpy_blis_impl
     */
     if ((*n) <= 0 || PASTEMAC(s, eq0)(*alpha))
     {
+      AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, AOCL_get_requested_threads_count());
       AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
       return;
     }
 
-    dim_t n_elem;
+    dim_t n0;
     float *x0;
     float *y0;
     inc_t incx0;
     inc_t incy0;
 
-    /* Initialize BLIS. */
-    //    bli_init_auto();
-
     /* Convert/typecast negative values of n to zero. */
-    if (*n < 0)
-      n_elem = (dim_t)0;
-    else
-      n_elem = (dim_t)(*n);
-
-    /*
-      If the input increments are negative, adjust the pointers so we can
-      use positive increments instead.
-    */
-    if (*incx < 0)
-    {
-      /* The semantics of negative stride in BLAS are that the vector
-        operand be traversed in reverse order. (Another way to think
-        of this is that negative strides effectively reverse the order
-        of the vector, but without any explicit data movements.) This
-        is also how BLIS interprets negative strides. The differences
-        is that with BLAS, the caller *always* passes in the 0th (i.e.,
-        top-most or left-most) element of the vector, even when the
-        stride is negative. By contrast, in BLIS, negative strides are
-        used *relative* to the vector address as it is given. Thus, in
-        BLIS, if this backwards traversal is desired, the caller *must*
-        pass in the address to the (n-1)th (i.e., the bottom-most or
-        right-most) element along with a negative stride. */
-
-      x0 = ((float *)x) + (n_elem - 1) * (-*incx);
-      incx0 = (inc_t)(*incx);
-    }
-    else
-    {
-      x0    = ((float*)x);
-      incx0 = ( inc_t )(*incx);
-    }
-    if ( *incy < 0 )
-    {
-      y0    = ((float*)y) + (n_elem-1)*(-*incy);
-      incy0 = ( inc_t )(*incy);
-    }
-    else
-    {
-      y0    = ((float*)y);
-      incy0 = ( inc_t )(*incy);
-    }
-
-    cntx_t *cntx = NULL;
-
-    // Query the architecture ID
-    arch_t id = bli_arch_query_id();
-
-    /*
-      Function pointer declaration for the function
-      that will be used by this API
-    */
-    saxpyv_ker_ft axpyv_ker_ptr; // DAXPYV
-
-    // Pick the kernel based on the architecture ID
-    switch (id)
-    {
-      case BLIS_ARCH_ZEN5:
-      case BLIS_ARCH_ZEN4:
-#if defined(BLIS_KERNELS_ZEN4)
-        axpyv_ker_ptr = bli_saxpyv_zen_int_avx512;
-
-        break;
-#endif
-      case BLIS_ARCH_ZEN:
-      case BLIS_ARCH_ZEN2:
-      case BLIS_ARCH_ZEN3:
-        axpyv_ker_ptr = bli_saxpyv_zen_int10;
-
-        break;
-      default:
-
-        // For non-Zen architectures, query the context
-        cntx = bli_gks_query_cntx();
-
-        // Query the context for the kernel function pointers for saxpyv
-        axpyv_ker_ptr = bli_cntx_get_l1v_ker_dt(BLIS_FLOAT, BLIS_AXPYV_KER, cntx);
-    }
-
-    // Call the function based on the function pointer assigned above
-    axpyv_ker_ptr
-    (
-      BLIS_NO_CONJUGATE,
-      n_elem,
-      (float *)alpha,
-      x0, incx0,
-      y0, incy0,
-      cntx
-    );
-
-    /* Finalize BLIS. */
-    //    bli_finalize_auto();
-    AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
-}
-
-#ifdef BLIS_ENABLE_BLAS
-void saxpy_
-(
- const f77_int* n,
- const float*   alpha,
- const float*   x, const f77_int* incx,
- float*   y, const f77_int* incy
- )
-{
-  saxpy_blis_impl( n, alpha, x, incx, y, incy ) ;
-}
-#endif
-
-//-------------------------------------------------------------------------
-
-void daxpy_blis_impl
-(
- const f77_int* n,
- const double*   alpha,
- const double*   x, const f77_int* incx,
- double*   y, const f77_int* incy
- )
-{
-    AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1)
-    AOCL_DTL_LOG_AXPY_INPUTS(AOCL_DTL_LEVEL_TRACE_1, 'D', *n, (double*)alpha, *incx, *incy)
-
-    /*
-      BLAS exception: If the vector dimension is zero, or if alpha is zero, return early.
-    */
-    if ((*n) <= 0 || PASTEMAC(d, eq0)(*alpha))
-    {
-      AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
-      return;
-    }
-
-    dim_t  n_elem;
-    double* x0;
-    double* y0;
-    inc_t  incx0;
-    inc_t  incy0;
-
-    /* Initialize BLIS. */
-    // bli_init_auto();
-
-    /* Convert/typecast negative values of n to zero. */
-    if ( *n < 0 ) n_elem = ( dim_t )0;
-    else          n_elem = ( dim_t )(*n);
+    if ( *n < 0 ) n0 = ( dim_t )0;
+    else          n0 = ( dim_t )(*n);
 
     /* If the input increments are negative, adjust the pointers so we can
-      use positive increments instead. */
+       use positive increments instead. */
     if ( *incx < 0 )
     {
       /* The semantics of negative stride in BLAS are that the vector
@@ -313,7 +177,142 @@ void daxpy_blis_impl
          BLIS, if this backwards traversal is desired, the caller *must*
          pass in the address to the (n-1)th (i.e., the bottom-most or
          right-most) element along with a negative stride. */
-      x0    = ( (double*)x ) + ( n_elem - 1 ) * ( - (*incx) );
+
+      x0 = ((float *)x) + (n0-1) * ( -*incx );
+      incx0 = ( inc_t )(*incx);
+    }
+    else
+    {
+      x0    = ((float*)x);
+      incx0 = ( inc_t )(*incx);
+    }
+    if ( *incy < 0 )
+    {
+      y0    = ((float*)y) + (n0-1) * ( -*incy );
+      incy0 = ( inc_t )(*incy);
+    }
+    else
+    {
+      y0    = ((float*)y);
+      incy0 = ( inc_t )(*incy);
+    }
+
+    cntx_t *cntx = NULL;
+
+    // Query the architecture ID
+    arch_t arch_id = bli_arch_query_id();
+
+    // Function pointer declaration for the function
+    // that will be used by this API
+    saxpyv_ker_ft axpyv_ker_ptr = NULL;
+
+    // Pick the kernel based on the architecture ID
+    switch ( arch_id )
+    {
+      case BLIS_ARCH_ZEN5:
+      case BLIS_ARCH_ZEN4:
+#if defined(BLIS_KERNELS_ZEN4)
+          axpyv_ker_ptr = bli_saxpyv_zen4_int;
+          break;
+#endif
+      case BLIS_ARCH_ZEN:
+      case BLIS_ARCH_ZEN2:
+      case BLIS_ARCH_ZEN3:
+          axpyv_ker_ptr = bli_saxpyv_zen_int_10;
+          break;
+      default:
+          // For non-Zen architectures, query the context
+          cntx = bli_gks_query_cntx();
+
+          // Query the context for the kernel function pointers for saxpyv
+          axpyv_ker_ptr = bli_cntx_get_l1v_ker_dt(BLIS_FLOAT, BLIS_AXPYV_KER, cntx);
+    }
+
+    // Call the function based on the function pointer assigned above
+    axpyv_ker_ptr
+    (
+      BLIS_NO_CONJUGATE,
+      n0,
+      (float *)alpha,
+      x0, incx0,
+      y0, incy0,
+      cntx
+    );
+
+    AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
+    AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+    /* Finalize BLIS. */
+    // Call to bli_finalize_auto() is not needed here
+}
+
+#ifdef BLIS_ENABLE_BLAS
+void saxpy_
+(
+ const f77_int* n,
+ const float*   alpha,
+ const float*   x, const f77_int* incx,
+       float*   y, const f77_int* incy
+ )
+{
+  saxpy_blis_impl( n, alpha, x, incx, y, incy ) ;
+}
+#endif
+
+//-------------------------------------------------------------------------
+
+void daxpy_blis_impl
+(
+ const f77_int* n,
+ const double*  alpha,
+ const double*  x, const f77_int* incx,
+       double*  y, const f77_int* incy
+ )
+{
+    /* Initialize BLIS. */
+    // Call to bli_init_auto() is not needed here
+    AOCL_DTL_INITIALIZE();
+
+    AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1)
+    AOCL_DTL_LOG_AXPY_INPUTS(AOCL_DTL_LEVEL_TRACE_1, 'D', *n, (double*)alpha, *incx, *incy)
+
+    /*
+      BLAS exception: If the vector dimension is zero, or if alpha is zero, return early.
+    */
+    if ((*n) <= 0 || PASTEMAC(d, eq0)(*alpha))
+    {
+      AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, AOCL_get_requested_threads_count());
+      AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+      return;
+    }
+
+    dim_t  n0;
+    double* x0;
+    double* y0;
+    inc_t  incx0;
+    inc_t  incy0;
+
+    /* Convert/typecast negative values of n to zero. */
+    if ( *n < 0 ) n0 = ( dim_t )0;
+    else          n0 = ( dim_t )(*n);
+
+    /* If the input increments are negative, adjust the pointers so we can
+       use positive increments instead. */
+    if ( *incx < 0 )
+    {
+      /* The semantics of negative stride in BLAS are that the vector
+         operand be traversed in reverse order. (Another way to think
+         of this is that negative strides effectively reverse the order
+         of the vector, but without any explicit data movements.) This
+         is also how BLIS interprets negative strides. The differences
+         is that with BLAS, the caller *always* passes in the 0th (i.e.,
+         top-most or left-most) element of the vector, even when the
+         stride is negative. By contrast, in BLIS, negative strides are
+         used *relative* to the vector address as it is given. Thus, in
+         BLIS, if this backwards traversal is desired, the caller *must*
+         pass in the address to the (n-1)th (i.e., the bottom-most or
+         right-most) element along with a negative stride. */
+
+      x0    = ( (double*)x ) + (n0-1) * ( -*incx );
       incx0 = ( inc_t )(*incx);
     }
     else
@@ -323,7 +322,7 @@ void daxpy_blis_impl
     }
     if ( *incy < 0 )
     {
-      y0    = ( (double*) y ) + ( n_elem - 1 )*( - (*incy) );
+      y0    = ( (double*) y ) + (n0-1) * ( -*incy );
       incy0 = ( inc_t )(*incy);
     }
     else
@@ -331,9 +330,6 @@ void daxpy_blis_impl
       y0    = ((double*)y);
       incy0 = ( inc_t )(*incy);
     }
-
-    // Definition of function pointer
-    daxpyv_ker_ft axpyv_ker_ptr;
 
 #if defined(BLIS_ENABLE_OPENMP) && defined(AOCL_DYNAMIC)
     // Setting the threshold to invoke the fast-path
@@ -345,14 +341,18 @@ void daxpy_blis_impl
     cntx_t *cntx = NULL;
 
     // Query the architecture ID
-    arch_t arch_id_local = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id();
+
+    // Function pointer declaration for the function
+    // that will be used by this API
+    daxpyv_ker_ft axpyv_ker_ptr = NULL;
 
     // Pick the kernel based on the architecture ID
-    switch (arch_id_local)
+    switch ( arch_id )
     {
       case BLIS_ARCH_ZEN5:
 #if defined(BLIS_KERNELS_ZEN4)
-          axpyv_ker_ptr = bli_daxpyv_zen_int_avx512;
+          axpyv_ker_ptr = bli_daxpyv_zen4_int;
 #if defined(BLIS_ENABLE_OPENMP) && defined(AOCL_DYNAMIC)
           fast_path_thresh = 34000;
 #endif
@@ -360,7 +360,7 @@ void daxpy_blis_impl
 #endif
       case BLIS_ARCH_ZEN4:
 #if defined(BLIS_KERNELS_ZEN4)
-          axpyv_ker_ptr = bli_daxpyv_zen_int_avx512;
+          axpyv_ker_ptr = bli_daxpyv_zen4_int;
 #if defined(BLIS_ENABLE_OPENMP) && defined(AOCL_DYNAMIC)
           fast_path_thresh = 11000;
 #endif
@@ -369,47 +369,45 @@ void daxpy_blis_impl
       case BLIS_ARCH_ZEN:
       case BLIS_ARCH_ZEN2:
       case BLIS_ARCH_ZEN3:
-
           // AVX2 Kernel
-          axpyv_ker_ptr = bli_daxpyv_zen_int10;
+          axpyv_ker_ptr = bli_daxpyv_zen_int_10;
 #if defined(BLIS_ENABLE_OPENMP) && defined(AOCL_DYNAMIC)
           fast_path_thresh = 4000;
 #endif
           break;
-
       default:
-
-          // Query the context
+          // For non-Zen architectures, query the context
           cntx = bli_gks_query_cntx();
 
-          // Query the function pointer using the context
+          // Query the context for the kernel function pointers for daxpyv
           axpyv_ker_ptr = bli_cntx_get_l1v_ker_dt(BLIS_DOUBLE, BLIS_AXPYV_KER, cntx);
     }
 
 #ifdef BLIS_ENABLE_OPENMP
-    #ifdef AOCL_DYNAMIC
-      /* Invoking the fast-path, if the size is ideal for such execution */
-      if( n_elem <= fast_path_thresh )
-      {
-        axpyv_ker_ptr
-        (
-          BLIS_NO_CONJUGATE,
-          n_elem,
-          (double *)alpha,
-          x0, incx0,
-          y0, incy0,
-          cntx
-        );
-
-        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
-        return;
-      }
-    #endif
     /*
       Initializing the number of thread to one
       to avoid compiler warnings
     */
     dim_t nt = 1;
+
+    #ifdef AOCL_DYNAMIC
+      /* Invoking the fast-path, if the size is ideal for such execution */
+      if( n0 <= fast_path_thresh )
+      {
+        axpyv_ker_ptr
+        (
+          BLIS_NO_CONJUGATE,
+          n0,
+          (double *)alpha,
+          x0, incx0,
+          y0, incy0,
+          cntx
+        );
+        AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
+        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
+        return;
+      }
+    #endif
 
     /*
       For the given problem size and architecture, the function
@@ -421,28 +419,26 @@ void daxpy_blis_impl
       BLIS_AXPYV_KER,
       BLIS_DOUBLE,
       BLIS_DOUBLE,
-      arch_id_local,
-      n_elem,
+      arch_id,
+      n0,
       &nt
     );
 
     if (nt == 1)
     {
-#endif
         axpyv_ker_ptr
         (
           BLIS_NO_CONJUGATE,
-          n_elem,
+          n0,
           (double *)alpha,
           x0, incx0,
           y0, incy0,
           cntx
         );
 
+        AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, nt);
         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
         return;
-
-#ifdef BLIS_ENABLE_OPENMP
     }
 
     _Pragma("omp parallel num_threads(nt)")
@@ -450,9 +446,9 @@ void daxpy_blis_impl
         dim_t start, end, length;
         thrinfo_t thrinfo_vec;
 
-        // The block size is the minimum factor, whose multiple will ensure that only
-        // the vector code section is executed. Furthermore, for double datatype it corresponds
-        // to one cacheline size.
+        /* The block size is the minimum factor, whose multiple will ensure that only
+           the vector code section is executed. Furthermore, for double datatype it
+           corresponds to one cacheline size. */
         dim_t block_size = 8;
 
         // Get the actual number of threads spawned
@@ -469,7 +465,7 @@ void daxpy_blis_impl
         bli_thread_range_sub
         (
           &thrinfo_vec,
-          n_elem,
+          n0,
           block_size,
           FALSE,
           &start,
@@ -493,20 +489,38 @@ void daxpy_blis_impl
           cntx
         );
     }
+
+    AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, nt);
+    AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+
+#else // not BLIS_ENABLE_OPENMP
+
+    axpyv_ker_ptr
+    (
+      BLIS_NO_CONJUGATE,
+      n0,
+      (double *)alpha,
+      x0, incx0,
+      y0, incy0,
+      cntx
+    );
+
+    AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
+    AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
+
 #endif // BLIS_ENABLE_OPENMP
 
-    AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
     /* Finalize BLIS. */
-    // bli_finalize_auto();
+    // Call to bli_finalize_auto() is not needed here
 }
 
 #ifdef BLIS_ENABLE_BLAS
 void daxpy_
 (
  const f77_int* n,
- const double*   alpha,
- const double*   x, const f77_int* incx,
- double*   y, const f77_int* incy
+ const double*  alpha,
+ const double*  x, const f77_int* incx,
+       double*  y, const f77_int* incy
  )
 {
   daxpy_blis_impl( n, alpha, x, incx, y, incy ) ;
@@ -517,12 +531,16 @@ void daxpy_
 
 void caxpy_blis_impl
 (
- const f77_int* n,
- const scomplex*   alpha,
- const scomplex*   x, const f77_int* incx,
- scomplex*   y, const f77_int* incy
+ const f77_int*  n,
+ const scomplex* alpha,
+ const scomplex* x, const f77_int* incx,
+       scomplex* y, const f77_int* incy
  )
 {
+    /* Initialize BLIS. */
+    // Call to bli_init_auto() is not needed here
+    AOCL_DTL_INITIALIZE();
+
     AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1)
     AOCL_DTL_LOG_AXPY_INPUTS(AOCL_DTL_LEVEL_TRACE_1, 'C', *n, (scomplex*)alpha, *incx, *incy)
 
@@ -531,22 +549,20 @@ void caxpy_blis_impl
     */
     if ((*n) <= 0 || PASTEMAC(c, eq0)(*alpha))
     {
+      AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, AOCL_get_requested_threads_count());
       AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
       return;
     }
 
-    dim_t     n_elem;
+    dim_t  n0;
     scomplex* x0;
     scomplex* y0;
     inc_t  incx0;
     inc_t  incy0;
 
-    /* Initialize BLIS. */
-    //    bli_init_auto();
-
     /* Convert/typecast negative values of n to zero. */
-    if ( *n < 0 ) n_elem = ( dim_t )0;
-    else              n_elem = ( dim_t )(*n);
+    if ( *n < 0 ) n0 = ( dim_t )0;
+    else          n0 = ( dim_t )(*n);
 
     /* If the input increments are negative, adjust the pointers so we can
        use positive increments instead. */
@@ -564,7 +580,8 @@ void caxpy_blis_impl
          BLIS, if this backwards traversal is desired, the caller *must*
          pass in the address to the (n-1)th (i.e., the bottom-most or
          right-most) element along with a negative stride. */
-      x0    = ((scomplex*)x) + (n_elem-1)*(-*incx);
+
+      x0    = ((scomplex*)x) + (n0-1) * ( -*incx );
       incx0 = ( inc_t )(*incx);
     }
     else
@@ -574,7 +591,7 @@ void caxpy_blis_impl
     }
     if ( *incy < 0 )
     {
-      y0    = ((scomplex*)y) + (n_elem-1)*(-*incy);
+      y0    = ((scomplex*)y) + (n0-1) * ( -*incy );
       incy0 = ( inc_t )(*incy);
     }
     else
@@ -587,10 +604,10 @@ void caxpy_blis_impl
     // Non-AVX2+FMA3 platforms will use the kernels derived from the context.
     if (bli_cpuid_is_avx2fma3_supported() == TRUE)
     {
-        bli_caxpyv_zen_int5
+        bli_caxpyv_zen_int_5
         (
           BLIS_NO_CONJUGATE,
-          n_elem,
+          n0,
           (scomplex*)alpha,
           x0, incx0,
           y0, incy0,
@@ -603,7 +620,7 @@ void caxpy_blis_impl
         PASTEMAC2(c,axpyv,BLIS_TAPI_EX_SUF)
         (
           BLIS_NO_CONJUGATE,
-          n_elem,
+          n0,
           (scomplex*)alpha,
           x0, incx0,
           y0, incy0,
@@ -612,9 +629,10 @@ void caxpy_blis_impl
         );
     }
 
+    AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
     /* Finalize BLIS. */
-    //    bli_finalize_auto();
+    // Call to bli_finalize_auto() is not needed here
 }
 
 #ifdef BLIS_ENABLE_BLAS
@@ -623,7 +641,7 @@ void caxpy_
  const f77_int* n,
  const scomplex*   alpha,
  const scomplex*   x, const f77_int* incx,
- scomplex*   y, const f77_int* incy
+       scomplex*   y, const f77_int* incy
  )
 {
   caxpy_blis_impl( n, alpha, x, incx, y, incy ) ;
@@ -634,12 +652,16 @@ void caxpy_
 
 void zaxpy_blis_impl
 (
- const f77_int* n,
- const dcomplex*   alpha,
- const dcomplex*   x, const f77_int* incx,
- dcomplex*   y, const f77_int* incy
+ const f77_int*  n,
+ const dcomplex* alpha,
+ const dcomplex* x, const f77_int* incx,
+       dcomplex* y, const f77_int* incy
  )
 {
+    /* Initialize BLIS. */
+    // Call to bli_init_auto() is not needed here
+    AOCL_DTL_INITIALIZE();
+
     AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1)
     AOCL_DTL_LOG_AXPY_INPUTS(AOCL_DTL_LEVEL_TRACE_1, 'Z', *n, (dcomplex*)alpha, *incx, *incy)
 
@@ -648,24 +670,20 @@ void zaxpy_blis_impl
     */
     if ((*n) <= 0 || PASTEMAC(z, eq0)(*alpha))
     {
+      AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, AOCL_get_requested_threads_count());
       AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
       return;
     }
 
-    dim_t  n_elem;
+    dim_t  n0;
     dcomplex* x0;
     dcomplex* y0;
     inc_t  incx0;
     inc_t  incy0;
 
-    /* Initialize BLIS. */
-    //    bli_init_auto();
-
-    // Convert/typecast negative values of n to zero.
-    if ( *n < 0 )
-        n_elem = ( dim_t )0;
-    else
-        n_elem = ( dim_t )(*n);
+    /* Convert/typecast negative values of n to zero. */
+    if ( *n < 0 ) n0 = ( dim_t )0;
+    else          n0 = ( dim_t )(*n);
 
     /* If the input increments are negative, adjust the pointers so we can
        use positive increments instead. */
@@ -683,7 +701,8 @@ void zaxpy_blis_impl
          BLIS, if this backwards traversal is desired, the caller *must*
          pass in the address to the (n-1)th (i.e., the bottom-most or
          right-most) element along with a negative stride. */
-      x0    = ( (dcomplex*)x ) + ( n_elem - 1) * ( -*incx );
+
+      x0    = ( (dcomplex*)x ) + (n0-1) * ( -*incx );
       incx0 = ( inc_t )(*incx);
     }
     else
@@ -693,7 +712,7 @@ void zaxpy_blis_impl
     }
     if ( *incy < 0 )
     {
-      y0    = ( (dcomplex*)y ) + ( n_elem - 1 ) * ( -*incy );
+      y0    = ( (dcomplex*)y ) + (n0-1) * ( -*incy );
       incy0 = ( inc_t )(*incy);
     }
     else
@@ -702,39 +721,36 @@ void zaxpy_blis_impl
       incy0 = ( inc_t )(*incy);
     }
 
-    // Definition of function pointer
-    zaxpyv_ker_ft axpyv_ker_ptr;
-
     cntx_t *cntx = NULL;
 
     // Query the architecture ID
-    arch_t arch_id_local = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id();
+
+    // Function pointer declaration for the function
+    // that will be used by this API
+    zaxpyv_ker_ft axpyv_ker_ptr = NULL;
 
     // Pick the kernel based on the architecture ID
-    switch (arch_id_local)
+    switch ( arch_id )
     {
       case BLIS_ARCH_ZEN5:
       case BLIS_ARCH_ZEN4:
-
 #if defined(BLIS_KERNELS_ZEN4)
           // AVX512 Kernel
-          axpyv_ker_ptr = bli_zaxpyv_zen_int_avx512;
+          axpyv_ker_ptr = bli_zaxpyv_zen4_int;
           break;
 #endif
       case BLIS_ARCH_ZEN:
       case BLIS_ARCH_ZEN2:
       case BLIS_ARCH_ZEN3:
-
           // AVX2 Kernel
-          axpyv_ker_ptr = bli_zaxpyv_zen_int5;
+          axpyv_ker_ptr = bli_zaxpyv_zen_int_5;
           break;
-
       default:
-
-          // Query the context
+          // For non-Zen architectures, query the context
           cntx = bli_gks_query_cntx();
 
-          // Query the function pointer using the context
+          // Query the context for the kernel function pointers for zaxpyv
           axpyv_ker_ptr = bli_cntx_get_l1v_ker_dt(BLIS_DCOMPLEX, BLIS_AXPYV_KER, cntx);
     }
 
@@ -750,35 +766,31 @@ void zaxpy_blis_impl
       returns the optimum number of threads with AOCL dynamic enabled
       else it returns the number of threads requested by the user.
     */
-
     bli_nthreads_l1
     (
       BLIS_AXPYV_KER,
       BLIS_DCOMPLEX,
       BLIS_DCOMPLEX,
-      arch_id_local,
-      n_elem,
+      arch_id,
+      n0,
       &nt
     );
 
     if (nt == 1)
     {
-#endif
-
         axpyv_ker_ptr
         (
           BLIS_NO_CONJUGATE,
-          n_elem,
+          n0,
           (dcomplex*)alpha,
           x0, incx0,
           y0, incy0,
           cntx
         );
 
+        AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
         return;
-
-#ifdef BLIS_ENABLE_OPENMP
     }
 
     _Pragma("omp parallel num_threads(nt)")
@@ -786,7 +798,9 @@ void zaxpy_blis_impl
         dim_t start, end, length;
         thrinfo_t thread;
 
-        // The factor by which the size should be a multiple during thread partition. The main loop of the kernel can handle 32 elements at a time hence 32 is selected for block_size.
+        /* The factor by which the size should be a multiple during thread partition.
+           The main loop of the kernel can handle 32 elements at a time hence 32 is
+           selected for block_size. */
         dim_t block_size = 32;
 
         // Get the thread ID
@@ -803,7 +817,7 @@ void zaxpy_blis_impl
         bli_thread_range_sub
         (
           &thread,
-          n_elem,
+          n0,
           block_size,
           FALSE,
           &start,
@@ -827,20 +841,38 @@ void zaxpy_blis_impl
           cntx
         );
     }
+
+    AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, nt);
+    AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+
+#else // not BLIS_ENABLE_OPENMP
+
+    axpyv_ker_ptr
+    (
+      BLIS_NO_CONJUGATE,
+      n0,
+      (dcomplex*)alpha,
+      x0, incx0,
+      y0, incy0,
+      cntx
+    );
+
+    AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
+    AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
+
 #endif // BLIS_ENABLE_OPENMP
 
-    AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
     /* Finalize BLIS. */
-    //    bli_finalize_auto();
+    // Call to bli_finalize_auto() is not needed here
 }
 
 #ifdef BLIS_ENABLE_BLAS
 void zaxpy_
 (
- const f77_int* n,
- const dcomplex*   alpha,
- const dcomplex*   x, const f77_int* incx,
- dcomplex*   y, const f77_int* incy
+ const f77_int*  n,
+ const dcomplex* alpha,
+ const dcomplex* x, const f77_int* incx,
+       dcomplex* y, const f77_int* incy
  )
 {
   zaxpy_blis_impl( n, alpha, x, incx, y, incy ) ;

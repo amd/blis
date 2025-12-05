@@ -85,6 +85,14 @@ LPGEMV(uint8_t,int8_t,int32_t,u8s8s32os32)
 
 	lpgemm_post_op_attr post_ops_attr;
 	post_ops_attr.c_stor_type = c_downscale;
+    post_ops_attr.rs_c_downscale    = rs_c;
+    post_ops_attr.cs_c_downscale    = cs_c;
+    post_ops_attr.is_first_k        = TRUE;
+    post_ops_attr.is_last_k         = TRUE;
+    post_ops_attr.b_sum_offset      = 0;
+    post_ops_attr.b_col_sum_vec     = NULL;
+    post_ops_attr.b_col_sum_vec_s16 = NULL;
+
 	if (c_downscale < S32 || c_downscale == F32) post_ops_attr.buf_downscale = c;
 	else  post_ops_attr.buf_downscale = NULL;
 
@@ -403,6 +411,12 @@ LPGEMM_5LOOP(uint8_t,int8_t,int32_t,u8s8s32o32)
 
 	lpgemm_post_op_attr post_ops_attr;
 	post_ops_attr.c_stor_type = c_downscale;
+    post_ops_attr.rs_c_downscale    = rs_c;
+    post_ops_attr.cs_c_downscale    = cs_c;
+    post_ops_attr.b_sum_offset      = 0;
+    post_ops_attr.b_col_sum_vec     = NULL;
+    post_ops_attr.b_col_sum_vec_s16 = NULL;
+
 	if ( c_downscale < S32 || c_downscale == F32 )
 	{
 		post_ops_attr.buf_downscale = c;
@@ -468,6 +482,12 @@ LPGEMM_5LOOP(uint8_t,int8_t,int32_t,u8s8s32o32)
 				temp_scal_c_buffer_u8s8s32o32 = bli_mem_buffer( &mem_scale_c );
 
 				c_use_jc = ( int32_t* )temp_scal_c_buffer_u8s8s32o32;
+			}
+			else
+			{
+				// When k <= KC, output is written directly as there is no need of 
+				// intermediate buffer to store the output
+				c_use_jc = c + jc;
 			}
 
 			// The temp c buffer stride is modified as opposed to original C matrix.

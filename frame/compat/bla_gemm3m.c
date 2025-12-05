@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2020 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2020 - 2025, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -65,9 +65,12 @@ void PASTEF77S(ch,blasname) \
 	inc_t   rs_b, cs_b; \
 	inc_t   rs_c, cs_c; \
 \
-	AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1); \
 	/* Initialize BLIS. */ \
 	bli_init_auto(); \
+\
+	AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1); \
+	AOCL_DTL_LOG_GEMM3M_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(ch), *transa, *transb, *m, *n, *k, \
+				   (void*)alpha, *lda, *ldb, (void*)beta, *ldc); \
 \
 	/* Perform BLAS parameter checking. */ \
 	PASTEBLACHK(blasname) \
@@ -88,6 +91,7 @@ void PASTEF77S(ch,blasname) \
 	if ( *m == 0 || *n == 0 || (( PASTEMAC(ch,eq0)( *alpha ) || *k == 0) \
 	   && PASTEMAC(ch,eq1)( *beta ) )) \
 	{ \
+		AOCL_DTL_LOG_GEMM3M_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(ch), *m, *n, *k); \
 		AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1); \
 		/* Finalize BLIS. */ \
 		bli_finalize_auto(); \
@@ -144,6 +148,7 @@ void PASTEF77S(ch,blasname) \
 		); \
 	} \
 \
+	AOCL_DTL_LOG_GEMM3M_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(ch), *m, *n, *k); \
 	AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1) \
 	/* Finalize BLIS. */ \
 	bli_finalize_auto(); \
@@ -189,10 +194,13 @@ void PASTEF77S(ch,blasname) \
 	trans_t blis_transa; \
 	trans_t blis_transb; \
 	dim_t   m0, n0, k0; \
-	AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_INFO)    \
 \
 	/* Initialize BLIS. */ \
 	bli_init_auto(); \
+\
+	AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1)    \
+	AOCL_DTL_LOG_GEMM3M_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(ch), *transa, *transb, *m, *n, *k, \
+				   (void*)alpha, *lda, *ldb, (void*)beta, *ldc); \
 \
 	/* Perform BLAS parameter checking. */ \
 	PASTEBLACHK(blasname) \
@@ -213,6 +221,7 @@ void PASTEF77S(ch,blasname) \
 	if ( *m == 0 || *n == 0 || (( PASTEMAC(ch,eq0)( *alpha ) || *k == 0) \
 	   && PASTEMAC(ch,eq1)( *beta ) )) \
 	{ \
+		AOCL_DTL_LOG_GEMM3M_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(ch), *m, *n, *k); \
 		AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1); \
 		/* Finalize BLIS. */ \
 		bli_finalize_auto(); \
@@ -291,6 +300,7 @@ void PASTEF77S(ch,blasname) \
 	} \
 \
 \
+	AOCL_DTL_LOG_GEMM3M_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(ch), *m, *n, *k); \
 	AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_INFO) \
 	/* Finalize BLIS. */ \
 	bli_finalize_auto(); \

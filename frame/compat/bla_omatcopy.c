@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2020 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2020 - 2025, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -34,8 +34,6 @@
 
 #include "blis.h"
 
-#ifdef BLIS_ENABLE_BLAS
-
 static dim_t bli_soMatCopy_cn(dim_t rows, dim_t cols, const float alpha, const float* a, dim_t lda, float* b, dim_t ldb);
 
 static dim_t bli_soMatCopy_ct(dim_t rows, dim_t cols, const float alpha, const float* a, dim_t lda, float* b, dim_t ldb);
@@ -60,9 +58,16 @@ static dim_t bli_zoMatCopy_cr(dim_t rows, dim_t cols, const dcomplex alpha, cons
 
 static dim_t bli_zoMatCopy_cc(dim_t rows, dim_t cols, const dcomplex alpha, const dcomplex* a, dim_t lda, dcomplex* b, dim_t ldb);
 
-void somatcopy_ (f77_char* trans, f77_int* rows, f77_int* cols, const float* alpha, const float* aptr, f77_int* lda, float* bptr, f77_int* ldb)
+void somatcopy_blis_impl (f77_char* trans, f77_int* rows, f77_int* cols, const float* alpha, const float* aptr, f77_int* lda, float* bptr, f77_int* ldb)
 {
+
+	/* Initialize BLIS. */
+	// Call to bli_init_auto() is not needed here
+	AOCL_DTL_INITIALIZE();
 	AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
+	AOCL_DTL_LOG_MATCOPY_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(s), *trans, *rows, *cols,
+				    (void*)alpha, *lda, *ldb );
+
 	if ( !(*trans == 'n' || *trans == 'N' ||
 		   *trans == 't' || *trans == 'T' ||
 		   *trans == 'c' || *trans == 'C' ||
@@ -101,11 +106,22 @@ void somatcopy_ (f77_char* trans, f77_int* rows, f77_int* cols, const float* alp
 	AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
 	return ;
 }
-
-void domatcopy_ (f77_char* trans, f77_int* rows, f77_int* cols, const double* alpha, const double* aptr, f77_int* lda, double* bptr, f77_int* ldb)
+#ifdef BLIS_ENABLE_BLAS
+void somatcopy_ (f77_char* trans, f77_int* rows, f77_int* cols, const float* alpha, const float* aptr, f77_int* lda, float* bptr, f77_int* ldb)
 {
+    somatcopy_blis_impl (trans,rows,cols,alpha,aptr,lda,bptr,ldb);
+}
+#endif
+
+void domatcopy_blis_impl (f77_char* trans, f77_int* rows, f77_int* cols, const double* alpha, const double* aptr, f77_int* lda, double* bptr, f77_int* ldb)
+{
+	/* Initialize BLIS. */
+	// Call to bli_init_auto() is not needed here
+	AOCL_DTL_INITIALIZE();
 	AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
-	//bli_init_once();
+	AOCL_DTL_LOG_MATCOPY_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(d), *trans, *rows, *cols,
+				    (void*)alpha, *lda, *ldb );
+
 	if ( !(*trans == 'n' || *trans == 'N' ||
 		   *trans == 't' || *trans == 'T' ||
 		   *trans == 'c' || *trans == 'C' ||
@@ -144,11 +160,22 @@ void domatcopy_ (f77_char* trans, f77_int* rows, f77_int* cols, const double* al
 	AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
 	return ;
 }
-
-void comatcopy_ (f77_char* trans, f77_int* rows, f77_int* cols, const scomplex* alpha, const scomplex* aptr, f77_int* lda, scomplex* bptr, f77_int* ldb)
+#ifdef BLIS_ENABLE_BLAS
+void domatcopy_ (f77_char* trans, f77_int* rows, f77_int* cols, const double* alpha, const double* aptr, f77_int* lda, double* bptr, f77_int* ldb)
 {
+    domatcopy_blis_impl (trans,rows,cols,alpha,aptr,lda,bptr,ldb);
+}
+#endif
+
+void comatcopy_blis_impl (f77_char* trans, f77_int* rows, f77_int* cols, const scomplex* alpha, const scomplex* aptr, f77_int* lda, scomplex* bptr, f77_int* ldb)
+{
+	/* Initialize BLIS. */
+	// Call to bli_init_auto() is not needed here
+	AOCL_DTL_INITIALIZE();
 	AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
-	//bli_init_once();
+	AOCL_DTL_LOG_MATCOPY_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(c), *trans, *rows, *cols,
+				    (void*)alpha, *lda, *ldb );
+
 	if ( !(*trans == 'n' || *trans == 'N' ||
 		   *trans == 't' || *trans == 'T' ||
 		   *trans == 'c' || *trans == 'C' ||
@@ -188,11 +215,22 @@ void comatcopy_ (f77_char* trans, f77_int* rows, f77_int* cols, const scomplex* 
 	AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
 	return ;
 }
-
-void zomatcopy_ (f77_char* trans, f77_int* rows, f77_int* cols, const dcomplex* alpha, const dcomplex* aptr, f77_int* lda, dcomplex* bptr, f77_int* ldb)
+#ifdef BLIS_ENABLE_BLAS
+void comatcopy_ (f77_char* trans, f77_int* rows, f77_int* cols, const scomplex* alpha, const scomplex* aptr, f77_int* lda, scomplex* bptr, f77_int* ldb)
 {
+    comatcopy_blis_impl (trans,rows,cols,alpha,aptr,lda,bptr,ldb);
+}
+#endif
+
+void zomatcopy_blis_impl (f77_char* trans, f77_int* rows, f77_int* cols, const dcomplex* alpha, const dcomplex* aptr, f77_int* lda, dcomplex* bptr, f77_int* ldb)
+{
+	/* Initialize BLIS. */
+	// Call to bli_init_auto() is not needed here
+	AOCL_DTL_INITIALIZE();
 	AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
-	//bli_init_once();
+	AOCL_DTL_LOG_MATCOPY_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(z), *trans, *rows, *cols,
+				    (void*)alpha, *lda, *ldb );
+
 	if ( !(*trans == 'n' || *trans == 'N' ||
 		   *trans == 't' || *trans == 'T' ||
 		   *trans == 'c' || *trans == 'C' ||
@@ -231,6 +269,12 @@ void zomatcopy_ (f77_char* trans, f77_int* rows, f77_int* cols, const dcomplex* 
 	AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
 	return ;
 }
+#ifdef BLIS_ENABLE_BLAS
+void zomatcopy_ (f77_char* trans, f77_int* rows, f77_int* cols, const dcomplex* alpha, const dcomplex* aptr, f77_int* lda, dcomplex* bptr, f77_int* ldb)
+{
+    zomatcopy_blis_impl (trans,rows,cols,alpha,aptr,lda,bptr,ldb);
+}
+#endif
 
 // suffix cn means - column major & non-trans
 static dim_t bli_soMatCopy_cn(dim_t rows, dim_t cols, const float alpha, const float* a, dim_t lda, float* b, dim_t ldb)
@@ -942,5 +986,3 @@ static dim_t bli_zoMatCopy_cc(dim_t rows, dim_t cols, const dcomplex alpha, cons
 	AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_2);
 	return(0);
 }
-
-#endif

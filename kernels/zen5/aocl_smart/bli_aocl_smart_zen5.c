@@ -87,10 +87,50 @@ bool bli_cntx_gemmsup_thresh_is_met_zen5( obj_t* a, obj_t* b, obj_t* c, cntx_t* 
 		// The threshold for m is a single value, but for n, it is
 		// also based on the packing size of A, since the kernels are
 		// column preferential
-		if( ( m <= 84 ) || ( ( n <= 84 ) && ( ( m * k ) <= 983040 ) ) ) return TRUE;
+        if ( ( ( m <= 1380 ) || ( ( n <= 1520 ) && ( k <= 128 ) ) ) && ( m + n + k < 6400 ) ) return TRUE;
 
-		// For all combinations in small sizes
-		if( ( m <= 216 ) && ( n <= 216 ) && ( k <= 216 ) ) return TRUE;
+		return FALSE;
+	}
+	else if( dt == BLIS_SCOMPLEX )
+	{
+		dim_t k           =   bli_obj_width_after_trans( a );
+		dim_t m, n;
+
+		const stor3_t stor_id = bli_obj_stor3_from_strides( c, a, b );
+
+		if ( bli_cntx_l3_sup_ker_dislikes_storage_of( c, stor_id, cntx ) )
+		{
+			m = bli_obj_width(c);
+			n = bli_obj_length(c);
+		}
+		else
+		{
+			m = bli_obj_length( c );
+			n = bli_obj_width( c );
+		}
+
+		// The threshold conditionals are as follows:
+		if( n <= 540 )
+		{
+			if( n <= 420 ) return TRUE;
+			else if( m <= 1260 ) return TRUE;
+		}
+		else
+		{
+			if( m <= 420 )
+			{
+				if( m <= 180 ) return TRUE;
+				else if( n <= 2100 ) return TRUE;
+			}
+			else
+			{
+				if( k <= 540 )
+				{
+					if( n <= 1260 ) return TRUE;
+					else if( m <= 900 ) return TRUE;
+				}
+			}
+		}
 		return FALSE;
 	}
 	else

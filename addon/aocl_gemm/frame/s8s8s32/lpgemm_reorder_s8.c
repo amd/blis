@@ -58,7 +58,7 @@ void unreorderb_nr64_s8s8s32os32_reference
 	dim_t k = b->length;
 
 	dim_t k_updated = k;
-	k_updated += (k_updated & 0x3);
+	k_updated = make_multiple_of_n( k, 4 );
 
 	dim_t n_threads = bli_rntm_num_threads( rntm );
 	n_threads = ( n_threads > 0 ) ? n_threads : 1;
@@ -101,12 +101,11 @@ void unreorderb_nr64_s8s8s32os32_reference
 			{
 				dim_t kc0 = bli_min( ( k - pc ), KC );
 
-				// k needs to be a multiple of 2 so that it can be used with dpbf
+				// k needs to be a multiple of 4 so that it can be used with dpbf
 				// instruction. Padding is added in cases this condition is not
 				// satisfied, and therefore the k offset used for packed/reordered
 				// buffer needs to be updated.
-				dim_t kc0_updated = kc0;
-				kc0_updated += (kc0_updated & 0x3);
+				dim_t kc0_updated = make_multiple_of_n( kc0, 4 );
 
 				unpackb_nr64_s8_reference
 				(
@@ -138,8 +137,8 @@ void reorderb_nr64_s8s8s32o32
 
 	dim_t rs_b = b->rs;
 	dim_t cs_b = b->cs;
-	dim_t rs_b_reorder;
-	dim_t cs_b_reorder;
+	dim_t rs_b_reorder = rs_b;
+	dim_t cs_b_reorder = cs_b;
 
 	dim_t n = b->width;
 	dim_t k = b->length;
@@ -288,8 +287,8 @@ void reorderb_nr64_s8s8s32o32_sym_quant
 
 	dim_t rs_b = b->rs;
 	dim_t cs_b = b->cs;
-	dim_t rs_b_reorder;
-	dim_t cs_b_reorder;
+	dim_t rs_b_reorder = rs_b;
+	dim_t cs_b_reorder = cs_b;
 
 	dim_t n = b->width;
 	dim_t k = b->length;
@@ -339,7 +338,7 @@ void reorderb_nr64_s8s8s32o32_sym_quant
 
 			dim_t jc_cur_loop = jc;
 			dim_t jc_cur_loop_rem = 0;
-			dim_t n_sub_updated;
+			dim_t n_sub_updated = 0;
 
 			get_B_panel_reordered_start_offset_width
 			(
@@ -355,11 +354,15 @@ void reorderb_nr64_s8s8s32o32_sym_quant
 				dim_t group_start = pc / group_size;
 				dim_t group_end = ( pc + kc0 - 1 ) / group_size;
 
+
 				// kc0 needs to be a multiple of 4 so that it can be used with
 				// vpdpbusd instruction. Padding is added in cases this
 				// condition is not satisfied, and therefore the kc0 offsets
 				// used for packed/reordered buffers needs to be updated.
 				dim_t kc0_updated = make_multiple_of_n( kc0, 4 );
+
+				int8_t* b_dst_pc = ( ( ( int8_t* )b_reorder->storage.aligned_buffer ) +
+							( jc_cur_loop * k_updated ) + ( n_sub_updated * pc ) + ( jc_cur_loop_rem * kc0_updated ));
 
 				// packing kernels are designed in such a way assuming that entire KCxNC
 				// block is packed at once and strides are set based on KC value.
@@ -372,9 +375,65 @@ void reorderb_nr64_s8s8s32o32_sym_quant
 				{
 					dim_t nr0 = bli_min( ( nc0 - jr ), NR );
 
-					dim_t nr0_updated = make_multiple_of_n( nr0, 16 );
+					int8_t* b_dst_jr = b_dst_pc + jr * kc0_updated;
+					int32_t* b_sum_ptr = pack_b_column_sum + jc + jr;
+					int8_t* b_src_ptr = ( ( ( int8_t* )b->storage.aligned_buffer ) +
+									(jc + jr) * cs_b);
 
-					// group loop
+
+					if ( nr0 < NR )
+					{
+						dim_t nr_mult_16 = (nr0 / 16) * 16;
+						dim_t nr0_rem = nr0 % 16;
+						dim_t nr0_updated = nr_mult_16;
+
+						if( nr_mult_16 > 0 )
+						{
+							// group loop
+							for( dim_t group = group_start; group <= group_end; group++ )
+							{
+								dim_t k_start = bli_max( group * group_size, pc );
+								dim_t k_end = bli_min( ( ( group + 1 ) * group_size - 1 ),
+													pc + kc0 - 1);
+								dim_t kg0 = k_end - k_start + 1;
+
+								( ( packb_s32_s8 )lcntx->packb_fun_ptr )
+								( b_dst_jr + ( (group * group_size) - pc) * nr0_updated,
+									b_sum_ptr + (group * n_updated),
+								b_src_ptr + (rs_b * k_start),
+								rs_b, cs_b, nr_mult_16, kg0, &rs_b_reorder, &cs_b_reorder
+								);
+							}
+							b_dst_jr += nr_mult_16 * kc0_updated;
+							b_sum_ptr += nr_mult_16;
+							b_src_ptr += nr_mult_16 * cs_b;
+						}
+
+						if( nr0_rem > 0 )
+						{
+							dim_t nr0_updated = 16;
+							// group loop
+							for( dim_t group = group_start; group <= group_end; group++ )
+							{
+								dim_t k_start = bli_max( group * group_size, pc );
+								dim_t k_end = bli_min( ( ( group + 1 ) * group_size - 1 ),
+													pc + kc0 - 1);
+								dim_t kg0 = k_end - k_start + 1;
+
+								( ( packb_s32_s8 )lcntx->packb_fun_ptr )
+								( b_dst_jr + ( (group * group_size) - pc) * nr0_updated,
+									b_sum_ptr + (group * n_updated),
+								b_src_ptr + (rs_b * k_start),
+								rs_b, cs_b, nr0_rem, kg0, &rs_b_reorder, &cs_b_reorder
+								);
+							}
+						}
+						// no fringe after this point
+						continue;
+					}
+
+					dim_t nr0_updated = NR;
+					// nr0 == NR
 					for( dim_t group = group_start; group <= group_end; group++ )
 					{
 						dim_t k_start = bli_max( group * group_size, pc );
@@ -383,18 +442,13 @@ void reorderb_nr64_s8s8s32o32_sym_quant
 						dim_t kg0 = k_end - k_start + 1;
 
 						( ( packb_s32_s8 )lcntx->packb_fun_ptr )
-						(
-						( ( ( int8_t* )b_reorder->storage.aligned_buffer ) +
-							( jc_cur_loop * k_updated ) + ( n_sub_updated * pc ) +
-							(( jc_cur_loop_rem + jr) * kc0_updated ) + ( (group * group_size) - pc) * nr0_updated ),
-							pack_b_column_sum + (group * n) + jc + jr,
-						( ( ( int8_t* )b->storage.aligned_buffer ) +
-							( rs_b * k_start ) + (jc + jr) * cs_b),
-						rs_b, cs_b, nr0, kg0, &rs_b_reorder, &cs_b_reorder
+						( b_dst_jr + ( (group * group_size) - pc) * nr0_updated,
+							b_sum_ptr + (group * n_updated),
+						b_src_ptr + (rs_b * k_start),
+						rs_b, cs_b, NR, kg0, &rs_b_reorder, &cs_b_reorder
 						);
 					}
 				}
-
 			}
 			adjust_B_panel_reordered_jc( &jc, jc_cur_loop );
 		}
@@ -417,8 +471,8 @@ void reordera_mr6_s8s8s32o32
 	dim_t KC = lcntx->blksz.KC;
 
 	dim_t rs_a = a->rs;
-	dim_t rs_a_reorder;
-	dim_t cs_a_reorder;
+	dim_t rs_a_reorder = rs_a;
+	dim_t cs_a_reorder = a->cs;
 
 	dim_t k = a->width;
 	dim_t m = a->length;

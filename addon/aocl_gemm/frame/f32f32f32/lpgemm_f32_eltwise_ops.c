@@ -82,6 +82,9 @@ LPGEMM_ELTWISE_OPS_IFACE(float,float,f32of32)
 	post_ops_attr.cs_c_downscale = cs_b;
 	post_ops_attr.is_first_k = FALSE;
 	post_ops_attr.is_last_k = TRUE; // Should always be TRUE here.
+    post_ops_attr.b_sum_offset      = 0;
+    post_ops_attr.b_col_sum_vec     = NULL;
+    post_ops_attr.b_col_sum_vec_s16 = NULL;
 
 	// Advance the matrix to the right positions based on thread id.
 	// To note that float, bfloat16, int32_t, int8_t and uint8_t are

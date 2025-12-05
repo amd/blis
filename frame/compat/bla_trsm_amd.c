@@ -44,8 +44,8 @@
 
     #define TRSM_BLIS_IMPL(ch, blasname) \
         PASTEF77S(ch,blasname) ( side, uploa, transa, diaga, m, n, alpha, a, lda, b, ldb ); \
-        arch_t id = bli_arch_query_id(); \
-        if (id == BLIS_ARCH_ZEN5 || id == BLIS_ARCH_ZEN4) \
+        arch_t arch_id = bli_arch_query_id(); \
+        if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4) \
         { \
             bli_zero_zmm(); \
         } \
@@ -76,6 +76,9 @@ void PASTEF77S(ch,blasname) \
              ftype*    b, const f77_int* ldb  \
      ) \
 { \
+    /* Initialize BLIS. */ \
+    bli_init_auto(); \
+\
     AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_INFO) \
     AOCL_DTL_LOG_TRSM_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(ch), \
                              *side, *uploa,*transa, *diaga, *m, *n, \
@@ -88,9 +91,6 @@ void PASTEF77S(ch,blasname) \
     dim_t   m0, n0; \
     inc_t   rs_a, cs_a; \
     inc_t   rs_b, cs_b; \
-\
-    /* Initialize BLIS. */ \
-    bli_init_auto(); \
 \
     /* Perform BLAS parameter checking. */ \
     PASTEBLACHK(blasname) \
@@ -133,24 +133,24 @@ void PASTEF77S(ch,blasname) \
     rs_b = 1; \
     cs_b = *ldb; \
 \
-	/* If alpha is zero, set B to zero and return early */ \
-	if( PASTEMAC(ch,eq0)( *alpha ) ) \
-	{ \
-		PASTEMAC2(ch,setm,_ex)( BLIS_NO_CONJUGATE, \
-								0, \
-								BLIS_NONUNIT_DIAG, \
-								BLIS_DENSE, \
-								m0, n0, \
-								(ftype*) alpha, \
-								(ftype*) b, rs_b, cs_b, \
-								NULL, NULL \
-							  ); \
-		AOCL_DTL_LOG_TRSM_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(ch), *side, *m, *n); \
-		AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1) \
-		/* Finalize BLIS. */ \
-		bli_finalize_auto(); \
-		return; \
-	} \
+    /* If alpha is zero, set B to zero and return early */ \
+    if( PASTEMAC(ch,eq0)( *alpha ) ) \
+    { \
+        PASTEMAC2(ch,setm,_ex)( BLIS_NO_CONJUGATE, \
+                                0, \
+                                BLIS_NONUNIT_DIAG, \
+                                BLIS_DENSE, \
+                                m0, n0, \
+                                (ftype*) alpha, \
+                                (ftype*) b, rs_b, cs_b, \
+                                NULL, NULL \
+                              ); \
+        AOCL_DTL_LOG_TRSM_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(ch), *side, *m, *n); \
+        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1) \
+        /* Finalize BLIS. */ \
+        bli_finalize_auto(); \
+        return; \
+    } \
 \
     /* Call BLIS interface. */ \
     PASTEMAC2(ch,blisname,BLIS_TAPI_EX_SUF) \
@@ -208,19 +208,22 @@ void PASTEF77S(ch,blasname) \
              ftype*    b, const f77_int* ldb  \
      ) \
 { \
+    /* Initialize BLIS. */ \
+    bli_init_auto(); \
+\
     AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_INFO) \
     AOCL_DTL_LOG_TRSM_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(ch), *side, *uploa, \
                  *transa, *diaga, *m, *n, (void*)alpha, *lda, *ldb); \
+\
     side_t  blis_side; \
     uplo_t  blis_uploa; \
     trans_t blis_transa; \
     diag_t  blis_diaga; \
     dim_t   m0, n0; \
     ftype   a_conj; \
+IF_BLIS_ENABLE_MNK1_MATRIX(\
     conj_t  conja = BLIS_NO_CONJUGATE ; \
-\
-    /* Initialize BLIS. */ \
-    bli_init_auto(); \
+) /* End of IF_BLIS_ENABLE_MNK1_MATRIX */ \
 \
     /* Perform BLAS parameter checking. */ \
     PASTEBLACHK(blasname) \
@@ -264,24 +267,24 @@ void PASTEF77S(ch,blasname) \
     const inc_t cs_b = *ldb; \
     const num_t dt = PASTEMAC(ch,type); \
 \
-	/* If alpha is zero, set B to zero and return early */ \
-	if( PASTEMAC(ch,eq0)( *alpha ) ) \
-	{ \
-		PASTEMAC2(ch,setm,_ex)( BLIS_NO_CONJUGATE, \
-								0, \
-								BLIS_NONUNIT_DIAG, \
-								BLIS_DENSE, \
-								m0, n0, \
-								(ftype*) alpha, \
-								(ftype*) b, rs_b, cs_b, \
-								NULL, NULL \
-							  ); \
-		AOCL_DTL_LOG_TRSM_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(ch), *side, *m, *n); \
-		AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1) \
-		/* Finalize BLIS. */ \
-		bli_finalize_auto(); \
-		return; \
-	} \
+    /* If alpha is zero, set B to zero and return early */ \
+    if( PASTEMAC(ch,eq0)( *alpha ) ) \
+    { \
+        PASTEMAC2(ch,setm,_ex)( BLIS_NO_CONJUGATE, \
+                                0, \
+                                BLIS_NONUNIT_DIAG, \
+                                BLIS_DENSE, \
+                                m0, n0, \
+                                (ftype*) alpha, \
+                                (ftype*) b, rs_b, cs_b, \
+                                NULL, NULL \
+                              ); \
+        AOCL_DTL_LOG_TRSM_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(ch), *side, *m, *n); \
+        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1) \
+        /* Finalize BLIS. */ \
+        bli_finalize_auto(); \
+        return; \
+    } \
 \
     /* ----------------------------------------------------------- */ \
     /*    TRSM API: AX = B, where X = B                            */ \
@@ -308,6 +311,7 @@ void PASTEF77S(ch,blasname) \
     /*   If Transpose(A) uplo = higher then uplo = lower           */ \
     /* ----------------------------------------------------------- */ \
 \
+IF_BLIS_ENABLE_MNK1_MATRIX(\
     if( n0 == 1 ) \
     { \
         if( blis_side == BLIS_LEFT ) \
@@ -442,6 +446,7 @@ void PASTEF77S(ch,blasname) \
             return; \
         } \
     } \
+) /* End of IF_BLIS_ENABLE_MNK1_MATRIX */ \
 \
     const struc_t struca = BLIS_TRIANGULAR; \
 \
@@ -479,6 +484,7 @@ void PASTEF77S(ch,blasname) \
     /* Finalize BLIS. */ \
     bli_finalize_auto(); \
 } \
+IF_BLIS_ENABLE_BLAS(\
 void PASTEF77(ch,blasname) \
      ( \
        const f77_char* side, \
@@ -494,7 +500,7 @@ void PASTEF77(ch,blasname) \
 { \
     TRSM_BLIS_IMPL(ch, blasname) \
 } \
-
+)
 #endif
 
 
@@ -508,9 +514,12 @@ void strsm_blis_impl
     const f77_int*  n,
     const float*    alpha,
     const float*    a, const f77_int* lda,
-    float*    b, const f77_int* ldb
+          float*    b, const f77_int* ldb
 )
 {
+    /* Initialize BLIS. */
+    bli_init_auto();
+
     AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_INFO)
     AOCL_DTL_LOG_TRSM_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(s),
                              *side, *uploa,*transa, *diaga, *m, *n,
@@ -521,10 +530,9 @@ void strsm_blis_impl
     trans_t blis_transa;
     diag_t  blis_diaga;
     dim_t   m0, n0;
-    conj_t  conja = BLIS_NO_CONJUGATE ;
-
-    /* Initialize BLIS. */
-    bli_init_auto();
+#ifdef BLIS_ENABLE_MNK1_MATRIX
+    conj_t  conja = BLIS_NO_CONJUGATE;
+#endif
 
     /* Perform BLAS parameter checking. */
     PASTEBLACHK(trsm)
@@ -568,24 +576,26 @@ void strsm_blis_impl
     const inc_t cs_b = *ldb;
     const num_t dt = BLIS_FLOAT;
 
-	/* If alpha is zero, set B to zero and return early */
-	if( PASTEMAC(s,eq0)( *alpha ) )
-	{
-		PASTEMAC2(s,setm,_ex)( BLIS_NO_CONJUGATE,
-								0,
-								BLIS_NONUNIT_DIAG,
-								BLIS_DENSE,
-								m0, n0,
-								(float*) alpha,
-								(float*) b, rs_b, cs_b,
-								NULL, NULL
-							  );
-		AOCL_DTL_LOG_TRSM_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(s), *side, *m, *n);
-		AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
-		/* Finalize BLIS. */
-		bli_finalize_auto();
-		return;
-	}
+    /* If alpha is zero, set B to zero and return early */
+    if( PASTEMAC(s,eq0)( *alpha ) )
+    {
+        PASTEMAC2(s,setm,_ex)( BLIS_NO_CONJUGATE,
+                                0,
+                                BLIS_NONUNIT_DIAG,
+                                BLIS_DENSE,
+                                m0, n0,
+                                (float*) alpha,
+                                (float*) b, rs_b, cs_b,
+                                NULL, NULL
+                              );
+        AOCL_DTL_LOG_TRSM_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(s), *side, *m, *n);
+        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
+        /* Finalize BLIS. */
+        bli_finalize_auto();
+        return;
+    }
+
+#ifdef BLIS_ENABLE_MNK1_MATRIX
 
     if( n0 == 1 )
     {
@@ -628,19 +638,22 @@ void strsm_blis_impl
         }
         else if( ( blis_side == BLIS_RIGHT ) && ( m0 != 1 ) )
         {
-            /* b = alpha * b; */
-            bli_sscalv_ex
-            (
-                conja,
-                m0,
-                (float*)alpha,
-                b, rs_b,
-                NULL,
-                NULL
-            );
+            /* Avoid alpha scaling when alpha is one */
+            if ( !PASTEMAC(s, eq1)(*alpha) )
+            {
+                bli_sscalv_ex
+                (
+                    conja,
+                    m0,
+                    (float*)alpha,
+                    b, rs_b,
+                    NULL,
+                    NULL
+                );
+            }
             if(blis_diaga == BLIS_NONUNIT_DIAG)
             {
-                float inva = 1.0/ *a;
+                float inva = 1.0f/ *a;
                 for(dim_t indx = 0; indx < m0; indx ++)
                 {
                     b[indx] = ( inva * b[indx] );
@@ -702,19 +715,22 @@ void strsm_blis_impl
         }
         else if(( blis_side == BLIS_LEFT ) && ( n0 != 1 ))
         {
-            /* b = alpha * b; */
-            bli_sscalv_ex
-            (
-                conja,
-                n0,
-                (float*)alpha,
-                b, cs_b,
-                NULL,
-                NULL
-            );
+            /* Avoid alpha scaling when alpha is one */
+            if ( !PASTEMAC(s, eq1)(*alpha) )
+            {
+                bli_sscalv_ex
+                (
+                    conja,
+                    n0,
+                    (float*)alpha,
+                    b, cs_b,
+                    NULL,
+                    NULL
+                );
+            }
             if(blis_diaga == BLIS_NONUNIT_DIAG)
             {
-                float inva = 1.0/ *a;
+                float inva = 1.0f/ *a;
                 for(dim_t indx = 0; indx < n0; indx ++)
                 {
                     b[indx*cs_b] = (inva * b[indx*cs_b] );
@@ -725,6 +741,9 @@ void strsm_blis_impl
             return;
         }
     }
+
+#endif // End of BLIS_ENABLE_MNK1_MATRIX
+
     const struc_t struca = BLIS_TRIANGULAR;
 
     obj_t       alphao = BLIS_OBJECT_INITIALIZER_1X1;
@@ -747,40 +766,42 @@ void strsm_blis_impl
     bli_obj_set_struc( struca, &ao );
 
 #ifdef BLIS_ENABLE_SMALL_MATRIX_TRSM
+
     // This function is invoked on all architectures including 'generic'.
     // Non-AVX2+FMA3 platforms will use the kernels derived from the context.
     if (bli_cpuid_is_avx2fma3_supported() == TRUE)
     {
-	    /* bli_strsm_small is performing better existing native
-	     * implementations for [m,n]<=1000 for single thread.
-	     * In case of multithread when [m,n]<=128 single thread implementation
-	     * is doing better than native multithread */
-	    bool is_parallel = bli_thread_get_is_parallel();
-	    if((!is_parallel && m0<=1000 && n0<=1000) ||
+        /* bli_strsm_small is performing better existing native
+         * implementations for [m,n]<=1000 for single thread.
+         * In case of multithread when [m,n]<=128 single thread implementation
+         * is doing better than native multithread */
+        bool is_parallel = bli_thread_get_is_parallel();
+        if((!is_parallel && m0<=1000 && n0<=1000) ||
                (is_parallel && (m0+n0)<320))
-	    {
-		    err_t status;
-		    status = bli_trsm_small
-                             (
-                               blis_side,
-			       &alphao,
-			       &ao,
-			       &bo,
-			       NULL,
-			       NULL,
-			       is_parallel
-			     );
-		    if (status == BLIS_SUCCESS)
-		    {
-			    AOCL_DTL_LOG_TRSM_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(s), *side, *m, *n);
-			    AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_INFO);
-			    /* Finalize BLIS. */
-			    bli_finalize_auto();
-			    return;
-		    }
-	    }
-    }
-#endif
+        {
+            err_t small_status;
+            small_status = bli_trsm_small_zen
+                           (
+                             blis_side,
+                             &alphao,
+                             &ao,
+                             &bo,
+                             NULL,
+                             NULL,
+                             is_parallel
+                           );
+            if ( small_status == BLIS_SUCCESS )
+            {
+                AOCL_DTL_LOG_TRSM_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(s), *side, *m, *n);
+                AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_INFO);
+                /* Finalize BLIS. */
+                bli_finalize_auto();
+                return;
+            }
+        }
+    } // bli_cpuid_is_avx2fma3_supported
+
+#endif // End of BLIS_ENABLE_SMALL_MATRIX_TRSM
 
     //bli_trsmnat
     //(
@@ -821,13 +842,13 @@ void strsm_
     const f77_int*  n,
     const float*    alpha,
     const float*    a, const f77_int* lda,
-    float*    b, const f77_int* ldb
+          float*    b, const f77_int* ldb
 )
 {
     strsm_blis_impl ( side, uploa, transa, diaga, m, n, alpha, a, lda, b, ldb );
 #if defined(BLIS_KERNELS_ZEN4)
-    arch_t id = bli_arch_query_id();
-    if (id == BLIS_ARCH_ZEN5 || id == BLIS_ARCH_ZEN4)
+    arch_t arch_id = bli_arch_query_id();
+    if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
     {
         bli_zero_zmm();
     }
@@ -842,11 +863,14 @@ void dtrsm_blis_impl
     const f77_char* diaga,
     const f77_int*  m,
     const f77_int*  n,
-    const double*    alpha,
-    const double*    a, const f77_int* lda,
-    double*    b, const f77_int* ldb
+    const double*   alpha,
+    const double*   a, const f77_int* lda,
+          double*   b, const f77_int* ldb
 )
 {
+    /* Initialize BLIS. */
+    bli_init_auto();
+
     AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_INFO)
     AOCL_DTL_LOG_TRSM_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(d),
                              *side, *uploa,*transa, *diaga, *m, *n,
@@ -857,10 +881,9 @@ void dtrsm_blis_impl
     trans_t blis_transa;
     diag_t  blis_diaga;
     dim_t   m0, n0;
-    conj_t  conja = BLIS_NO_CONJUGATE ;
-
-    /* Initialize BLIS. */
-    bli_init_auto();
+#ifdef BLIS_ENABLE_MNK1_MATRIX
+    conj_t  conja = BLIS_NO_CONJUGATE;
+#endif
 
     /* Perform BLAS parameter checking. */
     PASTEBLACHK(trsm)
@@ -904,24 +927,26 @@ void dtrsm_blis_impl
     const inc_t cs_b = *ldb;
     const num_t dt = BLIS_DOUBLE;
 
-	/* If alpha is zero, set B to zero and return early */
-	if( PASTEMAC(d,eq0)( *alpha ) )
-	{
-		PASTEMAC2(d,setm,_ex)( BLIS_NO_CONJUGATE,
-								0,
-								BLIS_NONUNIT_DIAG,
-								BLIS_DENSE,
-								m0, n0,
-								(double*) alpha,
-								(double*) b, rs_b, cs_b,
-								NULL, NULL
-							  );
-		AOCL_DTL_LOG_TRSM_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(d), *side, *m, *n);
-		AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
-		/* Finalize BLIS. */
-		bli_finalize_auto();
-		return;
-	}
+    /* If alpha is zero, set B to zero and return early */
+    if( PASTEMAC(d,eq0)( *alpha ) )
+    {
+        PASTEMAC2(d,setm,_ex)( BLIS_NO_CONJUGATE,
+                                0,
+                                BLIS_NONUNIT_DIAG,
+                                BLIS_DENSE,
+                                m0, n0,
+                                (double*) alpha,
+                                (double*) b, rs_b, cs_b,
+                                NULL, NULL
+                              );
+        AOCL_DTL_LOG_TRSM_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(d), *side, *m, *n);
+        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
+        /* Finalize BLIS. */
+        bli_finalize_auto();
+        return;
+    }
+
+#ifdef BLIS_ENABLE_MNK1_MATRIX
 
     if( n0 == 1 )
     {
@@ -964,16 +989,19 @@ void dtrsm_blis_impl
         }
         else if( ( blis_side == BLIS_RIGHT ) && ( m0 != 1 ) )
         {
-            /* b = alpha * b; */
-            bli_dscalv_ex
-            (
-                conja,
-                m0,
-                (double*)alpha,
-                b, rs_b,
-                NULL,
-                NULL
-            );
+            /* Avoid alpha scaling when alpha is one */
+            if ( !PASTEMAC(d, eq1)(*alpha) )
+            {
+                bli_dscalv_ex
+                (
+                    conja,
+                    m0,
+                    (double*)alpha,
+                    b, rs_b,
+                    NULL,
+                    NULL
+                );
+            }
             if(blis_diaga == BLIS_NONUNIT_DIAG)
             {
                 double inva = 1.0/ *a;
@@ -1038,16 +1066,19 @@ void dtrsm_blis_impl
         }
         else if(( blis_side == BLIS_LEFT ) && ( n0 != 1 ))
         {
-            /* b = alpha * b; */
-            bli_dscalv_ex
-            (
-                conja,
-                n0,
-                (double*)alpha,
-                b, cs_b,
-                NULL,
-                NULL
-            );
+            /* Avoid alpha scaling when alpha is one */
+            if ( !PASTEMAC(d, eq1)(*alpha) )
+            {
+                bli_dscalv_ex
+                (
+                    conja,
+                    n0,
+                    (double*)alpha,
+                    b, cs_b,
+                    NULL,
+                    NULL
+                );
+            }
             if(blis_diaga == BLIS_NONUNIT_DIAG)
             {
                 double inva = 1.0/ *a;
@@ -1061,6 +1092,8 @@ void dtrsm_blis_impl
             return;
         }
     }
+
+#endif // End of BLIS_ENABLE_MNK1_MATRIX
 
     const struc_t struca = BLIS_TRIANGULAR;
 
@@ -1100,13 +1133,13 @@ void dtrsm_blis_impl
               cntl_t*  cntl,
               bool     is_parallel
             );
-        err_t status = BLIS_NOT_YET_IMPLEMENTED;
-        
+        err_t small_status = BLIS_NOT_YET_IMPLEMENTED;
+
         // trsm small kernel function pointer definition
-        dtrsm_small_ker_ft ker_ft = NULL;
+        dtrsm_small_ker_ft trsm_ker_ptr = NULL;
 
         // Query the architecture ID
-        arch_t id = bli_arch_query_id();
+        arch_t arch_id = bli_arch_query_id();
 
         // dimensions of triangular matrix
         // for left variants, dim_a is m0,
@@ -1123,7 +1156,7 @@ void dtrsm_blis_impl
          * In case of multithread when [m+n]<320 single thread implementation
          * is doing better than small multithread and native multithread */
         bool is_parallel = bli_thread_get_is_parallel();
-        switch(id)
+        switch ( arch_id )
         {
             case BLIS_ARCH_ZEN5:
 #if defined(BLIS_KERNELS_ZEN5)
@@ -1154,22 +1187,22 @@ void dtrsm_blis_impl
                 {
                     if ( m0 <= 120 )
                     {
-                        ker_ft = bli_trsm_small_AVX512;
+                        trsm_ker_ptr = bli_trsm_small_zen4;
                     }
-                    else if ( (log10(n0) + (0.65*log10(m0)) ) < 4.4 )
+                    else if ( (log10(n0) + (0.65*log10(m0)) ) < 4.4  && ( m0 < 4500 ) )
                     {
-                        ker_ft = bli_trsm_small_ZEN5;
+                        trsm_ker_ptr = bli_trsm_small_zen5;
                     }
                 }
                 else //if ( blis_side == BLIS_RIGHT )
                 {
                     if ( (log10(m0) + (3.2*log10(n0)) ) < 7 )
                     {
-                        ker_ft = bli_trsm_small_AVX512;
+                        trsm_ker_ptr = bli_trsm_small_zen4;
                     }
-                    else if ( (log10(m0) + (0.85*log10(n0)) ) < 5 )
+                    else if ( (log10(m0) + (0.85*log10(n0)) ) < 5 && ( n0 < 4500 ))
                     {
-                        ker_ft = bli_trsm_small_ZEN5;
+                        trsm_ker_ptr = bli_trsm_small_zen5;
                     }
                 }
                 break;
@@ -1183,11 +1216,11 @@ void dtrsm_blis_impl
                     except for sizes where n is multiple of 8.*/
                     if (((n0 % 8 == 0) && (n0 < 50)) || ((m0 > 50) && (n0 > 50)))
                     {
-                        ker_ft = bli_trsm_small_AVX512;
+                        trsm_ker_ptr = bli_trsm_small_zen4;
                     }
                     else
                     {
-                        ker_ft = bli_trsm_small;
+                        trsm_ker_ptr = bli_trsm_small_zen;
                     }
                 }
                 break;
@@ -1199,13 +1232,13 @@ void dtrsm_blis_impl
                 if ((!is_parallel && ((dim_a < 1500) && (size_b < 5e6)) ) ||
                     (is_parallel && (m0+n0)<200))
                 {
-                    ker_ft = bli_trsm_small;
+                    trsm_ker_ptr = bli_trsm_small_zen;
                 }
                 break;
         }
 
 #ifdef BLIS_ENABLE_OPENMP
-        switch(id)
+        switch ( arch_id )
         {
             case BLIS_ARCH_ZEN5:
 #if defined(BLIS_KERNELS_ZEN5)
@@ -1215,22 +1248,22 @@ void dtrsm_blis_impl
                     {
                         if ( n0 < 4300 )
                         {
-                            ker_ft = bli_trsm_small_mt_ZEN5;
+                            trsm_ker_ptr = bli_trsm_small_zen5_mt;
                         }
                         else
                         {
-                            ker_ft = NULL; //native code path
+                            trsm_ker_ptr = NULL; //native code path
                         }
                     }
                     else //if ( blis_side == BLIS_RIGHT )
                     {
                         if ( (n0 < 1812 || m0 < 3220) && (m0 < 14000) )
                         {
-                            ker_ft = bli_trsm_small_mt_ZEN5;
+                            trsm_ker_ptr = bli_trsm_small_zen5_mt;
                         }
                         else
                         {
-                            ker_ft = NULL; //native code path
+                            trsm_ker_ptr = NULL; //native code path
                         }
                     }
                 }
@@ -1238,10 +1271,10 @@ void dtrsm_blis_impl
 #endif// BLIS_KERNELS_ZEN5
             case BLIS_ARCH_ZEN4:
 #if defined(BLIS_KERNELS_ZEN4)
-                if( (ker_ft == NULL) && (is_parallel) &&
-                    ((dim_a < 2500) && (size_b < 5e6)) )
+                if ( (trsm_ker_ptr == NULL) && (is_parallel) &&
+                     ((dim_a < 2500) && (size_b < 5e6)) )
                 {
-                    ker_ft = bli_trsm_small_mt_AVX512;
+                    trsm_ker_ptr = bli_trsm_small_zen4_mt;
                 }
                 break;
 #endif// BLIS_KERNELS_ZEN4
@@ -1249,20 +1282,20 @@ void dtrsm_blis_impl
             case BLIS_ARCH_ZEN2:
             case BLIS_ARCH_ZEN3:
             default:
-                if( (ker_ft == NULL) && (is_parallel) &&
-                    ((dim_a < 2500) && (size_b < 5e6)) )
+                if ( (trsm_ker_ptr == NULL) && (is_parallel) &&
+                     ((dim_a < 2500) && (size_b < 5e6)) )
                 {
-                    ker_ft = bli_trsm_small_mt;
+                    trsm_ker_ptr = bli_trsm_small_zen_mt;
                 }
                 break;
             }
 
 #endif// BLIS_ENABLE_OPENMP
-        if(ker_ft)
+        if ( trsm_ker_ptr )
         {
-            status = ker_ft(blis_side, &alphao, &ao, &bo, NULL, NULL, is_parallel);
+            small_status = trsm_ker_ptr(blis_side, &alphao, &ao, &bo, NULL, NULL, is_parallel);
         }
-        if (status == BLIS_SUCCESS)
+        if ( small_status == BLIS_SUCCESS )
         {
             AOCL_DTL_LOG_TRSM_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(d), *side, *m, *n);
             AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_INFO);
@@ -1271,7 +1304,8 @@ void dtrsm_blis_impl
             return;
         }
     } // bli_cpuid_is_avx2fma3_supported
-#endif// END of BLIS_ENABLE_SMALL_MATRIX_TRSM
+
+#endif // End of BLIS_ENABLE_SMALL_MATRIX
 
     //bli_trsmnat
     //(
@@ -1310,15 +1344,15 @@ void dtrsm_
     const f77_char* diaga,
     const f77_int*  m,
     const f77_int*  n,
-    const double*    alpha,
-    const double*    a, const f77_int* lda,
-    double*    b, const f77_int* ldb
+    const double*   alpha,
+    const double*   a, const f77_int* lda,
+          double*   b, const f77_int* ldb
 )
 {
     dtrsm_blis_impl ( side, uploa, transa, diaga, m, n, alpha, a, lda, b, ldb );
 #if defined(BLIS_KERNELS_ZEN4)
-    arch_t id = bli_arch_query_id();
-    if (id == BLIS_ARCH_ZEN5 || id == BLIS_ARCH_ZEN4)
+    arch_t arch_id = bli_arch_query_id();
+    if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
     {
         bli_zero_zmm();
     }
@@ -1334,11 +1368,14 @@ void ztrsm_blis_impl
     const f77_char* diaga,
     const f77_int*  m,
     const f77_int*  n,
-    const dcomplex*    alpha,
-    const dcomplex*    a, const f77_int* lda,
-    dcomplex*    b, const f77_int* ldb
+    const dcomplex* alpha,
+    const dcomplex* a, const f77_int* lda,
+          dcomplex* b, const f77_int* ldb
 )
 {
+    /* Initialize BLIS. */
+    bli_init_auto();
+
     AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_INFO)
     AOCL_DTL_LOG_TRSM_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(z),
                              *side, *uploa,*transa, *diaga, *m, *n,
@@ -1349,10 +1386,9 @@ void ztrsm_blis_impl
     trans_t blis_transa;
     diag_t  blis_diaga;
     dim_t   m0, n0;
+#ifdef BLIS_ENABLE_MNK1_MATRIX
     conj_t  conja = BLIS_NO_CONJUGATE;
-
-    /* Initialize BLIS. */
-    bli_init_auto();
+#endif
 
     /* Perform BLAS parameter checking. */
     PASTEBLACHK(trsm)
@@ -1396,24 +1432,26 @@ void ztrsm_blis_impl
     const inc_t cs_b = *ldb;
     const num_t dt = BLIS_DCOMPLEX;
 
-	/* If alpha is zero, set B to zero and return early */
-	if( PASTEMAC(z,eq0)( *alpha ) )
-	{
-		PASTEMAC2(z,setm,_ex)( BLIS_NO_CONJUGATE,
-								0,
-								BLIS_NONUNIT_DIAG,
-								BLIS_DENSE,
-								m0, n0,
-								(dcomplex*) alpha,
-								(dcomplex*) b, rs_b, cs_b,
-								NULL, NULL
-							  );
-		AOCL_DTL_LOG_TRSM_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(z), *side, *m, *n);
-		AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
-		/* Finalize BLIS. */
-		bli_finalize_auto();
-		return;
-	}
+    /* If alpha is zero, set B to zero and return early */
+    if( PASTEMAC(z,eq0)( *alpha ) )
+    {
+        PASTEMAC2(z,setm,_ex)( BLIS_NO_CONJUGATE,
+                                0,
+                                BLIS_NONUNIT_DIAG,
+                                BLIS_DENSE,
+                                m0, n0,
+                                (dcomplex*) alpha,
+                                (dcomplex*) b, rs_b, cs_b,
+                                NULL, NULL
+                              );
+        AOCL_DTL_LOG_TRSM_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(z), *side, *m, *n);
+        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
+        /* Finalize BLIS. */
+        bli_finalize_auto();
+        return;
+    }
+
+#ifdef BLIS_ENABLE_MNK1_MATRIX
 
     if( n0 == 1 )
     {
@@ -1468,50 +1506,49 @@ void ztrsm_blis_impl
                     NULL,
                     NULL
                 );
-            }   
-	    if(blis_diaga == BLIS_NONUNIT_DIAG)
-	    {
-		    dcomplex inva = {1.0, 0.0};
-		    dcomplex a_dup;
-		    /**
-		     * For conjugate transpose and non-unit diagonal
-		     * kernel, negating imaginary part of A.
-		     * As the dimension of A is 1x1, there's going to
-		     * be only one 1 element of A.
-		     */
-		    if(blis_transa == BLIS_CONJ_TRANSPOSE)
-		    {
-			    a_dup.real = a->real;
-			    a_dup.imag = a->imag * -1.0;
-		    }
-		    else
-		    {
-			    a_dup.real = a->real;
-			    a_dup.imag = a->imag;
-		    }
+            }
+            if(blis_diaga == BLIS_NONUNIT_DIAG)
+            {
+                dcomplex inva = {1.0, 0.0};
+                dcomplex a_dup;
+                /**
+                 * For conjugate transpose and non-unit diagonal
+                 * kernel, negating imaginary part of A.
+                 * As the dimension of A is 1x1, there's going to
+                 * be only one 1 element of A.
+                 */
+                if(blis_transa == BLIS_CONJ_TRANSPOSE)
+                {
+                    a_dup.real = a->real;
+                    a_dup.imag = a->imag * -1.0;
+                }
+                else
+                {
+                    a_dup.real = a->real;
+                    a_dup.imag = a->imag;
+                }
 
 #ifdef BLIS_ENABLE_TRSM_PREINVERSION
-		    bli_zinvscals(a_dup, inva);
+                bli_zinvscals(a_dup, inva);
 #else
-		    inva.real = a_dup.real;
-		    inva.imag = a_dup.imag;
+                inva.real = a_dup.real;
+                inva.imag = a_dup.imag;
 #endif
-		    for(dim_t indx = 0; indx < m0; indx ++)
-		    {
+                for(dim_t indx = 0; indx < m0; indx ++)
+                {
 #ifdef BLIS_ENABLE_TRSM_PREINVERSION
-			    bli_zscals(inva, b[indx])
+                    bli_zscals(inva, b[indx])
 #else
-
-			    bli_zinvscals(inva, b[indx])
+                    bli_zinvscals(inva, b[indx])
 #endif
-		    }
+                }
 
-	    }
+            }
 
-	    AOCL_DTL_LOG_TRSM_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(z), *side, *m, *n);
-	    AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_INFO);
-	    return;
-	}
+            AOCL_DTL_LOG_TRSM_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(z), *side, *m, *n);
+            AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_INFO);
+            return;
+        }
     }
     else if( m0 == 1 )
     {
@@ -1580,13 +1617,13 @@ void ztrsm_blis_impl
             if(blis_diaga == BLIS_NONUNIT_DIAG)
             {
                 dcomplex inva = {1.0, 0.0};
-		dcomplex a_dup;
-		/**
-		 * For conjugate transpose and non-unit diagonal
-		 * kernel, negating imaginary part of A.
-		 * As the dimension of A is 1x1, there's going to
-		 * be only one 1 element of A.
-		 */
+                dcomplex a_dup;
+                /**
+                 * For conjugate transpose and non-unit diagonal
+                 * kernel, negating imaginary part of A.
+                 * As the dimension of A is 1x1, there's going to
+                 * be only one 1 element of A.
+                 */
                 if(blis_transa == BLIS_CONJ_TRANSPOSE)
                 {
                         a_dup.real = a->real;
@@ -1594,33 +1631,33 @@ void ztrsm_blis_impl
                 }
                 else
                 {
-			a_dup.real = a->real;
+                        a_dup.real = a->real;
                         a_dup.imag = a->imag;
                 }
 
 #ifdef BLIS_ENABLE_TRSM_PREINVERSION
-		bli_zinvscals(a_dup, inva);
+                bli_zinvscals(a_dup, inva);
 #else
-		inva.real = a_dup.real;
-		inva.imag = a_dup.imag;
+                inva.real = a_dup.real;
+                inva.imag = a_dup.imag;
 #endif
                 for(dim_t indx = 0; indx < n0; indx ++)
                 {
 #ifdef BLIS_ENABLE_TRSM_PREINVERSION
-			bli_zscals(inva ,b[indx * cs_b])
+                    bli_zscals(inva ,b[indx * cs_b])
 #else
-
-			bli_zinvscals(inva ,b[indx * cs_b])
+                    bli_zinvscals(inva ,b[indx * cs_b])
 #endif
                 }
             }
 
-	    AOCL_DTL_LOG_TRSM_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(z), *side, *m, *n);
-	    AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_INFO);
-	    return;
-
+            AOCL_DTL_LOG_TRSM_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(z), *side, *m, *n);
+            AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_INFO);
+            return;
         }
     }
+
+#endif // End of BLIS_ENABLE_MNK1_MATRIX
 
     const struc_t struca = BLIS_TRIANGULAR;
 
@@ -1644,6 +1681,7 @@ void ztrsm_blis_impl
     bli_obj_set_struc( struca, &ao );
 
 #ifdef BLIS_ENABLE_SMALL_MATRIX_TRSM
+
     // This function is invoked on all architectures including 'generic'.
     // Non-AVX2+FMA3 platforms will use the kernels derived from the context.
     if ( bli_cpuid_is_avx2fma3_supported() == TRUE )
@@ -1662,21 +1700,29 @@ void ztrsm_blis_impl
             cntl_t*  cntl,
             bool     is_parallel
         );
-        err_t status = BLIS_NOT_YET_IMPLEMENTED;
+        err_t small_status = BLIS_NOT_YET_IMPLEMENTED;
 
         // trsm small kernel function pointer definition
-        ztrsm_small_ker_ft ker_ft = NULL;
-        arch_t id                 = bli_arch_query_id();
-        bool is_parallel          = bli_thread_get_is_parallel();
-        dim_t dim_a               = n0;
+        ztrsm_small_ker_ft trsm_ker_ptr = NULL;
+
+        // Query the architecture ID
+        arch_t arch_id = bli_arch_query_id();
+
+        bool is_parallel = bli_thread_get_is_parallel();
+
+        // dimensions of triangular matrix
+        // for left variants, dim_a is m0,
+        // for right variants, dim_a is n0
+        dim_t dim_a = n0;
         (void) dim_a; //avoid unused warning for zen2/3
         if (blis_side == BLIS_LEFT)
             dim_a = m0;
 
         // size of output matrix(B)
         dim_t size_b = m0*n0;
+
 #if defined(BLIS_ENABLE_OPENMP)
-        switch (id)
+        switch ( arch_id )
         {
         case BLIS_ARCH_ZEN5:
 #if defined(BLIS_KERNELS_ZEN5)
@@ -1685,7 +1731,7 @@ void ztrsm_blis_impl
             {
                 if (!bli_obj_has_conj(&ao)) // if transa == 'C', go to native code path
                 {
-                    ker_ft = bli_trsm_small_mt_ZEN5; // 12x4 non fused kernel for ZEN5
+                    trsm_ker_ptr = bli_trsm_small_zen5_mt; // 12x4 non fused kernel for ZEN5
                 }
             }
             break;
@@ -1697,11 +1743,16 @@ void ztrsm_blis_impl
             {
                 if (!bli_obj_has_conj(&ao))
                 {
-                    ker_ft = bli_trsm_small_mt_AVX512; // 4x4 fused kernel for ZEN4
+                    trsm_ker_ptr = bli_trsm_small_zen4_mt; // 4x4 fused kernel for ZEN4
                 }
                 else
                 {
-                    ker_ft = bli_trsm_small_mt;
+#ifdef BLIS_DISABLE_TRSM_PREINVERSION
+                    // if preinversion is disabled, use native codepath for
+                    // better accuracy in large sizes
+                    if (dim_a <= 500)
+#endif
+                    trsm_ker_ptr = bli_trsm_small_zen_mt;
                 }
             }
             break;
@@ -1710,14 +1761,14 @@ void ztrsm_blis_impl
             break;
         }
 #endif
-        if( ( ker_ft == NULL ) &&
+        if( ( trsm_ker_ptr == NULL ) &&
                 ( ( !is_parallel ) ||
                   ( ( is_parallel ) &&
                     ( (m0 + n0 < 180) || (size_b < 5000) ) )
             )
           )
         {
-            switch (id)
+            switch ( arch_id )
             {
                 case BLIS_ARCH_ZEN5:
 #if defined(BLIS_KERNELS_ZEN5)
@@ -1729,22 +1780,22 @@ void ztrsm_blis_impl
                     {
                         if ( m0 <= 88 )
                         {
-                            ker_ft = bli_trsm_small_AVX512;
+                            trsm_ker_ptr = bli_trsm_small_zen4;
                         }
                         else if ( (log10(n0) + (0.15*log10(m0)) ) < 2.924 )
                         {
-                            ker_ft = bli_trsm_small_ZEN5;
+                            trsm_ker_ptr = bli_trsm_small_zen5;
                         }
                     }
                     else //if ( blis_side == BLIS_RIGHT )
                     {
                         if ( (log10(m0) + (2.8*log10(n0)) ) < 6 )
                         {
-                            ker_ft = bli_trsm_small_AVX512;
+                            trsm_ker_ptr = bli_trsm_small_zen4;
                         }
                         else if ( (log10(m0) + (1.058*log10(n0)) ) < 5.373 )
                         {
-                            ker_ft = bli_trsm_small_ZEN5;
+                            trsm_ker_ptr = bli_trsm_small_zen5;
                         }
                     }
                     break;
@@ -1757,11 +1808,16 @@ void ztrsm_blis_impl
                         // conjugate
                         if (!bli_obj_has_conj(&ao))
                         {
-                            ker_ft = bli_trsm_small_AVX512;
+                            trsm_ker_ptr = bli_trsm_small_zen4;
                         }
                         else
                         {
-                            ker_ft = bli_trsm_small;
+#ifdef BLIS_DISABLE_TRSM_PREINVERSION
+                            // if preinversion is disabled, use native codepath for
+                            // better accuracy in large sizes
+                            if (dim_a <= 500)
+#endif
+                            trsm_ker_ptr = bli_trsm_small_zen;
                         }
                     }
                     break;
@@ -1770,15 +1826,20 @@ void ztrsm_blis_impl
                 case BLIS_ARCH_ZEN2:
                 case BLIS_ARCH_ZEN3:
                 default:
-                    ker_ft = bli_trsm_small;
+#ifdef BLIS_DISABLE_TRSM_PREINVERSION
+                    // if preinversion is disabled, use native codepath for
+                    // better accuracy in large sizes
+                    if (dim_a <= 500)
+#endif
+                    trsm_ker_ptr = bli_trsm_small_zen;
                     break;
             }
         }
-        if(ker_ft)
+        if ( trsm_ker_ptr )
         {
-            status = ker_ft(blis_side, &alphao, &ao, &bo, NULL, NULL, is_parallel);
+            small_status = trsm_ker_ptr(blis_side, &alphao, &ao, &bo, NULL, NULL, is_parallel);
         }
-        if (status == BLIS_SUCCESS)
+        if ( small_status == BLIS_SUCCESS )
         {
             AOCL_DTL_LOG_TRSM_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(z), *side, *m, *n);
             AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_INFO);
@@ -1787,7 +1848,8 @@ void ztrsm_blis_impl
             return;
         }
     } // bli_cpuid_is_avx2fma3_supported
-#endif// END of BLIS_ENABLE_SMALL_MATRIX_TRSM
+
+#endif // End of BLIS_ENABLE_SMALL_MATRIX
 
     //bli_trsmnat
     //(
@@ -1826,15 +1888,15 @@ void ztrsm_
     const f77_char* diaga,
     const f77_int*  m,
     const f77_int*  n,
-    const dcomplex*    alpha,
-    const dcomplex*    a, const f77_int* lda,
-    dcomplex*    b, const f77_int* ldb
+    const dcomplex* alpha,
+    const dcomplex* a, const f77_int* lda,
+          dcomplex* b, const f77_int* ldb
 )
 {
     ztrsm_blis_impl ( side, uploa, transa, diaga, m, n, alpha, a, lda, b, ldb );
 #if defined(BLIS_KERNELS_ZEN4)
-    arch_t id = bli_arch_query_id();
-    if (id == BLIS_ARCH_ZEN5 || id == BLIS_ARCH_ZEN4)
+    arch_t arch_id = bli_arch_query_id();
+    if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
     {
         bli_zero_zmm();
     }
@@ -1850,11 +1912,14 @@ void ctrsm_blis_impl
     const f77_char* diaga,
     const f77_int*  m,
     const f77_int*  n,
-    const scomplex*    alpha,
-    const scomplex*    a, const f77_int* lda,
-    scomplex*    b, const f77_int* ldb
+    const scomplex* alpha,
+    const scomplex* a, const f77_int* lda,
+          scomplex* b, const f77_int* ldb
 )
 {
+    /* Initialize BLIS. */
+    bli_init_auto();
+
     AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_INFO)
     AOCL_DTL_LOG_TRSM_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(c),
                              *side, *uploa,*transa, *diaga, *m, *n,
@@ -1865,10 +1930,9 @@ void ctrsm_blis_impl
     trans_t blis_transa;
     diag_t  blis_diaga;
     dim_t   m0, n0;
+#ifdef BLIS_ENABLE_MNK1_MATRIX
     conj_t  conja = BLIS_NO_CONJUGATE;
-
-    /* Initialize BLIS. */
-    bli_init_auto();
+#endif
 
     /* Perform BLAS parameter checking. */
     PASTEBLACHK(trsm)
@@ -1912,24 +1976,26 @@ void ctrsm_blis_impl
     const inc_t cs_b = *ldb;
     const num_t dt = BLIS_SCOMPLEX;
 
-	/* If alpha is zero, set B to zero and return early */
-	if( PASTEMAC(c,eq0)( *alpha ) )
-	{
-		PASTEMAC2(c,setm,_ex)( BLIS_NO_CONJUGATE,
-								0,
-								BLIS_NONUNIT_DIAG,
-								BLIS_DENSE,
-								m0, n0,
-								(scomplex*) alpha,
-								(scomplex*) b, rs_b, cs_b,
-								NULL, NULL
-							  );
-		AOCL_DTL_LOG_TRSM_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(c), *side, *m, *n);
-		AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
-		/* Finalize BLIS. */
-		bli_finalize_auto();
-		return;
-	}
+    /* If alpha is zero, set B to zero and return early */
+    if( PASTEMAC(c,eq0)( *alpha ) )
+    {
+        PASTEMAC2(c,setm,_ex)( BLIS_NO_CONJUGATE,
+                                0,
+                                BLIS_NONUNIT_DIAG,
+                                BLIS_DENSE,
+                                m0, n0,
+                                (scomplex*) alpha,
+                                (scomplex*) b, rs_b, cs_b,
+                                NULL, NULL
+                              );
+        AOCL_DTL_LOG_TRSM_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(c), *side, *m, *n);
+        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
+        /* Finalize BLIS. */
+        bli_finalize_auto();
+        return;
+    }
+
+#ifdef BLIS_ENABLE_MNK1_MATRIX
 
     if( n0 == 1 )
     {
@@ -1972,57 +2038,60 @@ void ctrsm_blis_impl
         }
         else if( ( blis_side == BLIS_RIGHT ) && ( m0 != 1 ) )
         {
-            bli_cscalv_ex
-            (
-                conja,
-                m0,
-                (scomplex*)alpha,
-                (scomplex*)b, rs_b,
-                NULL,
-                NULL
-            );
+            /* Avoid alpha scaling when alpha is one */
+            if ( !PASTEMAC(c, eq1)(*alpha) )
+            {
+                bli_cscalv_ex
+                (
+                    conja,
+                    m0,
+                    (scomplex*)alpha,
+                    (scomplex*)b, rs_b,
+                    NULL,
+                    NULL
+                );
+            }
             if(blis_diaga == BLIS_NONUNIT_DIAG)
             {
-                scomplex inva = {1.0, 0.0};
-		scomplex a_dup;
-		/**
-		 * For conjugate transpose and non-unit diagonal
-		 * kernel, negating imaginary part of A.
-		 * As the dimension of A is 1x1, there's going to
-		 * be only one 1 element of A.
-		 */
+                scomplex inva = {1.0f, 0.0f};
+                scomplex a_dup;
+                /**
+                 * For conjugate transpose and non-unit diagonal
+                 * kernel, negating imaginary part of A.
+                 * As the dimension of A is 1x1, there's going to
+                 * be only one 1 element of A.
+                 */
                 if(blis_transa == BLIS_CONJ_TRANSPOSE)
                 {
                         a_dup.real = a->real;
-                        a_dup.imag = a->imag * -1.0;
+                        a_dup.imag = a->imag * -1.0f;
                 }
                 else
                 {
-			a_dup.real = a->real;
+                        a_dup.real = a->real;
                         a_dup.imag = a->imag;
                 }
 
 #ifdef BLIS_ENABLE_TRSM_PREINVERSION
-		bli_cinvscals(a_dup, inva);
+                bli_cinvscals(a_dup, inva);
 #else
-		inva.real = a_dup.real;
-		inva.imag = a_dup.imag;
+                inva.real = a_dup.real;
+                inva.imag = a_dup.imag;
 #endif
 
                 for(dim_t indx = 0; indx < m0; indx ++)
                 {
 #ifdef BLIS_ENABLE_TRSM_PREINVERSION
-			bli_cscals(inva ,b[indx])
+                    bli_cscals(inva ,b[indx])
 #else
-			bli_cinvscals(inva, b[indx])
+                    bli_cinvscals(inva, b[indx])
 #endif
                 }
             }
 
-	    AOCL_DTL_LOG_TRSM_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(c), *side, *m, *n);
-	    AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_INFO);
-	    return;
-
+            AOCL_DTL_LOG_TRSM_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(c), *side, *m, *n);
+            AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_INFO);
+            return;
         }
     }
     else if( m0 == 1 )
@@ -2076,58 +2145,63 @@ void ctrsm_blis_impl
         }
         else if(( blis_side == BLIS_LEFT ) && ( n0 != 1 ))
         {
-            bli_cscalv_ex
-            (
-                conja,
-                n0,
-                (scomplex*)alpha,
-                (scomplex*)b, cs_b,
-                NULL,
-                NULL
-            );
+            /* Avoid alpha scaling when alpha is one */
+            if ( !PASTEMAC(c, eq1)(*alpha) )
+            {
+                bli_cscalv_ex
+                (
+                    conja,
+                    n0,
+                    (scomplex*)alpha,
+                    (scomplex*)b, cs_b,
+                    NULL,
+                    NULL
+                );
+            }
             if(blis_diaga == BLIS_NONUNIT_DIAG)
             {
-                scomplex inva = {1.0, 0.0};
-		scomplex a_dup;
-		/**
-		 * For conjugate transpose and non-unit diagonal
-		 * kernel, negating imaginary part of A.
-		 * As the dimension of A is 1x1, there's going to
-		 * be only one 1 element of A.
-		 */
+                scomplex inva = {1.0f, 0.0f};
+                scomplex a_dup;
+                /**
+                 * For conjugate transpose and non-unit diagonal
+                 * kernel, negating imaginary part of A.
+                 * As the dimension of A is 1x1, there's going to
+                 * be only one 1 element of A.
+                 */
                 if(blis_transa == BLIS_CONJ_TRANSPOSE)
                 {
                         a_dup.real = a->real;
-                        a_dup.imag = a->imag * -1.0;
+                        a_dup.imag = a->imag * -1.0f;
                 }
                 else
                 {
-			a_dup.real = a->real;
+                        a_dup.real = a->real;
                         a_dup.imag = a->imag;
                 }
 
 #ifdef BLIS_ENABLE_TRSM_PREINVERSION
-		bli_cinvscals(a_dup, inva)
+                bli_cinvscals(a_dup, inva)
 #else
-		inva.real = a_dup.real;
-		inva.imag = a_dup.imag;
+                inva.real = a_dup.real;
+                inva.imag = a_dup.imag;
 #endif
                 for(dim_t indx = 0; indx < n0; indx ++)
                 {
 #ifdef BLIS_ENABLE_TRSM_PREINVERSION
-			bli_cscals(inva ,b[indx * cs_b])
+                    bli_cscals(inva ,b[indx * cs_b])
 #else
-			bli_cinvscals(inva, b[indx * cs_b])
+                    bli_cinvscals(inva, b[indx * cs_b])
 #endif
-
                 }
             }
 
-	    AOCL_DTL_LOG_TRSM_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(c), *side, *m, *n);
-	    AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_INFO);
-	    return;
+            AOCL_DTL_LOG_TRSM_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(c), *side, *m, *n);
+            AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_INFO);
+            return;
         }
     }
+
+#endif // End of BLIS_ENABLE_MNK1_MATRIX
 
     const struc_t struca = BLIS_TRIANGULAR;
 
@@ -2151,6 +2225,7 @@ void ctrsm_blis_impl
     bli_obj_set_struc( struca, &ao );
 
 #ifdef BLIS_ENABLE_SMALL_MATRIX_TRSM
+
     // This function is invoked on all architectures including 'generic'.
     // Non-AVX2+FMA3 platforms will use the kernels derived from the context.
     if (bli_cpuid_is_avx2fma3_supported() == TRUE)
@@ -2163,18 +2238,18 @@ void ctrsm_blis_impl
         if((!is_parallel && m0<=1000 && n0<=1000) ||
            (is_parallel && (m0+n0)<320))
         {
-            err_t status;
-            status = bli_trsm_small
-                    (
-                        blis_side,
-                        &alphao,
-                        &ao,
-                        &bo,
-                        NULL,
-                        NULL,
-                        is_parallel
-                    );
-            if (status == BLIS_SUCCESS)
+            err_t small_status;
+            small_status = bli_trsm_small_zen
+                           (
+                             blis_side,
+                             &alphao,
+                             &ao,
+                             &bo,
+                             NULL,
+                             NULL,
+                             is_parallel
+                           );
+            if ( small_status == BLIS_SUCCESS )
             {
                 AOCL_DTL_LOG_TRSM_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(c), *side, *m, *n);
                 AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_INFO);
@@ -2184,7 +2259,8 @@ void ctrsm_blis_impl
             }
         }
     } // bli_cpuid_is_avx2fma3_supported
-#endif
+
+#endif // End of BLIS_ENABLE_SMALL_MATRIX
 
     //bli_trsmnat
     //(
@@ -2223,15 +2299,15 @@ void ctrsm_
     const f77_char* diaga,
     const f77_int*  m,
     const f77_int*  n,
-    const scomplex*    alpha,
-    const scomplex*    a, const f77_int* lda,
-    scomplex*    b, const f77_int* ldb
+    const scomplex* alpha,
+    const scomplex* a, const f77_int* lda,
+          scomplex* b, const f77_int* ldb
 )
 {
     ctrsm_blis_impl ( side, uploa, transa, diaga, m, n, alpha, a, lda, b, ldb );
 #if defined(BLIS_KERNELS_ZEN4)
-    arch_t id = bli_arch_query_id();
-    if (id == BLIS_ARCH_ZEN5 || id == BLIS_ARCH_ZEN4)
+    arch_t arch_id = bli_arch_query_id();
+    if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
     {
         bli_zero_zmm();
     }

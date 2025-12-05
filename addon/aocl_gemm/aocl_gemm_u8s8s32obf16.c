@@ -67,6 +67,15 @@ AOCL_GEMM_MATMUL(uint8_t,int8_t,bfloat16,int32_t,u8s8s32obf16)
 				"cannot perform u8s8s32 gemm.", __FILE__, __LINE__ );
 		goto err_hndl;
 	}
+
+	// Check for avx512_bf16 ISA support necessary for BF16.
+	if (bli_cpuid_is_avx512bf16_supported() == FALSE)
+	{
+		bli_print_msg(" AVX512_BF16 ISA not supported by processor, "
+				"cannot perform u8s8s32obf16 gemm.", __FILE__, __LINE__ );
+		goto err_hndl;
+	}
+
 #ifdef LPGEMM_BF16_JIT
 	bli_print_msg("cannot perform u8s8s32obf16 gemm with gcc < 11.2",
 			__FILE__, __LINE__ );
@@ -144,7 +153,12 @@ AOCL_GEMM_MATMUL(uint8_t,int8_t,bfloat16,int32_t,u8s8s32obf16)
 					  __FILE__, __LINE__);
 		goto err_hndl;
 	}
-
+	// A matrix packing is done only if the inputs are transposed in a
+    // row major scenario. A matrix packing in row major is not supported,
+    // hence it is changed to unpacked and proceed with the GEMM.
+    if (mtag_a == PACK) {
+        mtag_a = UNPACKED;
+    }
 	// From 5-loop function point of view
 	// B matrix needs to be packed in a certain format in order to be loaded
 	// and used in bf16 instrution. As such the mtag_b always needs to be either

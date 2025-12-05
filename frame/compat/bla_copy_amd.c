@@ -55,11 +55,11 @@ void PASTEF77S(ch,blasname) \
 	inc_t  incx0; \
 	inc_t  incy0; \
 \
-	AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1); \
-	AOCL_DTL_LOG_COPY_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(ch), *n, *incx, *incy) \
-\
 	/* Initialize BLIS. */ \
 	bli_init_auto(); \
+\
+	AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1); \
+	AOCL_DTL_LOG_COPY_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(ch), *n, *incx, *incy); \
 \
 	/* Convert/typecast negative values of n to zero. */ \
 	bli_convert_blas_dim1( *n, n0 ); \
@@ -81,7 +81,8 @@ void PASTEF77S(ch,blasname) \
 	); \
 	\
 \
-	AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1) \
+  AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1); \
+  AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);         \
 \
 	/* Finalize BLIS. */ \
 	bli_finalize_auto(); \
@@ -105,7 +106,7 @@ void scopy_blis_impl
 (
 	const f77_int* n,
 	const float*   x, const f77_int* incx,
-	float*   y, const f77_int* incy
+	      float*   y, const f77_int* incy
 )
 {
 	dim_t  n0;
@@ -114,18 +115,16 @@ void scopy_blis_impl
 	inc_t  incx0;
 	inc_t  incy0;
 
-	AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1)
-	AOCL_DTL_LOG_COPY_INPUTS(AOCL_DTL_LEVEL_TRACE_1, 'S', *n, *incx, *incy)
-
 	/* Initialize BLIS. */
+	// Call to bli_init_auto() is not needed here
+	AOCL_DTL_INITIALIZE();
 
-//  bli_init_auto();
+	AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
+	AOCL_DTL_LOG_COPY_INPUTS(AOCL_DTL_LEVEL_TRACE_1, 'S', *n, *incx, *incy);
 
 	/* Convert/typecast negative values of n to zero. */
-	if (*n < 0)
-		n0 = (dim_t)0;
-	else
-		n0 = (dim_t)(*n);
+	if ( *n < 0 ) n0 = ( dim_t )0;
+	else          n0 = ( dim_t )(*n);
 
 	/* If the input increments are negative, adjust the pointers so we can
 	   use positive increments instead. */
@@ -169,19 +168,19 @@ void scopy_blis_impl
 	cntx_t *cntx = NULL;
 
 	// Query the architecture ID
-	arch_t id = bli_arch_query_id();
+	arch_t arch_id = bli_arch_query_id();
 
 	// Function pointer declaration for the function
 	// that will be used by this API
-	scopyv_ker_ft copyv_ker_ptr; // SCOPYV
+	scopyv_ker_ft copyv_ker_ptr = NULL; // SCOPYV
 
 	// Pick the kernel based on the architecture ID
-	switch (id)
+	switch ( arch_id )
 	{
 		case BLIS_ARCH_ZEN5:
 		case BLIS_ARCH_ZEN4:
 #if defined(BLIS_KERNELS_ZEN4)
-			copyv_ker_ptr = bli_scopyv_zen4_asm_avx512;
+			copyv_ker_ptr = bli_scopyv_zen4_asm;
 			break;
 #endif
 		case BLIS_ARCH_ZEN:
@@ -190,10 +189,10 @@ void scopy_blis_impl
 			copyv_ker_ptr = bli_scopyv_zen_int;
 			break;
 		default:
-		// For non-Zen architectures, query the context
-		cntx = bli_gks_query_cntx();
-		// Query the context for the kernel function pointers for scopyv
-		copyv_ker_ptr = bli_cntx_get_l1v_ker_dt(BLIS_FLOAT, BLIS_COPYV_KER, cntx);
+			// For non-Zen architectures, query the context
+			cntx = bli_gks_query_cntx();
+			// Query the context for the kernel function pointers for scopyv
+			copyv_ker_ptr = bli_cntx_get_l1v_ker_dt(BLIS_FLOAT, BLIS_COPYV_KER, cntx);
 	}
 
 	copyv_ker_ptr
@@ -205,9 +204,10 @@ void scopy_blis_impl
 		cntx
 	);
 
+	AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
 	AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
 	/* Finalize BLIS. */
-//    bli_finalize_auto();
+	// Call to bli_finalize_auto() is not needed here
 }
 
 #ifdef BLIS_ENABLE_BLAS
@@ -215,7 +215,7 @@ void scopy_
 (
 	const f77_int* n,
 	const float*   x, const f77_int* incx,
-	float*   y, const f77_int* incy
+	      float*   y, const f77_int* incy
 )
 {
   scopy_blis_impl( n, x, incx, y, incy );
@@ -227,8 +227,8 @@ void scopy_
 void dcopy_blis_impl
 (
 	const f77_int* n,
-	const double*   x, const f77_int* incx,
-	double*   y, const f77_int* incy
+	const double*  x, const f77_int* incx,
+	      double*  y, const f77_int* incy
 )
 {
 	dim_t  n0;
@@ -237,16 +237,16 @@ void dcopy_blis_impl
 	inc_t  incx0;
 	inc_t  incy0;
 
-	AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
-	AOCL_DTL_LOG_COPY_INPUTS(AOCL_DTL_LEVEL_TRACE_1, 'D', *n, *incx, *incy)
 	/* Initialize BLIS. */
-	//  bli_init_auto();
+	// Call to bli_init_auto() is not needed here
+	AOCL_DTL_INITIALIZE();
+
+	AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
+	AOCL_DTL_LOG_COPY_INPUTS(AOCL_DTL_LEVEL_TRACE_1, 'D', *n, *incx, *incy);
 
 	/* Convert/typecast negative values of n to zero. */
-	if (*n < 0)
-		n0 = (dim_t)0;
-	else
-		n0 = (dim_t)(*n);
+	if ( *n < 0 ) n0 = ( dim_t )0;
+	else          n0 = ( dim_t )(*n);
 
 	/* If the input increments are negative, adjust the pointers so we can
 	   use positive increments instead. */
@@ -290,11 +290,11 @@ void dcopy_blis_impl
 	cntx_t *cntx = NULL;
 
 	// Query the architecture ID
-	arch_t id = bli_arch_query_id();
+	arch_t arch_id = bli_arch_query_id();
 
 	// Function pointer declaration for the function
 	// that will be used by this API
-	dcopyv_ker_ft copyv_ker_ptr; // DCOPYV
+	dcopyv_ker_ft copyv_ker_ptr = NULL; // DCOPYV
 
 #if defined(BLIS_ENABLE_OPENMP) && defined(AOCL_DYNAMIC)
 	// Setting the threshold to invoke the fast-path
@@ -304,21 +304,21 @@ void dcopy_blis_impl
 #endif
 
 	// Pick the kernel based on the architecture ID
-	switch (id)
+	switch ( arch_id )
 	{
 		case BLIS_ARCH_ZEN5:
 #if defined(BLIS_KERNELS_ZEN5)
 			// For Zen4 and Zen5, kernel implemented in AVX512 is used
-			copyv_ker_ptr = bli_dcopyv_zen4_asm_avx512;
+			copyv_ker_ptr = bli_dcopyv_zen5_asm;
 #if defined(BLIS_ENABLE_OPENMP) && defined(AOCL_DYNAMIC)
-			fast_path_thresh = 39000;
+			fast_path_thresh = 38000;
 #endif
 			break;
 #endif
 		case BLIS_ARCH_ZEN4:
 #if defined(BLIS_KERNELS_ZEN4)
 			// For Zen4 and Zen5, kernel implemented in AVX512 is used
-			copyv_ker_ptr = bli_dcopyv_zen4_asm_avx512;
+			copyv_ker_ptr = bli_dcopyv_zen4_asm;
 #if defined(BLIS_ENABLE_OPENMP) && defined(AOCL_DYNAMIC)
 			fast_path_thresh = 17000;
 #endif
@@ -327,7 +327,6 @@ void dcopy_blis_impl
 		case BLIS_ARCH_ZEN:
 		case BLIS_ARCH_ZEN2:
 		case BLIS_ARCH_ZEN3:
-			// For Zen1, Zen2 and Zen3 architectures, kernel implemented in AVX2 is used.
 			copyv_ker_ptr = bli_dcopyv_zen_int;
 #if defined(BLIS_ENABLE_OPENMP) && defined(AOCL_DYNAMIC)
 			fast_path_thresh = 17000;
@@ -341,7 +340,13 @@ void dcopy_blis_impl
 	}
 
 #ifdef BLIS_ENABLE_OPENMP
-    #ifdef AOCL_DYNAMIC
+	/*
+		Initializing the number of thread to one
+		to avoid compiler warnings
+	*/
+	dim_t nt = 1;
+
+	#ifdef AOCL_DYNAMIC
 
 	/* Invoking the fast-path, if the size is ideal for such execution */
 	if (n0 <= fast_path_thresh )
@@ -354,18 +359,12 @@ void dcopy_blis_impl
 			y0, incy0,
 			cntx
 		);
-
+		AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
 		AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
 		return;
 	}
 
 	#endif
-
-	/*
-		Initializing the number of thread to one
-		to avoid compiler warnings
-	*/
-	dim_t nt = 1;
 
 	/*
 		For the given problem size and architecture, the function
@@ -377,7 +376,7 @@ void dcopy_blis_impl
 		BLIS_COPYV_KER,
 		BLIS_DOUBLE,
 		BLIS_DOUBLE,
-		id,
+		arch_id,
 		n0,
 		&nt
 	);
@@ -388,7 +387,6 @@ void dcopy_blis_impl
 	*/
 	if (nt == 1)
 	{
-#endif
 		copyv_ker_ptr
 		(
 			BLIS_NO_CONJUGATE,
@@ -397,11 +395,9 @@ void dcopy_blis_impl
 			y0, incy0,
 			cntx
 		);
-
-		AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
+		AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, nt);
+		AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
 		return;
-
-#ifdef BLIS_ENABLE_OPENMP
 	}
 
 	_Pragma("omp parallel num_threads(nt)")
@@ -410,7 +406,8 @@ void dcopy_blis_impl
 		thrinfo_t thread;
 
 		// The factor by which the size should be a multiple during thread partition.
-		// The main loop of the kernel can handle 32 elements at a time hence 32 is selected for block_size.
+		// The main loop of the kernel can handle 32 elements at a time hence 32 is
+		// selected for block_size.
 		dim_t block_size = 32;
 
 		// Get the thread ID
@@ -451,22 +448,36 @@ void dcopy_blis_impl
 		);
 	}
 
+	AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, nt);
+	AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
+
+#else // not BLIS_ENABLE_OPENMP
+
+	copyv_ker_ptr
+	(
+		BLIS_NO_CONJUGATE,
+		n0,
+		x0, incx0,
+		y0, incy0,
+		cntx
+	);
+
+	AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
+	AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+
 #endif // BLIS_ENABLE_OPENMP
 
-	AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
 	/* Finalize BLIS. */
-//    bli_finalize_auto();
-
+	// Call to bli_finalize_auto() is not needed here
 }
-#ifdef BLIS_ENABLE_BLAS
 
+#ifdef BLIS_ENABLE_BLAS
 void dcopy_
 (
 	const f77_int* n,
-	const double*   x, const f77_int* incx,
-	double*   y, const f77_int* incy
+	const double*  x, const f77_int* incx,
+	      double*  y, const f77_int* incy
 )
-
 {
   dcopy_blis_impl( n, x, incx, y, incy );
 }
@@ -477,9 +488,9 @@ void dcopy_
 
 void zcopy_blis_impl
 (
-	const f77_int* n,
-	const dcomplex*   x, const f77_int* incx,
-	dcomplex*   y, const f77_int* incy
+	const f77_int*  n,
+	const dcomplex* x, const f77_int* incx,
+	      dcomplex* y, const f77_int* incy
 )
 {
 	dim_t  n0;
@@ -488,18 +499,16 @@ void zcopy_blis_impl
 	inc_t  incx0;
 	inc_t  incy0;
 
-	AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1)
-	AOCL_DTL_LOG_COPY_INPUTS(AOCL_DTL_LEVEL_TRACE_1, 'Z', *n, *incx, *incy)
-
 	/* Initialize BLIS. */
+	// Call to bli_init_auto() is not needed here
+	AOCL_DTL_INITIALIZE();
 
-//  bli_init_auto();
+	AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
+	AOCL_DTL_LOG_COPY_INPUTS(AOCL_DTL_LEVEL_TRACE_1, 'Z', *n, *incx, *incy);
 
 	/* Convert/typecast negative values of n to zero. */
-	if (*n < 0)
-		n0 = (dim_t)0;
-	else
-		n0 = (dim_t)(*n);
+	if ( *n < 0 ) n0 = ( dim_t )0;
+	else          n0 = ( dim_t )(*n);
 
 	/* If the input increments are negative, adjust the pointers so we can
 	   use positive increments instead. */
@@ -543,26 +552,25 @@ void zcopy_blis_impl
 	cntx_t *cntx = NULL;
 
 	// Query the architecture ID
-	arch_t id = bli_arch_query_id();
+	arch_t arch_id = bli_arch_query_id();
 
 	// Function pointer declaration for the function
 	// that will be used by this API
-	zcopyv_ker_ft copyv_ker_ptr; // ZCOPYV
+	zcopyv_ker_ft copyv_ker_ptr = NULL; // ZCOPYV
 
 	// Pick the kernel based on the architecture ID
-	switch (id)
+	switch ( arch_id )
 	{
 		case BLIS_ARCH_ZEN5:
 		case BLIS_ARCH_ZEN4:
 #if defined(BLIS_KERNELS_ZEN4)
 			// For Zen4 and Zen5 architecture, kernel implemented in AVX512 is used
-			copyv_ker_ptr = bli_zcopyv_zen4_asm_avx512;
+			copyv_ker_ptr = bli_zcopyv_zen4_asm;
 			break;
 #endif
 		case BLIS_ARCH_ZEN:
 		case BLIS_ARCH_ZEN2:
 		case BLIS_ARCH_ZEN3:
-			// For Zen1, Zen2 and Zen3 architectures, kernel implemented in AVX2 is used.
 			copyv_ker_ptr = bli_zcopyv_zen_int;
 			break;
 		default:
@@ -570,7 +578,7 @@ void zcopy_blis_impl
 			cntx = bli_gks_query_cntx();
 			// Query the context for the kernel function pointers for zcopyv
 			copyv_ker_ptr = bli_cntx_get_l1v_ker_dt(BLIS_DCOMPLEX, BLIS_COPYV_KER, cntx);
-		}
+	}
 
 #ifdef BLIS_ENABLE_OPENMP
 	/*
@@ -589,7 +597,7 @@ void zcopy_blis_impl
 		BLIS_COPYV_KER,
 		BLIS_DCOMPLEX,
 		BLIS_DCOMPLEX,
-		id,
+		arch_id,
 		n0,
 		&nt
 	);
@@ -600,24 +608,22 @@ void zcopy_blis_impl
 	*/
 	if (nt == 1)
 	{
-#endif
+		copyv_ker_ptr
+		(
+			BLIS_NO_CONJUGATE,
+			n0,
+			x0, incx0,
+			y0, incy0,
+			cntx
+		);
 
-	copyv_ker_ptr
-	(
-		BLIS_NO_CONJUGATE,
-		n0,
-		x0, incx0,
-		y0, incy0,
-		cntx
-	);
-
-#ifdef BLIS_ENABLE_OPENMP
+		AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, nt);
+		AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+		return;
 	}
 
-	else
+	_Pragma("omp parallel num_threads(nt)")
 	{
-		_Pragma("omp parallel num_threads(nt)")
-		{
 			dim_t start, length;
 
 			// Get the thread ID
@@ -650,22 +656,37 @@ void zcopy_blis_impl
 				y_thread_local, incy0,
 				cntx
 			);
-		}
 	}
 
-#endif
+	AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, nt);
+	AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
 
-	AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1)
+#else // not BLIS_ENABLE_OPENMP
+
+	copyv_ker_ptr
+	(
+		BLIS_NO_CONJUGATE,
+		n0,
+		x0, incx0,
+		y0, incy0,
+		cntx
+	);
+
+	AOCL_DTL_LOG_NUM_THREADS(AOCL_DTL_LEVEL_TRACE_1, 1);
+	AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+
+#endif // BLIS_ENABLE_OPENMP
+
 	/* Finalize BLIS. */
-//    bli_finalize_auto();
+	// Call to bli_finalize_auto() is not needed here
 }
 
 #ifdef BLIS_ENABLE_BLAS
 void zcopy_
 (
-	const f77_int* n,
-	const dcomplex*   x, const f77_int* incx,
-	dcomplex*   y, const f77_int* incy
+	const f77_int*  n,
+	const dcomplex* x, const f77_int* incx,
+	      dcomplex* y, const f77_int* incy
 )
 {
   zcopy_blis_impl( n, x, incx, y, incy );

@@ -87,14 +87,14 @@ endif()
 if(BLIS_CONFIG_FAMILY STREQUAL "auto")
     message(STATUS "automatic configuration requested")
     set(auto_detect_source_files
-        "${CMAKE_SOURCE_DIR}/build/detect/config/config_detect.c"
-        "${CMAKE_SOURCE_DIR}/frame/base/bli_arch.c"
-        "${CMAKE_SOURCE_DIR}/frame/base/bli_cpuid.c"
-        "${CMAKE_SOURCE_DIR}/frame/base/bli_env.c"
+        "${PROJECT_SOURCE_DIR}/build/detect/config/config_detect.c"
+        "${PROJECT_SOURCE_DIR}/frame/base/bli_arch.c"
+        "${PROJECT_SOURCE_DIR}/frame/base/bli_cpuid.c"
+        "${PROJECT_SOURCE_DIR}/frame/base/bli_env.c"
        )
-    set(frame_include " ${CMAKE_SOURCE_DIR}/frame/include")
-    set(base_include " ${CMAKE_SOURCE_DIR}/frame/base")
-    set(thread_include " ${CMAKE_SOURCE_DIR}/frame/thread")
+    set(frame_include " ${PROJECT_SOURCE_DIR}/frame/include")
+    set(base_include " ${PROJECT_SOURCE_DIR}/frame/base")
+    set(thread_include " ${PROJECT_SOURCE_DIR}/frame/thread")
     # Try building an executable from one or more source files.
     # Build success returns TRUE and build failure returns FALSE in COMPILERESULT.
     # If the build succeeds, this runs the executable and stores the exit code in RUNRESULT.
@@ -129,7 +129,7 @@ endif()
 
 # Read the registered configuration names and lists into associative arrays.
 execute_process(
-    COMMAND ${Python_EXECUTABLE} ${CMAKE_SOURCE_DIR}/build/cmake/read_registry.py "${BLIS_CONFIG_FAMILY}" "${CMAKE_SOURCE_DIR}"
+    COMMAND ${Python_EXECUTABLE} ${PROJECT_SOURCE_DIR}/build/cmake/read_registry.py "${BLIS_CONFIG_FAMILY}" "${PROJECT_SOURCE_DIR}"
     RESULT_VARIABLE CMD_RESULT
     OUTPUT_VARIABLE CONFIGURATION_STRING
     OUTPUT_STRIP_TRAILING_WHITESPACE )
@@ -198,7 +198,7 @@ if(NOT MSVC)
     set_property(CACHE ENABLE_DEBUG PROPERTY STRINGS "off" "noopt" "opt")
     if( NOT ((ENABLE_DEBUG STREQUAL "off") OR (ENABLE_DEBUG STREQUAL "noopt") OR (ENABLE_DEBUG STREQUAL "opt")) )
         message(FATAL_ERROR "ENABLE_DEBUG option '${ENABLE_DEBUG}' is not supported. Please use one of the following options \
-                during CMake invokation: off, noopt, opt")
+                during CMake invocation: off, noopt, opt")
     endif()
     # Check if user provided CMAKE_BUILD_TYPE. If that's the case, map it to the internal ENABLE_DEBUG type
     # and clean cache from CMAKE_BUILD_TYPE. We do this because CMake will add some flags depending on the
@@ -234,20 +234,20 @@ if(WIN32)
     set_property(CACHE ENABLE_THREADING PROPERTY STRINGS "openmp" "no")
     if( NOT ((ENABLE_THREADING STREQUAL "openmp") OR (ENABLE_THREADING STREQUAL "no")) )
         message(FATAL_ERROR "ENABLE_THREADING option '${ENABLE_THREADING}' is not supported. Please use one of the following options \
-                during CMake invokation: openmp, no")
+                during CMake invocation: openmp, no")
     endif()
 else()
     set_property(CACHE ENABLE_THREADING PROPERTY STRINGS "openmp" "pthreads" "no")
     if( NOT ((ENABLE_THREADING STREQUAL "openmp") OR (ENABLE_THREADING STREQUAL "pthreads") OR (ENABLE_THREADING STREQUAL "no")) )
         message(FATAL_ERROR "ENABLE_THREADING option '${ENABLE_THREADING}' is not supported. Please use one of the following options \
-                during CMake invokation: openmp, pthreads, no")
+                during CMake invocation: openmp, pthreads, no")
     endif()
 endif()
 set(THREAD_PART_JRIR "slab" CACHE STRING "The method of assigning micropanels to threads in the JR and JR loops.")
 set_property(CACHE THREAD_PART_JRIR PROPERTY STRINGS "slab" "rr")
 if( NOT ((THREAD_PART_JRIR STREQUAL "slab") OR (THREAD_PART_JRIR STREQUAL "rr")) )
     message(FATAL_ERROR "THREAD_PART_JRIR option '${THREAD_PART_JRIR}' is not supported. Please use one of the following options \
-            during CMake invokation: slab, rr")
+            during CMake invocation: slab, rr")
 endif()
 # Export symbols only for Linux.
 if(NOT WIN32)
@@ -255,7 +255,7 @@ if(NOT WIN32)
     set_property(CACHE EXPORT_SHARED PROPERTY STRINGS "public" "all")
     if( NOT ((EXPORT_SHARED STREQUAL "public") OR (EXPORT_SHARED STREQUAL "all")) )
         message(FATAL_ERROR "EXPORT_SHARED option '${EXPORT_SHARED}' is not supported. Please use one of the following options \
-        during CMake invokation: public, all")
+        during CMake invocation: public, all")
     endif()
 endif()
 option(ENABLE_PBA_POOLS "Internal memory pools for packing blocks" ON)
@@ -265,19 +265,58 @@ set(INT_SIZE "auto" CACHE STRING "BLIS API integer size")
 set_property(CACHE INT_SIZE PROPERTY STRINGS "auto" "32" "64")
 if( NOT ((INT_SIZE STREQUAL "auto") OR (INT_SIZE STREQUAL "32") OR (INT_SIZE STREQUAL "64")) )
     message(FATAL_ERROR "INT_SIZE option '${INT_SIZE}' is not supported. Please use one of the following options \
-            during CMake invokation: auto, 32, 64")
+            during CMake invocation: auto, 32, 64")
 endif()
 set(BLAS_INT_SIZE "32" CACHE STRING "BLAS/CBLAS API integer size")
 set_property(CACHE BLAS_INT_SIZE PROPERTY STRINGS "auto" "32" "64")
 if( NOT ((BLAS_INT_SIZE STREQUAL "auto") OR (BLAS_INT_SIZE STREQUAL "32") OR (BLAS_INT_SIZE STREQUAL "64")) )
     message(FATAL_ERROR "BLAS_INT_SIZE option '${BLAS_INT_SIZE}' is not supported. Please use one of the following options \
-            during CMake invokation: auto, 32, 64")
+            during CMake invocation: auto, 32, 64")
 endif()
 option(ENABLE_BLAS "BLAS compatiblity layer" ON)
 option(ENABLE_CBLAS "CBLAS compatiblity layer" OFF)
 option(ENABLE_MIXED_DT "Mixed datatype support" ON)
 option(ENABLE_MIXED_DT_EXTRA_MEM "Mixed datatype optimization requiring extra memory" ON)
-option(ENABLE_SUP_HANDLING "Small matrix handling" ON)
+option(ENABLE_MNK1_MATRIX "M, N or K = 1 matrix handling" ON)
+option(ENABLE_TINY_MATRIX "Tiny matrix handling" ON)
+option(ENABLE_SMALL_MATRIX "Small matrix handling" ON)
+option(ENABLE_SUP_HANDLING "SUP matrix handling" ON)
+option(ENABLE_SMALL_MATRIX_TRSM "TRSM Small matrix handling" ON)
+option(ENABLE_TRSM_PREINVERSION "Enable TRSM preinversion" ON)
+
+set(ENABLE_AOCL_DTL "OFF" CACHE STRING "Enable DTL Usage. Use with option ALL to enable both Tracing and Logging, TRACE to enable Tracing, and LOG to enable only logging")
+set_property(CACHE ENABLE_AOCL_DTL PROPERTY STRINGS ALL TRACE LOG OFF )
+# ENABLE AOCL Trace, Log and Dump from CMAKE
+if(ENABLE_AOCL_DTL)
+    message(STATUS "ENABLE_AOCL_DTL : ${ENABLE_AOCL_DTL}")
+    if(ENABLE_AOCL_DTL STREQUAL "ALL" )
+            set(ENABLE_DTL_TRACE_01 1)
+            set(ENABLE_DTL_LOG_01 1)
+    elseif(ENABLE_AOCL_DTL STREQUAL "TRACE")
+            set(ENABLE_DTL_TRACE_01 1)
+            set(ENABLE_DTL_LOG_01 0)
+    elseif(ENABLE_AOCL_DTL STREQUAL "LOG")
+            set(ENABLE_DTL_TRACE_01 0)
+            set(ENABLE_DTL_LOG_01 1)
+    else()
+    message(FATAL_ERROR "ENABLE_AOCL_DTL option '${ENABLE_AOCL_DTL}' is not supported. Please use one of the following options \
+            during CMake invocation: ALL, TRACE, LOG, OFF")
+    endif()
+else()
+    set(ENABLE_DTL_TRACE_01 0)
+    set(ENABLE_DTL_LOG_01 0)
+endif()
+set(AOCL_DTL_TRACE_LEVEL "5" CACHE STRING "Level of detail in tracing, see the description in aocl_dtl/aocldtlcf.h for more details. Possible values 1..10, default 5")
+set_property(CACHE AOCL_DTL_TRACE_LEVEL PROPERTY STRINGS "1" "2" "3" "4" "5" "6" "7" "8" "9" "10")
+if( NOT ((AOCL_DTL_TRACE_LEVEL STREQUAL "1") OR (AOCL_DTL_TRACE_LEVEL STREQUAL "2") OR (AOCL_DTL_TRACE_LEVEL STREQUAL "3") OR
+         (AOCL_DTL_TRACE_LEVEL STREQUAL "4") OR (AOCL_DTL_TRACE_LEVEL STREQUAL "5") OR (AOCL_DTL_TRACE_LEVEL STREQUAL "6") OR
+         (AOCL_DTL_TRACE_LEVEL STREQUAL "7") OR (AOCL_DTL_TRACE_LEVEL STREQUAL "8") OR (AOCL_DTL_TRACE_LEVEL STREQUAL "9") OR
+         (AOCL_DTL_TRACE_LEVEL STREQUAL "10")
+        ) )
+    message(FATAL_ERROR "AOCL_DTL_TRACE_LEVEL option '${AOCL_DTL_TRACE_LEVEL}' is not supported. Please use one of the following options \
+            during CMake invocation: 1 .. 10")
+endif()
+
 if(WIN32)
     set(ENABLE_MEMKIND "no" CACHE STRING "libmemkind for manage memory pools")
     set_property(CACHE ENABLE_MEMKIND PROPERTY STRINGS "no")
@@ -289,10 +328,9 @@ else()
     set_property(CACHE ENABLE_MEMKIND PROPERTY STRINGS "auto" "yes" "no")
     if( NOT ((ENABLE_MEMKIND STREQUAL "auto") OR (ENABLE_MEMKIND STREQUAL "yes") OR (ENABLE_MEMKIND STREQUAL "no")) )
         message(FATAL_ERROR "ENABLE_MEMKIND option '${ENABLE_MEMKIND}' is not supported. Please use one of the following options \
-                during CMake invokation: auto, yes, no")
+                during CMake invocation: auto, yes, no")
     endif()
 endif()
-option(ENABLE_TRSM_PREINVERSION "Enable TRSM preinversion" ON)
 option(ENABLE_AOCL_DYNAMIC "Dynamic selection of number of threads" ON)
 set(FORCE_VERSION "no" CACHE STRING "Force configure to use an arbitrary version string")
 if(WIN32)
@@ -300,14 +338,14 @@ if(WIN32)
     set_property(CACHE COMPLEX_RETURN PROPERTY STRINGS "gnu" "intel")
     if( NOT ((COMPLEX_RETURN STREQUAL "gnu") OR (COMPLEX_RETURN STREQUAL "intel")) )
         message(FATAL_ERROR "COMPLEX_RETURN option '${COMPLEX_RETURN}' is not supported. Please use one of the following options \
-                during CMake invokation: gnu, intel")
+                during CMake invocation: gnu, intel")
     endif()
 else()
     set(COMPLEX_RETURN "default" CACHE STRING "The method used for returning complex numbers")
     set_property(CACHE COMPLEX_RETURN PROPERTY STRINGS "default" "gnu" "intel")
     if( NOT ((COMPLEX_RETURN STREQUAL "default") OR (COMPLEX_RETURN STREQUAL "gnu") OR (COMPLEX_RETURN STREQUAL "intel")) )
         message(FATAL_ERROR "COMPLEX_RETURN option '${COMPLEX_RETURN}' is not supported. Please use one of the following options \
-                during CMake invokation: default, gnu, intel")
+                during CMake invocation: default, gnu, intel")
     endif()
 endif()
 # If the CONFIG_LIST does not already contain the CONFIG_NAME (i.e.,
@@ -348,7 +386,7 @@ if(NOT WIN32)
     # option, we try to detect whether libmemkind is available. If it is,
     # the default implied option will be --with-memkind; otherwise, will be
     # --without-memkind.
-    try_compile(HAS_MEMKIND "${CMAKE_BINARY_DIR}/temp" SOURCES "${CMAKE_SOURCE_DIR}/build/detect/memkind/libmemkind_detect.c"
+    try_compile(HAS_MEMKIND "${CMAKE_BINARY_DIR}/temp" SOURCES "${PROJECT_SOURCE_DIR}/build/detect/memkind/libmemkind_detect.c"
                 LINK_OPTIONS
                     "-lmemkind"
                 )
@@ -359,7 +397,7 @@ endif()
 #------------------------------------
 if(ENABLE_THREADING STREQUAL "openmp")
     # Try to determine whether the chosen compiler supports #pragma omp simd.
-    try_compile(PRAGMA_OMP_SIMD "${CMAKE_BINARY_DIR}/temp" SOURCES "${CMAKE_SOURCE_DIR}/build/detect/omp_simd/omp_simd_detect.c"
+    try_compile(PRAGMA_OMP_SIMD "${CMAKE_BINARY_DIR}/temp" SOURCES "${PROJECT_SOURCE_DIR}/build/detect/omp_simd/omp_simd_detect.c"
                 CMAKE_FLAGS
                     "-O3 -march=native -fopenmp-simd"
                 C_STANDARD 99
@@ -369,7 +407,7 @@ endif()
 #       Acquire the BLIS version
 #------------------------------------
 # Set the VERSION variable to the default value in the 'version' file.
-file(STRINGS ${CMAKE_SOURCE_DIR}/version VERSION)
+file(STRINGS ${PROJECT_SOURCE_DIR}/version VERSION)
 # Get timestamp.
 string(TIMESTAMP BUILD_DATE "%Y%m%d")
 # Update using the timestamp.
@@ -384,7 +422,7 @@ else()
     message("   Configuring with custom version string: ${VERSION_STRING}")
 endif()
 # Set the shared library (.so) version file.
-file(STRINGS ${CMAKE_SOURCE_DIR}/so_version SO_VERSION)
+file(STRINGS ${PROJECT_SOURCE_DIR}/so_version SO_VERSION)
 # The first line of the 'so_version' file contains the .so major version.
 list(GET SO_VERSION 0 SO_VERSION_MAJOR)
 # The second line contains the minor and build .so version numbers
@@ -522,8 +560,7 @@ if(ENABLE_SBA_POOLS)
     message("   Internal memory pools for small blocks are enabled.")
     set(ENABLE_SBA_POOLS_01 1)
 else()
-    #message("   Internal memory pools for small blocks are disabled.")
-    message(FATAL_ERROR  "Disabling memory pools for small blocks is currently disabled, awaiting fixes to this functionality.")
+    message("   Internal memory pools for small blocks are disabled.")
     set(ENABLE_SBA_POOLS_01 0)
 endif()
 cmake_print_variables(ENABLE_MEM_TRACING)
@@ -608,13 +645,45 @@ else()
     set(ENABLE_MIXED_DT_EXTRA_MEM_01 0)
     set(ENABLE_MIXED_DT_01 0)
 endif()
-cmake_print_variables(ENABLE_SUP_HANDLING)
-if(ENABLE_SUP_HANDLING)
+cmake_print_variables(ENABLE_MNK1_MATRIX)
+if(ENABLE_MNK1_MATRIX)
+    message("   M, N or K = 1 matrix handling is enabled.")
+    set(ENABLE_MNK1_MATRIX_01 1)
+else()
+    message("   M, N or K = 1 matrix handling is disabled.")
+    set(ENABLE_MNK1_MATRIX_01 0)
+endif()
+cmake_print_variables(ENABLE_TINY_MATRIX)
+if(ENABLE_TINY_MATRIX)
+    message("   Tiny matrix handling is enabled.")
+    set(ENABLE_TINY_MATRIX_01 1)
+else()
+    message("   Tiny matrix handling is disabled.")
+    set(ENABLE_TINY_MATRIX_01 0)
+endif()
+cmake_print_variables(ENABLE_SMALL_MATRIX)
+if(ENABLE_SMALL_MATRIX)
     message("   Small matrix handling is enabled.")
-    set(ENABLE_SUP_HANDLING_01 1)
+    set(ENABLE_SMALL_MATRIX_01 1)
 else()
     message("   Small matrix handling is disabled.")
+    set(ENABLE_SMALL_MATRIX_01 0)
+endif()
+cmake_print_variables(ENABLE_SUP_HANDLING)
+if(ENABLE_SUP_HANDLING)
+    message("   SUP matrix handling is enabled.")
+    set(ENABLE_SUP_HANDLING_01 1)
+else()
+    message("   SUP matrix handling is disabled.")
     set(ENABLE_SUP_HANDLING_01 0)
+endif()
+cmake_print_variables(ENABLE_SMALL_MATRIX_TRSM)
+if(ENABLE_SMALL_MATRIX)
+    message("   TRSM Small matrix handling is enabled.")
+    set(ENABLE_SMALL_MATRIX_TRSM_01 1)
+else()
+    message("   TRSM Small matrix handling is disabled.")
+    set(ENABLE_SMALL_MATRIX_TRSM_01 0)
 endif()
 cmake_print_variables(ENABLE_TRSM_PREINVERSION)
 if(ENABLE_TRSM_PREINVERSION)
@@ -668,6 +737,8 @@ if((INT_TYPE_SIZE STREQUAL "32") AND (BLAS_INT_TYPE_SIZE STREQUAL "64"))
         To avoid the possibility of truncation, we do not allow use of 64-bit integers in the BLAS API with 32-bit integers in BLIS. \
         Please use a different configuration of integers.")
 endif()
+
+
 cmake_print_variables(ENABLE_ADDON)
 if(ENABLE_ADDON STREQUAL "")
     message("   Configuring with no addons.")
@@ -678,7 +749,7 @@ else()
     message("   Configuring with addons:")
     foreach(ADDON ${ENABLE_ADDON})
         message("   ${ADDON}")
-        if(NOT (EXISTS ${CMAKE_SOURCE_DIR}/addon/${ADDON}))
+        if(NOT (EXISTS ${PROJECT_SOURCE_DIR}/addon/${ADDON}))
             message(FATAL_ERROR "Requested addon sub-directory does not exist! Cannot continue. \
                                     *** Please verify addon existence and name.")
         endif()
@@ -813,7 +884,7 @@ set(ALL_HEADER_PATHS_LIST "")
 set(ALL_HEADER_FILES_LIST "")
 
 # Include functionality that returns header paths.
-include(${CMAKE_SOURCE_DIR}/build/cmake/subdir_helper_functions.cmake)
+include(${PROJECT_SOURCE_DIR}/build/cmake/subdir_helper_functions.cmake)
 
 # If the CONFIG_LIST does not already contain the CONFIG_NAME (i.e.,
 # if CONFIG_NAME is an umbrella family), add in the corresponding
@@ -822,9 +893,9 @@ include(${CMAKE_SOURCE_DIR}/build/cmake/subdir_helper_functions.cmake)
 list(FIND CONFIG_LIST ${BLIS_CONFIG_FAMILY} IS_UMBRELLA)
 if(${IS_UMBRELLA} STREQUAL "-1")
     # Collect all subdirectory paths that have at least one file with suffix in ALL_H99_SUFS list.
-    get_dirpaths_with_suffixes(${BLIS_CONFIG_FAMILY}_HEADER_PATHS ${CMAKE_SOURCE_DIR}/config/${BLIS_CONFIG_FAMILY} "${ALL_H99_SUFS}")
+    get_dirpaths_with_suffixes(${BLIS_CONFIG_FAMILY}_HEADER_PATHS ${PROJECT_SOURCE_DIR}/config/${BLIS_CONFIG_FAMILY} "${ALL_H99_SUFS}")
     # Collect all files in the subdirectories.
-    get_filepaths_with_suffixes(${BLIS_CONFIG_FAMILY}_HEADER_FILES ${CMAKE_SOURCE_DIR}/config/${BLIS_CONFIG_FAMILY} "${ALL_H99_SUFS}")
+    get_filepaths_with_suffixes(${BLIS_CONFIG_FAMILY}_HEADER_FILES ${PROJECT_SOURCE_DIR}/config/${BLIS_CONFIG_FAMILY} "${ALL_H99_SUFS}")
 endif()
 list(APPEND ALL_HEADER_PATHS_LIST "${${BLIS_CONFIG_FAMILY}_HEADER_PATHS}")
 list(APPEND ALL_HEADER_FILES_LIST "${${BLIS_CONFIG_FAMILY}_HEADER_FILES}")
@@ -832,9 +903,9 @@ list(APPEND ALL_HEADER_FILES_LIST "${${BLIS_CONFIG_FAMILY}_HEADER_FILES}")
 # Get header directory paths for each of the sub-configurations present
 # in the configuration list.
 foreach(CONF ${CONFIG_LIST})
-    get_dirpaths_with_suffixes(config_${CONF}_HEADER_PATHS ${CMAKE_SOURCE_DIR}/config/${CONF} "${ALL_H99_SUFS}")
+    get_dirpaths_with_suffixes(config_${CONF}_HEADER_PATHS ${PROJECT_SOURCE_DIR}/config/${CONF} "${ALL_H99_SUFS}")
     list(APPEND ALL_HEADER_PATHS_LIST "${config_${CONF}_HEADER_PATHS}")
-    get_filepaths_with_suffixes(config_${CONF}_FILES_PATHS ${CMAKE_SOURCE_DIR}/config/${CONF} "${ALL_H99_SUFS}")
+    get_filepaths_with_suffixes(config_${CONF}_FILES_PATHS ${PROJECT_SOURCE_DIR}/config/${CONF} "${ALL_H99_SUFS}")
     list(APPEND ALL_HEADER_FILES_LIST "${config_${CONF}_HEADER_FILES}")
 endforeach()
 
@@ -842,22 +913,22 @@ endforeach()
 # in the kernel list.
 foreach(KERN ${KERNEL_LIST})
     # Collect all subdirectory paths that have at least one file with suffix in ALL_H99_SUFS list.
-    get_dirpaths_with_suffixes(kernels_${KERN}_HEADER_PATHS ${CMAKE_SOURCE_DIR}/kernels/${KERN} "${ALL_H99_SUFS}")
+    get_dirpaths_with_suffixes(kernels_${KERN}_HEADER_PATHS ${PROJECT_SOURCE_DIR}/kernels/${KERN} "${ALL_H99_SUFS}")
     list(APPEND ALL_HEADER_PATHS_LIST "${kernels_${KERN}_HEADER_PATHS}")
-    get_filepaths_with_suffixes(kernels_${KERN}_HEADER_FILES ${CMAKE_SOURCE_DIR}/kernels/${KERN} "${ALL_H99_SUFS}")
+    get_filepaths_with_suffixes(kernels_${KERN}_HEADER_FILES ${PROJECT_SOURCE_DIR}/kernels/${KERN} "${ALL_H99_SUFS}")
     list(APPEND ALL_HEADER_PATHS_FILES "${kernels_${KERN}_HEADER_FILES}")
 endforeach()
 
 # Get header directory paths for framework directory.
-get_dirpaths_with_suffixes(frame_HEADER_PATHS ${CMAKE_SOURCE_DIR}/frame "${ALL_H99_SUFS}")
+get_dirpaths_with_suffixes(frame_HEADER_PATHS ${PROJECT_SOURCE_DIR}/frame "${ALL_H99_SUFS}")
 list(APPEND ALL_HEADER_PATHS_LIST "${frame_HEADER_PATHS}")
-get_filepaths_with_suffixes(frame_HEADER_FILES ${CMAKE_SOURCE_DIR}/frame "${ALL_H99_SUFS}")
+get_filepaths_with_suffixes(frame_HEADER_FILES ${PROJECT_SOURCE_DIR}/frame "${ALL_H99_SUFS}")
 list(APPEND ALL_HEADER_FILES_LIST "${frame_HEADER_FILES}")
 
 # Get header directory paths for AOCL DTL logs directory.
-get_dirpaths_with_suffixes(aocl_dtl_HEADER_PATHS ${CMAKE_SOURCE_DIR}/aocl_dtl "${ALL_H99_SUFS}")
+get_dirpaths_with_suffixes(aocl_dtl_HEADER_PATHS ${PROJECT_SOURCE_DIR}/aocl_dtl "${ALL_H99_SUFS}")
 list(APPEND ALL_HEADER_PATHS_LIST "${aocl_dtl_HEADER_PATHS}")
-get_filepaths_with_suffixes(aocl_dtl_HEADER_FILES ${CMAKE_SOURCE_DIR}/aocl_dtl "${ALL_H99_SUFS}")
+get_filepaths_with_suffixes(aocl_dtl_HEADER_FILES ${PROJECT_SOURCE_DIR}/aocl_dtl "${ALL_H99_SUFS}")
 list(APPEND ALL_HEADER_FILES_LIST "${aocl_dtl_FILES_PATHS}")
 
 # Get a copy of the header paths without including the addons and the sandbox.
@@ -865,9 +936,9 @@ set(FRAME_HEADER_DIRPATHS_LIST ${ALL_HEADER_PATHS_LIST})
 
 # Get header directory paths for each of the addons.
 foreach(ADDON ${ENABLE_ADDON})
-    get_dirpaths_with_suffixes(addon_${ADDON}_HEADER_PATHS ${CMAKE_SOURCE_DIR}/addon/${ADDON} "${ALL_H99_SUFS}")
+    get_dirpaths_with_suffixes(addon_${ADDON}_HEADER_PATHS ${PROJECT_SOURCE_DIR}/addon/${ADDON} "${ALL_H99_SUFS}")
     list(APPEND ALL_HEADER_PATHS_LIST "${addon_${ADDON}_HEADER_PATHS}")
-    get_filepaths_with_suffixes(addon_${ADDON}_HEADER_FILES ${CMAKE_SOURCE_DIR}/addon/${ADDON} "${ALL_H99_SUFS}")
+    get_filepaths_with_suffixes(addon_${ADDON}_HEADER_FILES ${PROJECT_SOURCE_DIR}/addon/${ADDON} "${ALL_H99_SUFS}")
     list(APPEND ALL_HEADER_FILES_LIST "${addon_${ADDON}_HEADER_FILES}")
 endforeach()
 
@@ -889,8 +960,8 @@ list(JOIN ALL_HEADER_PATHS_LIST " " ALL_HEADER_PATHS_STRING)
 file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/include/${BLIS_CONFIG_FAMILY})
 # Flatten header python script file which expand header contents in blis.h.
 add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/include/${BLIS_CONFIG_FAMILY}/blis.h
-                COMMAND ${Python_EXECUTABLE} ${CMAKE_SOURCE_DIR}/build/flatten-headers.py -c -v1
-                "${CMAKE_SOURCE_DIR}/frame/include/blis.h"
+                COMMAND ${Python_EXECUTABLE} ${PROJECT_SOURCE_DIR}/build/flatten-headers.py -c -v1
+                "${PROJECT_SOURCE_DIR}/frame/include/blis.h"
                 "${PROJECT_BINARY_DIR}/include/${BLIS_CONFIG_FAMILY}/blis.h"
                 "${PROJECT_BINARY_DIR}/include"
                 "${ALL_HEADER_PATHS_STRING}"
@@ -905,8 +976,8 @@ add_custom_target(flat-header DEPENDS ${PROJECT_BINARY_DIR}/include/${BLIS_CONFI
 # Flatten header python script file which expand header contents in cblas.h.
 if(ENABLE_CBLAS)
     add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/include/${BLIS_CONFIG_FAMILY}/cblas.h
-                    COMMAND ${Python_EXECUTABLE} ${CMAKE_SOURCE_DIR}/build/flatten-headers.py -c -v1
-                    "${CMAKE_SOURCE_DIR}/frame/compat/cblas/src/cblas.h"
+                    COMMAND ${Python_EXECUTABLE} ${PROJECT_SOURCE_DIR}/build/flatten-headers.py -c -v1
+                    "${PROJECT_SOURCE_DIR}/frame/compat/cblas/src/cblas.h"
                     "${PROJECT_BINARY_DIR}/include/${BLIS_CONFIG_FAMILY}/cblas.h"
                     "${PROJECT_BINARY_DIR}/${include}"
                     "${ALL_HEADER_PATHS_STRING}"
@@ -933,11 +1004,32 @@ endif()
 set(LIBMEMKIND -lmemkind)
 
 # Default linker flags.
+# Security hardening flags :
+#   Default (no user override): ENABLED.
+#   Enable:  -DENABLE_SECURITY_FLAGS=ON  (or =1/TRUE) : enabled (default)
+#   Disable: -DENABLE_SECURITY_FLAGS=OFF (or =0/FALSE) : disabled
+option(ENABLE_SECURITY_FLAGS "Enable addition of compiler/linker security hardening flags" ON)
+set(SECURITY_FLAGS_ENABLED ${ENABLE_SECURITY_FLAGS})
+
+if(SECURITY_FLAGS_ENABLED)
+    if(WIN32)
+        # ELF-specific linker hardening flags not applicable on Windows.
+        # (Consider adding /guard:cf or /DYNAMICBASE /NXCOMPAT if using link.exe, but keep minimal here.)
+        set(LDFLAGS "")
+        message(STATUS "Security hardening flags: ENABLED (no ELF linker flags applied on Windows)")
+    else()
+        set(LDFLAGS "-Wl,-z,now" "-Wl,-z,relro")
+        message(STATUS "Security hardening flags: ENABLED")
+    endif()
+else()
+    message(STATUS "Security hardening flags: DISABLED")
+    set(LDFLAGS "")
+endif()
 # NOTE: -lpthread is needed unconditionally because BLIS uses pthread_once()
 # to initialize itself in a thread-safe manner. The one exception to this
 # rule: if --disable-system is given at configure-time, LIBPTHREAD is empty.
 if(NOT WIN32)
-    set(LDFLAGS ${LIBM} ${LIBPTHREAD})
+    list(APPEND LDFLAGS ${LIBM} ${LIBPTHREAD})
 endif()
 # Add libmemkind to the link-time flags, if it was enabled at configure-time.
 if(ENABLE_MEMKIND STREQUAL "yes")
@@ -1010,8 +1102,22 @@ if(NOT WIN32)
 endif()
 
 # Macro to remove/replace absolute path within library
-list(APPEND BUILD_SYMFLAGS "-fmacro-prefix-map=${CMAKE_SOURCE_DIR}/=")
+list(APPEND BUILD_SYMFLAGS "-fmacro-prefix-map=${PROJECT_SOURCE_DIR}/=")
 
+if(SECURITY_FLAGS_ENABLED)
+    if(WIN32)
+        # MSVC/clang-cl: /GS is on by default in most configurations; leave explicit flags empty.
+        # Avoid -D_FORTIFY_SOURCE / -fstack-protector-strong which are GCC/Clang (ELF) specific.
+        set(CLANGFLAGS "")
+        set(CXXLANGFLAGS "")
+    else()
+        set(CLANGFLAGS "-D_FORTIFY_SOURCE=2" "-fstack-protector-strong")
+        set(CXXLANGFLAGS "-D_FORTIFY_SOURCE=2" "-fstack-protector-strong")
+    endif()
+else()
+    set(CLANGFLAGS "")
+    set(CXXLANGFLAGS "")
+endif()
 # --- C Preprocessor flags ---
 # Enable clock_gettime() in time.h.
 set(CPPROCFLAGS -D_POSIX_C_SOURCE=200112L)
@@ -1043,7 +1149,7 @@ endif()
 # files will be needed when compiling bli_cntx_ref.c with the monolithic header.
 
 # Read content of bli_cntx_ref.c and put it in REF_KER_HEADERS_TEMP.
-file(STRINGS ${CMAKE_SOURCE_DIR}/ref_kernels/bli_cntx_ref.c REF_KER_HEADERS_TEMP)
+file(STRINGS ${PROJECT_SOURCE_DIR}/ref_kernels/bli_cntx_ref.c REF_KER_HEADERS_TEMP)
 # Only keep the lines where there are includes.
 list(FILTER REF_KER_HEADERS_TEMP INCLUDE REGEX "\#include")
 # REF_KER_HEADERS has a list of all files that are included in bli_cntx_ref.c.
@@ -1072,7 +1178,7 @@ list(REMOVE_DUPLICATES REF_KER_H_PATHS)
 set(CINFLAGS ${PROJECT_BINARY_DIR}/include/${BLIS_CONFIG_FAMILY})
 list(APPEND CINFLAGS ${REF_KER_H_PATHS})
 # Then add frame/include since it's needed for bli_oapi_w[o]_cntx.h.
-list(APPEND CINFLAGS ${CMAKE_SOURCE_DIR}/frame/include)
+list(APPEND CINFLAGS ${PROJECT_SOURCE_DIR}/frame/include)
 # If CBLAS is enabled, we also include the path to the cblas.h directory so
 # that the compiler will be able to find cblas.h as the CBLAS source code is
 # being compiled.
@@ -1161,8 +1267,8 @@ set(BLIS_PUBLIC_HEADERS
     ${PROJECT_BINARY_DIR}/include/${BLIS_CONFIG_FAMILY}/blis.h
     # Include AMD's C++ template header files in the list of headers
     # to install.
-    ${CMAKE_SOURCE_DIR}/vendor/cpp/blis.hh
-    ${CMAKE_SOURCE_DIR}/vendor/cpp/cblas.hh
+    ${PROJECT_SOURCE_DIR}/vendor/cpp/blis.hh
+    ${PROJECT_SOURCE_DIR}/vendor/cpp/cblas.hh
 )
 if(ENABLE_CBLAS)
     list(APPEND BLIS_PUBLIC_HEADERS ${PROJECT_BINARY_DIR}/include/${BLIS_CONFIG_FAMILY}/cblas.h)
@@ -1221,7 +1327,7 @@ endif()
 string(JOIN " " LDFLAGS_STRING ${LDFLAGS_STRING})
 if(NOT WIN32)
     configure_file(
-        ${CMAKE_SOURCE_DIR}/build/cmake/${PC_IN_FILE}
+        ${PROJECT_SOURCE_DIR}/build/cmake/${PC_IN_FILE}
         ${CMAKE_BINARY_DIR}/${PC_OUT_FILE}
         @ONLY
     )

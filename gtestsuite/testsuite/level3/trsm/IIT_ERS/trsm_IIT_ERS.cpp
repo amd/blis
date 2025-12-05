@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2024 - 2025, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -131,7 +131,7 @@ TYPED_TEST(trsm_IIT_ERS, invalid_side)
  *        when info == 2
  *
  */
-TYPED_TEST(trsm_IIT_ERS, invalid_UPLO)
+TYPED_TEST(trsm_IIT_ERS, invalid_uplo)
 {
     using T = TypeParam;
     T ALPHA = T{2.3};
@@ -166,7 +166,7 @@ TYPED_TEST(trsm_IIT_ERS, invalid_UPLO)
  *        when info == 3
  *
  */
-TYPED_TEST(trsm_IIT_ERS, invalid_TRANS)
+TYPED_TEST(trsm_IIT_ERS, invalid_trans)
 {
     using T = TypeParam;
     T ALPHA = T{2.3};
@@ -445,7 +445,7 @@ TYPED_TEST(trsm_IIT_ERS, n_eq_zero)
 }
 
 /**
- * @brief Test TRSM when alpha is zero
+ * @brief Test TRSM when alpha is zero - set B to 0
  */
 TYPED_TEST(trsm_IIT_ERS, alpha_eq_zero)
 {
@@ -453,7 +453,9 @@ TYPED_TEST(trsm_IIT_ERS, alpha_eq_zero)
     T ALPHA;
     testinghelpers::initzero<T>( ALPHA );
 
-    std::vector<T> b = testinghelpers::get_random_matrix<T>(0, 1, STORAGE, 'n', M, N, LDB);
+    // Matrix B should not be read, only set.
+    std::vector<T> b( testinghelpers::matsize( STORAGE, 'N', M, N, LDB ) );
+    testinghelpers::set_matrix( STORAGE, M, N, b.data(), 'N', LDB, testinghelpers::aocl_extreme<T>() );
     std::vector<T> b2(b);
     std::vector<T> zero_mat = testinghelpers::get_random_matrix<T>(0, 0, STORAGE, 'n', M, N, LDB);
 

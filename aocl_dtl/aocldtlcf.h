@@ -1,3 +1,37 @@
+/*
+
+   BLIS
+   An object-based framework for developing high-performance BLAS-like
+   libraries.
+
+   Copyright (C) 2020 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+
+   Redistribution and use in source and binary forms, with or without
+   modification, are permitted provided that the following conditions are
+   met:
+    - Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+    - Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
+      documentation and/or other materials provided with the distribution.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
+
+   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+   HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+*/
+
 /*===================================================================
  * File Name :  aocldtlcf.h
  *
@@ -5,35 +39,29 @@
  *               libaray, all debug features (except auto trace)
  *               can be enabled/disabled in this file.
  *
- * Copyright (C) 2020 - 2023, Advanced Micro Devices, Inc. All rights reserved.
- *
  *==================================================================*/
 
 #ifndef _AOCLDTLCF_H_
 #define _AOCLDTLCF_H_
 
-/* Macro for tracing the log If the user wants to enable tracing he has to
-   enable this macro by making it to 1 else 0 */
-#define AOCL_DTL_TRACE_ENABLE       0
-
+/* DTL_DumpData functionality (AOCL_DTL_DUMP_ENABLE) is not used at present */
 /* Macro for dumping the log If the user wants to enable dumping he has to
    enable this macro by making it to 1 else 0 */
-#define AOCL_DTL_DUMP_ENABLE        0
 
-/* Macro for dumping the log If the user wants to enable input logs he has to
-   enable this macro by making it to 1 else 0 */
-#define AOCL_DTL_LOG_ENABLE         0
+/* AOCL_DTL_LOG_ENABLE and AOCL_DTL_TRACE_ENABLE now defined via configure
+   and cmake options */
 
 /* Select the trace level till which you want to log the data */
-/* By default it will log for all levels */
-#define AOCL_DTL_TRACE_LEVEL         AOCL_DTL_LEVEL_TRACE_5
+/* Default set in configure and CMakeLists.txt is AOCL_DTL_TRACE_LEVEL_NUMBER=5 */
+#define AOCL_DTL_TRACE_LEVEL         AOCL_DTL_TRACE_LEVEL_NUMBER
 
 /* user has to explicitly use the below macros to identify
-   ciriticality of the logged message */
+   criticality of the logged message */
 #define AOCL_DTL_LEVEL_ALL          (15)
+#define AOCL_DTL_LEVEL_TRACE_10     (15)
 #define AOCL_DTL_LEVEL_TRACE_9      (14)
 #define AOCL_DTL_LEVEL_TRACE_8      (13)
-#define AOCL_DTL_LEVEL_TRACE_7      (12)     /* Kernels */
+#define AOCL_DTL_LEVEL_TRACE_7      (12)      /* Kernels */
 #define AOCL_DTL_LEVEL_TRACE_6      (11)
 #define AOCL_DTL_LEVEL_TRACE_5      (10)
 #define AOCL_DTL_LEVEL_TRACE_4      (9)

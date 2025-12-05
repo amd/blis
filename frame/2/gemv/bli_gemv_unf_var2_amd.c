@@ -251,19 +251,18 @@ void PASTEMAC(ch,varname) \
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_3); \
 }
 
-void bli_dgemv_unf_var2
-     (
-       trans_t transa,
-       conj_t  conjx,
-       dim_t   m,
-       dim_t   n,
-       double* alpha,
-       double* a, inc_t rs_a, inc_t cs_a,
-       double* x, inc_t incx,
-       double* beta,
-       double* y, inc_t incy,
-       cntx_t* cntx
-     )
+void bli_dgemv_unf_var2 (
+                          trans_t transa,
+                          conj_t  conjx,
+                          dim_t   m,
+                          dim_t   n,
+                          double* alpha,
+                          double* a, inc_t rs_a, inc_t cs_a,
+                          double* x, inc_t incx,
+                          double* beta,
+                          double* y, inc_t incy,
+                          cntx_t* cntx
+                        )
 {
     AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_3);
 
@@ -272,7 +271,7 @@ void bli_dgemv_unf_var2
       the support of AVX512 or AVX2, if AVX512 - arch_id will be zen4
       or for AVX2 it will be zen3.
     */
-    arch_t id = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id();
 
     // b_fuse stores the fusing factor for AXPYF kernel.
     dim_t b_fuse;
@@ -281,28 +280,49 @@ void bli_dgemv_unf_var2
       Function pointer declaration for the functions
       that will be used by this API
     */
-    daxpyf_ker_ft   axpyf_kr_ptr; // DAXPYF
-    dscal2v_ker_ft  scal2v_kr_ptr; // DSCAL2V
-    dscalv_ker_ft   scalv_kr_ptr; // DSCALV
-    dcopyv_ker_ft   copyv_kr_ptr; // DCOPYV
+    daxpyf_ker_ft   axpyf_kr_ptr = NULL;   // DAXPYF
+    dscal2v_ker_ft  scal2v_kr_ptr = NULL;  // DSCAL2V
+    dscalv_ker_ft   scalv_kr_ptr = NULL;   // DSCALV
+    dcopyv_ker_ft   copyv_kr_ptr = NULL;   // DCOPYV
 
-    switch (id)
+    switch ( arch_id )
     {
         case BLIS_ARCH_ZEN5:
+#if defined(BLIS_KERNELS_ZEN4)
+        //this is the main Interface kernel present in zen4 kernel 
+        // directory, this main kernel invokes other kernels based
+        // on certain metrics.
+        bli_dgemv_n_zen4_int(
+                              transa,
+                              conjx,
+                              m,
+                              n,
+                              alpha,
+                              a, rs_a, cs_a,
+                              x, incx,
+                              beta,
+                              y, incy,
+                              cntx
+                            );
+
+        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_3)
+        return;
+#endif
+
         case BLIS_ARCH_ZEN4:
 #if defined(BLIS_KERNELS_ZEN4)
-            bli_dgemv_n_avx512(
-                transa,
-                conjx,
-                m,
-                n,
-                alpha,
-                a, rs_a, cs_a,
-                x, incx,
-                beta,
-                y, incy,
-                cntx
-            );
+        bli_dgemv_n_zen4_int(
+                              transa,
+                              conjx,
+                              m,
+                              n,
+                              alpha,
+                              a, rs_a, cs_a,
+                              x, incx,
+                              beta,
+                              y, incy,
+                              cntx
+                            );
 
             AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_3)
             return;
@@ -310,20 +330,20 @@ void bli_dgemv_unf_var2
         case BLIS_ARCH_ZEN:
         case BLIS_ARCH_ZEN2:
         case BLIS_ARCH_ZEN3:
-            bli_dgemv_n_avx2(
-                transa,
-                conjx,
-                m,
-                n,
-                alpha,
-                a, rs_a, cs_a,
-                x, incx,
-                beta,
-                y, incy,
-                cntx
-            );
+            bli_dgemv_n_zen(
+                              transa,
+                              conjx,
+                              m,
+                              n,
+                              alpha,
+                              a, rs_a, cs_a,
+                              x, incx,
+                              beta,
+                              y, incy,
+                              cntx
+                           );
 
-            AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_3)
+            AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_3);
             return;
 
         default:
@@ -453,12 +473,6 @@ void bli_dgemv_unf_var2
           y_temp, temp_incy,
           cntx
         );
-    }
-
-    if( bli_deq0( *alpha ) )
-    {
-        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_3)
-        return;
     }
 
     for (i = 0; i < n_iter; i += f)
@@ -610,7 +624,7 @@ void bli_sgemv_unf_var2
     /* If beta is zero, use setv. Otherwise, scale by beta. */
         /* y = beta * y; */
     /* beta=0 case is handled by scalv internally */
-    bli_sscalv_zen_int10
+    bli_sscalv_zen_int_10
     (
       BLIS_NO_CONJUGATE,
       n_elem,
@@ -693,17 +707,17 @@ void bli_zgemv_unf_var2
   conja = bli_extract_conj(transa);
 
   // Query the architecture ID
-  arch_t id = bli_arch_query_id();
+  arch_t arch_id = bli_arch_query_id();
 
   /*
     Function pointer declaration for the functions
     that will be used by this API
   */
-  zaxpyf_ker_ft   axpyf_kr_ptr;  // ZAXPYF
-  zscal2v_ker_ft  scal2v_kr_ptr; // ZSCAL2V
-  zscalv_ker_ft   scalv_kr_ptr;  // ZSCALV
-  zcopyv_ker_ft   copyv_kr_ptr;  // ZCOPYV
-  zsetv_ker_ft    setv_kr_ptr;   // ZSETV
+  zaxpyf_ker_ft   axpyf_kr_ptr = NULL;  // ZAXPYF
+  zscal2v_ker_ft  scal2v_kr_ptr = NULL; // ZSCAL2V
+  zscalv_ker_ft   scalv_kr_ptr = NULL;  // ZSCALV
+  zcopyv_ker_ft   copyv_kr_ptr = NULL;  // ZCOPYV
+  zsetv_ker_ft    setv_kr_ptr = NULL;   // ZSETV
 
   /*
     Boolean to check if the y has been packed
@@ -711,12 +725,12 @@ void bli_zgemv_unf_var2
   */
   bool is_y_temp_buf_created = FALSE;
 
-  switch (id)
+  switch ( arch_id )
   {
     case BLIS_ARCH_ZEN5:
     case BLIS_ARCH_ZEN4:
 #if defined(BLIS_KERNELS_ZEN4)
-      axpyf_kr_ptr = bli_zaxpyf_zen_int_8_avx512;
+      axpyf_kr_ptr = bli_zaxpyf_zen4_int_8;
       b_fuse = 8;
 
       scal2v_kr_ptr = bli_zscal2v_zen_int;
@@ -725,7 +739,7 @@ void bli_zgemv_unf_var2
 
       copyv_kr_ptr = bli_zcopyv_zen_int;
 
-      setv_kr_ptr = bli_zsetv_zen_int_avx512;
+      setv_kr_ptr = bli_zsetv_zen4_int;
       break;
 #endif
     case BLIS_ARCH_ZEN:

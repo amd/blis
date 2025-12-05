@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2018 - 2025, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -322,8 +322,8 @@ void bli_cnormfv_unb_var1
     inc_t incx_buf = incx;
 
     // Querying the architecture ID to deploy the appropriate kernel
-    arch_t id = bli_arch_query_id();
-    switch ( id )
+    arch_t arch_id = bli_arch_query_id();
+    switch ( arch_id )
     {
         case BLIS_ARCH_ZEN5:
         case BLIS_ARCH_ZEN4:
@@ -353,7 +353,7 @@ void bli_cnormfv_unb_var1
                 size_t buffer_size = n * sizeof( scomplex );
 
                 #ifdef BLIS_ENABLE_MEM_TRACING
-                    printf( "bli_scnorm2fv_unb_var1_avx2(): get mem pool block\n" );
+                    printf( "bli_scnorm2fv_zen_int_unb_var1(): get mem pool block\n" );
                 #endif
 
                 // Acquire a Buffer(n*size(scomplex)) from the memory broker
@@ -378,12 +378,12 @@ void bli_cnormfv_unb_var1
                     incx_buf = 1;
                 }
 
-                bli_scnorm2fv_unb_var1_avx2( n, x_buf, incx_buf, norm, cntx );
+                bli_scnorm2fv_zen_int_unb_var1( n, x_buf, incx_buf, norm, cntx );
 
                 if ( bli_mem_is_alloc( &mem_buf_X ) )
                 {
                     #ifdef BLIS_ENABLE_MEM_TRACING
-                        printf( "bli_scnorm2fv_unb_var1_avx2(): releasing mem pool block\n" );
+                        printf( "bli_scnorm2fv_zen_int_unb_var1(): releasing mem pool block\n" );
                     #endif
                     // Return the buffer to pool.
                     bli_pba_release( &rntm_l , &mem_buf_X );
@@ -392,7 +392,7 @@ void bli_cnormfv_unb_var1
             else
             {
                 // Call the kernel with the unit-strided vector x
-                bli_scnorm2fv_unb_var1_avx2( n, x_buf, incx_buf, norm, cntx );
+                bli_scnorm2fv_zen_int_unb_var1( n, x_buf, incx_buf, norm, cntx );
             }
 
             break;
@@ -460,8 +460,8 @@ void bli_znormfv_unb_var1
     dim_t simd_factor = 1;
 #endif
 
-    arch_t id = bli_arch_query_id();
-    switch ( id )
+    arch_t arch_id = bli_arch_query_id();
+    switch ( arch_id )
     {
         case BLIS_ARCH_ZEN5:
         case BLIS_ARCH_ZEN4:
@@ -470,8 +470,8 @@ void bli_znormfv_unb_var1
         case BLIS_ARCH_ZEN:
 #ifdef BLIS_KERNELS_ZEN
 
-            norm_fp   = bli_dznorm2fv_unb_var1_avx2;
-            reduce_fp = bli_dnorm2fv_unb_var1_avx2;
+            norm_fp   = bli_dznorm2fv_zen_int_unb_var1;
+            reduce_fp = bli_dnorm2fv_zen_int_unb_var1;
             fast_path_thresh = 2000;
 
         #ifdef BLIS_ENABLE_OPENMP
@@ -547,7 +547,7 @@ void bli_znormfv_unb_var1
         #if defined( AOCL_DYNAMIC )
             aocl_znormfv_dynamic
             (
-                id,
+                arch_id,
                 n,
                 &nt_ideal
             );
@@ -573,8 +573,21 @@ void bli_znormfv_unb_var1
         an allocated memory if created or a NULL .
     */
 
-    mem_t mem_buf_X = { 0 };
+    mem_t mem_buf_X;
     inc_t incx_buf = incx;
+    
+    /*
+      Initialize mem pool buffer to NULL and size to 0
+      "buf" and "size" fields are assigned once memory
+      is allocated from the pool in bli_pba_acquire_m().
+      This will ensure bli_mem_is_alloc() will be passed on
+      an allocated memory if created or a NULL .
+    */
+    mem_buf_X.pblk.buf = NULL;
+    mem_buf_X.pblk.block_size = 0;
+    mem_buf_X.buf_type = 0;
+    mem_buf_X.size = 0;
+    mem_buf_X.pool = NULL;
 
     // Packing for non-unit strided vector x.
     // In order to get the buffer from pool via rntm access to memory broker
@@ -655,7 +668,20 @@ void bli_znormfv_unb_var1
             the local results will finally be reduced as per the mandate.
         */
 
-        mem_t mem_buf_norm = { 0 };
+        mem_t mem_buf_norm;
+
+        /*
+            Initialize mem pool buffer to NULL and size to 0
+            "buf" and "size" fields are assigned once memory
+            is allocated from the pool in bli_pba_acquire_m().
+            This will ensure bli_mem_is_alloc() will be passed on
+            an allocated memory if created or a NULL .
+        */
+        mem_buf_norm.pblk.buf = NULL;
+        mem_buf_norm.pblk.block_size = 0;
+        mem_buf_norm.buf_type = 0;
+        mem_buf_norm.size = 0;
+        mem_buf_norm.pool = NULL;
 
         double *norm_per_thread = NULL;
 
@@ -913,8 +939,8 @@ void bli_snormfv_unb_var1
     inc_t incx_buf = incx;
 
     // Querying the architecture ID to deploy the appropriate kernel
-    arch_t id = bli_arch_query_id();
-    switch ( id )
+    arch_t arch_id = bli_arch_query_id();
+    switch ( arch_id )
     {
         case BLIS_ARCH_ZEN5:
         case BLIS_ARCH_ZEN4:
@@ -947,7 +973,7 @@ void bli_snormfv_unb_var1
                 size_t buffer_size = n * sizeof( float );
 
                 #ifdef BLIS_ENABLE_MEM_TRACING
-                    printf( "bli_snorm2fv_unb_var1_avx2(): get mem pool block\n" );
+                    printf( "bli_snorm2fv_zen_int_unb_var1(): get mem pool block\n" );
                 #endif
 
                 // Acquire a Buffer(n*size(float)) from the memory broker
@@ -972,12 +998,12 @@ void bli_snormfv_unb_var1
                     incx_buf = 1;
                 }
 
-                bli_snorm2fv_unb_var1_avx2( n, x_buf, incx_buf, norm, cntx );
+                bli_snorm2fv_zen_int_unb_var1( n, x_buf, incx_buf, norm, cntx );
 
                 if ( bli_mem_is_alloc( &mem_buf_X ) )
                 {
                     #ifdef BLIS_ENABLE_MEM_TRACING
-                        printf( "bli_snorm2fv_unb_var1_avx2(): releasing mem pool block\n" );
+                        printf( "bli_snorm2fv_zen_int_unb_var1(): releasing mem pool block\n" );
                     #endif
                     // Return the buffer to pool.
                     bli_pba_release( &rntm_l , &mem_buf_X );
@@ -986,7 +1012,7 @@ void bli_snormfv_unb_var1
             else
             {
                 // Call the kernel with the unit-strided vector x
-                bli_snorm2fv_unb_var1_avx2( n, x_buf, incx_buf, norm, cntx );
+                bli_snorm2fv_zen_int_unb_var1( n, x_buf, incx_buf, norm, cntx );
             }
 
             break;
@@ -1058,16 +1084,16 @@ void bli_dnormfv_unb_var1
     dim_t nt_ideal = -1;
 #endif
 
-    arch_t id = bli_arch_query_id();
-    switch ( id )
+    arch_t arch_id = bli_arch_query_id();
+    switch ( arch_id )
     {
         case BLIS_ARCH_ZEN5:
 #if defined(BLIS_KERNELS_ZEN4)
 
         if( n <= 30 )
-            norm_fp = bli_dnorm2fv_unb_var1_avx2;
+            norm_fp = bli_dnorm2fv_zen_int_unb_var1;
         else
-            norm_fp = bli_dnorm2fv_unb_var1_avx512;
+            norm_fp = bli_dnorm2fv_zen4_int_unb_var1;
 
     #ifdef __clang__
         fast_path_thresh = 6000;
@@ -1085,9 +1111,9 @@ void bli_dnormfv_unb_var1
 #if defined(BLIS_KERNELS_ZEN4)
 
         if( n <= 250 )
-            norm_fp = bli_dnorm2fv_unb_var1_avx2;
+            norm_fp = bli_dnorm2fv_zen_int_unb_var1;
         else
-            norm_fp = bli_dnorm2fv_unb_var1_avx512;
+            norm_fp = bli_dnorm2fv_zen4_int_unb_var1;
 
         fast_path_thresh = 4000;
 
@@ -1102,7 +1128,7 @@ void bli_dnormfv_unb_var1
         case BLIS_ARCH_ZEN:
 #ifdef BLIS_KERNELS_ZEN
 
-        norm_fp = bli_dnorm2fv_unb_var1_avx2;
+        norm_fp = bli_dnorm2fv_zen_int_unb_var1;
         fast_path_thresh = 4000;
 
     #ifdef BLIS_ENABLE_OPENMP
@@ -1177,7 +1203,7 @@ void bli_dnormfv_unb_var1
         #if defined( AOCL_DYNAMIC )
             aocl_dnormfv_dynamic
             (
-                id,
+                arch_id,
                 n,
                 &nt_ideal
             );
@@ -1203,8 +1229,21 @@ void bli_dnormfv_unb_var1
         an allocated memory if created or a NULL .
     */
 
-    mem_t mem_buf_X = { 0 };
+    mem_t mem_buf_X;
     inc_t incx_buf = incx;
+
+    /*
+        Initialize mem pool buffer to NULL and size to 0
+        "buf" and "size" fields are assigned once memory
+        is allocated from the pool in bli_pba_acquire_m().
+        This will ensure bli_mem_is_alloc() will be passed on
+        an allocated memory if created or a NULL .
+    */
+    mem_buf_X.pblk.buf = NULL;
+    mem_buf_X.pblk.block_size = 0;
+    mem_buf_X.buf_type = 0;
+    mem_buf_X.size = 0;
+    mem_buf_X.pool = NULL;
 
     // Packing for non-unit strided vector x.
     // In order to get the buffer from pool via rntm access to memory broker

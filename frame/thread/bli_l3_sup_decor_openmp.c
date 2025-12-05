@@ -121,6 +121,11 @@ err_t bli_l3_sup_thread_decorator
 		  thread
 		);
 
+		// NOTE: The barrier here is very important as it prevents memory being
+		// released by the chief of some thread sub-group before its peers are done
+		// using it. See PR #702 for more info [1].
+		// [1] https://github.com/flame/blis/pull/702
+    	bli_thread_barrier( thread );
 		// Free the current thread's thrinfo_t structure.
 		bli_l3_sup_thrinfo_free( rntm_p, thread );
 	}

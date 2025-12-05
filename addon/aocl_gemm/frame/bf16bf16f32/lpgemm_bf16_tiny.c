@@ -76,6 +76,14 @@ LPGEMV_TINY(bfloat16, bfloat16, float, bf16bf16f32of32)
 
 	lpgemm_post_op_attr post_ops_attr;
 	post_ops_attr.c_stor_type = c_downscale;
+    post_ops_attr.rs_c_downscale    = rs_c;
+    post_ops_attr.cs_c_downscale    = cs_c;
+    post_ops_attr.is_first_k        = TRUE;
+    post_ops_attr.is_last_k         = TRUE;
+    post_ops_attr.b_sum_offset      = 0;
+    post_ops_attr.b_col_sum_vec     = NULL;
+    post_ops_attr.b_col_sum_vec_s16 = NULL;
+
 	if (c_downscale < F32)
 	{
 		post_ops_attr.buf_downscale = c;
@@ -182,12 +190,12 @@ LPGEMM_TINY(bfloat16,bfloat16,float,bf16bf16f32of32)
 
 	dim_t NR = lcntx->blksz.NR;
 
-	const int16_t* a_use = NULL;
+	const int16_t* a_use = a;
 	dim_t cs_a_use = cs_a;
 	dim_t rs_a_use = rs_a;
 	dim_t a_block_stride = 0;
 
-	const int16_t* b_use = NULL;
+	const int16_t* b_use = b;
 	dim_t rs_b_use = rs_b;
 	dim_t cs_b_use = cs_b;
 
@@ -210,6 +218,12 @@ LPGEMM_TINY(bfloat16,bfloat16,float,bf16bf16f32of32)
 
 	lpgemm_post_op_attr post_ops_attr;
 	post_ops_attr.c_stor_type = c_downscale;
+    post_ops_attr.rs_c_downscale    = rs_c;
+    post_ops_attr.cs_c_downscale    = cs_c;
+    post_ops_attr.b_sum_offset      = 0;
+    post_ops_attr.b_col_sum_vec     = NULL;
+    post_ops_attr.b_col_sum_vec_s16 = NULL;
+
 	if ( c_downscale < F32 )
 	{
 		post_ops_attr.buf_downscale = c;

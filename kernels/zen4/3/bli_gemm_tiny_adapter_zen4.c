@@ -67,56 +67,57 @@
  * @note
  * N = 0 case never occurs.
  */
-#define CALL_KERNEL\
-        if(N >= 8)\
-        {\
-            avx512kern_fp[8](   conja,\
-                                conjb,\
-                                M,\
-                                N,\
-                                K,\
-                                (double *)alpha,\
-                                (a_local + (0 * rs_a) + (0 * cs_a)), /*A matrix offset*/\
-                                rs_a,\
-                                cs_a,\
-                                (b_local + (0 * cs_b) + (0 * rs_b)), /*B matrix offset*/\
-                                rs_b,\
-                                cs_b,\
-                                (double *)beta,\
-                                (c_local + 0 * cs_c + 0 * rs_c),     /*C matrix offset*/\
-                                rs_c,\
-                                cs_c,\
-                                &aux,\
-                                NULL\
-                            );\
-        }\
-        else\
-        {\
-            avx512kern_fp[N](   conja,\
-                                conjb,\
-                                M,\
-                                N,\
-                                K,\
-                                (double *)alpha,\
-                                (a_local + (0 * rs_a) + (0 * cs_a)), /*A matrix offset*/\
-                                rs_a,\
-                                cs_a,\
-                                (b_local + (0 * cs_b) + (0 * rs_b)), /*B matrix offset*/\
-                                rs_b,\
-                                cs_b,\
-                                (double *)beta,\
-                                (c_local + 0 * cs_c + 0 * rs_c),     /*C matrix offset*/\
-                                rs_c,\
-                                cs_c,\
-                                &aux,\
-                                NULL\
-                            );\
+#define CALL_KERNEL                                                                      \
+        if(N >= 8)                                                                       \
+        {                                                                                \
+            kern_fp_zen4[8](   conja,                                                   \
+                                conjb,                                                   \
+                                M,                                                       \
+                                N,                                                       \
+                                K,                                                       \
+                                (double *)alpha,                                         \
+                                (a_local + (0 * rs_a) + (0 * cs_a)), /*A matrix offset*/ \
+                                rs_a,                                                    \
+                                cs_a,                                                    \
+                                (b_local + (0 * cs_b) + (0 * rs_b)), /*B matrix offset*/ \
+                                rs_b,                                                    \
+                                cs_b,                                                    \
+                                (double *)beta,                                          \
+                                (c_local + 0 * cs_c + 0 * rs_c),     /*C matrix offset*/ \
+                                rs_c,                                                    \
+                                cs_c,                                                    \
+                                &aux,                                                    \
+                                NULL                                                     \
+                            );                                                           \
+        }                                                                                \
+        else                                                                             \
+        {                                                                                \
+            kern_fp_zen4[N](   conja,                                                   \
+                                conjb,                                                   \
+                                M,                                                       \
+                                N,                                                       \
+                                K,                                                       \
+                                (double *)alpha,                                         \
+                                (a_local + (0 * rs_a) + (0 * cs_a)), /*A matrix offset*/ \
+                                rs_a,                                                    \
+                                cs_a,                                                    \
+                                (b_local + (0 * cs_b) + (0 * rs_b)), /*B matrix offset*/ \
+                                rs_b,                                                    \
+                                cs_b,                                                    \
+                                (double *)beta,                                          \
+                                (c_local + 0 * cs_c + 0 * rs_c),     /*C matrix offset*/ \
+                                rs_c,                                                    \
+                                cs_c,                                                    \
+                                &aux,                                                    \
+                                NULL                                                     \
+                            );                                                           \
         }
+
 /**
  * @brief bli_dgemmsup_placeholder
  * 
  * This is just a dummy function, which does nothing.
- * Instead of setting 0th index avx512kern_fp table to NULL,
+ * Instead of setting 0th index kern_fp_zen4 table to NULL,
  * this dummy function is assigned.
  * Since we are directly calling kernels via function pointer
  * without null checks, it is better to assign a dummy function
@@ -141,21 +142,21 @@ static void bli_dgemmsup_placeholder
     return;
 }
 
-static dgemmsup_ker_ft avx512kern_fp[] =
+static dgemmsup_ker_ft kern_fp_zen4[] =
 {
     bli_dgemmsup_placeholder,
-    bli_dgemmsup_rv_zen4_asm_24x1m_new,
-    bli_dgemmsup_rv_zen4_asm_24x2m_new,
-    bli_dgemmsup_rv_zen4_asm_24x3m_new,
-    bli_dgemmsup_rv_zen4_asm_24x4m_new,
-    bli_dgemmsup_rv_zen4_asm_24x5m_new,
-    bli_dgemmsup_rv_zen4_asm_24x6m_new,
-    bli_dgemmsup_rv_zen4_asm_24x7m_new,
-    bli_dgemmsup_rv_zen4_asm_24x8m_new
+    bli_dgemmsup_cv_zen4_asm_24x1m_new,
+    bli_dgemmsup_cv_zen4_asm_24x2m_new,
+    bli_dgemmsup_cv_zen4_asm_24x3m_new,
+    bli_dgemmsup_cv_zen4_asm_24x4m_new,
+    bli_dgemmsup_cv_zen4_asm_24x5m_new,
+    bli_dgemmsup_cv_zen4_asm_24x6m_new,
+    bli_dgemmsup_cv_zen4_asm_24x7m_new,
+    bli_dgemmsup_cv_zen4_asm_24x8m_new
 };
 
 
-err_t bli_dgemm_tiny_24x8
+err_t bli_dgemm_tiny_zen4_24x8
      (
         conj_t              conja,
         conj_t              conjb,
@@ -333,9 +334,33 @@ err_t bli_dgemm_tiny_24x8
         ps_a_use = (24 * k);
         bli_auxinfo_set_ps_a( ps_a_use, &aux );
 
+        /**
+         * CALL_KERNEL makes actual call to micro kernel,
+         * which is bli_dgemmsup_cv_zen4_asm_24x8m_new and the family of
+         * it based on value of N dimension.
+         * Arguments passed to it are as follows.
+         * conja                                whether A matrix is conjugate
+           conjb                                whether B matrix is conjugate
+           M                                    M dimension
+           N                                    N dimension
+           K                                    K dimension
+           (double *)alpha                      Pointer to alpha value
+           (a_local + (0 * rs_a) + (0 * cs_a)), A matrix offset
+           rs_a                                 row stride of A matrix
+           cs_a                                 column stride of A matrix
+           (b_local + (0 * cs_b) + (0 * rs_b)), B matrix offset
+           rs_b                                 row stride of B matrix
+           cs_b                                 column stride of C matrix
+           (double *)beta                       pointer to Beta value
+           (c_local + 0 * cs_c + 0 * rs_c),     C matrix offset
+           rs_c                                 row stride of C matrix
+           cs_c                                 column stride of C matrix
+           &aux                                 Aux structure which carries additional info
+           NULL                                 we do not use context in tiny path.
+        */
         CALL_KERNEL
 
-	//Return the allocated memory back to small block allocator
+        //Return the allocated memory back to small block allocator
         bli_pba_release(&rntm, &local_mem_buf_A_s);
     }
     else

@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2025, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -54,21 +54,20 @@ void sgemm_compute_blis_impl
           float*    c, const f77_int* rs_c, const f77_int* cs_c
 )
 {
+    /* Initialize BLIS. */
+    bli_init_auto();
+
     AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
+    AOCL_DTL_LOG_GEMM_COMPUTE_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(s), *transa, *transb, *m, *n, *k,
+                                     *( ( *rs_a != 1 ) ? rs_a : cs_a ),
+                                     *( ( *rs_b != 1 ) ? rs_b : cs_b ),
+                                     (void*)beta, *rs_c);
 
     trans_t blis_transa;
     trans_t blis_transb;
     dim_t   m0, n0, k0;
     dim_t   m0_a, n0_a;
     dim_t   m0_b, n0_b;
-
-    /* Initialize BLIS. */
-    bli_init_auto();
-
-    // @todo: Add AOCL DTL logs
-    // AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1)
-    // AOCL_DTL_LOG_GEMM_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(d), *transa, *transb, *m, *n, *k, 
-                            //  (void*)alpha, *lda, *ldb, (void*)beta, *ldc);
 
     /* Perform BLAS parameter checking. */
     PASTEBLACHK(gemm_compute)
@@ -88,9 +87,10 @@ void sgemm_compute_blis_impl
     /* Quick return. */
     if ( *m == 0 || *n == 0 || ( ( *k == 0) && PASTEMAC(s,eq1)( *beta ) ) )
     {
+      AOCL_DTL_LOG_GEMM_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(s), *m, *n, *k); \
+      AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
       /* Finalize BLIS. */
       bli_finalize_auto();
-      AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
       return;
     }
 
@@ -132,11 +132,10 @@ void sgemm_compute_blis_impl
         NULL
     );
 
+    AOCL_DTL_LOG_GEMM_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(s), *m, *n, *k); \
+    AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
     /* Finalize BLIS. */
     bli_finalize_auto();
-
-    AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
-
     return;
 }
 
@@ -182,7 +181,14 @@ void dgemm_compute_blis_impl
           double*   c, const f77_int* rs_c, const f77_int* cs_c
 )
 {
+    /* Initialize BLIS. */
+    bli_init_auto();
+
     AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
+    AOCL_DTL_LOG_GEMM_COMPUTE_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(d), *transa, *transb, *m, *n, *k,
+                                     *( ( *rs_a != 1 ) ? rs_a : cs_a ),
+                                     *( ( *rs_b != 1 ) ? rs_b : cs_b ),
+                                     (void*)beta, *rs_c);
 
     trans_t blis_transa;
     trans_t blis_transb;
@@ -190,13 +196,6 @@ void dgemm_compute_blis_impl
     dim_t   m0_a, n0_a;
     dim_t   m0_b, n0_b;
 
-    /* Initialize BLIS. */
-    bli_init_auto();
-
-    // @todo: Add AOCL DTL logs
-    // AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1)
-    // AOCL_DTL_LOG_GEMM_INPUTS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(d), *transa, *transb, *m, *n, *k, 
-                            //  (void*)alpha, *lda, *ldb, (void*)beta, *ldc);
 
     /* Perform BLAS parameter checking. */
     PASTEBLACHK(gemm_compute)
@@ -216,9 +215,10 @@ void dgemm_compute_blis_impl
    /* Quick return. */
     if ( *m == 0 || *n == 0 || ( ( *k == 0) && PASTEMAC(d,eq1)( *beta ) ) )
     {
+      AOCL_DTL_LOG_GEMM_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(d), *m, *n, *k); \
+      AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
       /* Finalize BLIS. */
       bli_finalize_auto();
-      AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
       return;
     }
 
@@ -260,11 +260,10 @@ void dgemm_compute_blis_impl
         NULL
     );
 
+    AOCL_DTL_LOG_GEMM_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(d), *m, *n, *k); \
+    AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
     /* Finalize BLIS. */
     bli_finalize_auto();
-
-    AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
-
     return;
 }
 

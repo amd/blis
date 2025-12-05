@@ -62,9 +62,72 @@ typedef void (*lpgemm_rowvar_f32)
        lpgemm_post_op_attr
      );
 
-#ifdef BLIS_KERNELS_ZEN4
+     typedef void (*lpgemv_m_one_ker_ft)
+     (
+       const dim_t,
+       const dim_t,
+       const float*,
+       const dim_t,
+       const dim_t,
+       const AOCL_MEMORY_TAG,
+       const float*,
+       dim_t,
+       const dim_t,
+       const AOCL_MEMORY_TAG,
+       float*,
+       const dim_t,
+       const dim_t,
+       const float,
+       const float,
+       dim_t,
+       const dim_t,
+       const dim_t,
+       const dim_t,
+       lpgemm_post_op*,
+       lpgemm_post_op_attr*
+     );
+
+typedef void (*lpgemv_n_one_ker_ft)
+     (
+       const dim_t,
+       const dim_t,
+       const float*,
+       const dim_t,
+       const dim_t,
+       const AOCL_MEMORY_TAG,
+       const float*,
+       const dim_t,
+       const dim_t,
+       const AOCL_MEMORY_TAG,
+       float*,
+       const dim_t,
+       const dim_t,
+       const float,
+       const float,
+       const dim_t,
+       const dim_t,
+       lpgemm_post_op*,
+       lpgemm_post_op_attr*
+     );
+
+typedef void (*lpgemv_a_pack_ft)
+     (
+        float*,
+        const float*,
+        const dim_t,
+        const dim_t,
+        const dim_t,
+        const dim_t,
+        dim_t*,
+        dim_t*
+      );
+
 LPGEMV(float, float, float, f32f32f32of32)
 {
+
+  /* Ignoring mtag_a/b and should_pack_A/B for now .
+     Matrices are packed only when the storage format is not supported by the kernel.
+  */
   const float* a_use = (float*)a;
   inc_t rs_a_use = rs_a;
   inc_t cs_a_use = cs_a;
@@ -92,6 +155,14 @@ LPGEMV(float, float, float, f32f32f32of32)
 
   lpgemm_post_op_attr post_ops_attr;
   post_ops_attr.c_stor_type = c_downscale;
+  post_ops_attr.rs_c_downscale    = rs_c;
+  post_ops_attr.cs_c_downscale    = cs_c;
+  post_ops_attr.is_first_k        = TRUE;
+  post_ops_attr.is_last_k         = TRUE;
+  post_ops_attr.b_sum_offset      = 0;
+  post_ops_attr.b_col_sum_vec     = NULL;
+  post_ops_attr.b_col_sum_vec_s16 = NULL;
+
   if (c_downscale < F32) post_ops_attr.buf_downscale = c;
   else  post_ops_attr.buf_downscale = NULL;
 
@@ -103,11 +174,50 @@ LPGEMV(float, float, float, f32f32f32of32)
   if(n == 1)
   {
     float* pack_b_buffer_f32f32f32of32;
-    //TODO: AVX2 support need to be added
-    // Increased MR from 6 to 16 to make use of 32 ZMM registers
-    dim_t MR = 16;
+
+    dim_t MR;
+    lpgemv_n_one_ker_ft ker_fp;
+    lpgemv_a_pack_ft packa_fp;
+
+    // Workaround to select right kernel and blocksizes based on arch
+    // since GEMV parameters are not available in lpgemm context.
+#ifdef BLIS_KERNELS_ZEN4
+    // Runtime check for AVX512 ISA support.
+    // We intend to use AOCL_ENABLE_INSTRUCTIONS only if the
+    // underlying architecture supports AVX512 ISA.
+    if( bli_cpuid_is_avx512_supported() == TRUE )
+    {
+      if( lpgemm_get_enabled_arch() == BLIS_ARCH_ZEN3 )
+      {
+        MR = 16;
+        ker_fp = lpgemv_n_one_f32f32f32of32_avx512_256;
+        packa_fp = packa_mr8_f32f32f32of32_col_major;
+      }
+      else
+      {
+        MR = 16;
+        ker_fp = lpgemv_n_one_f32f32f32of32;
+        packa_fp = packa_mr16_f32f32f32of32_col_major;
+      }
+    }
+    else
+    {
+#endif
+      MR = 8;
+      ker_fp = lpgemv_n_one_f32f32f32of32_avx2;
+      packa_fp = packa_mr8_f32f32f32of32_col_major;
+#ifdef BLIS_KERNELS_ZEN4
+    }
+#endif
+
+    // The vector is already contiguous if reordered.
+    if (mtag_b == REORDERED)
+    {
+      rs_b_use = 1;
+      cs_b_use = 1;
+    }
     // Pack B matrix if rs_b > 1
-    if( ( mtag_b == PACK ) && ( rs_b != 1 ) )
+    else if (rs_b != 1)
     {
       mem_b_size_req = sizeof( float ) * k;
 
@@ -144,7 +254,8 @@ LPGEMV(float, float, float, f32f32f32of32)
       c_use = c + ic * rs_c;
       post_ops_attr.post_op_c_i = ic;
 
-      if( mtag_a == PACK && cs_a != 1 )
+      // To-Do: pack A case needs to be handled for AVX2 case.
+      if( cs_a != 1 )
       {
         mem_a_size_req = sizeof(float) * mc0 * k;
         lpgemm_alloc_mem_panel
@@ -154,7 +265,7 @@ LPGEMV(float, float, float, f32f32f32of32)
         );
         pack_a_buffer_f32f32f32of32 = ( float* )bli_mem_buffer( &mem_a );
 
-        packa_mr16_f32f32f32of32_col_major
+        packa_fp
           (
             pack_a_buffer_f32f32f32of32,
             a_use, rs_a, cs_a,
@@ -163,31 +274,57 @@ LPGEMV(float, float, float, f32f32f32of32)
           );
         a_use = pack_a_buffer_f32f32f32of32;
       }
-
-      // Call lpgemv_n_one kernel
-      lpgemv_n_one_f32f32f32of32
+      ker_fp
       (
-          mc0, k,
-          a_use, rs_a_use, cs_a_use, mtag_a,
-          b_use, rs_b_use, cs_b_use, mtag_b,
-          c_use, rs_c, cs_c,
-          alpha, beta,
-          MR, KC,
-          post_op_list,
-          &post_ops_attr
+        mc0, k,
+        a_use, rs_a_use, cs_a_use, mtag_a,
+        b_use, rs_b_use, cs_b_use, mtag_b,
+        c_use, rs_c, cs_c,
+        alpha, beta,
+        MR, KC,
+        post_op_list,
+        &post_ops_attr
       );
     }
-    if ( ( mtag_a == PACK ) && ( bli_mem_is_alloc( &mem_a ) ) )
+    if ( ( cs_a != 1 ) && ( bli_mem_is_alloc( &mem_a ) ) )
     {
       bli_pba_release( rntm, &mem_a );
     }
-    if ( ( mtag_b == PACK ) && ( bli_mem_is_alloc( &mem_b ) ) )
+    if ( ( rs_b != 1 ) && ( bli_mem_is_alloc( &mem_b ) ) )
     {
       bli_pba_release( rntm, &mem_b );
     }
   }
   else
   {
+    lpgemv_m_one_ker_ft ker_fp;
+    lpgemv_a_pack_ft packa_fp;
+
+#ifdef BLIS_KERNELS_ZEN4
+    // Runtime check for AVX512 ISA support.
+    // We intend to use AOCL_ENABLE_INSTRUCTIONS only if the
+    // underlying architecture supports AVX512 ISA.
+    if( bli_cpuid_is_avx512_supported() == TRUE )
+    {
+      if( lpgemm_get_enabled_arch() == BLIS_ARCH_ZEN3 )
+      {
+        ker_fp = lpgemv_m_one_f32f32f32of32_avx512_256;
+        packa_fp = packa_mr8_f32f32f32of32_col_major;
+      }
+      else
+      {
+        ker_fp = lpgemv_m_one_f32f32f32of32;
+        packa_fp = packa_mr16_f32f32f32of32_col_major;
+      }
+    }
+    else
+    {
+#endif
+      ker_fp = lpgemv_m_one_f32f32f32of32_avx2;
+      packa_fp = packa_mr8_f32f32f32of32_col_major;
+#ifdef BLIS_KERNELS_ZEN4
+    }
+#endif
     // Compute the JC loop thread range for the current thread.
     dim_t jc_start, jc_end;
     thread_jc.n_way = ( thread_jc.n_way == 1 ) ?
@@ -195,7 +332,7 @@ LPGEMV(float, float, float, f32f32f32of32)
     thread_jc.work_id = thread->tid;
     bli_thread_range_sub(&thread_jc, n, NR, FALSE, &jc_start, &jc_end);
 
-    if ( mtag_a == PACK )
+    if ( cs_a != 1 )
     {
       mem_a_size_req = sizeof( float ) * k;
 
@@ -208,7 +345,7 @@ LPGEMV(float, float, float, f32f32f32of32)
       pack_a_buffer_f32f32f32of32 =
           ( float* ) bli_mem_buffer( &mem_a );
 
-      packa_mr16_f32f32f32of32_col_major
+      packa_fp
           (
             pack_a_buffer_f32f32f32of32,
             a_use, rs_a, cs_a,
@@ -241,7 +378,7 @@ LPGEMV(float, float, float, f32f32f32of32)
         rs_b_use = NR;
         cs_b_use = 1;
       }
-      else if (mtag_b == PACK)
+      else if ( mtag_b == PACK )
       {
         // nc0 needs to be a multiple of 16 since this gives maximum
         // vectorization. Packing B always results in buffers with width
@@ -285,9 +422,8 @@ LPGEMV(float, float, float, f32f32f32of32)
 
       //update post-op pointer
       post_ops_attr.post_op_c_j = jc;
-
       // Call kernel
-      lpgemv_m_one_f32f32f32of32
+      ker_fp
       (
           nc0, k,
           a_use, rs_a_use, cs_a_use, mtag_a,
@@ -312,18 +448,20 @@ LPGEMV(float, float, float, f32f32f32of32)
     {
       bli_pba_release( rntm, &mem_b );
     }
+
+    if ( ( cs_a != 1 ) && ( bli_mem_is_alloc( &mem_a ) ) )
+    {
+      bli_pba_release( rntm, &mem_a );
+    }
   }
 }
-#endif
+
 
 LPGEMM_5LOOP(float, float, float, f32f32f32of32)
 {
-#ifdef BLIS_KERNELS_ZEN4
   // Handle using LPGEMV when m or/and n equal to 1
-  // The avx512 check will be removed when avx2 kernels added in future
-  if ( ( ( m == 1 ) ||  ( n == 1 ) ) &&
-       ( bli_cpuid_is_avx512_supported() == TRUE ) &&
-       ( lpgemm_get_enabled_arch() != BLIS_ARCH_ZEN3 ) )
+  if ( ( (m == 1)  ||  ( n == 1 ) ) &&
+  ( ( bli_cpuid_is_avx512_supported() == TRUE ) || ( bli_cpuid_is_avx2fma3_supported() == TRUE ) ) )
   {
     lpgemv_rowvar_f32f32f32of32(m, n, k,
                                 a, rs_a, cs_a, mtag_a,
@@ -338,8 +476,6 @@ LPGEMM_5LOOP(float, float, float, f32f32f32of32)
                                 c_downscale);
     return;
   }
-#endif
-
     // Query the context for various blocksizes.
     const dim_t NC = lcntx->blksz.NC;
     const dim_t KC = lcntx->blksz.KC;
@@ -379,7 +515,7 @@ LPGEMM_5LOOP(float, float, float, f32f32f32of32)
     siz_t mem_a_size_req = 0;
 
     // Check if packing of B is required.
-    bool should_pack_B = bli_rntm_pack_b( rntm ) || ( rs_b == 1 );
+    bool should_pack_B = bli_rntm_pack_b( rntm );
 
     // Pack buffer for B.
     float* pack_b_buffer_f32f32f32of32;
@@ -396,11 +532,16 @@ LPGEMM_5LOOP(float, float, float, f32f32f32of32)
 
     lpgemm_post_op_attr post_ops_attr;
     post_ops_attr.c_stor_type = c_downscale;
+    post_ops_attr.rs_c_downscale    = rs_c;
+    post_ops_attr.cs_c_downscale    = cs_c;
+    post_ops_attr.b_sum_offset      = 0;
+    post_ops_attr.b_col_sum_vec     = NULL;
+    post_ops_attr.b_col_sum_vec_s16 = NULL;
+
     if ( c_downscale < F32 )
     {
         post_ops_attr.buf_downscale = c;
-    }
-    else
+    }else
     {
         post_ops_attr.buf_downscale = NULL;
     }
@@ -414,6 +555,26 @@ LPGEMM_5LOOP(float, float, float, f32f32f32of32)
     // Compute the JC loop thread range for the current thread.
     dim_t jc_start, jc_end;
     bli_thread_range_sub( &thread_jc, n, NR, FALSE, &jc_start, &jc_end );
+
+    // Compute the IC loop thread range for the current thread.
+    dim_t ic_start, ic_end;
+    bli_thread_range_sub( &thread_ic, m, MR, FALSE, &ic_start, &ic_end );
+
+    // Update the kernel pointer with right kernel
+    lpgemm_rowvar_f32 ker_ptr = (lpgemm_rowvar_f32) lcntx->kern_fun_ptr;
+
+    // Avoid packing of B in transb cases where rd kernels performs
+    // better than rv + pack. rv kernel calls rd when rs_b==1.
+    bool invoke_rd = FALSE;
+
+    if( ( lpgemm_get_enabled_arch() != BLIS_ARCH_ZEN3) &&
+        ( ( n < 48 ) || ( m < 16 ) )  && ( rs_b == 1 ) &&
+        ( mtag_a == UNPACKED ) && ( mtag_b == PACK ) )
+    {
+        invoke_rd = TRUE;
+        mtag_b = UNPACKED;
+        should_pack_A = FALSE;
+    }
 
     for ( dim_t jc = jc_start; jc < jc_end; jc += NC )
     {
@@ -446,7 +607,20 @@ LPGEMM_5LOOP(float, float, float, f32f32f32of32)
             is_last_k = ( ( pc + KC ) >= k ) ? ( TRUE ) : ( FALSE );
             post_ops_attr.is_last_k = is_last_k;
 
-            if ( ( mtag_b == PACK ) && ( should_pack_B == TRUE ) )
+            if ( mtag_b == REORDERED )
+            {
+                // In multi-threaded scenarios, an extra offset into a given
+                // packed B panel is required, since the jc loop split can
+                // result in per thread start offset inside the panel, instead
+                // of panel boundaries.
+                b_use = b + ( jc_cur_loop * k ) +
+                        ( n_sub_updated * pc ) + ( jc_cur_loop_rem * kc0 );
+
+                rs_b_use = NR;
+                cs_b_use = 1;
+                ps_b_use = kc0;
+            }
+            else if ( ( mtag_b == PACK ) || ( should_pack_B == TRUE ) )
             {
                 // Pack B chunks are based on jc work id.
                 dim_t jc_work_id = bli_thread_work_id( &thread_jc );
@@ -526,27 +700,15 @@ LPGEMM_5LOOP(float, float, float, f32f32f32of32)
                 );
                 b_use = pack_b_buffer_f32f32f32of32;
             }
-            else if ( mtag_b == REORDERED )
-            {
-                // In multi-threaded scenarios, an extra offset into a given
-                // packed B panel is required, since the jc loop split can
-                // result in per thread start offset inside the panel, instead
-                // of panel boundaries.
-                b_use = b + ( jc_cur_loop * k ) +
-                        ( n_sub_updated * pc ) + ( jc_cur_loop_rem * kc0 );
-
-                rs_b_use = NR;
-                cs_b_use = 1;
-                ps_b_use = kc0;
-            }
             else
             {
                 b_use = b + ( pc * rs_b ) + ( jc * cs_b );
                 ps_b_use = 1;
+                if ( invoke_rd == TRUE )
+                {
+                    ps_b_use = cs_b_use;
+                }
             }
-
-            dim_t ic_start, ic_end;
-            bli_thread_range_sub( &thread_ic, m, MR, FALSE, &ic_start, &ic_end );
 
             for ( dim_t ic = ic_start; ic < ic_end; ic += MC )
             {
@@ -584,7 +746,7 @@ LPGEMM_5LOOP(float, float, float, f32f32f32of32)
                     (
                       pack_a_buffer_f32f32f32of32,
                       ( a + ( rs_a * ic ) + ( pc * cs_a) ),
-					  rs_a, cs_a,
+                      rs_a, cs_a,
                       mc0, kc0,
                       &rs_a_use, &cs_a_use
                     );
@@ -611,8 +773,8 @@ LPGEMM_5LOOP(float, float, float, f32f32f32of32)
                     post_ops_attr.post_op_c_j = ( jc + jr );
                     post_ops_attr.rs_c_downscale = rs_c_downscale;
 
-                    // Reordered/unpacked B, reordered/unpacked A.
-                    ( ( lpgemm_rowvar_f32 )lcntx->kern_fun_ptr )
+                    // Call the micro-kernel
+                    ker_ptr
                     (
                       mc0, nr0, kc0,
                       ( float* )a_use, rs_a_use, cs_a_use, ps_a_use,
@@ -631,7 +793,7 @@ LPGEMM_5LOOP(float, float, float, f32f32f32of32)
     }
 
     // Release pack buffers.
-    if ( ( mtag_b == PACK ) && ( should_pack_B == TRUE ) )
+    if ( ( mtag_b == PACK ) || ( should_pack_B == TRUE ) )
     {
         // All threads in work group should wait till B matrix usage is
         // completed by the participating threads.

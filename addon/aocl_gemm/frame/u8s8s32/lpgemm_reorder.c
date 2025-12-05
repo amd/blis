@@ -53,8 +53,8 @@ void reorderb_nr64_u8s8s32o32
 
 	dim_t rs_b = b->rs;
 	dim_t cs_b = b->cs;
-	dim_t rs_b_reorder;
-	dim_t cs_b_reorder;
+	dim_t rs_b_reorder = rs_b;
+	dim_t cs_b_reorder = cs_b;
 
 	dim_t n = b->width;
 	dim_t k = b->length;
@@ -176,8 +176,8 @@ void reordera_mr6_u8s8s32o32
 
 	dim_t rs_a = a->rs;
 	dim_t cs_a = a->cs;
-	dim_t rs_a_reorder;
-	dim_t cs_a_reorder;
+	dim_t rs_a_reorder = rs_a;
+	dim_t cs_a_reorder = cs_a;
 
 	dim_t k = a->width;
 	dim_t m = a->length;

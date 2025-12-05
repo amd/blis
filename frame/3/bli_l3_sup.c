@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2019 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2019 - 2025, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -76,9 +76,8 @@ err_t bli_gemmsup
 
     //Don't use sup for currently unsupported storage types in cgemmsup
     if(bli_obj_is_scomplex(c) &&
-    (((stor_id == BLIS_RRC)||(stor_id == BLIS_CRC))
-    || ((transa == BLIS_CONJ_NO_TRANSPOSE) || (transa == BLIS_CONJ_TRANSPOSE))
-    || ((transb == BLIS_CONJ_NO_TRANSPOSE) || (transb == BLIS_CONJ_TRANSPOSE))
+    (((transa == BLIS_CONJ_NO_TRANSPOSE) || (transa == BLIS_CONJ_TRANSPOSE)) ||
+     ((transb == BLIS_CONJ_NO_TRANSPOSE) || (transb == BLIS_CONJ_TRANSPOSE))
     )){
 	//printf(" gemmsup: Returning with for un-supported storage types and conjugate property in cgemmsup \n");
 	AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_2, "SUP - Unsuppported storage type for cgemm");
@@ -110,11 +109,11 @@ err_t bli_gemmsup
 #if defined(BLIS_FAMILY_ZEN5) || defined(BLIS_FAMILY_ZEN4) || defined(BLIS_FAMILY_AMDZEN) || defined(BLIS_FAMILY_X86_64)
 
     // Query the architecture ID
-    arch_t id = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id();
 
-    if(( id == BLIS_ARCH_ZEN5 ) || ( id == BLIS_ARCH_ZEN4 ))
+    if(( arch_id == BLIS_ARCH_ZEN5 ) || ( arch_id == BLIS_ARCH_ZEN4 ))
     {
-        if(( bli_obj_dt(a) == BLIS_DOUBLE ))
+        if(( bli_obj_dt(a) == BLIS_DOUBLE ) || ( bli_obj_dt(a) == BLIS_SCOMPLEX ))
         {
             // Pack A to avoid RD kernels.
             if((stor_id == BLIS_CRC || stor_id == BLIS_RRC))
