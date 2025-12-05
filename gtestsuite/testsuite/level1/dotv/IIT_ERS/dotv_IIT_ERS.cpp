@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2024 - 2025, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -38,6 +38,9 @@
 #include "common/testing_helpers.h"
 #include "inc/check_error.h"
 
+static const char CONJ_N = 'n';
+static const char CONJ_C = 'c';
+
 template <typename T>
 class dotv_IIT_ERS : public ::testing::Test {};
 typedef ::testing::Types<float, double, scomplex, dcomplex> TypeParam;
@@ -55,7 +58,7 @@ using namespace testinghelpers::IIT;
 */
 
 // n < 0, with non-unit stride
-TYPED_TEST(dotv_IIT_ERS, n_lt_zero_nonUnitStride)
+TYPED_TEST(dotv_IIT_ERS, n_lt_zero_nonUnitStride_conjN)
 {
     using T = TypeParam;
     gtint_t invalid_n = -1;
@@ -67,7 +70,7 @@ TYPED_TEST(dotv_IIT_ERS, n_lt_zero_nonUnitStride)
     testinghelpers::initzero<T>(rho_ref);
 
     // Test with nullptr for all suitable arguments that shouldn't be accessed.
-    dotv<T>( CONJ, CONJ, invalid_n, nullptr, inc, nullptr, inc, &rho );
+    dotv<T>( CONJ_N, CONJ_N, invalid_n, nullptr, inc, nullptr, inc, &rho );
     // Computing the difference.
     computediff<T>( "rho", rho, rho_ref );
 
@@ -77,14 +80,14 @@ TYPED_TEST(dotv_IIT_ERS, n_lt_zero_nonUnitStride)
     std::vector<T> y = testinghelpers::get_random_vector<T>( -10, 10, N, inc );
 
     // Invoking DOTV with an invalid value of n.
-    dotv<T>( CONJ, CONJ, invalid_n, x.data(), inc, y.data(), inc, &rho );
+    dotv<T>( CONJ_N, CONJ_N, invalid_n, x.data(), inc, y.data(), inc, &rho );
 
     // Computing the difference.
     computediff<T>( "rho", rho, rho_ref );
 }
 
 // n == 0, with non-unit stride
-TYPED_TEST(dotv_IIT_ERS, n_eq_zero_nonUnitStride)
+TYPED_TEST(dotv_IIT_ERS, n_eq_zero_nonUnitStride_conjN)
 {
     using T = TypeParam;
     gtint_t invalid_n = 0;
@@ -96,7 +99,7 @@ TYPED_TEST(dotv_IIT_ERS, n_eq_zero_nonUnitStride)
     testinghelpers::initzero<T>(rho_ref);
 
     // Test with nullptr for all suitable arguments that shouldn't be accessed.
-    dotv<T>( CONJ, CONJ, invalid_n, nullptr, inc, nullptr, inc, &rho );
+    dotv<T>( CONJ_N, CONJ_N, invalid_n, nullptr, inc, nullptr, inc, &rho );
     // Computing the difference.
     computediff<T>( "rho", rho, rho_ref );
 
@@ -106,14 +109,14 @@ TYPED_TEST(dotv_IIT_ERS, n_eq_zero_nonUnitStride)
     std::vector<T> y = testinghelpers::get_random_vector<T>( -10, 10, N, inc );
 
     // Invoking DOTV with an invalid value of n.
-    dotv<T>( CONJ, CONJ, invalid_n, x.data(), inc, y.data(), inc, &rho );
+    dotv<T>( CONJ_N, CONJ_N, invalid_n, x.data(), inc, y.data(), inc, &rho );
 
     // Computing the difference.
     computediff<T>( "rho", rho, rho_ref );
 }
 
 // n < 0, with unit stride
-TYPED_TEST(dotv_IIT_ERS, n_lt_zero_unitStride)
+TYPED_TEST(dotv_IIT_ERS, n_lt_zero_unitStride_conjN)
 {
     using T = TypeParam;
     gtint_t invalid_n = -1;
@@ -125,7 +128,7 @@ TYPED_TEST(dotv_IIT_ERS, n_lt_zero_unitStride)
     testinghelpers::initzero<T>(rho_ref);
 
     // Test with nullptr for all suitable arguments that shouldn't be accessed.
-    dotv<T>( CONJ, CONJ, invalid_n, nullptr, unit_inc, nullptr, unit_inc, &rho );
+    dotv<T>( CONJ_N, CONJ_N, invalid_n, nullptr, unit_inc, nullptr, unit_inc, &rho );
     // Computing the difference.
     computediff<T>( "rho", rho, rho_ref );
 
@@ -135,14 +138,14 @@ TYPED_TEST(dotv_IIT_ERS, n_lt_zero_unitStride)
     std::vector<T> y = testinghelpers::get_random_vector<T>( -10, 10, N, unit_inc );
 
     // Invoking DOTV with an invalid value of n.
-    dotv<T>( CONJ, CONJ, invalid_n, x.data(), unit_inc, y.data(), unit_inc, &rho );
+    dotv<T>( CONJ_N, CONJ_N, invalid_n, x.data(), unit_inc, y.data(), unit_inc, &rho );
 
     // Computing the difference.
     computediff<T>( "rho", rho, rho_ref );
 }
 
 // n == 0, with unit stride
-TYPED_TEST(dotv_IIT_ERS, n_eq_zero_unitStride)
+TYPED_TEST(dotv_IIT_ERS, n_eq_zero_unitStride_conjN)
 {
     using T = TypeParam;
     gtint_t invalid_n = 0;
@@ -154,7 +157,7 @@ TYPED_TEST(dotv_IIT_ERS, n_eq_zero_unitStride)
     testinghelpers::initzero<T>(rho_ref);
 
     // Test with nullptr for all suitable arguments that shouldn't be accessed.
-    dotv<T>( CONJ, CONJ, invalid_n, nullptr, unit_inc, nullptr, unit_inc, &rho );
+    dotv<T>( CONJ_N, CONJ_N, invalid_n, nullptr, unit_inc, nullptr, unit_inc, &rho );
     // Computing the difference.
     computediff<T>( "rho", rho, rho_ref );
 
@@ -164,9 +167,127 @@ TYPED_TEST(dotv_IIT_ERS, n_eq_zero_unitStride)
     std::vector<T> y = testinghelpers::get_random_vector<T>( -10, 10, N, unit_inc );
 
     // Invoking DOTV with an invalid value of n.
-    dotv<T>( CONJ, CONJ, invalid_n, x.data(), unit_inc, y.data(), unit_inc, &rho );
+    dotv<T>( CONJ_N, CONJ_N, invalid_n, x.data(), unit_inc, y.data(), unit_inc, &rho );
 
     // Computing the difference.
     computediff<T>( "rho", rho, rho_ref );
 }
+
+// n < 0, with non-unit stride
+TYPED_TEST(dotv_IIT_ERS, n_lt_zero_nonUnitStride_conjC)
+{
+    using T = TypeParam;
+    gtint_t invalid_n = -1;
+    gtint_t inc = 5;
+    // Initialize rho (BLIS output) to garbage value.
+    T rho = T{-7.3};
+    // Initialize the expected output to zero.
+    T rho_ref;
+    testinghelpers::initzero<T>(rho_ref);
+
+    // Test with nullptr for all suitable arguments that shouldn't be accessed.
+    dotv<T>( CONJ_C, CONJ_C, invalid_n, nullptr, inc, nullptr, inc, &rho );
+    // Computing the difference.
+    computediff<T>( "rho", rho, rho_ref );
+
+    // Test with all arguments correct except for the value we are choosing to test.
+    // Initialize vectors with random numbers.
+    std::vector<T> x = testinghelpers::get_random_vector<T>( -10, 10, N, inc );
+    std::vector<T> y = testinghelpers::get_random_vector<T>( -10, 10, N, inc );
+
+    // Invoking DOTV with an invalid value of n.
+    dotv<T>( CONJ_C, CONJ_C, invalid_n, x.data(), inc, y.data(), inc, &rho );
+
+    // Computing the difference.
+    computediff<T>( "rho", rho, rho_ref );
+}
+
+// n == 0, with non-unit stride
+TYPED_TEST(dotv_IIT_ERS, n_eq_zero_nonUnitStride_conjC)
+{
+    using T = TypeParam;
+    gtint_t invalid_n = 0;
+    gtint_t inc = 5;
+    // Initialize rho (BLIS output) to garbage value.
+    T rho = T{-7.3};
+    // Initialize the expected output to zero.
+    T rho_ref;
+    testinghelpers::initzero<T>(rho_ref);
+
+    // Test with nullptr for all suitable arguments that shouldn't be accessed.
+    dotv<T>( CONJ_C, CONJ_C, invalid_n, nullptr, inc, nullptr, inc, &rho );
+    // Computing the difference.
+    computediff<T>( "rho", rho, rho_ref );
+
+    // Test with all arguments correct except for the value we are choosing to test.
+    // Initialize vectors with random numbers.
+    std::vector<T> x = testinghelpers::get_random_vector<T>( -10, 10, N, inc );
+    std::vector<T> y = testinghelpers::get_random_vector<T>( -10, 10, N, inc );
+
+    // Invoking DOTV with an invalid value of n.
+    dotv<T>( CONJ_C, CONJ_C, invalid_n, x.data(), inc, y.data(), inc, &rho );
+
+    // Computing the difference.
+    computediff<T>( "rho", rho, rho_ref );
+}
+
+// n < 0, with unit stride
+TYPED_TEST(dotv_IIT_ERS, n_lt_zero_unitStride_conjC)
+{
+    using T = TypeParam;
+    gtint_t invalid_n = -1;
+    gtint_t unit_inc = 1;
+    // Initialize rho (BLIS output) to garbage value.
+    T rho = T{-7.3};
+    // Initialize the expected output to zero.
+    T rho_ref;
+    testinghelpers::initzero<T>(rho_ref);
+
+    // Test with nullptr for all suitable arguments that shouldn't be accessed.
+    dotv<T>( CONJ_C, CONJ_C, invalid_n, nullptr, unit_inc, nullptr, unit_inc, &rho );
+    // Computing the difference.
+    computediff<T>( "rho", rho, rho_ref );
+
+    // Test with all arguments correct except for the value we are choosing to test.
+    // Initialize vectors with random numbers.
+    std::vector<T> x = testinghelpers::get_random_vector<T>( -10, 10, N, unit_inc );
+    std::vector<T> y = testinghelpers::get_random_vector<T>( -10, 10, N, unit_inc );
+
+    // Invoking DOTV with an invalid value of n.
+    dotv<T>( CONJ_C, CONJ_C, invalid_n, x.data(), unit_inc, y.data(), unit_inc, &rho );
+
+    // Computing the difference.
+    computediff<T>( "rho", rho, rho_ref );
+}
+
+// n == 0, with unit stride
+TYPED_TEST(dotv_IIT_ERS, n_eq_zero_unitStride_conjC)
+{
+    using T = TypeParam;
+    gtint_t invalid_n = 0;
+    gtint_t unit_inc = 1;
+    // Initialize rho (BLIS output) to garbage value.
+    T rho = T{-7.3};
+    // Initialize the expected output to zero.
+    T rho_ref;
+    testinghelpers::initzero<T>(rho_ref);
+
+    // Test with nullptr for all suitable arguments that shouldn't be accessed.
+    dotv<T>( CONJ_C, CONJ_C, invalid_n, nullptr, unit_inc, nullptr, unit_inc, &rho );
+    // Computing the difference.
+    computediff<T>( "rho", rho, rho_ref );
+
+    // Test with all arguments correct except for the value we are choosing to test.
+    // Initialize vectors with random numbers.
+    std::vector<T> x = testinghelpers::get_random_vector<T>( -10, 10, N, unit_inc );
+    std::vector<T> y = testinghelpers::get_random_vector<T>( -10, 10, N, unit_inc );
+
+    // Invoking DOTV with an invalid value of n.
+    dotv<T>( CONJ_C, CONJ_C, invalid_n, x.data(), unit_inc, y.data(), unit_inc, &rho );
+
+    // Computing the difference.
+    computediff<T>( "rho", rho, rho_ref );
+}
+
+
 #endif
