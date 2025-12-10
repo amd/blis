@@ -11,6 +11,7 @@
 * **[Available targets](CMakeBuildSystem.md#available-targets)**
 * **[Adding configurations](CMakeBuildSystem.md#adding-configurations)**
 * **[Some examples](CMakeBuildSystem.md#some-examples)**
+* **[Building Benchmark suite](CMakeBuildSystem.md#building-benchmark-suite)**
 * **[Final notes](CMakeBuildSystem.md#final-notes)**
 
 ## Introduction
@@ -221,67 +222,59 @@ Addon functionality is currently available only on Linux.
 cmake .. -DENABLE_THREADING=no -DINT_SIZE=64 -DBLAS_INT_SIZE=64 -DENABLE_ADDON=aocl_gemm -DBLIS_CONFIG_FAMILY=amdzen
 ```
 
-### Bench
-* Bench is used to measure performance. The bench targets depend on BLIS library, which is built depending on the cmake configuration.
+## Building Benchmark suite
+Bench is used to measure performance. The bench targets depend on BLIS library, which is built depending on the cmake configuration.
+To run the benchmarking suite follow the steps below:
+* Move to "bench" folder within blis_build dir created during configuring cmake.
+* build the executables selecting specific target
+  * To build the benchmark executables with the BLIS library built from CMake project use
+  ```
+  $ cmake ..
+  $ cmake --build . --target bench_blis         #builds blis extension executables
+  ```
 
-## 1. Bench CMake Configuration
+  * To build the benchmark executables with any BLIS package provide a path to the installation using
+  ```
+  $ cmake .. -DBLIS_INSTALL_PATH=/BLIS_installation_path
+  $ cmake --build . --target bench_blis         #builds blis extension executables
+  ```
 
-## 1.1.Move to "bench" folder within blis_build dir created during configuring cmake.
+  * To build the benchmark executables with MKLROOT use
+  ```
+  $ cmake ..
+  $ cmake --build . --target bench_mkl          #builds mkl extension executables
+  ```
 
-## 1.2.Now build bench selecting the targets
-# 1.2.1.To build blis targets
-* To build the benchmark executables with the BLIS library built from CMake project use
-```
-$ cmake ..
-$ cmake --build . --target bench_blis         #builds blis extension executables
-```
+  * If MKLROOT is not set, then set MKL_PATH and build the benchmark executables using
+  ```
+  $ cmake .. -DMKL_PATH=/path_to_MKL_library
+  $ cmake --build . --target bench_mkl           #builds mkl extension executables
+  ```
+  * To build benchmark executables for Openblas,set the OPENBLAS_PATH and build using
+  ```
+  $ cmake .. -DOPENBLAS_PATH=/path_to_Openblas
+  $ cmake --build . --target bench_openblas      #builds openblas extension executables
+  ```
 
-* To build the benchmark executables with any BLIS package provide a path to the installation using
-```
-$ cmake .. -DBLIS_INSTALL_PATH=/BLIS_installation_path
-$ cmake --build . --target bench_blis         #builds blis extension executables
-```
+  * To build for all benchmark executables set the MKL_PATH,OPENBLAS_PATH, then build using
+  ```
+  $ cmake .. -DMKL_PATH=/path_to_MKL_library  -DOPENBLAS_PATH=/path_to_Openblas
+  $ cmake --build . --target benchmark           #builds for all targets
+  ```
 
-## 1.2.2.To build MKL targets
-* To build the benchmark executables with MKLROOT use
-```
-$ cmake ..
-$ cmake --build . --target bench_mkl          #builds mkl extension executables
-```
-
-* If MKLROOT is not set, then set MKL_PATH and build the benchmark executables using
-```
-$ cmake .. -DMKL_PATH=/path_to_MKL_library
-$ cmake --build . --target bench_mkl           #builds mkl extension executables
-```
-
-## 1.2.3.To build openblas targets
-* To build benchmark executables for Openblas,set the OPENBLAS_PATH and build using
-```
-$ cmake .. -DOPENBLAS_PATH=/path_to_Openblas
-$ cmake --build . --target bench_openblas      #builds openblas extension executables
-```
-
-## 1.2.4.To build for all targets
-* To build for all benchmark executables set the MKL_PATH,OPENBLAS_PATH, then build using
-```
-$ cmake .. -DMKL_PATH=/path_to_MKL_library  -DOPENBLAS_PATH=/path_to_Openblas
-$ cmake --build . --target benchmark           #builds for all targets
-```
-
-## 2.To measure performance for "bench_aocl_gemm" only when lpgemm is configured during cmake.
+To measure performance for "bench_aocl_gemm", if lpgemm is chosen during CMake configuration by setting
 ```
 cmake .. -DENABLE_ADDON="aocl_gemm"
 ```
+do the following:
 
-# 2.1.Move to "bench_aocl_gemm" folder within blis_build/bench folder.
-
-# 2.2.Now build bench_aocl_gemm
+* Move to "bench_aocl_gemm" folder within blis_build/bench folder.
+* Now build bench_aocl_gemm
 ```
 $ cmake --build . or cmake --build . --target benchmark_lpgemm
 ```
 
-## 3.Run any of the bench executable
+Run any of the bench executable using
 ```
  ./<executable> ../../bench/inputfile.txt outfile.txt
 ```
