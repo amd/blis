@@ -109,7 +109,7 @@
   IS_TINY_PARALLEL_c_ZEN4_AVX2( transa, transb, m, n, k, is_parallel )
 
 // Main macro to check entry to Tiny-CGEMM-ZEN4-AVX512
-#define THRESH_GEMM_c_TINY_ZEN4_AVX512( transa, transb, m, n, k, is_parallel ) \
+#define THRESH_GEMM_c_TINY_ZEN4_AVX512( stor_id, transa, transb, m, n, k, is_parallel ) \
   /* In case of single-threaded request */ \
   IS_TINY_NOT_PARALLEL_c_ZEN4_AVX512( transa, transb, m, n, k, is_parallel ) || \
   /* In case of multi-threaded request */ \
@@ -181,7 +181,7 @@
   IS_TINY_PARALLEL_z_ZEN4_AVX2( transa, transb, m, n, k, is_parallel )
 
 // Main macro to check entry to Tiny-ZGEMM-ZEN4-AVX512
-#define THRESH_GEMM_z_TINY_ZEN4_AVX512( transa, transb, m, n, k, is_parallel ) \
+#define THRESH_GEMM_z_TINY_ZEN4_AVX512( stor_id, transa, transb, m, n, k, is_parallel ) \
   /* In case of single-threaded request */ \
   IS_TINY_NOT_PARALLEL_z_ZEN4_AVX512( transa, transb, m, n, k, is_parallel ) || \
   /* In case of multi-threaded request */ \
@@ -190,15 +190,18 @@
 #define THRESH_GEMM_s_TINY_ZEN4_AVX2( transa, transb, m, n, k, is_parallel ) \
   ( 0 ) 
 
-#define THRESH_GEMM_s_TINY_ZEN4_AVX512( transa, transb, m, n, k, is_parallel ) \
-  ( ( !is_parallel ) && ( ( ( (m) + (k) ) *  (n)  + ( (m) * (k) ) ) < 8192 ) ) // Make sure that all the matrices fit in the L1 cache
-                                                                               // Currently, tiny path is only enabled in the single threaded mode
+#define THRESH_GEMM_s_TINY_ZEN4_AVX512( stor_id, transa, transb, m, n, k, is_parallel ) \
+  ( !( is_parallel ) &&  \
+   ( ( ( ( (m) + (k) ) *  (n)  + ( (m) * (k) ) ) < 8192 ) || \
+  bli_is_sgemm_tiny_zen( (stor_id) , (transa) , (transb) , (m) , (n) , (k) , (is_parallel), 64, 16, 8192, 262144 ) ) \
+  ) \
+                                                                               
 
 /* Defining the macro to be used for selecting the kernel at runtime */
 #define ZEN4_UKR_SELECTOR( ch, transa, transb, m, n, k, stor_id, ukr_support, gemmtiny_ukr_info, is_parallel ) \
     if ( PASTECH2( THRESH_GEMM_, ch, _TINY_ZEN4_AVX2 )( transa, transb, m, n, k, is_parallel ) ) \
       LOOKUP_AVX2_UKR( ch, stor_id, ukr_support, gemmtiny_ukr_info ) \
-    else if ( PASTECH2( THRESH_GEMM_, ch, _TINY_ZEN4_AVX512 )( transa, transb, m, n, k, is_parallel ) ) \
+    else if ( PASTECH2( THRESH_GEMM_, ch, _TINY_ZEN4_AVX512 )( stor_id, transa, transb, m, n, k, is_parallel ) ) \
       LOOKUP_AVX512_UKR( ch, stor_id, ukr_support, gemmtiny_ukr_info ) \
     break;
 

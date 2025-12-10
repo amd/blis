@@ -553,3 +553,177 @@ err_t bli_dgemm_tiny
 
     return BLIS_FAILURE;
 }
+
+
+bool bli_is_sgemm_tiny_zen
+  (
+    stor3_t stor_id, 
+    trans_t transa, 
+    trans_t transb, 
+    dim_t m, 
+    dim_t n, 
+    dim_t k, 
+    bool is_parallel, 
+    dim_t NR, 
+    dim_t NUM_FLOATS_IN_CACHE_LINE, 
+    dim_t NUM_FLOATS_IN_L1, 
+    dim_t NUM_FLOATS_IN_L2
+  )
+{
+  dim_t elems_in_L1 = 0;
+  dim_t elems_in_L2 = 0;
+
+  if (m > 682 || n > 512 || k > 240)
+  {
+    // Don't enter tiny path if any dimension exceeds its SUP threshold
+    // The thresholds are derived from the sizes that enter the SUP path
+    // Note: These thresholds are conservative because in SUP path,
+    // matrices will enter SUP if any of the above thresholds are satisfied
+    // regardless of the size of the other dimensions
+    return false;
+  }
+
+  // Stores total number of elements in matrices A, B and C (which needs to at least fit in the L2 cache)
+  elems_in_L2 = ((m + k) * n)  + (m * k); 
+
+  if(elems_in_L2 > NUM_FLOATS_IN_L2)
+  {
+    // For large sizes, we dont go into the tiny path at all
+    return false;
+  }
+
+  if(stor_id == BLIS_CRC || stor_id == BLIS_CCR || stor_id == BLIS_CCC || stor_id == BLIS_RCC)
+  {
+    // all these cases have an induced transpose, so we need to swap the m and n values
+    // this is needed because the analysis that follows later is based on these dimensions
+    dim_t tmp = m;
+    m = n;
+    n = tmp;
+  }
+  
+  if(stor_id != BLIS_RRC && stor_id != BLIS_CRC)
+  {
+    // these are the cases which call the rv-m kernels
+    // The access pattern for these kernels is as follows:
+    //     Matrix A (M x K):               Matrix B (K x NR):              Matrix C (M x NR):
+    // +-------------+                +--------------------------+   +--------------------------+
+    // | * -> * -> * | row 0          | ->->->->->->->-> (64 col)|   | *  *  *  * ... (64 cols) |
+    // | * -> * -> * | row 1          | ->->->->->->->->         |   | *  *  *  *               |
+    // | * -> * -> * | row 2          | ->->->->->->->->         |   | *  *  *  *               |
+    // | * -> * -> * | row 3          | ->->->->->->->->         |   | *  *  *  *               |
+    // | * -> * -> * | row 4          |      ...                 |   | *  *  *  *               |
+    // | * -> * -> * | row 5          +--------------------------+   | *  *  *  *               |
+    // |      ...    |                  K rows (4 per iter)          |      ...                 |
+    // +-------------+                  Each row = 64 elements        +--------------------------+
+    //   6 rows                                                         6 rows x 64 cols
+    //   (broadcast scalars)            (vector loads)
+    // We broadcast 6 elements from A and load NR elements from B
+    // In the K-loop we loop over the columns of A and rows of B.
+    // Once the K-loop is complete, we iterate over the full M dimension of C and A
+    // The data-reuse pattern forms the basis of the decision to enter the tiny-path
+    //
+    // For the A-matrix, we want the entire A-matrix to stay in the L1 cache,
+    // This is a conservative approach, mainly because the SUP path chooses rv-n or rv-m 
+    // kernels in certain cases. i.e we loop over the M or N dimension of A 
+    // depending on which kernel is chosen. This is the most conservative approach to select
+    // this path where we are always at least as fast as the SUP path. Also in the case
+    // of the rv-m kernel (which is used in the tiny path), the outer loop (which calls the kernels)
+    // loops over NR. Thus we reuse the entire A matrix in the outer loop and it 
+    // makes sense to keep the full matrix in L1. If the SUP path removes the rv-n 
+    // kernels at a later date, we could possibly fine tune this further.
+    elems_in_L1 = k * m; 
+    
+    // For the B-matrix, this is fully re-used inside the rv-m kernel
+    // so we keep this panel in L1 => k * min(n, NR)
+    elems_in_L1 += k * bli_min(n, NR);
+    
+    // For the C-matrix, we loop over MRxNR size at a time while the outer loop repeats this till we cover the full M dimension
+    // when C-matrix has the Col storage scheme, we want to make sure that we have enough capacity
+    // in the L1 cache so that all the cache-lines that are loaded when accessing one micro-kernel 
+    // stays in the cache, this is min(NR,n) * min(CACHE_LINE_SIZE, m) 
+    // remember that the C-matrix has no-reuse so we dont need to keep a larger chunk than this in memory
+    // we have a min operator to take care of cases where n/m are lesser than the NR or cache-line-size respectively 
+    // The C-matrix analysis needs to be modified slightly for the cases where fringe kernels
+    // are used. For the rv-m kernels (NR==64), the fringe kernel sizes are 48,32,16,8,4,2,1
+    // Consider the example where the 4 and 2 fringe kernels are executed. In this case
+    // we load > 4 elements on a single access of C (since cache line size is 64B) but 
+    // if the M dimension is long enough, these memory elements are no longer in the cache
+    // when we eventually execute the 2-fringe kernel. In the SUP path, this is not such
+    // a problem because we have blocking in the MC direction such that we finish all the 
+    // fringe kernels in the MC block before moving on to the next MC loop.
+    // But in the tiny path, we loop over the entire M dimension so this has to be accounted for.
+    // Thus we need to make space for at least 8+4+2+1=15 fringe kernels in the worst case
+    // for the larger fringe kernel transitions, the amount of computation offsets the 
+    // memory loading and this effect is not so pronounced for these cases
+    // thus we need to make extra room for these fringe cases in the worst case
+    // i.e where we access the 8,4,2,1 kernels in that order
+
+    // for a given n, we compute the worst case fringe size, this is not 
+    // the exact size (based on the fringe kernel calls) but gives an upper-bound
+    dim_t fringe_size = m * bli_min(15, n % NR);
+    elems_in_L1 += bli_max(fringe_size, bli_min(NR, n) * bli_min(NUM_FLOATS_IN_CACHE_LINE, m));
+  }
+  else
+  {
+    // these are the cases which call the rd-m kernels
+    // The access pattern for these kernels is as follows:
+    //     Matrix A (M x K):               Matrix B (K x NR):              Matrix C (M x NR):
+    // +-------------+                +--------------------------+   +--------------------------+
+    // | ->->->->->  | row 0          | |  |  |  | ... (64 cols)|   | *  *  *  * ... (64 cols) |
+    // | ->->->->->  | row 1          | |  |  |  |              |   | *  *  *  *               |
+    // | ->->->->->  | row 2          | |  |  |  |              |   | *  *  *  *               |
+    // | ->->->->->  | row 3          | |  |  |  |              |   | *  *  *  *               |
+    // | ->->->->->  | row 4          | |  |  |  |              |   | *  *  *  *               |
+    // | ->->->->->  | row 5          | |  |  |  |              |   | *  *  *  *               |
+    // |      ...    |                |      ...                |   |      ...                 |
+    // +-------------+                +--------------------------+   +--------------------------+
+    //   6 rows                         K rows x 64 cols              6 rows x 64 cols
+    //   (processes K elements/row)
+    // In one k-iteration of the kernel, we load 6 rows of A and 4 columns of B
+    // note that this one operation only produces a small 6x4 tilelet of C
+    // This kernel then loops over the M-dimension to produce the Mx4 panel of C
+    // In the outer kernel loop we loop over the N-direction of C and B to finally
+    // produce the MxNR panel of C. This is the case for the rd-m kernel which 
+    // loops over the M-direction inside the kernel
+
+    // Again we need to follow a conservative approach for modelling these accesses
+    // this is again caused by the fact that the SUP path uses rd-m and rd-n for 
+    // the RRC and CRC cases respectively
+    // if the SUP-path only used rd-m kernels, the analysis would have been as follows:
+    // for the A matrix, since we reuse the full matrix inside the kernel, we need to 
+    // store the full matrix in L1 => m * k
+    // For the B matrix, we only need to store one panel just so that 
+    // it doesn't remove any of the other matrix elements from L1 => 4*k
+    // For the C-matrix, we would have had make sure that any of the
+    // matrix cache line reads dont go out of the L1 cache before the
+    // next N-dimension iteration => m * min (CACHE_LINE_SIZE, n)
+    // But for the rd-n kernels, we have a slightly different analysis
+    // Here we reuse the entire B-matrix in every loop inside the kernel
+    // so for the B-matrix we need =>  n * k
+    // We only need to allocate one row panel for A => 4 * k
+    // for the C matrix, in order not to waste CACHE_LINE loads
+    // we need => n * min(m, MR) 
+    // remember, we loop over the N-direction inside the kernel for the rd-n case
+    
+    // thus, in order to have a conservative modeling, we have the following conditions,
+    // These can be relaxed at a later date if the SUP path either chooses the m or n
+    // kernel variants appropriately. Alternatively, we could set these cases on a 
+    // per-storage format basis, where we are sure which kernel is used in the SUP path
+    // but not doing this now, in case we remove some of the variants in the SUP path
+
+    // Note we dont have to handle fringe cases like the rv kernel case because
+    // the modelling done here is very conservative at the moment
+    elems_in_L1 = m * n;
+    elems_in_L1 += bli_max(m, n) * k;
+    elems_in_L1 += 4 * k;
+  }
+
+  if(elems_in_L1 < NUM_FLOATS_IN_L1)
+  {
+    return true;
+  }
+  else
+  {
+    return false;
+  }
+}

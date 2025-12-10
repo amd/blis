@@ -328,6 +328,21 @@ err_t bli_dgemm_tiny
         double*    c, const inc_t rs_c0, const inc_t cs_c0
 );
 
+bool bli_is_sgemm_tiny_zen
+    (
+      stor3_t stor_id, 
+      trans_t transa, 
+      trans_t transb, 
+      dim_t m, 
+      dim_t n, 
+      dim_t k, 
+      bool is_parallel, 
+      dim_t NR, 
+      dim_t NUM_FLOATS_IN_CACHE_LINE, 
+      dim_t NUM_FLOATS_IN_L1, 
+      dim_t NUM_FLOATS_IN_L2
+    );
+
 err_t bli_dgemm_tiny_zen_6x8
      (
         conj_t              conja,
