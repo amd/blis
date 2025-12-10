@@ -48,6 +48,10 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# Packages to include.
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+
 # Enable IDE folders for targets.
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
@@ -1332,55 +1336,109 @@ if(NOT WIN32)
         @ONLY
     )
 endif()
-include(GNUInstallDirs)
 
 if(BUILD_SHARED_LIBS)
-    # Build shared library.
-    add_library(libblis-shared SHARED ${OBJECT_LIBRARIES})
-    target_link_libraries(libblis-shared PRIVATE ${LDFLAGS})
-    set_target_properties(libblis-shared PROPERTIES LINKER_LANGUAGE C VERSION ${VERSION} SOVERSION ${SO_VERSION_MAJOR})
-    set_target_properties(libblis-shared PROPERTIES POSITION_INDEPENDENT_CODE ON)
-    if(THREADING_MODEL STREQUAL "openmp")
-        if((NOT ${OpenMP_libomp_LIBRARY} STREQUAL "") AND (NOT WIN32))
-            target_link_libraries(libblis-shared PRIVATE ${OpenMP_libomp_LIBRARY})
-        else()
-            target_link_libraries(libblis-shared PRIVATE OpenMP::OpenMP_C)
-        endif()
-    endif()
-    add_dependencies(libblis-shared flat-header)
-    if(ENABLE_CBLAS)
-        add_dependencies(libblis-shared flat-cblas-header)
-    endif()
-    # Add headers as a property to the library.
-    set_target_properties(libblis-shared PROPERTIES PUBLIC_HEADER "${BLIS_PUBLIC_HEADERS}")
-    set_target_properties(libblis-shared PROPERTIES OUTPUT_NAME ${LIBBLIS_SHARED})
-    # Install targets for shared.
-    install(TARGETS libblis-shared LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-            ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-            RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-            PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
-    set(libblis_depends libblis-shared)
+    # Build shared library with proper target name
+    add_library(blis_shared SHARED ${OBJECT_LIBRARIES})
+    set_target_properties(blis_shared PROPERTIES
+                        VERSION ${VERSION}
+                        SOVERSION ${SO_VERSION_MAJOR}
+                        OUTPUT_NAME ${LIBBLIS_SHARED}
+                    )
 endif()
 if(BUILD_STATIC_LIBS OR NOT BUILD_SHARED_LIBS)
-    # Build static library.
-    add_library(libblis-static STATIC ${OBJECT_LIBRARIES})
-    set_target_properties(libblis-static PROPERTIES LINKER_LANGUAGE C)
-    # Setting this for static to fix issues where test programs built with gcc 9.4.0 fail to link versions of BLIS build with AOCC 4.0.0.
-    set_target_properties(libblis-static PROPERTIES POSITION_INDEPENDENT_CODE ON)
-    add_dependencies(libblis-static flat-header)
-    if(ENABLE_CBLAS)
-        add_dependencies(libblis-static flat-cblas-header)
-    endif()
-    # Add headers as a property to the library.
-    set_target_properties(libblis-static PROPERTIES PUBLIC_HEADER "${BLIS_PUBLIC_HEADERS}")
-    set_target_properties(libblis-static PROPERTIES OUTPUT_NAME ${LIBBLIS_STATIC})
-    # Install targets.
-    install(TARGETS libblis-static LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-            ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-            RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-            PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
-    list(APPEND libblis_depends libblis-static)
+    # Build static library with proper target name.
+    add_library(blis_static STATIC ${OBJECT_LIBRARIES})
+    set_target_properties(blis_static PROPERTIES
+                        OUTPUT_NAME ${LIBBLIS_STATIC}
+                    )
 endif()
+
+# Create the main blis target that points to the preferred library type
+# Priority: shared if available, otherwise static
+if(BUILD_SHARED_LIBS AND TARGET blis_shared)
+    add_library(blis ALIAS blis_shared)
+    # Create the AOCL::BLIS alias pointing directly to the real target
+    add_library(AOCL::BLIS ALIAS blis_shared) # Point to real target, not alias
+    # Create the AOCL::BLAS alias pointing directly to the real target
+    add_library(AOCL::BLAS ALIAS blis_shared) # Point to real target, not alias
+elseif(TARGET blis_static)
+    add_library(blis ALIAS blis_static)
+    # Create the AOCL::BLIS alias pointing directly to the real target
+    add_library(AOCL::BLIS ALIAS blis_static) # Point to real target, not alias
+    # Create the AOCL::BLAS alias pointing directly to the real target
+    add_library(AOCL::BLAS ALIAS blis_static) # Point to real target, not alias
+endif()
+
+# Also create specific aliases for explicit usage
+if(TARGET blis_shared)
+    add_library(AOCL::BLIS_shared ALIAS blis_shared)
+    # Create the AOCL::BLAS_shared alias as well
+    add_library(AOCL::BLAS_shared ALIAS blis_shared)
+endif()
+if(TARGET blis_static)
+    add_library(AOCL::BLIS_static ALIAS blis_static)
+    # Create the AOCL::BLAS_static alias as well
+    add_library(AOCL::BLAS_static ALIAS blis_static)
+endif()
+
+foreach(target IN ITEMS blis_shared blis_static)
+    if(TARGET ${target})
+        target_include_directories(${target}
+            PUBLIC
+                $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include/${BLIS_CONFIG_FAMILY}>
+                $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+            PRIVATE
+                $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/frame/include>
+        )
+
+        add_dependencies(${target} flat-header)
+        if(ENABLE_CBLAS)
+            add_dependencies(${target} flat-cblas-header)
+        endif()
+
+        target_link_libraries(${target} PUBLIC ${LDFLAGS})
+
+        if(THREADING_MODEL STREQUAL "openmp")
+            if((NOT ${OpenMP_libomp_LIBRARY} STREQUAL "") AND (NOT WIN32))
+                target_link_libraries(${target} PUBLIC ${OpenMP_libomp_LIBRARY})
+            else()
+                target_link_libraries(${target} PUBLIC OpenMP::OpenMP_C)
+            endif()
+        endif()
+
+        set_target_properties(${target} PROPERTIES
+                    LINKER_LANGUAGE C
+                    POSITION_INDEPENDENT_CODE ON
+                )
+    endif()
+endforeach()
+
+# Installation rules
+if(BUILD_SHARED_LIBS AND TARGET blis_shared)
+    install(TARGETS blis_shared
+        EXPORT blisTargets
+        LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+        RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+        INCLUDES DESTINATION ${CMAKE_INSTALL_PREFIX}/include
+    )
+endif()
+
+if((BUILD_STATIC_LIBS OR NOT BUILD_SHARED_LIBS) AND TARGET blis_static)
+    install(TARGETS blis_static
+        EXPORT blisTargets
+        LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+        RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+        INCLUDES DESTINATION ${CMAKE_INSTALL_PREFIX}/include
+    )
+endif()
+
+# Install headers
+install(FILES ${BLIS_PUBLIC_HEADERS}
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/include
+)
 
 if(NOT WIN32)
     # Install package-config file.
@@ -1388,13 +1446,23 @@ if(NOT WIN32)
 endif()
 
 # Set libblis to the shared or static libblis depending on the option setting.
-if(TEST_WITH_SHARED)
-    set(libblis_link libblis-shared)
+if(TEST_WITH_SHARED AND TARGET blis_shared)
+    set(libblis_link blis_shared)
+elseif(TARGET blis_static)
+    set(libblis_link blis_static)
 else()
-    set(libblis_link libblis-static)
+    message(FATAL_ERROR "No suitable BLIS library target found")
 endif()
 
 # --- Primary targets ---
+set(libblis_depends "")
+if(TARGET blis_shared)
+    list(APPEND libblis_depends blis_shared)
+endif()
+if(TARGET blis_static)
+    list(APPEND libblis_depends blis_static)
+endif()
+
 add_custom_target(libblis DEPENDS ${libblis_depends})
 add_custom_target(libs DEPENDS ${libblis})
 

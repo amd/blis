@@ -12,6 +12,7 @@
 * **[Adding configurations](CMakeBuildSystem.md#adding-configurations)**
 * **[Some examples](CMakeBuildSystem.md#some-examples)**
 * **[Building Benchmark suite](CMakeBuildSystem.md#building-benchmark-suite)**
+* **[Consuming BLIS via FetchContent](CMakeBuildSystem.md#consuming-via-FetchContent)**
 * **[Final notes](CMakeBuildSystem.md#final-notes)**
 
 ## Introduction
@@ -279,6 +280,48 @@ Run any of the bench executable using
  ./<executable> ../../bench/inputfile.txt outfile.txt
 ```
 
-## Conclusion
+## Consuming BLIS via FetchContent
+
+CMake's `FetchContent` module allows you to automatically download and build BLIS as part of your project's build process.
+This approach is useful when you want to integrate BLIS directly into your CMake project without requiring a separate installation step.
+FetchContent provides a convenient way to:
+- Automatically download BLIS from a Git repository during configuration
+- Build BLIS as a dependency of your project
+- Link against BLIS using CMake targets (`AOCL::BLIS_static`, `AOCL::BLIS_shared`, `AOCL::BLAS_static`, `AOCL::BLAS_shared`)
+- Avoid managing external dependencies manually
+
+### Basic Usage
+
+To use BLIS via FetchContent, include the following in your `CMakeLists.txt`:
+
+```cmake
+# Include the FetchContent module
+include(FetchContent)
+
+# Optionally set BLIS CMake variables
+set(BLIS_CONFIG_FAMILY "amdzen" CACHE STRING "" FORCE)
+set(BLIS_ENABLE_CBLAS ON CACHE BOOL "Enable CBLAS interface")
+
+# Declare BLIS as a dependency
+FetchContent_Declare(
+    libaoclblas
+    GIT_REPOSITORY https://github.com/amd/blis.git
+    GIT_TAG        dev  # or specify a release tag
+    GIT_SHALLOW    1    # Optional: fetch only the latest commit for faster download
+)
+
+# Download and make BLIS available
+FetchContent_MakeAvailable(libaoclblas)
+
+# Example 1: Static BLIS library
+add_executable(example_static src/example.cpp)
+target_link_libraries(example_static PRIVATE AOCL::BLIS_static) # or AOCL::BLAS_static
+
+# Example 2: Shared BLIS library
+add_executable(example_shared src/example.cpp)
+target_link_libraries(example_shared PRIVATE AOCL::BLIS_shared) # or AOCL::BLAS_shared
+```
+
+## Final notes
 
 The BLIS CMake system is developed and maintained by AMD. You can contact us on the email-id toolchainsupport@amd.com. You can also raise any issue/suggestion on the git-hub repository at https://github.com/amd/blis/issues.
