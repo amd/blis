@@ -33,7 +33,7 @@
 ]=]
 
 # Include file containing common flags for all AMD architectures
-include(${CMAKE_SOURCE_DIR}/config/zen/amd_config.cmake)
+include(${BLIS_ROOT_SOURCE_DIR}/config/zen/amd_config.cmake)
 if(NOT WIN32)
     if(NOT (DEBUG_TYPE STREQUAL "off"))
         set(CDBGFLAGS -g)

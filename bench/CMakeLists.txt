@@ -48,7 +48,7 @@ endif()
 
 #if(NOT DEFINED BLIS_INSTALL_PATH)
 if(BLIS_INSTALL_PATH STREQUAL "")
-    set(DIST_PATH ${CMAKE_BINARY_DIR})
+    set(DIST_PATH ${BLIS_ROOT_BINARY_DIR})
     set(LIB_PATH ${DIST_PATH}/lib/${BLIS_CONFIG_FAMILY})
     set(INC_PATH ${DIST_PATH}/include/${BLIS_CONFIG_FAMILY})
     set(CINFLAGS ${INC_PATH})
@@ -116,7 +116,7 @@ set(ATLAS_LIB ${ATLAS_LIB} ${F77BLAS_LIB})
 
 
 # Include the corresponding make_defs.cmake that holds the required compiler options.
-include(${CMAKE_SOURCE_DIR}/config/${BLIS_CONFIG_FAMILY}/make_defs.cmake)
+include(${BLIS_ROOT_SOURCE_DIR}/config/${BLIS_CONFIG_FAMILY}/make_defs.cmake)
 
 # Gather all local source files.
 file(GLOB file_list LIST_DIRECTORIES false RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/" "*.c")

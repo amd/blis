@@ -37,7 +37,7 @@
 # - We must use recursively expanded assignment for LIB_PATH and INC_PATH in
 #   the second case because CONFIG_NAME is not yet set.
 if(NOT DEFINED BLIS_INSTALL_PATH)
-    set(DIST_PATH ${CMAKE_BINARY_DIR})
+    set(DIST_PATH ${BLIS_ROOT_BINARY_DIR})
     set(LIB_PATH ${DIST_PATH}/lib/${BLIS_CONFIG_FAMILY})
     set(INC_PATH ${DIST_PATH}/include/${BLIS_CONFIG_FAMILY})
 else()
@@ -46,7 +46,7 @@ else()
 endif()
 
 # Include the corresponding make_defs.cmake that holds the required compiler options.
-include(${CMAKE_SOURCE_DIR}/config/${BLIS_CONFIG_FAMILY}/make_defs.cmake)
+include(${BLIS_ROOT_SOURCE_DIR}/config/${BLIS_CONFIG_FAMILY}/make_defs.cmake)
 
 # Gather all local source files.
 file(GLOB testcpp_sources LIST_DIRECTORIES false ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
@@ -81,7 +81,7 @@ foreach(source ${testcpp_sources})
                             ${CINFLAGS}
                             # Add local header paths
                             ${CMAKE_CURRENT_SOURCE_DIR}
-                            ${CMAKE_SOURCE_DIR}/vendor/cpp
+                            ${BLIS_ROOT_SOURCE_DIR}/vendor/cpp
                         )
     target_link_libraries(${exec_name} PRIVATE ${LDFLAGS} ${libblis_link})
     if(THREADING_MODEL STREQUAL "openmp")

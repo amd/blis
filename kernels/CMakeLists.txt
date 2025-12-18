@@ -55,7 +55,7 @@ function(generate_kernel_targets kernel_target)
                         ${LOCAL_SOURCE_FILES}
                     )
         # Include the corresponding make_defs.cmake that holds the required compiler options.
-        include(${CMAKE_SOURCE_DIR}/config/${LOCAL_CONFIG}/make_defs.cmake)
+        include(${BLIS_ROOT_SOURCE_DIR}/config/${LOCAL_CONFIG}/make_defs.cmake)
         # Use PRIVATE keyword for option setting since we do not want the
         # properties to propagate in other targets.
         # mimicing get-kernel-cflags-for
@@ -116,7 +116,7 @@ function(generate_kernel_targets kernel_target)
                 ${LOCAL_LPEGMM_SOURCE_FILES}
             )
         # Include the corresponding make_defs.cmake that holds the required compiler options.
-        include(${CMAKE_SOURCE_DIR}/config/${LOCAL_CONFIG}/make_defs.cmake)
+        include(${BLIS_ROOT_SOURCE_DIR}/config/${LOCAL_CONFIG}/make_defs.cmake)
         # Use PRIVATE keyword for option setting since we do not want the
         # properties to propagate in other targets.
         # mimicing get-kernel-cflags-for

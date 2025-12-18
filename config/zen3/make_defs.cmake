@@ -37,7 +37,7 @@
 # config/zen/amd_config.mk.
 
 # Include file containing common flags for all AMD architectures
-include(${CMAKE_SOURCE_DIR}/config/zen/amd_config.cmake)
+include(${BLIS_ROOT_SOURCE_DIR}/config/zen/amd_config.cmake)
 
 # --- Determine the C compiler and related flags ---
 if(NOT WIN32)

@@ -37,7 +37,7 @@
 # - We must use recursively expanded assignment for LIB_PATH and INC_PATH in
 #   the second case because CONFIG_NAME is not yet set.
 if(NOT DEFINED BLIS_INSTALL_PATH)
-    set(DIST_PATH ${CMAKE_BINARY_DIR})
+    set(DIST_PATH ${BLIS_ROOT_BINARY_DIR})
     set(LIB_PATH ${DIST_PATH}/lib/${BLIS_CONFIG_FAMILY})
     set(INC_PATH ${DIST_PATH}/include/${BLIS_CONFIG_FAMILY})
 else()
@@ -46,7 +46,7 @@ else()
 endif()
 
 # Include the corresponding make_defs.cmake that holds the required compiler options.
-include(${CMAKE_SOURCE_DIR}/config/${BLIS_CONFIG_FAMILY}/make_defs.cmake)
+include(${BLIS_ROOT_SOURCE_DIR}/config/${BLIS_CONFIG_FAMILY}/make_defs.cmake)
 
 # Create a static library using the sources in f2c directory.
 file(GLOB f2c_sources LIST_DIRECTORIES false ${CMAKE_CURRENT_SOURCE_DIR}/f2c/*.c)
@@ -144,7 +144,7 @@ foreach(source ${blastest_sources})
                             COMMAND ${exec_name}.x > out.${exec_name}
                             COMMENT "Running ${exec_name}.x with output redirected to out.${exec_name}"
                             DEPENDS ${exec_name}.x
-                            BYPRODUCTS ${CMAKE_BINARY_DIR}/out.${exec_name}
+                            BYPRODUCTS ${BLIS_ROOT_BINARY_DIR}/out.${exec_name}
                             WORKING_DIRECTORY $<TARGET_FILE_DIR:${libblis_link}>
                             VERBATIM
                             )
@@ -153,7 +153,7 @@ foreach(source ${blastest_sources})
                             COMMAND ${exec_name}.x < ${CMAKE_CURRENT_SOURCE_DIR}/input/${exec_name}.in
                             COMMENT "Running ${exec_name}.x with input ${CMAKE_CURRENT_SOURCE_DIR}/input/${exec_name}.in and output saved to out.${exec_name}"
                             DEPENDS ${exec_name}.x
-                            BYPRODUCTS ${CMAKE_BINARY_DIR}/out.${exec_name}
+                            BYPRODUCTS ${BLIS_ROOT_BINARY_DIR}/out.${exec_name}
                             WORKING_DIRECTORY $<TARGET_FILE_DIR:${libblis_link}>
                             VERBATIM
                         )
@@ -175,7 +175,7 @@ if(WIN32 AND BUILD_SHARED_LIBS)
 else()
     add_custom_target(testblas DEPENDS ${test_executables})
     add_custom_target(checkblas
-                        COMMAND ${Python_EXECUTABLE} ${CMAKE_SOURCE_DIR}/build/cmake/check-blastest.py "."
+                        COMMAND ${Python_EXECUTABLE} ${BLIS_ROOT_SOURCE_DIR}/build/cmake/check-blastest.py "."
                         DEPENDS testblas
                         WORKING_DIRECTORY $<TARGET_FILE_DIR:${libblis_link}>
                     )
