@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -46,8 +46,8 @@
                          the vector multiplication (BLIS_TYPED only)
  * @param[in]     conjy  specifies the form of yp to be used in
                          the vector multiplication (BLIS_TYPED only)
- * @param[in]     m      specifies  the number  of rows  of the  matrix A
- * @param[in]     n      specifies the number  of columns of the matrix A
+ * @param[in]     m      specifies the number of rows of the matrix A
+ * @param[in]     n      specifies the number of columns of the matrix A
  * @param[in]     alpha  specifies the scalar alpha.
  * @param[in]     xp     specifies pointer which points to the first element of xp
  * @param[in]     incx   specifies storage spacing between elements of xp.

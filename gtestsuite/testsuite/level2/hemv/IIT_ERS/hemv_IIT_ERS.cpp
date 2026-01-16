@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2025 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -105,7 +105,7 @@ TYPED_TEST(hemv_IIT_ERS, invalid_storage)
 /*
     Incorrect Input Testing(IIT)
 
-    BLAS exceptions get triggered in the following cases(for GEMM):
+    BLAS exceptions get triggered in the following cases (for HEMV):
     1. When UPLO != 'N' || UPLO != 'T'  || UPLO != 'C' (info = 1)
     3. When n < 0 (info = 2)
     4. When lda < m (info = 5)

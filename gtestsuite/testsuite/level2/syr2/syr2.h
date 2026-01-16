@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -43,7 +43,7 @@
  *              A := alpha*x*y**T + alpha*y*x**T + A,
  * @param[in]     storage specifies the form of storage in the memory matrix A
  * @param[in]     uploa  specifies whether the upper or lower triangular part of the array A
- * @param[in]     n      specifies the number  of rows  of the  matrix A
+ * @param[in]     n      specifies the number of rows of the matrix A
  * @param[in]     alpha  specifies the scalar alpha.
  * @param[in]     xp     specifies pointer which points to the first element of xp
  * @param[in]     incx   specifies storage spacing between elements of xp.

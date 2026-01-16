@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2024 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -44,7 +44,7 @@ class dtrsvEVT :
                                                    double,        // alpha
                                                    gtint_t,       // incx
                                                    double,        // exception value for X
-                                                   double,        // excepton value for Y
+                                                   double,        // exception value for Y
                                                    gtint_t>> {};  // ld_inc
 
 TEST_P( dtrsvEVT, API )
