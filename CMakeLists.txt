@@ -751,14 +751,52 @@ else()
     # Remove duplicates in the addon list, if they exist.
     list(REMOVE_DUPLICATES ENABLE_ADDON)
     message("   Configuring with addons:")
+    # Check compiler version requirements for each addon
+    set(FILTERED_ADDON_LIST "")
     foreach(ADDON ${ENABLE_ADDON})
         message("   ${ADDON}")
         if(NOT (EXISTS ${PROJECT_SOURCE_DIR}/addon/${ADDON}))
             message(FATAL_ERROR "Requested addon sub-directory does not exist! Cannot continue. \
                                     *** Please verify addon existence and name.")
         endif()
+
+        # Check if this is aocl_gemm addon and verify compiler version
+        if("${ADDON}" STREQUAL "aocl_gemm")
+            if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+                # aocl_gemm addon (LPGEMM) requires GCC 11.2 or newer
+                # due to AVX-512 intrinsics and optimization requirements.
+                if(CMAKE_C_COMPILER_VERSION VERSION_LESS 11.2.0)
+                    message(WARNING "aocl_gemm addon requires GCC 11.2 or newer.")
+                    message(WARNING "Current GCC version is ${CMAKE_C_COMPILER_VERSION}.")
+                    message(WARNING "Skipping aocl_gemm addon.")
+                    continue()
+                endif()
+            elseif("${CMAKE_C_COMPILER_ID}" MATCHES "Clang")
+                # aocl_gemm addon (LPGEMM) requires Clang 12.0 or newer
+                # due to AVX-512 intrinsics and C++17 requirements.
+                if(CMAKE_C_COMPILER_VERSION VERSION_LESS 12.0.0)
+                    message(WARNING "aocl_gemm addon requires Clang 12.0 or newer.")
+                    message(WARNING "Current Clang version is ${CMAKE_C_COMPILER_VERSION}.")
+                    message(WARNING "Skipping aocl_gemm addon.")
+                    continue()
+                endif()
+            endif()
+        endif()
+        list(APPEND FILTERED_ADDON_LIST ${ADDON})
     endforeach()
-    set(ENABLE_ADDONS_01 1)
+
+    # Update ENABLE_ADDON with filtered list
+    set(ENABLE_ADDON ${FILTERED_ADDON_LIST})
+    # Also update the cache to reflect the filtered list
+    set(ENABLE_ADDON ${FILTERED_ADDON_LIST} CACHE STRING "Filtered addon list" FORCE)
+    
+    list(LENGTH ENABLE_ADDON addon_count)
+    if(addon_count GREATER 0)
+        set(ENABLE_ADDONS_01 1)
+    else()
+        message("   All addons were filtered out due to compatibility issues.")
+        set(ENABLE_ADDONS_01 0)
+    endif()
 endif()
 cmake_print_variables(ENABLE_SANDBOX)
 if(ENABLE_SANDBOX STREQUAL "")

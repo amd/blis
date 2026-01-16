@@ -4,7 +4,7 @@
       "base.json"
   ],
   "configurePresets": [
-      {
+        {
           "name": "linux-make-gcc",
           "inherits": "base",
           "hidden": true,

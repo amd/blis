@@ -3441,7 +3441,36 @@ main()
 		# Remove duplicates in the addon list, if they exist.
 		addon_list=$(rm_duplicate_words_simple "${addon_list}")
 
+		# Check compiler version requirements for each addon
 		echo "${script_name}: configuring with addons:"
+
+		new_addon_list=""
+		for addon in ${addon_list}; do
+			# Check if this is aocl_gemm addon and verify compiler version
+			if [ "${addon}" = "aocl_gemm" ]; then
+				if [ "${cc_vendor}" = "gcc" ]; then
+					# aocl_gemm addon (LPGEMM) requires GCC 11.2 or newer
+					# due to AVX-512 intrinsics and optimization requirements.
+					if [ ${cc_major} -lt 11 ] || [ ${cc_major} -eq 11 -a ${cc_minor} -lt 2 ]; then
+						echo "${script_name}: warning: aocl_gemm addon requires GCC 11.2 or newer."
+						echo "${script_name}: warning: Current GCC version is ${cc_version}."
+						echo "${script_name}: warning: Skipping aocl_gemm addon."
+						continue
+					fi
+				elif [ "${cc_vendor}" = "clang" ]; then
+					# aocl_gemm addon (LPGEMM) requires Clang 12.0 or newer
+					# due to AVX-512 intrinsics and C++17 requirements.
+					if [ ${cc_major} -lt 12 ]; then
+						echo "${script_name}: warning: aocl_gemm addon requires Clang 12.0 or newer."
+						echo "${script_name}: warning: Current Clang version is ${cc_version}."
+						echo "${script_name}: warning: Skipping aocl_gemm addon."
+						continue
+					fi
+				fi
+			fi
+			new_addon_list="${new_addon_list} ${addon}"
+		done
+		addon_list="${new_addon_list}"
 
 		for addon in ${addon_list}; do
 
