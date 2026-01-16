@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -33,33 +33,22 @@
 */
 
 #pragma once
+
 #include "common/testing_helpers.h"
 
-/**
- * This header holds correct valid BLAS parameters. Will be used for wrong input testing.
-*/
+/*
+ * ==========================================================================
+ * TBMV  performs one of the matrix-vector operations
+ *    x := alpha * transa(A) * x
+ * where x is an n element vector and  A is an n by n unit, or non-unit,
+ * upper or lower band triangular matrix.
+ * ==========================================================================
+**/
+
 namespace testinghelpers {
-namespace IIT {
-  static const char STORAGE = 'c';
-  static const char TRANS = 'n';
-  static const char CONJ = 'n';
-  static const char SIDE = 'l';
-  static const char UPLO = 'u';
-  static const char DIAG = 'u';
-  static const gtint_t M = 4;
-  static const gtint_t N = 4;
-  static const gtint_t K = 4;
-  static const gtint_t INC = 1;
-  static const gtint_t LDA = 4;
-  static const gtint_t LDB = 4;
-  static const gtint_t LDC = 4;
 
-  static const gtint_t KL = 2;
-  static const gtint_t KU = 2;
-  static const gtint_t LDA_GB = KL+KU+1;
+template <typename T>
+void ref_tbmv( char storage, char uploa, char transa, char diaga,
+    gtint_t n, gtint_t k, T *alpha, T *ap, gtint_t lda, T *xp, gtint_t incx );
 
-  static const gtint_t KB = 2;
-  static const gtint_t LDA_B = KB+1;
-
-}
-}
+} //end of namespace testinghelpers
