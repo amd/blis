@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2024 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2024 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -495,7 +495,14 @@ err_t bli_dgemm_tiny
               if(((m == n) && (m < 400) && (k < 1000)) ||
               ( (m != n) && (( ((m + n -k) < 1500) &&
               ((m + k-n) < 1500) && ((n + k-m) < 1500) ) ||
-              ((n <= 100) && (k <=100)))))
+              /**
+			   *  Since tiny gemm interface passes the entire input as is to the micro-kernel itself,
+			   *  which loops as jr, ir and k.  For large M dimension it will keep flushing B matrix out
+			   *  of cache while loading new panel of A and C matrix, and it may again need to reload previously loaded
+			   *  B panel. Such repetitive data movement for B matrix hampers the performance. So limiting the inputs
+			   *  for tiny gemm interface for optimal performance.
+			   */
+              ((m < 10000) && (n <= 100) && (k <=100)))))
               {
                   if( (is_mt == FALSE) ||
                   ( bli_dgemm_single_threaded(m, n, k, 24/*MR*/, 8/*NR*/, 60/*Core's Gflops*/, 15/*Threading_overhead*/) == TRUE ) )

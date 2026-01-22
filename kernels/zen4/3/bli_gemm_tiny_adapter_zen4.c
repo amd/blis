@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2024 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2024 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -115,7 +115,7 @@
 
 /**
  * @brief bli_dgemmsup_placeholder
- * 
+ *
  * This is just a dummy function, which does nothing.
  * Instead of setting 0th index kern_fp_zen4 table to NULL,
  * this dummy function is assigned.
@@ -295,9 +295,20 @@ err_t bli_dgemm_tiny_zen4_24x8
         rntm_t rntm;
         bli_pba_rntm_set_pba( &rntm );
 
+        // Calculate required buffer size for packing A matrix
+        // Each panel is 24 rows, need to round up M to next multiple of 24
+        dim_t mPanels = (M + 23) / 24;  // Number of 24-row panels needed
+        size_t requiredBufferSize = mPanels * 24 * k * sizeof(double);
+
+        // Check if required buffer exceeds available size
+        if (requiredBufferSize > PACK_BUFFER_SIZE_B)
+        {
+            return BLIS_FAILURE;
+        }
+
         // Get the buffer from the pool.
         bli_pba_acquire_m(&rntm,
-                                PACK_BUFFER_SIZE_B,
+                                requiredBufferSize,
                                 BLIS_BITVAL_BUFFER_FOR_A_BLOCK,
                                 &local_mem_buf_A_s);
 
