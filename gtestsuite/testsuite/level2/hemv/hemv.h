@@ -166,8 +166,8 @@ static void hemv( char storage, char uploa, char conja, char conjx, gtint_t n,
         memcpy( ap_cpy, ap, size_ap * sizeof( T ) );
     }
     T* xp_cpy = nullptr;
-    gtint_t size_xp;
-    size_xp = testinghelpers::buff_dim( n, incx );
+    gtint_t size_xp = testinghelpers::buff_dim( n, incx );
+    if (xp && size_xp > 0)
     {
         xp_cpy = new T[size_xp];
         memcpy( xp_cpy, xp, size_xp * sizeof( T ) );
@@ -202,10 +202,10 @@ static void hemv( char storage, char uploa, char conja, char conjx, gtint_t n,
     computediff<char>( "conja", conja, conja_cpy );
     computediff<char>( "conjx", conjx, conjx_cpy );
     computediff<gtint_t>( "n", n, n_cpy );
-    if (alpha) computediff<T>( "alpha", *alpha, *alpha_cpy );
+    if (alpha) computediff<T>( "alpha", *alpha, *alpha_cpy, true );
     computediff<gtint_t>( "lda", lda, lda_cpy );
     computediff<gtint_t>( "incx", incx, incx_cpy );
-    if (beta) computediff<T>( "beta", *beta, *beta_cpy );
+    if (beta) computediff<T>( "beta", *beta, *beta_cpy, true );
     computediff<gtint_t>( "incy", incy, incy_cpy );
 
     //----------------------------------------------------------

@@ -50,17 +50,34 @@ void test_gbmv( char storage, char transa, gtint_t m, gtint_t n, gtint_t kl, gti
                 T y_exval = T{0} )
 {
     // Compute the leading dimensions for matrix size calculation.
-    gtint_t lda = testinghelpers::get_leading_dimension( storage, 'n', kl+ku+1, n, lda_inc );
+    gtint_t lda;
+    if ( storage == 'c' || storage == 'C' )
+    {
+        lda = testinghelpers::get_leading_dimension( 'c', 'n', kl+ku+1, n, lda_inc );
+    }
+    else
+    {
+        lda = testinghelpers::get_leading_dimension( 'c', 'n', kl+ku+1, m, lda_inc );
+    }
 
     //----------------------------------------------------------
     //        Initialize matrices with random numbers.
     //----------------------------------------------------------
 
     // Set index based on n and incx to get varied data
-    get_pool<T, 1, 5>().set_index(n, incx);
+    get_pool<T, 0, 1>().set_index(n, incx);
     get_pool<T, 1, 3>().set_index(n, incx);
+    get_pool<T, -3, 3>().set_index(n, incx);
 
-    std::vector<T> a = get_pool<T, 1, 5>().get_random_matrix( storage, 'n', kl+ku+1, n, lda );
+    std::vector<T> a;
+    if ( storage == 'c' || storage == 'C' )
+    {
+        a = get_pool<T, 0, 1>().get_random_matrix( 'c', 'n', kl+ku+1, n, lda );
+    }
+    else
+    {
+        a = get_pool<T, 0, 1>().get_random_matrix( 'c', 'n', kl+ku+1, m, lda );
+    }
 
     // Get correct vector lengths.
     gtint_t lenx = ( testinghelpers::chknotrans( transa ) ) ? n : m ;
@@ -79,6 +96,8 @@ void test_gbmv( char storage, char transa, gtint_t m, gtint_t n, gtint_t kl, gti
 
     if ( is_evt_test )
     {
+        srand(SRAND_SEED);
+
         // Add extreme value to A matrix
         dim_t n_idx = rand() % n;
         dim_t m_idx = rand() % (kl+ku+1);
@@ -146,7 +165,7 @@ public:
         str_name += "_incy_" + testinghelpers::get_value_string(incy);
         str_name += "_alpha_" + testinghelpers::get_value_string(alpha);
         str_name += "_beta_" + testinghelpers::get_value_string(beta);
-        gtint_t lda = testinghelpers::get_leading_dimension( storage, 'n', m, n, lda_inc );
+        gtint_t lda = testinghelpers::get_leading_dimension( 'c', 'n', kl+ku+1, n, lda_inc );
         str_name += "_lda_i" + std::to_string(lda_inc) + "_" + std::to_string(lda);
         return str_name;
     }
@@ -183,7 +202,7 @@ public:
         str_name += "_incy_" + testinghelpers::get_value_string(incy);
         str_name += "_alpha_" + testinghelpers::get_value_string(alpha);
         str_name += "_beta_" + testinghelpers::get_value_string(beta);
-        gtint_t lda = testinghelpers::get_leading_dimension( storage, 'n', m, n, lda_inc );
+        gtint_t lda = testinghelpers::get_leading_dimension( 'c', 'n', kl+ku+1, n, lda_inc );
         str_name += "_lda_i" + std::to_string(lda_inc) + "_" + std::to_string(lda);
         str_name = str_name + "_a_exval_" + testinghelpers::get_value_string(a_exval);
         str_name = str_name + "_x_exval_" + testinghelpers::get_value_string(x_exval);

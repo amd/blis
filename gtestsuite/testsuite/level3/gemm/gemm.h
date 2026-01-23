@@ -235,10 +235,10 @@ static void gemm( char storage, char transa, char transb, gtint_t m, gtint_t n, 
     computediff<gtint_t>( "m", m, m_cpy );
     computediff<gtint_t>( "n", n, n_cpy );
     computediff<gtint_t>( "k", k, k_cpy );
-    if (alpha) computediff<T>( "alpha", *alpha, *alpha_cpy );
+    if (alpha) computediff<T>( "alpha", *alpha, *alpha_cpy, true );
     computediff<gtint_t>( "lda", lda, lda_cpy );
     computediff<gtint_t>( "ldb", ldb, ldb_cpy );
-    if (beta) computediff<T>( "beta", *beta, *beta_cpy );
+    if (beta) computediff<T>( "beta", *beta, *beta_cpy, true );
     computediff<gtint_t>( "ldc", ldc, ldc_cpy );
 
     //----------------------------------------------------------

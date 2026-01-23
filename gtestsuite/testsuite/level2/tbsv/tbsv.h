@@ -40,14 +40,13 @@
 
 /**
  * @brief Performs the operation:
-  *    x := alpha * inv(transa(A)) * x_orig
+  *    x := inv(transa(A)) * x_orig
  * @param[in]     storage specifies the form of storage in the memory matrix A
  * @param[in]     uploa  specifies whether the upper or lower triangular part of the array A
  * @param[in]     transa specifies the form of op( A ) to be used in matrix multiplication
  * @param[in]     diaga  specifies whether the upper or lower triangular part of the array A
  * @param[in]     n      specifies the number of rows of the matrix A
  * @param[in]     k      specifies the number of super-diagonals of the matrix A
- * @param[in]     alpha  specifies the scalar alpha.
  * @param[in]     ap     specifies pointer which points to the first element of ap
  * @param[in]     lda    specifies leading dimension of the matrix.
  * @param[in,out] xp     specifies pointer which points to the first element of xp
@@ -116,7 +115,7 @@ static void cblas_tbsv( char storage, char uploa, char transa, char diaga,
 
 template<typename T>
 static void tbsv( char storage, char uploa, char transa, char diaga,
-    gtint_t n, gtint_t k, T *alpha, T *ap, gtint_t lda, T *xp, gtint_t incx )
+    gtint_t n, gtint_t k, T *ap, gtint_t lda, T *xp, gtint_t incx )
 {
 #if (defined TEST_BLAS_LIKE || defined TEST_CBLAS)
     T one;
@@ -138,13 +137,12 @@ static void tbsv( char storage, char uploa, char transa, char diaga,
     char diaga_cpy = diaga;
     gtint_t n_cpy = n;
     gtint_t k_cpy = k;
-    T* alpha_cpy = alpha;
     gtint_t lda_cpy = lda;
     gtint_t incx_cpy = incx;
 
     // Create copy of input arrays so we can check that they are not altered.
     T* ap_cpy = nullptr;
-    gtint_t size_ap = testinghelpers::matsize( storage, transa, n, n, lda );
+    gtint_t size_ap = testinghelpers::matsize( 'c', 'n', k+1, n, lda );
     if (ap && size_ap > 0)
     {
         ap_cpy = new T[size_ap];
@@ -154,25 +152,16 @@ static void tbsv( char storage, char uploa, char transa, char diaga,
 
 #ifdef TEST_BLAS
     if(( storage == 'c' || storage == 'C' ))
-        if( *alpha == one )
-            tbsv_<T>( uploa, transa, diaga, n, k, ap, lda, xp, incx );
-        else
-            throw std::runtime_error("Error in testsuite/level2/tbsv.h: BLAS interface cannot be tested for alpha != one.");
+        tbsv_<T>( uploa, transa, diaga, n, k, ap, lda, xp, incx );
     else
         throw std::runtime_error("Error in testsuite/level2/tbsv.h: BLAS interface cannot be tested for row-major order.");
 #elif TEST_BLAS_BLIS_IMPL
     if(( storage == 'c' || storage == 'C' ))
-        if( *alpha == one )
-            tbsv_blis_impl<T>( uploa, transa, diaga, n, k, ap, lda, xp, incx );
-        else
-            throw std::runtime_error("Error in testsuite/level2/tbsv.h: BLAS_BLIS_IMPL interface cannot be tested for alpha != one.");
+        tbsv_blis_impl<T>( uploa, transa, diaga, n, k, ap, lda, xp, incx );
     else
         throw std::runtime_error("Error in testsuite/level2/tbsv.h: BLAS_BLIS_IMPL interface cannot be tested for row-major order.");
 #elif TEST_CBLAS
-    if( *alpha == one )
-        cblas_tbsv<T>( storage, uploa, transa, diaga, n, k, ap, lda, xp, incx );
-    else
-      throw std::runtime_error("Error in testsuite/level2/tbsv.h: CBLAS interface cannot be tested for alpha != one.");
+    cblas_tbsv<T>( storage, uploa, transa, diaga, n, k, ap, lda, xp, incx );
 #else
     throw std::runtime_error("Error in testsuite/level2/tbsv.h: No interfaces are set to be tested.");
 #endif
@@ -188,7 +177,6 @@ static void tbsv( char storage, char uploa, char transa, char diaga,
     computediff<char>( "diaga", diaga, diaga_cpy );
     computediff<gtint_t>( "n", n, n_cpy );
     computediff<gtint_t>( "k", k, k_cpy );
-    if (alpha) computediff<T>( "alpha", *alpha, *alpha_cpy );
     computediff<gtint_t>( "lda", lda, lda_cpy );
     computediff<gtint_t>( "incx", incx, incx_cpy );
 
@@ -198,7 +186,7 @@ static void tbsv( char storage, char uploa, char transa, char diaga,
 
     if (ap && size_ap > 0)
     {
-        computediff<T>( "A", storage, n, n, k, ap, ap_cpy, lda, true );
+        computediff<T>( "A", 'c', k+1, n, ap, ap_cpy, lda, true );
         delete[] ap_cpy;
     }
 #endif

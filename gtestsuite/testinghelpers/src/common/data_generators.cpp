@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2025 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -40,15 +40,13 @@
 namespace testinghelpers {
 namespace datagenerators {
 
-constexpr int RANDOM_POOL_SEED = 94;
-
 /***************************************************
  *             Data Pool Generators
 ****************************************************/
 template<typename T>
 RandomDataPool<T>::RandomDataPool(real_T from, real_T to, ElementType datatype)
-    : pool_generator_(RANDOM_POOL_SEED),           // Initialize with seed
-        pool_(DEFAULT_POOL_SIZE),      // Initialize with size
+    :   pool_generator_(RANDOM_POOL_SEED), // Initialize with seed
+        pool_(DEFAULT_POOL_SIZE),          // Initialize with size
         index_(0),
         internal_datatype_(datatype),
         from_(from),
@@ -63,8 +61,8 @@ RandomDataPool<T>::RandomDataPool(real_T from, real_T to, ElementType datatype)
     
 template<typename T>
 RandomDataPool<T>::RandomDataPool(real_T from, real_T to, size_t pool_size, ElementType datatype)
-    : pool_generator_(RANDOM_POOL_SEED),           // Initialize with seed
-        pool_(pool_size),      // Initialize with pool_size
+    :   pool_generator_(RANDOM_POOL_SEED), // Initialize with seed
+        pool_(pool_size),                  // Initialize with pool_size
         pool_size_(pool_size),
         index_(0),
         internal_datatype_(datatype),

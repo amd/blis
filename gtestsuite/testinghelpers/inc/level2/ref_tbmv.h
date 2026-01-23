@@ -39,7 +39,7 @@
 /*
  * ==========================================================================
  * TBMV  performs one of the matrix-vector operations
- *    x := alpha * transa(A) * x
+ *    x := transa(A) * x
  * where x is an n element vector and  A is an n by n unit, or non-unit,
  * upper or lower band triangular matrix.
  * ==========================================================================
@@ -49,6 +49,6 @@ namespace testinghelpers {
 
 template <typename T>
 void ref_tbmv( char storage, char uploa, char transa, char diaga,
-    gtint_t n, gtint_t k, T *alpha, T *ap, gtint_t lda, T *xp, gtint_t incx );
+    gtint_t n, gtint_t k, T *ap, gtint_t lda, T *xp, gtint_t incx );
 
 } //end of namespace testinghelpers

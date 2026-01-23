@@ -42,7 +42,6 @@ class dtbsvGeneric :
                                                    char,         // diag
                                                    gtint_t,      // n
                                                    gtint_t,      // k
-                                                   double,       // alpha
                                                    gtint_t,      // incx
                                                    gtint_t       // ld_inc
                                         >> {};
@@ -66,21 +65,19 @@ TEST_P( dtbsvGeneric, API )
     gtint_t n  = std::get<4>(GetParam());
     // diagonal size k
     gtint_t k  = std::get<5>(GetParam());
-    // specifies alpha value
-    T alpha = std::get<6>(GetParam());
     // increment for x (incx):
-    gtint_t incx = std::get<7>(GetParam());
+    gtint_t incx = std::get<6>(GetParam());
     // lda increment.
     // If increment is zero, then the array size matches the matrix size.
     // If increment are nonnegative, the array size is bigger than the matrix size.
-    gtint_t lda_inc = std::get<8>(GetParam());
+    gtint_t lda_inc = std::get<7>(GetParam());
 
     // Set the threshold for the errors:
     // Check gtestsuite tbsv.h or netlib source code for reminder of the
     // functionality from which we estimate operation count per element
     // of output, and hence the multipler for epsilon.
     double thresh;
-    if (n == 0 || alpha == T{0.0})
+    if (n == 0)
         thresh = 0.0;
     else
     {
@@ -90,10 +87,7 @@ TEST_P( dtbsvGeneric, API )
 #else
         double adj = 7.5;
 #endif
-        if(alpha == T{1.0})
-          thresh = adj*2*n*testinghelpers::getEpsilon<T>();
-        else
-          thresh = adj*3*n*testinghelpers::getEpsilon<T>();
+        thresh = adj*2*n*testinghelpers::getEpsilon<T>();
     }
     //----------------------------------------------------------
     //     Call test body using these parameters
@@ -104,7 +98,7 @@ TEST_P( dtbsvGeneric, API )
     {
 	vary_num_threads();
         //std::cout << "Inside 1diff parallel regions\n";
-        test_tbsv<T>( storage, uploa, transa, diaga, n, k, alpha, lda_inc, incx, thresh );
+        test_tbsv<T>( storage, uploa, transa, diaga, n, k, lda_inc, incx, thresh );
     }
 #elif OPENMP_NESTED_2
     #pragma omp parallel default(shared)
@@ -112,18 +106,18 @@ TEST_P( dtbsvGeneric, API )
     #pragma omp parallel default(shared)
     {
         //std::cout << "Inside 2 parallel regions\n";
-        test_tbsv<T>( storage, uploa, transa, diaga, n, k, alpha, lda_inc, incx, thresh );
+        test_tbsv<T>( storage, uploa, transa, diaga, n, k, lda_inc, incx, thresh );
     }
     }
 #elif OPENMP_NESTED_1
     #pragma omp parallel default(shared)
     {
         //std::cout << "Inside 1 parallel region\n";
-        test_tbsv<T>( storage, uploa, transa, diaga, n, k, alpha, lda_inc, incx, thresh );
+        test_tbsv<T>( storage, uploa, transa, diaga, n, k, lda_inc, incx, thresh );
     }
 #else
         //std::cout << "Not inside parallel region\n";
-        test_tbsv<T>( storage, uploa, transa, diaga, n, k, alpha, lda_inc, incx, thresh );
+        test_tbsv<T>( storage, uploa, transa, diaga, n, k, lda_inc, incx, thresh );
 #endif
 }
 
@@ -142,7 +136,6 @@ INSTANTIATE_TEST_SUITE_P(
             ::testing::Values('n','u'),                                      // diaga , n=NONUNIT_DIAG u=UNIT_DIAG
             ::testing::Range(gtint_t(1),gtint_t(21),1),                      // n
             ::testing::Values(gtint_t(1)),                                   // k
-            ::testing::Values(1.0),                                          // alpha
             ::testing::Values(gtint_t(-1),gtint_t(1), gtint_t(33)),          // incx
             ::testing::Values(gtint_t(0), gtint_t(11))                       // increment to the leading dim of a
         ),
@@ -155,6 +148,9 @@ INSTANTIATE_TEST_SUITE_P(
         dtbsvGeneric,
         ::testing::Combine(
             ::testing::Values('c'
+#ifndef TEST_BLAS_LIKE
+                             ,'r'
+#endif
             ),                                                               // storage format
             ::testing::Values('u','l'),                                      // uploa
             ::testing::Values('n','t','c'),                                  // transa
@@ -166,7 +162,6 @@ INSTANTIATE_TEST_SUITE_P(
                               gtint_t(211)
                             ),                                               // n
             ::testing::Values(gtint_t(1)),                                   // k
-            ::testing::Values(1.0),                                          // alpha
             ::testing::Values(gtint_t(-1),gtint_t(1), gtint_t(33)),          // incx
             ::testing::Values(gtint_t(0), gtint_t(11))                       // increment to the leading dim of a
         ),

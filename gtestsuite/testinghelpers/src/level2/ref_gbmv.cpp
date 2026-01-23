@@ -49,8 +49,6 @@ template <typename T>
 void ref_gbmv( char storage, char trans, gtint_t m, gtint_t n, gtint_t kl, gtint_t ku, T alpha,
     T *ap, gtint_t lda, T *xp, gtint_t incx, T beta, T *yp, gtint_t incy )
 {
-    gtint_t lenx = chknotrans( trans ) ? n : m ;
-
     enum CBLAS_ORDER cblas_order;
     enum CBLAS_TRANSPOSE cblas_trans;
 

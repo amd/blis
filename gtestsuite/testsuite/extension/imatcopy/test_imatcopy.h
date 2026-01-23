@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2024 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -79,11 +79,11 @@ static void test_imatcopy( char storage, char trans, gtint_t m, gtint_t n, T alp
 
     if( is_nan_inf_test )
     {
-      gtint_t rand_m = rand() % m;
-      gtint_t rand_n = rand() % n;
-      gtint_t idx = ( storage == 'c' || storage == 'C' )? ( rand_m + rand_n * lda_in ) : ( rand_n + rand_m * lda_in );
-
-      A[idx] = exval;
+        srand(SRAND_SEED);
+        gtint_t rand_m = rand() % m;
+        gtint_t rand_n = rand() % n;
+        gtint_t idx = ( storage == 'c' || storage == 'C' )? ( rand_m + rand_n * lda_in ) : ( rand_n + rand_m * lda_in );
+        A[idx] = exval;
     }
 
     // Copying the contents of A to A_ref

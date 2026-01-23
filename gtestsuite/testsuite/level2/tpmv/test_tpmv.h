@@ -71,12 +71,16 @@ void test_tpmv(
     // This will use the index from where it was
     std::vector<T> x = get_pool<T, 1, 3>().get_random_vector(n, incx);
 
-    // Make A matrix diagonal dominant to make sure that algorithm doesn't diverge
+    // Make A matrix diagonally dominant to make sure that algorithm doesn't diverge
     // This makes sure that the tpmv problem is solvable
 
     // Packed storage (1-based) accessed as AP(i + j*(j-1)/2) for upper ('U') or AP(i + (2*n - j)*(j-1)/2)
+    // Upper and Lower are swapped when using row storage
 
-    if ( uploa == 'l' || uploa == 'L' )
+    if (
+         (( storage == 'c' || storage == 'C' ) && (uploa == 'l' || uploa == 'L' )) ||
+         (( storage == 'r' || storage == 'R' ) && (uploa == 'u' || uploa == 'U' ))
+       )
     {
         for ( dim_t a_dim = 1; a_dim <= n; ++a_dim )
         {
@@ -91,15 +95,14 @@ void test_tpmv(
         }
     }
 
-    // add extreme values to the X vector
     if ( is_evt_test )
     {
-        x[ (rand() % n) * std::abs(incx) ] = evt_x;
-    }
+        srand(SRAND_SEED);
 
-    // add extreme values to the A matrix
-    if ( is_evt_test )
-    {
+        // add extreme values to the X vector
+        x[ (rand() % n) * std::abs(incx) ] = evt_x;
+
+        // add extreme values to the A matrix
         dim_t n_idx = rand() % n;
         dim_t m_idx = (std::max)((dim_t)0, n_idx - 1);
 

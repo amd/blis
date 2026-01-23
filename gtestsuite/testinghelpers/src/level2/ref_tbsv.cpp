@@ -38,8 +38,8 @@
 /*
  * ==========================================================================
  * tbsv Solves a triangular system of equations with a single value for the
- *        right side
- *    b := alpha * inv(transa(A)) * x_orig
+ *      right side
+ *    b := inv(transa(A)) * x_orig
  * where b and x are n element vectors and A is an n by n unit, or non-unit,
  * upper or lower band triangular matrix.
  * ==========================================================================
@@ -49,7 +49,7 @@ namespace testinghelpers {
 
 template <typename T>
 void ref_tbsv( char storage, char uploa, char transa, char diaga,
-    gtint_t n, gtint_t k, T *alpha, T *ap, gtint_t lda, T *xp, gtint_t incx )
+    gtint_t n, gtint_t k, T *ap, gtint_t lda, T *xp, gtint_t incx )
 {
     enum CBLAS_ORDER cblas_order;
     enum CBLAS_UPLO cblas_uploa;
@@ -60,8 +60,6 @@ void ref_tbsv( char storage, char uploa, char transa, char diaga,
     char_to_cblas_uplo( uploa, &cblas_uploa );
     char_to_cblas_trans( transa, &cblas_trans );
     char_to_cblas_diag( diaga, &cblas_diaga );
-
-    alphax<T>( n, *alpha, xp, incx );
 
     typedef void (*Fptr_ref_cblas_tbsv)( const CBLAS_ORDER, const CBLAS_UPLO,
                                          const CBLAS_TRANSPOSE, CBLAS_DIAG ,
@@ -99,12 +97,12 @@ void ref_tbsv( char storage, char uploa, char transa, char diaga,
 
 // Explicit template instantiations
 template void ref_tbsv<float>( char , char , char , char , gtint_t , gtint_t ,
-                              float *, float *, gtint_t , float *, gtint_t );
+                              float *, gtint_t , float *, gtint_t );
 template void ref_tbsv<double>( char , char , char , char , gtint_t , gtint_t ,
-                              double *, double *, gtint_t , double *, gtint_t );
+                              double *, gtint_t , double *, gtint_t );
 template void ref_tbsv<scomplex>( char , char , char , char , gtint_t , gtint_t ,
-                              scomplex *, scomplex *, gtint_t , scomplex *, gtint_t );
+                              scomplex *, gtint_t , scomplex *, gtint_t );
 template void ref_tbsv<dcomplex>( char , char , char , char , gtint_t , gtint_t ,
-                              dcomplex *, dcomplex *, gtint_t , dcomplex *, gtint_t );
+                              dcomplex *, gtint_t , dcomplex *, gtint_t );
 
 } //end of namespace testinghelpers

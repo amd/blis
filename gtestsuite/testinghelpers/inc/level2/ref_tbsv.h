@@ -39,8 +39,8 @@
 /*
  * ==========================================================================
  * TBSV Solves a triangular system of equations with a single value for the
- *        right side
- *    b := alpha * inv(transa(A)) * x_orig
+ *      right side
+ *    b := inv(transa(A)) * x_orig
  * where b and x are n element vectors and A is an n by n unit, or non-unit,
  * upper or lower band triangular matrix.
  * ==========================================================================
@@ -50,6 +50,6 @@ namespace testinghelpers {
 
 template <typename T>
 void ref_tbsv( char storage, char uploa, char transa, char diaga,
-    gtint_t n, gtint_t k, T *alpha, T *ap, gtint_t lda, T *xp, gtint_t incx );
+    gtint_t n, gtint_t k, T *ap, gtint_t lda, T *xp, gtint_t incx );
 
 } //end of namespace testinghelpers

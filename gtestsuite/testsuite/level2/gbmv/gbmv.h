@@ -141,7 +141,12 @@ static void gbmv( char storage, char trans, gtint_t m, gtint_t n,
 
     // Create copy of input arrays so we can check that they are not altered.
     T* ap_cpy = nullptr;
-    gtint_t size_ap = testinghelpers::matsize( storage, trans, m, n, lda );
+    gtint_t size_ap;
+    if ( storage == 'c' || storage == 'C' )
+        size_ap = testinghelpers::matsize( 'c', 'n', kl+ku+1, n, lda );
+    else
+        size_ap = testinghelpers::matsize( 'c', 'n', kl+ku+1, m, lda );
+
     if (ap && size_ap > 0)
     {
         ap_cpy = new T[size_ap];
@@ -150,9 +155,13 @@ static void gbmv( char storage, char trans, gtint_t m, gtint_t n,
     T* xp_cpy = nullptr;
     gtint_t size_xp;
     if(( trans == 'n' ) || ( trans == 'N' ))
+    {
         size_xp = testinghelpers::buff_dim( n, incx );
+    }
     else
+    {
         size_xp = testinghelpers::buff_dim( m, incx );
+    }
     if (xp && size_xp > 0)
     {
         xp_cpy = new T[size_xp];
@@ -187,10 +196,10 @@ static void gbmv( char storage, char trans, gtint_t m, gtint_t n,
     computediff<gtint_t>( "n", n, n_cpy );
     computediff<gtint_t>( "kl", kl, kl_cpy );
     computediff<gtint_t>( "ku", ku, ku_cpy );
-    if (alpha) computediff<T>( "alpha", *alpha, *alpha_cpy );
+    if (alpha) computediff<T>( "alpha", *alpha, *alpha_cpy, true );
     computediff<gtint_t>( "lda", lda, lda_cpy );
     computediff<gtint_t>( "incx", incx, incx_cpy );
-    if (beta) computediff<T>( "beta", *beta, *beta_cpy );
+    if (beta) computediff<T>( "beta", *beta, *beta_cpy, true );
     computediff<gtint_t>( "incy", incy, incy_cpy );
 
     //----------------------------------------------------------
@@ -199,10 +208,11 @@ static void gbmv( char storage, char trans, gtint_t m, gtint_t n,
 
     if (ap && size_ap > 0)
     {
-        if(( trans == 'n' ) || ( trans == 'N' ))
-            computediff<T>( "A", storage, m, n, ap, ap_cpy, lda, true );
+        if ( storage == 'c' || storage == 'C' )
+            computediff<T>( "A", 'c', kl+ku+1, n, ap, ap_cpy, lda, true );
         else
-            computediff<T>( "A", storage, n, m, ap, ap_cpy, lda, true );
+            computediff<T>( "A", 'c', kl+ku+1, m, ap, ap_cpy, lda, true );
+
         delete[] ap_cpy;
     }
 

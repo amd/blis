@@ -64,10 +64,9 @@ using namespace testinghelpers::IIT;
 TYPED_TEST(tbmv_IIT_ERS, invalid_storage)
 {
     using T = TypeParam;
-    T alpha = T{1};
 
     // Test with nullptr for all suitable arguments that shouldn't be accessed.
-    tbmv<T>( 'x', UPLO, TRANS, DIAG, N, KB, &alpha, nullptr, LDA_B, nullptr, INC);
+    tbmv<T>( 'x', UPLO, TRANS, DIAG, N, KB, nullptr, LDA_B, nullptr, INC);
 #ifdef CAN_TEST_INFO_VALUE
     gtint_t info = bli_info_get_info_value();
     computediff<gtint_t>( "info", info, 1 );
@@ -78,7 +77,7 @@ TYPED_TEST(tbmv_IIT_ERS, invalid_storage)
     std::vector<T> x = testinghelpers::get_random_vector<T>(0, 1, N, INC);
     std::vector<T> x_ref(x);
 
-    tbmv<T>( 'x', UPLO, TRANS, DIAG, N, KB, &alpha, a.data(), LDA_B, x.data(), INC);
+    tbmv<T>( 'x', UPLO, TRANS, DIAG, N, KB, a.data(), LDA_B, x.data(), INC);
     computediff<T>( "x", N, x.data(), x_ref.data(), INC );
 
 #ifdef CAN_TEST_INFO_VALUE
@@ -113,10 +112,9 @@ TYPED_TEST(tbmv_IIT_ERS, invalid_storage)
 TYPED_TEST(tbmv_IIT_ERS, invalid_UPLO)
 {
     using T = TypeParam;
-    T alpha = T{1};
 
     // Test with nullptr for all suitable arguments that shouldn't be accessed.
-    tbmv<T>( STORAGE, 'A', TRANS, DIAG, N, KB, &alpha, nullptr, LDA_B, nullptr, INC);
+    tbmv<T>( STORAGE, 'A', TRANS, DIAG, N, KB, nullptr, LDA_B, nullptr, INC);
 #ifdef CAN_TEST_INFO_VALUE
     gtint_t info = bli_info_get_info_value();
     computediff<gtint_t>( "info", info, INFO_OFFSET+1 );
@@ -127,7 +125,7 @@ TYPED_TEST(tbmv_IIT_ERS, invalid_UPLO)
     std::vector<T> x = testinghelpers::get_random_vector<T>(0, 1, N, INC);
     std::vector<T> x_ref(x);
 
-    tbmv<T>( STORAGE, 'A', TRANS, DIAG, N, KB, &alpha, a.data(), LDA_B, x.data(), INC);
+    tbmv<T>( STORAGE, 'A', TRANS, DIAG, N, KB, a.data(), LDA_B, x.data(), INC);
     computediff<T>( "x", N, x.data(), x_ref.data(), INC );
 
 #ifdef CAN_TEST_INFO_VALUE
@@ -144,10 +142,9 @@ TYPED_TEST(tbmv_IIT_ERS, invalid_UPLO)
 TYPED_TEST(tbmv_IIT_ERS, invalid_TRANS)
 {
     using T = TypeParam;
-    T alpha = T{1};
 
     // Test with nullptr for all suitable arguments that shouldn't be accessed.
-    tbmv<T>( STORAGE, UPLO, 'A', DIAG, N, KB, &alpha, nullptr, LDA_B, nullptr, INC);
+    tbmv<T>( STORAGE, UPLO, 'A', DIAG, N, KB, nullptr, LDA_B, nullptr, INC);
 #ifdef CAN_TEST_INFO_VALUE
     gtint_t info = bli_info_get_info_value();
     computediff<gtint_t>( "info", info, INFO_OFFSET+2 );
@@ -158,7 +155,7 @@ TYPED_TEST(tbmv_IIT_ERS, invalid_TRANS)
     std::vector<T> x = testinghelpers::get_random_vector<T>(0, 1, N, INC);
     std::vector<T> x_ref(x);
 
-    tbmv<T>( STORAGE, UPLO, 'A', DIAG, N, KB, &alpha, a.data(), LDA_B, x.data(), INC);
+    tbmv<T>( STORAGE, UPLO, 'A', DIAG, N, KB, a.data(), LDA_B, x.data(), INC);
     computediff<T>( "x", N, x.data(), x_ref.data(), INC );
 
 #ifdef CAN_TEST_INFO_VALUE
@@ -174,10 +171,9 @@ TYPED_TEST(tbmv_IIT_ERS, invalid_TRANS)
 TYPED_TEST(tbmv_IIT_ERS, invalid_DIAG)
 {
     using T = TypeParam;
-    T alpha = T{1};
 
     // Test with nullptr for all suitable arguments that shouldn't be accessed.
-    tbmv<T>( STORAGE, UPLO, TRANS, 'A', N, KB, &alpha, nullptr, LDA_B, nullptr, INC);
+    tbmv<T>( STORAGE, UPLO, TRANS, 'A', N, KB, nullptr, LDA_B, nullptr, INC);
 #ifdef CAN_TEST_INFO_VALUE
     gtint_t info = bli_info_get_info_value();
     computediff<gtint_t>( "info", info, INFO_OFFSET+3 );
@@ -188,7 +184,7 @@ TYPED_TEST(tbmv_IIT_ERS, invalid_DIAG)
     std::vector<T> x = testinghelpers::get_random_vector<T>(0, 1, N, INC);
     std::vector<T> x_ref(x);
 
-    tbmv<T>( STORAGE, UPLO, TRANS, 'A', N, KB, &alpha, a.data(), LDA_B, x.data(), INC);
+    tbmv<T>( STORAGE, UPLO, TRANS, 'A', N, KB, a.data(), LDA_B, x.data(), INC);
     computediff<T>( "x", N, x.data(), x_ref.data(), INC );
 
 #ifdef CAN_TEST_INFO_VALUE
@@ -204,10 +200,9 @@ TYPED_TEST(tbmv_IIT_ERS, invalid_DIAG)
 TYPED_TEST(tbmv_IIT_ERS, invalid_n)
 {
     using T = TypeParam;
-    T alpha = T{1};
 
     // Test with nullptr for all suitable arguments that shouldn't be accessed.
-    tbmv<T>( STORAGE, UPLO, TRANS, DIAG, -1, KB, &alpha, nullptr, LDA_B, nullptr, INC);
+    tbmv<T>( STORAGE, UPLO, TRANS, DIAG, -1, KB, nullptr, LDA_B, nullptr, INC);
 #ifdef CAN_TEST_INFO_VALUE
     gtint_t info = bli_info_get_info_value();
     computediff<gtint_t>( "info", info, 4 );
@@ -218,7 +213,7 @@ TYPED_TEST(tbmv_IIT_ERS, invalid_n)
     std::vector<T> x = testinghelpers::get_random_vector<T>(0, 1, N, INC);
     std::vector<T> x_ref(x);
 
-    tbmv<T>( STORAGE, UPLO, TRANS, DIAG, -1, KB, &alpha, a.data(), LDA_B, x.data(), INC);
+    tbmv<T>( STORAGE, UPLO, TRANS, DIAG, -1, KB, a.data(), LDA_B, x.data(), INC);
     computediff<T>( "x", N, x.data(), x_ref.data(), INC );
 
 #ifdef CAN_TEST_INFO_VALUE
@@ -234,10 +229,9 @@ TYPED_TEST(tbmv_IIT_ERS, invalid_n)
 TYPED_TEST(tbmv_IIT_ERS, invalid_k)
 {
     using T = TypeParam;
-    T alpha = T{1};
 
     // Test with nullptr for all suitable arguments that shouldn't be accessed.
-    tbmv<T>( STORAGE, UPLO, TRANS, DIAG, N, -1, &alpha, nullptr, LDA_B, nullptr, INC);
+    tbmv<T>( STORAGE, UPLO, TRANS, DIAG, N, -1, nullptr, LDA_B, nullptr, INC);
 #ifdef CAN_TEST_INFO_VALUE
     gtint_t info = bli_info_get_info_value();
     computediff<gtint_t>( "info", info, 5 );
@@ -248,7 +242,7 @@ TYPED_TEST(tbmv_IIT_ERS, invalid_k)
     std::vector<T> x = testinghelpers::get_random_vector<T>(0, 1, N, INC);
     std::vector<T> x_ref(x);
 
-    tbmv<T>( STORAGE, UPLO, TRANS, DIAG, N, -1, &alpha, a.data(), LDA_B, x.data(), INC);
+    tbmv<T>( STORAGE, UPLO, TRANS, DIAG, N, -1, a.data(), LDA_B, x.data(), INC);
     computediff<T>( "x", N, x.data(), x_ref.data(), INC );
 
 #ifdef CAN_TEST_INFO_VALUE
@@ -265,10 +259,9 @@ TYPED_TEST(tbmv_IIT_ERS, invalid_k)
 TYPED_TEST(tbmv_IIT_ERS, invalid_lda)
 {
     using T = TypeParam;
-    T alpha = T{1};
 
     // Test with nullptr for all suitable arguments that shouldn't be accessed.
-    tbmv<T>( STORAGE, UPLO, TRANS, DIAG, N, KB, &alpha, nullptr, LDA_B - 1, nullptr, INC);
+    tbmv<T>( STORAGE, UPLO, TRANS, DIAG, N, KB, nullptr, LDA_B - 1, nullptr, INC);
 #ifdef CAN_TEST_INFO_VALUE
     gtint_t info = bli_info_get_info_value();
     computediff<gtint_t>( "info", info, 7 );
@@ -279,7 +272,7 @@ TYPED_TEST(tbmv_IIT_ERS, invalid_lda)
     std::vector<T> x = testinghelpers::get_random_vector<T>(0, 1, N, INC);
     std::vector<T> x_ref(x);
 
-    tbmv<T>( STORAGE, UPLO, TRANS, DIAG, N, KB, &alpha, a.data(), LDA_B - 1, x.data(), INC);
+    tbmv<T>( STORAGE, UPLO, TRANS, DIAG, N, KB, a.data(), LDA_B - 1, x.data(), INC);
     computediff<T>( "x", N, x.data(), x_ref.data(), INC );
 
 #ifdef CAN_TEST_INFO_VALUE
@@ -295,10 +288,9 @@ TYPED_TEST(tbmv_IIT_ERS, invalid_lda)
 TYPED_TEST(tbmv_IIT_ERS, invalid_incx)
 {
     using T = TypeParam;
-    T alpha = T{1};
 
     // Test with nullptr for all suitable arguments that shouldn't be accessed.
-    tbmv<T>( STORAGE, UPLO, TRANS, DIAG, N, KB, &alpha, nullptr, LDA_B, nullptr, 0);
+    tbmv<T>( STORAGE, UPLO, TRANS, DIAG, N, KB, nullptr, LDA_B, nullptr, 0);
 #ifdef CAN_TEST_INFO_VALUE
     gtint_t info = bli_info_get_info_value();
     computediff<gtint_t>( "info", info, 9 );
@@ -309,7 +301,7 @@ TYPED_TEST(tbmv_IIT_ERS, invalid_incx)
     std::vector<T> x = testinghelpers::get_random_vector<T>(0, 1, N, INC);
     std::vector<T> x_ref(x);
 
-    tbmv<T>( STORAGE, UPLO, TRANS, DIAG, N, KB, &alpha, a.data(), LDA_B, x.data(), 0);
+    tbmv<T>( STORAGE, UPLO, TRANS, DIAG, N, KB, a.data(), LDA_B, x.data(), 0);
     computediff<T>( "x", N, x.data(), x_ref.data(), INC );
 
 #ifdef CAN_TEST_INFO_VALUE
@@ -334,10 +326,9 @@ TYPED_TEST(tbmv_IIT_ERS, invalid_incx)
 TYPED_TEST(tbmv_IIT_ERS, n_eq_zero)
 {
     using T = TypeParam;
-    T alpha = T{1};
 
     // Test with nullptr for all suitable arguments that shouldn't be accessed.
-    tbmv<T>( STORAGE, UPLO, TRANS, DIAG, 0, KB, &alpha, nullptr, LDA_B, nullptr, INC);
+    tbmv<T>( STORAGE, UPLO, TRANS, DIAG, 0, KB, nullptr, LDA_B, nullptr, INC);
 #ifdef CAN_TEST_INFO_VALUE
     gtint_t info = bli_info_get_info_value();
     computediff<gtint_t>( "info", info, 0 );
@@ -348,7 +339,7 @@ TYPED_TEST(tbmv_IIT_ERS, n_eq_zero)
     std::vector<T> x = testinghelpers::get_random_vector<T>(0, 1, N, INC);
     std::vector<T> x_ref(x);
 
-    tbmv<T>( STORAGE, UPLO, TRANS, DIAG, 0, KB, &alpha, a.data(), LDA_B, x.data(), INC);
+    tbmv<T>( STORAGE, UPLO, TRANS, DIAG, 0, KB, a.data(), LDA_B, x.data(), INC);
     computediff<T>( "x", N, x.data(), x_ref.data(), INC );
 
 #ifdef CAN_TEST_INFO_VALUE

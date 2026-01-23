@@ -46,7 +46,7 @@ void test_hbmv( char storage, char uploa, gtint_t n, gtint_t k,
     T alpha, gtint_t lda_inc, gtint_t incx, T beta, gtint_t incy, double thresh )
 {
     // Compute the leading dimensions of a.
-    gtint_t lda = testinghelpers::get_leading_dimension( storage, 'n', k+1, n, lda_inc );
+    gtint_t lda = testinghelpers::get_leading_dimension( 'c', 'n', k+1, n, lda_inc );
 
     //----------------------------------------------------------
     //        Initialize matrices with random numbers.
@@ -56,7 +56,7 @@ void test_hbmv( char storage, char uploa, gtint_t n, gtint_t k,
     get_pool<T, -2, 5>().set_index(n, incx);
     get_pool<T, -3, 3>().set_index(n, incx);
 
-    std::vector<T> a = get_pool<T, -2, 5>().get_random_matrix( storage, 'n', k+1, n, lda );
+    std::vector<T> a = get_pool<T, -2, 5>().get_random_matrix( 'c', 'n', k+1, n, lda );
     std::vector<T> x = get_pool<T, -3, 3>().get_random_vector(n, incx);
 
     std::vector<T> y( testinghelpers::buff_dim(n, incy) );
@@ -115,7 +115,7 @@ public:
         str_name += "_n_" + std::to_string(n);
         str_name += "_k_" + std::to_string(k);
         str_name += "_alpha_" + testinghelpers::get_value_string(alpha);
-        gtint_t lda = testinghelpers::get_leading_dimension( storage, 'n', n, n, lda_inc );
+        gtint_t lda = testinghelpers::get_leading_dimension( 'c', 'n', k+1, n, lda_inc );
         str_name += "_lda_i" + std::to_string(lda_inc) + "_" + std::to_string(lda);
         str_name += "_incx_" + testinghelpers::get_value_string(incx);
         str_name += "_beta_" + testinghelpers::get_value_string(beta);

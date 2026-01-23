@@ -50,7 +50,6 @@ void test_tbsv(
                 char diaga,
                 gtint_t n,
                 gtint_t k,
-                T alpha,
                 gtint_t lda_inc,
                 gtint_t incx,
                 double thresh,
@@ -61,7 +60,7 @@ void test_tbsv(
 {
     using RT = typename testinghelpers::type_info<T>::real_type;
     // Compute the leading dimensions for matrix size calculation.
-    gtint_t lda = testinghelpers::get_leading_dimension( storage, 'n', k+1, n, lda_inc, 1 );
+    gtint_t lda = testinghelpers::get_leading_dimension( 'c', 'n', k+1, n, lda_inc );
 
     //----------------------------------------------------------
     //        Initialize matrices with random numbers.
@@ -71,12 +70,17 @@ void test_tbsv(
     get_pool<T, 0, 1>().set_index(n, incx);
     get_pool<T, 1, 3>().set_index(n, incx);
 
-    std::vector<T> a = get_pool<T, 0, 1>().get_random_matrix( storage, 'n', k+1, n, lda );
+    std::vector<T> a = get_pool<T, 0, 1>().get_random_matrix( 'c', 'n', k+1, n, lda );
     std::vector<T> x = get_pool<T, 1, 3>().get_random_vector(n, incx);
 
-    // Make A matix diagonal dominant to make sure that algorithm doesn't diverge
+    // Make A matix diagonally dominant to make sure that algorithm doesn't diverge
     // This makes sure that the tbsv problem is solvable
-    if( uploa == 'l' || uploa == 'L')
+    // Upper and Lower are swapped when using row storage
+
+    if (
+         (( storage == 'c' || storage == 'C' ) && (uploa == 'l' || uploa == 'L' )) ||
+         (( storage == 'r' || storage == 'R' ) && (uploa == 'u' || uploa == 'U' ))
+       )
     {
         for ( dim_t a_dim = 0; a_dim < n; ++a_dim )
         {
@@ -93,6 +97,8 @@ void test_tbsv(
 
     if ( is_evt_test )
     {
+        srand(SRAND_SEED);
+
         // add extreme values to the A matrix
         dim_t n_idx = rand() % n;
         dim_t m_idx = rand() % (k+1);
@@ -108,12 +114,12 @@ void test_tbsv(
     //----------------------------------------------------------
     //                  Call BLIS function
     //----------------------------------------------------------
-    tbsv<T>( storage, uploa, transa, diaga, n, k, &alpha, a.data(), lda, x.data(), incx );
+    tbsv<T>( storage, uploa, transa, diaga, n, k, a.data(), lda, x.data(), incx );
 
     //----------------------------------------------------------
     //                  Call reference implementation.
     //----------------------------------------------------------
-    testinghelpers::ref_tbsv<T>( storage, uploa, transa, diaga, n, k, &alpha, a.data(), lda, x_ref.data(), incx );
+    testinghelpers::ref_tbsv<T>( storage, uploa, transa, diaga, n, k, a.data(), lda, x_ref.data(), incx );
 
     //----------------------------------------------------------
     //              check component-wise error.
@@ -131,16 +137,15 @@ template <typename T>
 class tbsvGenericPrint {
 public:
     std::string operator()(
-        testing::TestParamInfo<std::tuple<char,char,char,char,gtint_t,gtint_t,T,gtint_t,gtint_t>> str) const {
+        testing::TestParamInfo<std::tuple<char,char,char,char,gtint_t,gtint_t,gtint_t,gtint_t>> str) const {
         char storage     = std::get<0>(str.param);
         char uploa       = std::get<1>(str.param);
         char transa      = std::get<2>(str.param);
         char diaga       = std::get<3>(str.param);
         gtint_t n        = std::get<4>(str.param);
         gtint_t k        = std::get<5>(str.param);
-        T alpha          = std::get<6>(str.param);
-        gtint_t incx     = std::get<7>(str.param);
-        gtint_t lda_inc  = std::get<8>(str.param);
+        gtint_t incx     = std::get<6>(str.param);
+        gtint_t lda_inc  = std::get<7>(str.param);
 
         std::string str_name = API_PRINT;
         str_name += "_stor_" + std::string(&storage, 1);
@@ -149,9 +154,8 @@ public:
         str_name += "_diaga_" + std::string(&diaga, 1);
         str_name += "_n_" + std::to_string(n);
         str_name += "_k_" + std::to_string(k);
-        str_name += "_alpha_" + testinghelpers::get_value_string(alpha);
         str_name += "_incx_" + testinghelpers::get_value_string(incx);
-        gtint_t lda = testinghelpers::get_leading_dimension( storage, transa, n, n, lda_inc );
+        gtint_t lda = testinghelpers::get_leading_dimension( 'c', 'n', k+1, n, lda_inc );
         str_name += "_lda_i" + std::to_string(lda_inc) + "_" + std::to_string(lda);
         return str_name;
     }
@@ -169,11 +173,10 @@ public:
         char diaga      = std::get<3>(str.param);
         gtint_t n       = std::get<4>(str.param);
         gtint_t k       = std::get<5>(str.param);
-        T alpha         = std::get<6>(str.param);
-        gtint_t incx    = std::get<7>(str.param);
-        T xexval        = std::get<8>(str.param);
-        T aexval        = std::get<9>(str.param);
-        gtint_t lda_inc = std::get<10>(str.param);
+        gtint_t incx    = std::get<6>(str.param);
+        T xexval        = std::get<7>(str.param);
+        T aexval        = std::get<8>(str.param);
+        gtint_t lda_inc = std::get<9>(str.param);
 
         std::string str_name = API_PRINT;
         str_name += "_stor_" + std::string(&storage, 1);
@@ -182,11 +185,10 @@ public:
         str_name += "_diaga_" + std::string(&diaga, 1);
         str_name += "_n_" + std::to_string(n);
         str_name += "_k_" + std::to_string(k);
-        str_name += "_alpha_" + testinghelpers::get_value_string(alpha);
         str_name += "_incx_" + testinghelpers::get_value_string(incx);
         str_name    = str_name + "_ex_x_" + testinghelpers::get_value_string(xexval);
         str_name    = str_name + "_ex_a_" + testinghelpers::get_value_string(aexval);
-        gtint_t lda = testinghelpers::get_leading_dimension( storage, transa, n, n, lda_inc );
+        gtint_t lda = testinghelpers::get_leading_dimension( 'c', 'n', k+1, n, lda_inc );
         str_name += "_lda_i" + std::to_string(lda_inc) + "_" + std::to_string(lda);
         return str_name;
     }

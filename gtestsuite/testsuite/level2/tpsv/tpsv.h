@@ -180,7 +180,7 @@ static void tpsv( char storage, char uploa, char transa, char diaga,
 
     if (ap && size_ap > 0)
     {
-        computediff<T>( "A", size_ap, ap, ap_cpy, false );
+        computediff<T>( "A", size_ap, ap, ap_cpy, 1, true );
         delete[] ap_cpy;
     }
 #endif

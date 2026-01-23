@@ -75,7 +75,7 @@ TYPED_TEST(hemv_IIT_ERS, invalid_storage)
     //----------------------------------------------------------
     //        Initialize matrices with random integer numbers.
     //----------------------------------------------------------
-    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, N, LDA);
+    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 1, 3, N, incx );
     std::vector<T> y = testinghelpers::get_random_vector<T>( 1, 3, N, incy );
 
@@ -142,7 +142,7 @@ TYPED_TEST(hemv_IIT_ERS, invalid_UPLO)
     //----------------------------------------------------------
     //        Initialize matrices with random integer numbers.
     //----------------------------------------------------------
-    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, N, LDA);
+    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 1, 3, N, incx );
     std::vector<T> y = testinghelpers::get_random_vector<T>( 1, 3, N, incy );
 
@@ -194,7 +194,7 @@ TYPED_TEST(hemv_IIT_ERS, n_lt_zero)
     //----------------------------------------------------------
     //        Initialize matrices with random integer numbers.
     //----------------------------------------------------------
-    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, N, LDA);
+    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 1, 3, N, incx );
     std::vector<T> y = testinghelpers::get_random_vector<T>( 1, 3, N, incy );
 
@@ -246,7 +246,7 @@ TYPED_TEST(hemv_IIT_ERS, invalid_lda)
     //----------------------------------------------------------
     //        Initialize matrices with random integer numbers.
     //----------------------------------------------------------
-    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, N, LDA);
+    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 1, 3, N, incx );
     std::vector<T> y = testinghelpers::get_random_vector<T>( 1, 3, N, incy );
 
@@ -298,7 +298,7 @@ TYPED_TEST(hemv_IIT_ERS, incx_eq_zero)
     //----------------------------------------------------------
     //        Initialize matrices with random integer numbers.
     //----------------------------------------------------------
-    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, N, LDA);
+    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 1, 3, N, incx );
     std::vector<T> y = testinghelpers::get_random_vector<T>( 1, 3, N, incy );
 
@@ -350,7 +350,7 @@ TYPED_TEST(hemv_IIT_ERS, incy_eq_zero)
     //----------------------------------------------------------
     //        Initialize matrices with random integer numbers.
     //----------------------------------------------------------
-    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, N, LDA);
+    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 1, 3, N, incx );
     std::vector<T> y = testinghelpers::get_random_vector<T>( 1, 3, N, incy );
 
@@ -411,7 +411,7 @@ TYPED_TEST(hemv_IIT_ERS, n_eq_zero)
     //----------------------------------------------------------
     //        Initialize matrices with random integer numbers.
     //----------------------------------------------------------
-    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, N, LDA);
+    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 1, 3, N, incx );
     std::vector<T> y = testinghelpers::get_random_vector<T>( 1, 3, N, incy );
 
@@ -459,7 +459,7 @@ TYPED_TEST(hemv_IIT_ERS, n_eq_zero_UnitAlphaBeta)
     //----------------------------------------------------------
     //        Initialize matrices with random integer numbers.
     //----------------------------------------------------------
-    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, N, LDA);
+    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 1, 3, N, incx );
     std::vector<T> y = testinghelpers::get_random_vector<T>( 1, 3, N, incy );
 
@@ -506,7 +506,7 @@ TYPED_TEST(hemv_IIT_ERS, ZeroAlpha_UnitBeta)
     //----------------------------------------------------------
     //        Initialize matrices with random integer numbers.
     //----------------------------------------------------------
-    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, N, LDA);
+    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 1, 3, N, incx );
     std::vector<T> y = testinghelpers::get_random_vector<T>( 1, 3, N, incy );
 
@@ -562,7 +562,7 @@ TYPED_TEST(hemv_IIT_ERS, ZeroAlpha_ZeroBeta)
     //----------------------------------------------------------
     //        Initialize matrices with random integer numbers.
     //----------------------------------------------------------
-    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, N, LDA);
+    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 0, 1, N, incx );
 
     //----------------------------------------------------------
@@ -597,7 +597,7 @@ TYPED_TEST(hemv_IIT_ERS, ZeroAlpha_OtherBeta)
     //----------------------------------------------------------
     //        Initialize matrices with random integer numbers.
     //----------------------------------------------------------
-    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, N, LDA);
+    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 0, 1, N, incx );
     std::vector<T> y = testinghelpers::get_random_vector<T>( 0, 1, N, incy );
     std::vector<T> y_ref(y);

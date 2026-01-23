@@ -125,8 +125,8 @@ static void spmv( char storage, char uploa, gtint_t n,
         memcpy( ap_cpy, ap, size_ap * sizeof( T ) );
     }
     T* xp_cpy = nullptr;
-    gtint_t size_xp;
-    size_xp = testinghelpers::buff_dim( n, incx );
+    gtint_t size_xp = testinghelpers::buff_dim( n, incx );
+    if (xp && size_xp > 0)
     {
         xp_cpy = new T[size_xp];
         memcpy( xp_cpy, xp, size_xp * sizeof( T ) );
@@ -157,9 +157,9 @@ static void spmv( char storage, char uploa, gtint_t n,
     computediff<char>( "storage", storage, storage_cpy );
     computediff<char>( "uploa", uploa, uploa_cpy );
     computediff<gtint_t>( "n", n, n_cpy );
-    if (alpha) computediff<T>( "alpha", *alpha, *alpha_cpy );
+    if (alpha) computediff<T>( "alpha", *alpha, *alpha_cpy, true );
     computediff<gtint_t>( "incx", incx, incx_cpy );
-    if (beta) computediff<T>( "beta", *beta, *beta_cpy );
+    if (beta) computediff<T>( "beta", *beta, *beta_cpy, true );
     computediff<gtint_t>( "incy", incy, incy_cpy );
 
     //----------------------------------------------------------
@@ -168,7 +168,7 @@ static void spmv( char storage, char uploa, gtint_t n,
 
     if (ap && size_ap > 0)
     {
-        computediff<T>( "A", size_ap, ap, ap_cpy, false );
+        computediff<T>( "A", size_ap, ap, ap_cpy, 1, true );
         delete[] ap_cpy;
     }
 

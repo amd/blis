@@ -145,8 +145,8 @@ static void syr( char storage, char uploa, char conj_x, gtint_t n, T* alpha,
 
     // Create copy of input arrays so we can check that they are not altered.
     T* xp_cpy = nullptr;
-    gtint_t size_xp;
-    size_xp = testinghelpers::buff_dim( n, incx );
+    gtint_t size_xp = testinghelpers::buff_dim( n, incx );
+    if (xp && size_xp > 0)
     {
         xp_cpy = new T[size_xp];
         memcpy( xp_cpy, xp, size_xp * sizeof( T ) );
@@ -180,7 +180,7 @@ static void syr( char storage, char uploa, char conj_x, gtint_t n, T* alpha,
     computediff<char>( "uploa", uploa, uploa_cpy );
     computediff<char>( "conj_x", conj_x, conj_x_cpy );
     computediff<gtint_t>( "n", n, n_cpy );
-    if (alpha) computediff<T>( "alpha", *alpha, *alpha_cpy );
+    if (alpha) computediff<T>( "alpha", *alpha, *alpha_cpy, true );
     computediff<gtint_t>( "incx", incx, incx_cpy );
     computediff<gtint_t>( "lda", lda, lda_cpy );
 

@@ -73,7 +73,7 @@ TYPED_TEST(her_IIT_ERS, invalid_storage)
 #endif
 
     // Test with all arguments correct except for the value we are choosing to test.
-    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, N, LDA);
+    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 1, 3, N, incx );
     // Copy so that we check that the elements of C are not modified.
     std::vector<T> a_ref(a);
@@ -131,7 +131,7 @@ TYPED_TEST(her_IIT_ERS, invalid_uplo)
 #endif
 
     // Test with all arguments correct except for the value we are choosing to test.
-    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, N, LDA);
+    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 1, 3, N, incx );
     // Copy so that we check that the elements of C are not modified.
     std::vector<T> a_ref(a);
@@ -174,7 +174,7 @@ TYPED_TEST(her_IIT_ERS, n_lt_zero)
 #endif
 
     // Test with all arguments correct except for the value we are choosing to test.
-    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, N, LDA);
+    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 1, 3, N, incx );
     // Copy so that we check that the elements of C are not modified.
     std::vector<T> a_ref(a);
@@ -217,7 +217,7 @@ TYPED_TEST(her_IIT_ERS, incx_eq_zero)
 #endif
 
     // Test with all arguments correct except for the value we are choosing to test.
-    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, N, LDA);
+    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 1, 3, N, incx );
     // Copy so that we check that the elements of C are not modified.
     std::vector<T> a_ref(a);
@@ -260,7 +260,7 @@ TYPED_TEST(her_IIT_ERS, invalid_LDA)
 #endif
 
     // Test with all arguments correct except for the value we are choosing to test.
-    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, N, LDA);
+    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 1, 3, N, incx );
     // Copy so that we check that the elements of C are not modified.
     std::vector<T> a_ref(a);
@@ -313,7 +313,7 @@ TYPED_TEST(her_IIT_ERS, n_eq_zero)
 #endif
 
     // Test with all arguments correct except for the value we are choosing to test.
-    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, N, LDA);
+    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 1, 3, N, incx );
     // Copy so that we check that the elements of C are not modified.
     std::vector<T> a_ref(a);
@@ -355,7 +355,7 @@ TYPED_TEST(her_IIT_ERS, alpha_zero)
 #endif
 
     // Test with all arguments correct except for the value we are choosing to test.
-    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, N, LDA);
+    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 1, 3, N, incx );
     // Copy so that we check that the elements of C are not modified.
     std::vector<T> a_ref(a);

@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -200,7 +200,8 @@ void test_trsm( char storage, char side, char uploa, char transa, char diaga,
     //----------------------------------------------------------
     std::vector<T> a( testinghelpers::matsize(storage, transa, mn, mn, lda) );
     std::vector<T> b( testinghelpers::matsize(storage, 'n', m, n, ldb) );
-    srand(time(0));
+
+    srand(SRAND_SEED);
     random_generator_with_INF_NAN( a.data(), uploa, storage, transa, mn, mn, lda, NO_EVT, true);
 
     // Make A matrix diagonally dominant with reasonable numerical scaling
