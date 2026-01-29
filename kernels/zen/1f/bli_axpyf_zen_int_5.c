@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2020 - 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2020 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -32,8 +32,11 @@
 
 */
 
-#include "immintrin.h"
 #include "blis.h"
+#include "immintrin.h"
+
+#define BLIS_ASM_SYNTAX_ATT
+#include "bli_x86_asm_macros.h"
 
 /* Union data structure to access AVX registers
    One 256-bit AVX register holds 8 SP elements. */
@@ -58,6 +61,19 @@ typedef union
     double  d[2] __attribute__((aligned(64)));
 } v2df_t;
 
+/* Mask vector for vmaskmovps operations.
+   For single precision, ymm register holds 8 floats.
+   Mask uses -1 (all bits set) to load/store, 0 to skip. */
+static const int32_t mask[8][8] = {
+    {0, 0, 0, 0, 0, 0, 0, 0},           // 0 elements (not used)
+    {-1, 0, 0, 0, 0, 0, 0, 0},          // 1 element
+    {-1, -1, 0, 0, 0, 0, 0, 0},         // 2 elements
+    {-1, -1, -1, 0, 0, 0, 0, 0},        // 3 elements
+    {-1, -1, -1, -1, 0, 0, 0, 0},       // 4 elements
+    {-1, -1, -1, -1, -1, 0, 0, 0},      // 5 elements
+    {-1, -1, -1, -1, -1, -1, 0, 0},     // 6 elements
+    {-1, -1, -1, -1, -1, -1, -1, 0}     // 7 elements
+};
 
 void bli_saxpyf_zen_int_5
      (
@@ -72,12 +88,9 @@ void bli_saxpyf_zen_int_5
        cntx_t* restrict cntx
      )
 {
-    const dim_t      fuse_fac       = 5;
+    const dim_t     fuse_fac       = 5;
 
-    const dim_t      n_elem_per_reg = 8;
-    const dim_t      n_iter_unroll  = 2;
-
-    dim_t            i;
+    dim_t           i;
 
     float* restrict a0;
     float* restrict a1;
@@ -87,19 +100,7 @@ void bli_saxpyf_zen_int_5
 
     float* restrict y0;
 
-    v8sf_t           chi0v, chi1v, chi2v, chi3v;
-    v8sf_t           chi4v;
-
-    v8sf_t           a00v, a01v, a02v, a03v;
-    v8sf_t           a04v;
-
-    v8sf_t           a10v, a11v, a12v, a13v;
-    v8sf_t           a14v;
-
-    v8sf_t           y0v, y1v;
-
-    float           chi0, chi1, chi2, chi3;
-    float           chi4;
+    float           chi0, chi1, chi2, chi3, chi4;
 
     // If either dimension is zero, or if alpha is zero, return early.
     if ( bli_zero_dim2( m, b_n ) || bli_seq0( *alpha ) ) return;
@@ -149,7 +150,6 @@ void bli_saxpyf_zen_int_5
     chi3 = *( x + 3*incx );
     chi4 = *( x + 4*incx );
 
-
     // Scale each chi scalar by alpha.
     bli_sscals( *alpha, chi0 );
     bli_sscals( *alpha, chi1 );
@@ -157,123 +157,215 @@ void bli_saxpyf_zen_int_5
     bli_sscals( *alpha, chi3 );
     bli_sscals( *alpha, chi4 );
 
-    // Broadcast the (alpha*chi?) scalars to all elements of vector registers.
-    chi0v.v = _mm256_broadcast_ss( &chi0 );
-    chi1v.v = _mm256_broadcast_ss( &chi1 );
-    chi2v.v = _mm256_broadcast_ss( &chi2 );
-    chi3v.v = _mm256_broadcast_ss( &chi3 );
-    chi4v.v = _mm256_broadcast_ss( &chi4 );
+    // Typecast to 64 bit
+    uint64_t m0 = (uint64_t)m;
 
-    // If there are vectorized iterations, perform them with vector
-    // instructions.
+    // If there are vectorized iterations, perform them with vector instructions.
     if ( inca == 1 && incy == 1 )
     {
-        for ( i = 0; (i + 15) < m; i += 16 )
-        {
-            // Load the input values.
-            y0v.v = _mm256_loadu_ps( y0 + 0*n_elem_per_reg );
-            y1v.v = _mm256_loadu_ps( y0 + 1*n_elem_per_reg );
+        
+        // Assembly Code
+        begin_asm()
 
-            a00v.v = _mm256_loadu_ps( a0 + 0*n_elem_per_reg );
-            a10v.v = _mm256_loadu_ps( a0 + 1*n_elem_per_reg );
+        /*
+            rsi - > m
+            rax - > a0
+            rbx - > a1
+            rcx - > a2
+            rdx - > a3
+            rdi - > a4
+            r8  - > y0
+            ymm0-ymm4 -> chi0-chi4 (broadcasted)
+        */
 
-            a01v.v = _mm256_loadu_ps( a1 + 0*n_elem_per_reg );
-            a11v.v = _mm256_loadu_ps( a1 + 1*n_elem_per_reg );
+        // Load pointers
+        mov(var(a0), rax)
+        mov(var(a1), rbx)
+        mov(var(a2), rcx)
+        mov(var(a3), rdx)
+        mov(var(a4), rdi)
+        mov(var(y0), r8)
+        mov(var(m0), rsi)
 
-            a02v.v = _mm256_loadu_ps( a2 + 0*n_elem_per_reg );
-            a12v.v = _mm256_loadu_ps( a2 + 1*n_elem_per_reg );
+        // Broadcast chi scalars to ymm registers
+        vbroadcastss(var(chi0), ymm0)
+        vbroadcastss(var(chi1), ymm1)
+        vbroadcastss(var(chi2), ymm2)
+        vbroadcastss(var(chi3), ymm3)
+        vbroadcastss(var(chi4), ymm4)
 
-            a03v.v = _mm256_loadu_ps( a3 + 0*n_elem_per_reg );
-            a13v.v = _mm256_loadu_ps( a3 + 1*n_elem_per_reg );
+        // ========================================================================================================================
 
-            a04v.v = _mm256_loadu_ps( a4 + 0*n_elem_per_reg );
-            a14v.v = _mm256_loadu_ps( a4 + 1*n_elem_per_reg );
+        // Section to process blocks of 16 elements
+        label(.BLOCK16)
 
-            // perform : y += alpha * x;
-            y0v.v = _mm256_fmadd_ps( a00v.v, chi0v.v, y0v.v );
-            y1v.v = _mm256_fmadd_ps( a10v.v, chi0v.v, y1v.v );
+        cmp(imm(16), rsi)                   // check if remaining elements >= 16
+        jl(.BLOCK8)                         // else, goto block of size 8
 
-            y0v.v = _mm256_fmadd_ps( a01v.v, chi1v.v, y0v.v );
-            y1v.v = _mm256_fmadd_ps( a11v.v, chi1v.v, y1v.v );
+        label(.LOOP16)
 
-            y0v.v = _mm256_fmadd_ps( a02v.v, chi2v.v, y0v.v );
-            y1v.v = _mm256_fmadd_ps( a12v.v, chi2v.v, y1v.v );
+        // Load y values
+        vmovups(mem(r8, 0*32), ymm5)        // ymm5 = y[0-7]
+        vmovups(mem(r8, 1*32), ymm6)        // ymm6 = y[8-15]
 
-            y0v.v = _mm256_fmadd_ps( a03v.v, chi3v.v, y0v.v );
-            y1v.v = _mm256_fmadd_ps( a13v.v, chi3v.v, y1v.v );
+        // Load a0 and perform FMA with chi0
+        vmovups(mem(rax, 0*32), ymm7)       // ymm7 = a0[0-7]
+        vmovups(mem(rax, 1*32), ymm8)       // ymm8 = a0[8-15]
+        vfmadd231ps(ymm0, ymm7, ymm5)       // y[0-7] += chi0 * a0[0-7]
+        vfmadd231ps(ymm0, ymm8, ymm6)       // y[8-15] += chi0 * a0[8-15]
 
-            y0v.v = _mm256_fmadd_ps( a04v.v, chi4v.v, y0v.v );
-            y1v.v = _mm256_fmadd_ps( a14v.v, chi4v.v, y1v.v );
+        // Load a1 and perform FMA with chi1
+        vmovups(mem(rbx, 0*32), ymm7)       // ymm7 = a1[0-7]
+        vmovups(mem(rbx, 1*32), ymm8)       // ymm8 = a1[8-15]
+        vfmadd231ps(ymm1, ymm7, ymm5)       // y[0-7] += chi1 * a1[0-7]
+        vfmadd231ps(ymm1, ymm8, ymm6)       // y[8-15] += chi1 * a1[8-15]
 
+        // Load a2 and perform FMA with chi2
+        vmovups(mem(rcx, 0*32), ymm7)       // ymm7 = a2[0-7]
+        vmovups(mem(rcx, 1*32), ymm8)       // ymm8 = a2[8-15]
+        vfmadd231ps(ymm2, ymm7, ymm5)       // y[0-7] += chi2 * a2[0-7]
+        vfmadd231ps(ymm2, ymm8, ymm6)       // y[8-15] += chi2 * a2[8-15]
 
-            // Store the output.
-            _mm256_storeu_ps( (y0 + 0*n_elem_per_reg), y0v.v );
-            _mm256_storeu_ps( (y0 + 1*n_elem_per_reg), y1v.v );
+        // Load a3 and perform FMA with chi3
+        vmovups(mem(rdx, 0*32), ymm7)       // ymm7 = a3[0-7]
+        vmovups(mem(rdx, 1*32), ymm8)       // ymm8 = a3[8-15]
+        vfmadd231ps(ymm3, ymm7, ymm5)       // y[0-7] += chi3 * a3[0-7]
+        vfmadd231ps(ymm3, ymm8, ymm6)       // y[8-15] += chi3 * a3[8-15]
 
-            y0 += n_iter_unroll * n_elem_per_reg;
-            a0 += n_iter_unroll * n_elem_per_reg;
-            a1 += n_iter_unroll * n_elem_per_reg;
-            a2 += n_iter_unroll * n_elem_per_reg;
-            a3 += n_iter_unroll * n_elem_per_reg;
-            a4 += n_iter_unroll * n_elem_per_reg;
-        }
+        // Load a4 and perform FMA with chi4
+        vmovups(mem(rdi, 0*32), ymm7)       // ymm7 = a4[0-7]
+        vmovups(mem(rdi, 1*32), ymm8)       // ymm8 = a4[8-15]
+        vfmadd231ps(ymm4, ymm7, ymm5)       // y[0-7] += chi4 * a4[0-7]
+        vfmadd231ps(ymm4, ymm8, ymm6)       // y[8-15] += chi4 * a4[8-15]
 
-        for( ; (i + 7) < m; i += 8 )
-        {
-            // Load the input values.
-            y0v.v = _mm256_loadu_ps( y0 + 0*n_elem_per_reg );
+        // Store y values
+        vmovups(ymm5, mem(r8, 0*32))        // y[0-7] = ymm5
+        vmovups(ymm6, mem(r8, 1*32))        // y[8-15] = ymm6
 
-            a00v.v = _mm256_loadu_ps( a0 + 0*n_elem_per_reg );
-            a01v.v = _mm256_loadu_ps( a1 + 0*n_elem_per_reg );
-            a02v.v = _mm256_loadu_ps( a2 + 0*n_elem_per_reg );
-            a03v.v = _mm256_loadu_ps( a3 + 0*n_elem_per_reg );
-            a04v.v = _mm256_loadu_ps( a4 + 0*n_elem_per_reg );
+        // Increment pointers
+        add(imm(16*4), rax)
+        add(imm(16*4), rbx)
+        add(imm(16*4), rcx)
+        add(imm(16*4), rdx)
+        add(imm(16*4), rdi)
+        add(imm(16*4), r8)
+        sub(imm(16), rsi)
 
+        cmp(imm(15), rsi)
+        jg(.LOOP16)
 
-            // perform : y += alpha * x;
-            y0v.v = _mm256_fmadd_ps( a00v.v, chi0v.v, y0v.v );
-            y0v.v = _mm256_fmadd_ps( a01v.v, chi1v.v, y0v.v );
-            y0v.v = _mm256_fmadd_ps( a02v.v, chi2v.v, y0v.v );
-            y0v.v = _mm256_fmadd_ps( a03v.v, chi3v.v, y0v.v );
-            y0v.v = _mm256_fmadd_ps( a04v.v, chi4v.v, y0v.v );
+        // -----------------------------------------------------------
 
-            // Store the output.
-            _mm256_storeu_ps( (y0 + 0*n_elem_per_reg), y0v.v );
+        // Section to process blocks of 8 elements
+        label(.BLOCK8)
 
-            y0 += n_elem_per_reg;
-            a0 += n_elem_per_reg;
-            a1 += n_elem_per_reg;
-            a2 += n_elem_per_reg;
-            a3 += n_elem_per_reg;
-            a4 += n_elem_per_reg;
-        }
+        cmp(imm(8), rsi)                    // check if remaining elements >= 8
+        jl(.FRINGE)                         // else, goto fringe code
 
-        // If there are leftover iterations, perform them with scalar code.
-        for ( ; (i + 0) < m ; ++i )
-        {
-            double       y0c = *y0;
+        // Load y values
+        vmovups(mem(r8, 0*32), ymm5)        // ymm5 = y[0-7]
 
-            const float a0c = *a0;
-            const float a1c = *a1;
-            const float a2c = *a2;
-            const float a3c = *a3;
-            const float a4c = *a4;
+        // Load a0 and perform FMA with chi0
+        vmovups(mem(rax, 0*32), ymm6)       // ymm6 = a0[0-7]
+        vfmadd231ps(ymm0, ymm6, ymm5)       // y[0-7] += chi0 * a0[0-7]
 
-            y0c += chi0 * a0c;
-            y0c += chi1 * a1c;
-            y0c += chi2 * a2c;
-            y0c += chi3 * a3c;
-            y0c += chi4 * a4c;
+        // Load a1 and perform FMA with chi1
+        vmovups(mem(rbx, 0*32), ymm6)       // ymm6 = a1[0-7]
+        vfmadd231ps(ymm1, ymm6, ymm5)       // y[0-7] += chi1 * a1[0-7]
 
-            *y0 = y0c;
+        // Load a2 and perform FMA with chi2
+        vmovups(mem(rcx, 0*32), ymm6)       // ymm6 = a2[0-7]
+        vfmadd231ps(ymm2, ymm6, ymm5)       // y[0-7] += chi2 * a2[0-7]
 
-            a0 += 1;
-            a1 += 1;
-            a2 += 1;
-            a3 += 1;
-            a4 += 1;
-            y0 += 1;
-        }
+        // Load a3 and perform FMA with chi3
+        vmovups(mem(rdx, 0*32), ymm6)       // ymm6 = a3[0-7]
+        vfmadd231ps(ymm3, ymm6, ymm5)       // y[0-7] += chi3 * a3[0-7]
+
+        // Load a4 and perform FMA with chi4
+        vmovups(mem(rdi, 0*32), ymm6)       // ymm6 = a4[0-7]
+        vfmadd231ps(ymm4, ymm6, ymm5)       // y[0-7] += chi4 * a4[0-7]
+
+        // Store y values
+        vmovups(ymm5, mem(r8, 0*32))        // y[0-7] = ymm5
+
+        // Increment pointers
+        add(imm(8*4), rax)
+        add(imm(8*4), rbx)
+        add(imm(8*4), rcx)
+        add(imm(8*4), rdx)
+        add(imm(8*4), rdi)
+        add(imm(8*4), r8)
+        sub(imm(8), rsi)
+
+        // -----------------------------------------------------------
+
+        // Masked vector code for remaining elements (1-7)
+        label(.FRINGE)
+
+        cmp(imm(0), rsi)
+        je(.END)
+
+        // Load mask based on remaining element count
+        lea(var(mask), r9)                  // r9 = &mask[0][0]
+        lea(mem(, rsi, 8), r10)             // r10 = rsi * 8 (8 int32_t per row)
+        lea(mem(, r10, 4), r10)             // r10 = r10 * 4 (4 bytes per int32_t) = rsi * 32
+        add(r10, r9)                        // r9 = &mask[rsi][0]
+        vmovdqu(mem(r9), ymm15)             // ymm15 = mask vector
+
+        // Load y values with mask
+        vmaskmovps(mem(r8), ymm15, ymm5)    // ymm5 = y[0-7] (masked)
+
+        // Load a0 and perform FMA with chi0
+        vmaskmovps(mem(rax), ymm15, ymm6)   // ymm6 = a0[0-7] (masked)
+        vfmadd231ps(ymm0, ymm6, ymm5)       // y[0-7] += chi0 * a0[0-7]
+
+        // Load a1 and perform FMA with chi1
+        vmaskmovps(mem(rbx), ymm15, ymm6)   // ymm6 = a1[0-7] (masked)
+        vfmadd231ps(ymm1, ymm6, ymm5)       // y[0-7] += chi1 * a1[0-7]
+
+        // Load a2 and perform FMA with chi2
+        vmaskmovps(mem(rcx), ymm15, ymm6)   // ymm6 = a2[0-7] (masked)
+        vfmadd231ps(ymm2, ymm6, ymm5)       // y[0-7] += chi2 * a2[0-7]
+
+        // Load a3 and perform FMA with chi3
+        vmaskmovps(mem(rdx), ymm15, ymm6)   // ymm6 = a3[0-7] (masked)
+        vfmadd231ps(ymm3, ymm6, ymm5)       // y[0-7] += chi3 * a3[0-7]
+
+        // Load a4 and perform FMA with chi4
+        vmaskmovps(mem(rdi), ymm15, ymm6)   // ymm6 = a4[0-7] (masked)
+        vfmadd231ps(ymm4, ymm6, ymm5)       // y[0-7] += chi4 * a4[0-7]
+
+        // Store y values with mask
+        vmaskmovps(ymm5, ymm15, mem(r8))    // y[0-7] = ymm5 (masked)
+
+        label(.END)
+
+        end_asm
+        (
+            : // output operands
+            : // input operands
+              [m0]    "m"     (m0),
+              [a0]    "m"     (a0),
+              [a1]    "m"     (a1),
+              [a2]    "m"     (a2),
+              [a3]    "m"     (a3),
+              [a4]    "m"     (a4),
+              [y0]    "m"     (y0),
+              [chi0]  "m"     (chi0),
+              [chi1]  "m"     (chi1),
+              [chi2]  "m"     (chi2),
+              [chi3]  "m"     (chi3),
+              [chi4]  "m"     (chi4),
+              [mask]  "m"     (mask)
+            : // register clobber list
+              "ymm0",  "ymm1",  "ymm2",  "ymm3",
+              "ymm4",  "ymm5",  "ymm6",  "ymm7",
+              "ymm8",  "ymm15", "xmm0",  "xmm1",
+              "xmm2",  "xmm3",  "xmm4",  "xmm5",
+              "xmm6",  "rsi",   "rax",   "rbx",
+              "rcx",   "rdx",   "rdi",   "r8",
+              "r9",    "r10",   "memory"
+        )
     }
     else
     {
