@@ -35,6 +35,18 @@
 
 #include "blis.h"
 
+// OpenMP 2.0 compatibility: Provide fallbacks for OpenMP 3.0 functions
+// Microsoft Visual Studio's OpenMP only supports OpenMP 2.0
+// Note: omp.h is already included by blis.h when BLIS_ENABLE_OPENMP is defined
+#if defined(BLIS_ENABLE_OPENMP) && defined(_MSC_VER)
+static inline int omp_get_active_level(void) {
+    return 0;  // Always assume top-level (no nested parallelism support)
+}
+static inline int omp_get_max_active_levels(void) {
+    return 1;  // OpenMP 2.0 doesn't support nested parallelism
+}
+#endif
+
 thrinfo_t BLIS_PACKM_SINGLE_THREADED = {};
 thrinfo_t BLIS_GEMM_SINGLE_THREADED  = {};
 thrcomm_t BLIS_SINGLE_COMM           = {};
