@@ -36,9 +36,13 @@
 #include "blis.h"
 
 // OpenMP 2.0 compatibility: Provide fallbacks for OpenMP 3.0 functions
-// Microsoft Visual Studio's OpenMP only supports OpenMP 2.0
+// Some compilers (e.g., MSVC, older GCC) only support OpenMP 2.0 which lacks:
+//   - omp_get_active_level() (OpenMP 3.0)
+//   - omp_get_max_active_levels() (OpenMP 3.0)
+// The _OPENMP macro is set to version-specific values by OpenMP-compliant compilers:
+//   200203 = OpenMP 2.0, 200811 = OpenMP 3.0, 201107 = OpenMP 3.1, etc.
 // Note: omp.h is already included by blis.h when BLIS_ENABLE_OPENMP is defined
-#if defined(BLIS_ENABLE_OPENMP) && defined(_MSC_VER)
+#if defined(BLIS_ENABLE_OPENMP) && defined(_OPENMP) && _OPENMP < 200811
 static inline int omp_get_active_level(void) {
     return 0;  // Always assume top-level (no nested parallelism support)
 }
