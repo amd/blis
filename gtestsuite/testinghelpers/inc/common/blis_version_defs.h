@@ -37,8 +37,11 @@
    We assume for now that we only add kernels, so we can build the list for
    each release based on the previous plus new kernels added.
 */
-
 #ifdef AOCL_DEV
+    #define AOCL_52
+#endif
+
+#ifdef AOCL_52
     #define K_zen4_int_40x2_mt zen4_int_40x2_mt
     #define K_zen4_int_40x8_mt zen4_int_40x8_mt
     #define K_zen4_int_40x2_st zen4_int_40x2_st
