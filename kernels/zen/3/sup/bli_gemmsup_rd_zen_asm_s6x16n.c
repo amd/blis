@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2020 - 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2020 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -51,7 +51,7 @@
    - C is row-stored and B is column-stored;
    - A is row-stored;
    - m0 and n0 are at most MR and NR, respectively.
-   Therefore, this (r)ow-preferential microkernel is well-suited for
+   Therefore, this ( r)ow-preferential microkernel is well-suited for
    a dot-product-based accumulation that performs vector loads from
    both A and B.
 
@@ -61,6 +61,16 @@
    effectively appear column-stored. Thus, this kernel may be used for both
    rrc and crc cases.
 */
+
+static const int32_t BLI_MASK[8][8] = { { 0,  0,  0,  0,  0,  0,  0, 0}, //load no values, not used currently
+                                        {-1,  0,  0,  0,  0,  0,  0, 0}, // load 1 value from memory
+                                        {-1, -1,  0,  0,  0,  0,  0, 0}, // load 2 values from memory
+                                        {-1, -1, -1,  0,  0,  0,  0, 0}, // ..
+                                        {-1, -1, -1, -1,  0,  0,  0, 0},
+                                        {-1, -1, -1, -1, -1,  0,  0, 0},
+                                        {-1, -1, -1, -1, -1, -1,  0, 0},
+                                        {-1, -1, -1, -1, -1, -1, -1, 0},
+                                      };
 
 void bli_sgemmsup_rd_zen_asm_6x16n
      (
@@ -175,6 +185,7 @@ void bli_sgemmsup_rd_zen_asm_6x16n
     uint64_t k_left32 = k0 % 32;
     uint64_t k_iter8  = k_left32 / 8;
     uint64_t k_left1  = k_left32 % 8;
+    const int32_t *mask_vec = BLI_MASK[k_left1];
 
     uint64_t n_iter = n0 / 4;
     uint64_t n_left = n0 % 4;
@@ -191,14 +202,14 @@ void bli_sgemmsup_rd_zen_asm_6x16n
     // -------------------------------------------------------------------------
     begin_asm()
 
-    mov(var(a), rdx)                   // load address of a.
-    mov(var(rs_a), r8)                 // load rs_a
-    lea(mem(, r8, 4), r8)              // rs_a *= sizeof(float)
+    mov( var( a ), rdx )                  // load address of a.
+    mov( var( rs_a ), r8 )                // load rs_a
+    lea( mem(, r8, 4 ), r8 )              // rs_a *= sizeof(float)
 
-    mov(var(cs_b), r11)                // load cs_b
-    lea(mem(, r11, 4), r11)            // cs_b *= sizeof(float)
+    mov( var( cs_b ), r11 )               // load cs_b
+    lea( mem(, r11, 4 ), r11 )            // cs_b *= sizeof(float)
 
-    lea(mem(r11, r11, 2), r13)         // r13 = 3*cs_b
+    lea( mem( r11, r11, 2 ), r13 )        // r13 = 3*cs_b
 
     // r12 = rcx = c
     // rdx = rax = a
@@ -206,387 +217,425 @@ void bli_sgemmsup_rd_zen_asm_6x16n
     // r9  = m dim index ii
     // r15 = n dim index jj
 
-    mov(imm(0), r9)                    // ii = 0;
+    mov( imm( 0 ), r9 )                  // ii = 0;
 
-    label(.SLOOP3X4I)                  // LOOP OVER ii = [ 0 1 ... ]
+    label( .SLOOP3X4I )                  // LOOP OVER ii = [ 0 1 ... ]
 
-    mov(var(b), r14)                   // load address of b
-    mov(var(c), r12)                   // load address of c
+    mov( var( b ), r14 )                 // load address of b
+    mov( var( c ), r12 )                 // load address of c
 
-    mov(var(rs_c), rdi)                // load rs_c
-    lea(mem(, rdi, 4), rdi)            // rs_c *= sizeof(float)
+    mov( var( rs_c ), rdi )              // load rs_c
+    lea( mem(, rdi, 4 ), rdi )           // rs_c *= sizeof(float)
 
-    lea(mem(   , r9,  1), rsi)         // rsi = r9 = 3*ii;
-    imul(rdi, rsi)                     // rsi *= rs_c
-    lea(mem(r12, rsi, 1), r12)         // r12 = c + 3*ii*rs_c;
+    lea( mem(   , r9,  1 ), rsi )        // rsi = r9 = 3*ii;
+    imul( rdi, rsi )                     // rsi *= rs_c
+    lea( mem( r12, rsi, 1 ), r12 )       // r12 = c + 3*ii*rs_c;
 
-    lea(mem(   , r9,  1), rsi)         // rsi = r9 = 3*ii;
-    imul(r8,  rsi)                     // rsi *= rs_a;
-    lea(mem(rdx, rsi, 1), rdx)         // rax = a + 3*ii*rs_a;
+    lea( mem(   , r9,  1 ), rsi )        // rsi = r9 = 3*ii;
+    imul( r8,  rsi )                     // rsi *= rs_a;
+    lea( mem( rdx, rsi, 1 ), rdx )       // rax = a + 3*ii*rs_a;
 
-    mov(var(n_iter), r15)              // jj = n_iter;
+    mov( var(n_iter), r15 )              // jj = n_iter;
 
-    label(.SLOOP3X4J)                  // LOOP OVER jj = [ n_iter ... 1 0 ]
+    label( .SLOOP3X4J )                  // LOOP OVER jj = [ n_iter ... 1 0 ]
 
-    vxorps(ymm4,  ymm4,  ymm4)
-    vxorps(ymm5,  ymm5,  ymm5)
-    vxorps(ymm6,  ymm6,  ymm6)
-    vxorps(ymm7,  ymm7,  ymm7)
-    vxorps(ymm8,  ymm8,  ymm8)
-    vxorps(ymm9,  ymm9,  ymm9)
-    vxorps(ymm10, ymm10, ymm10)
-    vxorps(ymm11, ymm11, ymm11)
-    vxorps(ymm12, ymm12, ymm12)
-    vxorps(ymm13, ymm13, ymm13)
-    vxorps(ymm14, ymm14, ymm14)
-    vxorps(ymm15, ymm15, ymm15)
+    vxorps( ymm4,  ymm4,  ymm4 )
+    vxorps( ymm5,  ymm5,  ymm5 )
+    vxorps( ymm6,  ymm6,  ymm6 )
+    vxorps( ymm7,  ymm7,  ymm7 )
+    vxorps( ymm8,  ymm8,  ymm8 )
+    vxorps( ymm9,  ymm9,  ymm9 )
+    vxorps( ymm10, ymm10, ymm10 )
+    vxorps( ymm11, ymm11, ymm11 )
+    vxorps( ymm12, ymm12, ymm12 )
+    vxorps( ymm13, ymm13, ymm13 )
+    vxorps( ymm14, ymm14, ymm14 )
+    vxorps( ymm15, ymm15, ymm15 )
 
-    lea(mem(r12), rcx)                 // rcx = c_iijj;
-    lea(mem(rdx), rax)                 // rax = a_ii;
-    lea(mem(r14), rbx)                 // rbx = b_jj;
+    lea( mem( r12 ), rcx )                 // rcx = c_iijj;
+    lea( mem( rdx ), rax )                 // rax = a_ii;
+    lea( mem( r14 ), rbx )                 // rbx = b_jj;
 
 
-    mov(var(rs_c), rdi)                // load rs_c
-    lea(mem(, rdi, 4), rdi)            // rs_c *= sizeof(float)
-    prefetch(0, mem(rcx, 3*8))         // prefetch c + 0*rs_c
-    prefetch(0, mem(rcx, rdi, 1, 3*8)) // prefetch c + 1*rs_c
-    prefetch(0, mem(rcx, rdi, 2, 3*8)) // prefetch c + 2*rs_c
+    mov( var( rs_c ), rdi )                // load rs_c
+    lea( mem(, rdi, 4 ), rdi )             // rs_c *= sizeof(float)
+    prefetch( 0, mem( rcx, 3*8 ) )         // prefetch c + 0*rs_c
+    prefetch( 0, mem( rcx, rdi, 1, 3*8 ) ) // prefetch c + 1*rs_c
+    prefetch( 0, mem( rcx, rdi, 2, 3*8 ) ) // prefetch c + 2*rs_c
 
-    lea(mem(r11, r11, 2), rdi)         // rdi = 3*cs_b
-    lea(mem(rbx, r11, 4), r10)         // r10 = rbx + 4*cs_b
+    lea( mem( r11, r11, 2 ), rdi )         // rdi = 3*cs_b
+    lea( mem( rbx, r11, 4 ), r10 )         // r10 = rbx + 4*cs_b
 
-    mov(var(k_iter32), rsi)            // i = k_iter32;
-    test(rsi, rsi)                     // check i via logical AND.
-    je(.SCONSIDKITER8)                 // if i == 0, jump to code that
-                                       // contains the k_iter8 loop.
+    mov( var( k_iter32 ), rsi )            // i = k_iter32;
+    test( rsi, rsi )                       // check i via logical AND.
+    je( .SCONSIDKITER8 )                   // if i == 0, jump to code that
+                                           // contains the k_iter8 loop.
 
-    label(.SLOOPKITER32)               // MAIN LOOP
+    label( .SLOOPKITER32 )                 // MAIN LOOP
 
     // ---------------------------------- iteration 0
-    prefetch(0, mem(r10,         0*8)) // prefetch rbx + 4*cs_b
-    prefetch(0, mem(r10, r11, 1, 0*8)) // prefetch rbx + 5*cs_b
+    prefetch( 0, mem( r10,         0*8 ) ) // prefetch rbx + 4*cs_b
+    prefetch( 0, mem( r10, r11, 1, 0*8 ) ) // prefetch rbx + 5*cs_b
 
-    vmovups(mem(rax       ), ymm0)
-    vmovups(mem(rax, r8, 1), ymm1)
-    vmovups(mem(rax, r8, 2), ymm2)
-    add(imm(8*4), rax)                 // a += 4*cs_b = 4*8;
+    vmovups( mem( rax        ), ymm0 )
+    vmovups( mem( rax, r8, 1 ), ymm1 )
+    vmovups( mem( rax, r8, 2 ), ymm2 )
+    add( imm( 8*4 ), rax )                 // a += 8 x sizeof(float) = 4*8;
 
-    vmovups(mem(rbx        ), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm4)
-    vfmadd231ps(ymm1, ymm3, ymm5)
-    vfmadd231ps(ymm2, ymm3, ymm6)
+    vmovups( mem( rbx        ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm4 )
+    vfmadd231ps( ymm1, ymm3, ymm5 )
+    vfmadd231ps( ymm2, ymm3, ymm6 )
 
-    vmovups(mem(rbx, r11, 1), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm7)
-    vfmadd231ps(ymm1, ymm3, ymm8)
-    vfmadd231ps(ymm2, ymm3, ymm9)
+    vmovups( mem( rbx, r11, 1 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm7 )
+    vfmadd231ps( ymm1, ymm3, ymm8 )
+    vfmadd231ps( ymm2, ymm3, ymm9 )
 
-    vmovups(mem(rbx, r11, 2), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm10)
-    vfmadd231ps(ymm1, ymm3, ymm11)
-    vfmadd231ps(ymm2, ymm3, ymm12)
+    vmovups( mem( rbx, r11, 2 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm10 )
+    vfmadd231ps( ymm1, ymm3, ymm11 )
+    vfmadd231ps( ymm2, ymm3, ymm12 )
 
-    vmovups(mem(rbx, r13, 1), ymm3)
-    add(imm(8*4), rbx)                 // b += 4*rs_b = 4*8;
-    vfmadd231ps(ymm0, ymm3, ymm13)
-    vfmadd231ps(ymm1, ymm3, ymm14)
-    vfmadd231ps(ymm2, ymm3, ymm15)
+    vmovups( mem( rbx, r13, 1 ), ymm3 )
+    add( imm( 8*4 ), rbx )                 // b += 8 x sizeof(float) = 4*8;
+    vfmadd231ps( ymm0, ymm3, ymm13 )
+    vfmadd231ps( ymm1, ymm3, ymm14 )
+    vfmadd231ps( ymm2, ymm3, ymm15 )
 
     // ---------------------------------- iteration 1
-    prefetch(0, mem(r10, r11, 2, 0*8)) // prefetch rbx + 6*cs_b
-    prefetch(0, mem(r10, r13, 1, 0*8)) // prefetch rbx + 7*cs_b
+    prefetch( 0, mem( r10, r11, 2, 0*8 ) ) // prefetch rbx + 6*cs_b
+    prefetch( 0, mem( r10, r13, 1, 0*8 ) ) // prefetch rbx + 7*cs_b
 
-    vmovups(mem(rax       ), ymm0)
-    vmovups(mem(rax, r8, 1), ymm1)
-    vmovups(mem(rax, r8, 2), ymm2)
-    add(imm(8*4), rax)                 // a += 4*cs_b = 4*8;
+    vmovups( mem( rax        ), ymm0 )
+    vmovups( mem( rax, r8, 1 ), ymm1 )
+    vmovups( mem( rax, r8, 2 ), ymm2 )
+    add( imm( 8*4 ), rax )                 // a += 8 x sizeof(float) = 4*8;
 
-    vmovups(mem(rbx        ), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm4)
-    vfmadd231ps(ymm1, ymm3, ymm5)
-    vfmadd231ps(ymm2, ymm3, ymm6)
+    vmovups( mem( rbx        ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm4 )
+    vfmadd231ps( ymm1, ymm3, ymm5 )
+    vfmadd231ps( ymm2, ymm3, ymm6 )
 
-    vmovups(mem(rbx, r11, 1), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm7)
-    vfmadd231ps(ymm1, ymm3, ymm8)
-    vfmadd231ps(ymm2, ymm3, ymm9)
+    vmovups( mem( rbx, r11, 1 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm7 )
+    vfmadd231ps( ymm1, ymm3, ymm8 )
+    vfmadd231ps( ymm2, ymm3, ymm9 )
 
-    vmovups(mem(rbx, r11, 2), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm10)
-    vfmadd231ps(ymm1, ymm3, ymm11)
-    vfmadd231ps(ymm2, ymm3, ymm12)
+    vmovups( mem( rbx, r11, 2 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm10 )
+    vfmadd231ps( ymm1, ymm3, ymm11 )
+    vfmadd231ps( ymm2, ymm3, ymm12 )
 
-    vmovups(mem(rbx, r13, 1), ymm3)
-    add(imm(8*4), rbx)                 // b += 4*rs_b = 4*8;
-    vfmadd231ps(ymm0, ymm3, ymm13)
-    vfmadd231ps(ymm1, ymm3, ymm14)
-    vfmadd231ps(ymm2, ymm3, ymm15)
+    vmovups( mem( rbx, r13, 1 ), ymm3 )
+    add( imm( 8*4 ), rbx )                 // b += 8 x sizeof(float) = 4*8;
+    vfmadd231ps( ymm0, ymm3, ymm13 )
+    vfmadd231ps( ymm1, ymm3, ymm14 )
+    vfmadd231ps( ymm2, ymm3, ymm15 )
 
     // ---------------------------------- iteration 2
-    prefetch(0, mem(r10,         8*8)) // prefetch rbx + 4*cs_b + 8*rs_b
-    prefetch(0, mem(r10, r11, 1, 8*8)) // prefetch rbx + 5*cs_b + 8*rs_b
+    prefetch( 0, mem( r10,         8*8 ) ) // prefetch rbx + 4*cs_b + 8*rs_b
+    prefetch( 0, mem( r10, r11, 1, 8*8 ) ) // prefetch rbx + 5*cs_b + 8*rs_b
 
-    vmovups(mem(rax       ), ymm0)
-    vmovups(mem(rax, r8, 1), ymm1)
-    vmovups(mem(rax, r8, 2), ymm2)
-    add(imm(8*4), rax)                 // a += 4*cs_b = 4*8;
+    vmovups( mem( rax        ), ymm0 )
+    vmovups( mem( rax, r8, 1 ), ymm1 )
+    vmovups( mem( rax, r8, 2 ), ymm2 )
+    add( imm( 8*4 ), rax )                 // a += 8 x sizeof(float) = 4*8;
 
-    vmovups(mem(rbx        ), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm4)
-    vfmadd231ps(ymm1, ymm3, ymm5)
-    vfmadd231ps(ymm2, ymm3, ymm6)
+    vmovups( mem( rbx        ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm4 )
+    vfmadd231ps( ymm1, ymm3, ymm5 )
+    vfmadd231ps( ymm2, ymm3, ymm6 )
 
-    vmovups(mem(rbx, r11, 1), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm7)
-    vfmadd231ps(ymm1, ymm3, ymm8)
-    vfmadd231ps(ymm2, ymm3, ymm9)
+    vmovups( mem( rbx, r11, 1 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm7 )
+    vfmadd231ps( ymm1, ymm3, ymm8 )
+    vfmadd231ps( ymm2, ymm3, ymm9 )
 
-    vmovups(mem(rbx, r11, 2), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm10)
-    vfmadd231ps(ymm1, ymm3, ymm11)
-    vfmadd231ps(ymm2, ymm3, ymm12)
+    vmovups( mem( rbx, r11, 2 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm10 )
+    vfmadd231ps( ymm1, ymm3, ymm11 )
+    vfmadd231ps( ymm2, ymm3, ymm12 )
 
-    vmovups(mem(rbx, r13, 1), ymm3)
-    add(imm(8*4), rbx)                 // b += 4*rs_b = 4*8;
-    vfmadd231ps(ymm0, ymm3, ymm13)
-    vfmadd231ps(ymm1, ymm3, ymm14)
-    vfmadd231ps(ymm2, ymm3, ymm15)
+    vmovups( mem( rbx, r13, 1 ), ymm3 )
+    add( imm( 8*4 ), rbx )                 // b += 8 x sizeof(float) = 4*8;
+    vfmadd231ps( ymm0, ymm3, ymm13 )
+    vfmadd231ps( ymm1, ymm3, ymm14 )
+    vfmadd231ps( ymm2, ymm3, ymm15 )
 
     // ---------------------------------- iteration 3
-    prefetch(0, mem(r10, r11, 2, 8*8)) // prefetch rbx + 6*cs_b + 8*rs_b
-    prefetch(0, mem(r10, r13, 1, 8*8)) // prefetch rbx + 7*cs_b + 8*rs_b
-    add(imm(16*8), r10)                 // r10 += 8*rs_b = 8*8;
+    prefetch( 0, mem( r10, r11, 2, 8*8 ) )  // prefetch rbx + 6*cs_b + 8*rs_b
+    prefetch( 0, mem( r10, r13, 1, 8*8 ) )  // prefetch rbx + 7*cs_b + 8*rs_b
+    add( imm( 16*8 ), r10 )                 // r10 += 8*rs_b = 8*8;
 
-    vmovups(mem(rax       ), ymm0)
-    vmovups(mem(rax, r8, 1), ymm1)
-    vmovups(mem(rax, r8, 2), ymm2)
-    add(imm(8*4), rax)                 // a += 4*cs_b = 4*8;
+    vmovups( mem( rax        ), ymm0 )
+    vmovups( mem( rax, r8, 1 ), ymm1 )
+    vmovups( mem( rax, r8, 2 ), ymm2 )
+    add( imm( 8*4 ), rax )                 // a += 8 x sizeof(float) = 4*8;
 
-    vmovups(mem(rbx        ), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm4)
-    vfmadd231ps(ymm1, ymm3, ymm5)
-    vfmadd231ps(ymm2, ymm3, ymm6)
+    vmovups( mem( rbx        ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm4 )
+    vfmadd231ps( ymm1, ymm3, ymm5 )
+    vfmadd231ps( ymm2, ymm3, ymm6 )
 
-    vmovups(mem(rbx, r11, 1), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm7)
-    vfmadd231ps(ymm1, ymm3, ymm8)
-    vfmadd231ps(ymm2, ymm3, ymm9)
+    vmovups( mem( rbx, r11, 1 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm7 )
+    vfmadd231ps( ymm1, ymm3, ymm8 )
+    vfmadd231ps( ymm2, ymm3, ymm9 )
 
-    vmovups(mem(rbx, r11, 2), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm10)
-    vfmadd231ps(ymm1, ymm3, ymm11)
-    vfmadd231ps(ymm2, ymm3, ymm12)
+    vmovups( mem( rbx, r11, 2 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm10 )
+    vfmadd231ps( ymm1, ymm3, ymm11 )
+    vfmadd231ps( ymm2, ymm3, ymm12 )
 
-    vmovups(mem(rbx, r13, 1), ymm3)
-    add(imm(8*4), rbx)                 // b += 4*rs_b = 4*8;
-    vfmadd231ps(ymm0, ymm3, ymm13)
-    vfmadd231ps(ymm1, ymm3, ymm14)
-    vfmadd231ps(ymm2, ymm3, ymm15)
+    vmovups( mem( rbx, r13, 1 ), ymm3 )
+    add( imm( 8*4 ), rbx )                 // b += 8 x sizeof(float) = 4*8;
+    vfmadd231ps( ymm0, ymm3, ymm13 )
+    vfmadd231ps( ymm1, ymm3, ymm14 )
+    vfmadd231ps( ymm2, ymm3, ymm15 )
 
-    dec(rsi)                           // i -= 1;
-    jne(.SLOOPKITER32)                 // iterate again if i != 0.
+    dec( rsi )                           // i -= 1;
+    jne( .SLOOPKITER32 )                 // iterate again if i != 0.
 
-    label(.SCONSIDKITER8)
+    label( .SCONSIDKITER8 )
 
-    mov(var(k_iter8), rsi)             // i = k_iter8;
-    test(rsi, rsi)                     // check i via logical AND.
-    je(.SCONSIDKLEFT1)                 // if i == 0, jump to code that
+    mov( var( k_iter8 ), rsi )         // i = k_iter8;
+    test( rsi, rsi )                   // check i via logical AND.
+    je( .SCONSIDKLEFT1 )               // if i == 0, jump to code that
                                        // considers k_left1 loop.
                                        // else, we prepare to enter k_iter8 loop.
 
 
-    label(.SLOOPKITER8)                // EDGE LOOP (ymm)
+    label( .SLOOPKITER8 )                // EDGE LOOP ( ymm)
 
-    vmovups(mem(rax       ), ymm0)
-    vmovups(mem(rax, r8, 1), ymm1)
-    vmovups(mem(rax, r8, 2), ymm2)
-    add(imm(8*4), rax)                 // a += 4*cs_b = 4*8;
+    vmovups( mem( rax        ), ymm0 )
+    vmovups( mem( rax, r8, 1 ), ymm1 )
+    vmovups( mem( rax, r8, 2 ), ymm2 )
+    add( imm( 8*4 ), rax )                 // a += 8 x sizeof(float) = 4*8;
 
-    vmovups(mem(rbx        ), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm4)
-    vfmadd231ps(ymm1, ymm3, ymm5)
-    vfmadd231ps(ymm2, ymm3, ymm6)
+    vmovups( mem( rbx        ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm4 )
+    vfmadd231ps( ymm1, ymm3, ymm5 )
+    vfmadd231ps( ymm2, ymm3, ymm6 )
 
-    vmovups(mem(rbx, r11, 1), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm7)
-    vfmadd231ps(ymm1, ymm3, ymm8)
-    vfmadd231ps(ymm2, ymm3, ymm9)
+    vmovups( mem( rbx, r11, 1 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm7 )
+    vfmadd231ps( ymm1, ymm3, ymm8 )
+    vfmadd231ps( ymm2, ymm3, ymm9 )
 
-    vmovups(mem(rbx, r11, 2), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm10)
-    vfmadd231ps(ymm1, ymm3, ymm11)
-    vfmadd231ps(ymm2, ymm3, ymm12)
+    vmovups( mem( rbx, r11, 2 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm10 )
+    vfmadd231ps( ymm1, ymm3, ymm11 )
+    vfmadd231ps( ymm2, ymm3, ymm12 )
 
-    vmovups(mem(rbx, r13, 1), ymm3)
-    add(imm(8*4), rbx)                 // b += 4*rs_b = 4*8;
-    vfmadd231ps(ymm0, ymm3, ymm13)
-    vfmadd231ps(ymm1, ymm3, ymm14)
-    vfmadd231ps(ymm2, ymm3, ymm15)
+    vmovups( mem( rbx, r13, 1 ), ymm3 )
+    add( imm( 8*4 ), rbx )                 // b += 8 x sizeof(float) = 4*8;
+    vfmadd231ps( ymm0, ymm3, ymm13 )
+    vfmadd231ps( ymm1, ymm3, ymm14 )
+    vfmadd231ps( ymm2, ymm3, ymm15 )
 
-    dec(rsi)                           // i -= 1;
-    jne(.SLOOPKITER8)                  // iterate again if i != 0.
+    dec( rsi )                           // i -= 1;
+    jne( .SLOOPKITER8 )                  // iterate again if i != 0.
 
-    label(.SCONSIDKLEFT1)
+    label( .SCONSIDKLEFT1 )
 
-    mov(var(k_left1), rsi)             // i = k_left1;
-    test(rsi, rsi)                     // check i via logical AND.
-    je(.SPOSTACCUM)                    // if i == 0, we're done; jump to end.
+    mov( var( k_left1 ), rsi )         // i = k_left1;
+    test( rsi, rsi )                   // check i via logical AND.
+    je( .SPOSTACCUM )                  // if i == 0, we're done; jump to end.
                                        // else, we prepare to enter k_left1 loop.
 
-    label(.SLOOPKLEFT1)                // EDGE LOOP (scalar)
-                                       // NOTE: We must use ymm registers here bc
-                                       // using the xmm registers would zero out the
-                                       // high bits of the destination registers,
-                                       // which would destory intermediate results.
+    // When the remainder for k is exactly equal to 1, we default to performing
+    // a simple scalar loop iteration (without performing a masked operation)
+    // this is because the masked loads are costly on zen3 and it is better to 
+    // have a branch to execute non-masked instructions which are cheaper
+    cmp( imm( 1 ), rsi )
+    je( .S_K_EQ_1 )
 
-    vmovss(mem(rax       ), xmm0)
-    vmovss(mem(rax, r8, 1), xmm1)
-    vmovss(mem(rax, r8, 2), xmm2)
-    add(imm(1*4), rax)                 // a += 1*cs_b = 1*8;
+    // For k values < 8, a masked section which is now introduced which reduces the number
+    // of iterations performed in this loop, for example, when k = 7, previously, there were 
+    // 7 iterations being performed, this has now been reduced to 1 masked iteration
+    label( .S_K_LT_8 )                 // EDGE LOOP (masked operations on ymm registers which hold upto 8 floats)
 
-    vmovss(mem(rbx        ), xmm3)
-    vfmadd231ps(ymm0, ymm3, ymm4)
-    vfmadd231ps(ymm1, ymm3, ymm5)
-    vfmadd231ps(ymm2, ymm3, ymm6)
+    mov( var( mask_vec ), rdi )
+    vmovdqu( mem( rdi ), ymm3 )           //load mask values
+    
+    // In this block, ymm3 is the mask vector the MSB of each
+    // 32-bit element indicates whether to load the element or not
+    vmaskmovps( mem( rax        ), ymm3, ymm0 )   // ymm0 <- mem( rax ) & MSB of correponding element in ymm3
+    vmaskmovps( mem( rax, r8, 1 ), ymm3, ymm1 )   // ymm1 <- mem( rax, r8,1 ) & MSB of correponding element in ymm3
+    vmaskmovps( mem( rax, r8, 2 ), ymm3, ymm2 )   // ymm2 <- mem( rax, r8,2 ) & MSB of correponding element in ymm3
 
-    vmovss(mem(rbx, r11, 1), xmm3)
-    vfmadd231ps(ymm0, ymm3, ymm7)
-    vfmadd231ps(ymm1, ymm3, ymm8)
-    vfmadd231ps(ymm2, ymm3, ymm9)
+    vmaskmovps( mem( rbx        ), ymm3, ymm3 )   // ymm3 <- mem( rbx ) & MSB of correponding element in ymm3
+    vfmadd231ps( ymm0, ymm3, ymm4 )               // ymm4 += ymm0 * ymm3 
+    vfmadd231ps( ymm1, ymm3, ymm5 )               // ymm5 += ymm1 * ymm3
+    vfmadd231ps( ymm2, ymm3, ymm6 )               // ymm6 += ymm2 * ymm3
 
-    vmovss(mem(rbx, r11, 2), xmm3)
-    vfmadd231ps(ymm0, ymm3, ymm10)
-    vfmadd231ps(ymm1, ymm3, ymm11)
-    vfmadd231ps(ymm2, ymm3, ymm12)
+    vmovdqu( mem( rdi ), ymm3 )                   // reload mask values since ymm3 is overridden in previous operations
+    vmaskmovps( mem( rbx, r11, 1 ), ymm3, ymm3 )  // ymm3 <- mem( rbx, r11,1 ) & MSB of correponding element in ymm3
+    vfmadd231ps( ymm0, ymm3, ymm7 )               // ymm7 += ymm0 * ymm3  
+    vfmadd231ps( ymm1, ymm3, ymm8 )               // ymm8 += ymm1 * ymm3
+    vfmadd231ps( ymm2, ymm3, ymm9 )               // ymm9 += ymm2 * ymm3
 
-    vmovss(mem(rbx, r13, 1), xmm3)
-    add(imm(1*4), rbx)                 // b += 1*rs_b = 1*8;
-    vfmadd231ps(ymm0, ymm3, ymm13)
-    vfmadd231ps(ymm1, ymm3, ymm14)
-    vfmadd231ps(ymm2, ymm3, ymm15)
+    vmovdqu( mem( rdi ), ymm3 )                   // reload mask values since ymm3 is overridden in previous operations
+    vmaskmovps( mem( rbx, r11, 2 ), ymm3, ymm3 )  // ymm3 <- mem( rbx, r11,2 ) & MSB of correponding element in ymm3
+    vfmadd231ps( ymm0, ymm3, ymm10 )              // ymm10 += ymm0 * ymm3
+    vfmadd231ps( ymm1, ymm3, ymm11 )              // ymm11 += ymm1 * ymm3
+    vfmadd231ps( ymm2, ymm3, ymm12 )              // ymm12 += ymm2 * ymm3
 
-    dec(rsi)                           // i -= 1;
-    jne(.SLOOPKLEFT1)                  // iterate again if i != 0.
+    vmovdqu( mem( rdi ), ymm3 )                   // reload mask values since ymm3 is overridden in previous operations   
+    vmaskmovps( mem( rbx, r13, 1 ), ymm3, ymm3 )  // ymm3 <- mem( rbx, r13,1 ) & MSB of correponding element in ymm3
+    vfmadd231ps( ymm0, ymm3, ymm13 )              // ymm13 += ymm0 * ymm3
+    vfmadd231ps( ymm1, ymm3, ymm14 )              // ymm14 += ymm1 * ymm3
+    vfmadd231ps( ymm2, ymm3, ymm15 )              // ymm15 += ymm2 * ymm3
 
-    label(.SPOSTACCUM)
+    jmp( .SPOSTACCUM )
+
+    label( .S_K_EQ_1 )
+
+    vmovss( mem( rax       ), xmm0 )
+    vmovss( mem( rax, r8, 1 ), xmm1 )
+    vmovss( mem( rax, r8, 2 ), xmm2 )
+
+    vmovss( mem( rbx        ), xmm3 )
+    vfmadd231ps( ymm0, ymm3, ymm4 )
+    vfmadd231ps( ymm1, ymm3, ymm5 )
+    vfmadd231ps( ymm2, ymm3, ymm6 )
+
+    vmovss( mem( rbx, r11, 1 ), xmm3 )
+    vfmadd231ps( ymm0, ymm3, ymm7 )
+    vfmadd231ps( ymm1, ymm3, ymm8 )
+    vfmadd231ps( ymm2, ymm3, ymm9 )
+
+    vmovss( mem( rbx, r11, 2 ), xmm3 )
+    vfmadd231ps( ymm0, ymm3, ymm10 )
+    vfmadd231ps( ymm1, ymm3, ymm11 )
+    vfmadd231ps( ymm2, ymm3, ymm12 )
+
+    vmovss( mem( rbx, r13, 1 ), xmm3 )
+    vfmadd231ps( ymm0, ymm3, ymm13 )
+    vfmadd231ps( ymm1, ymm3, ymm14 )
+    vfmadd231ps( ymm2, ymm3, ymm15 )
+
+    label( .SPOSTACCUM )
                                        // ymm4  ymm7  ymm10 ymm13  
                                        // ymm5  ymm8  ymm11 ymm14
                                        // ymm6  ymm9  ymm12 ymm15
     vhaddps( ymm7, ymm4, ymm0 )
-    vextractf128(imm(1), ymm0, xmm1 )
-    vaddps( xmm0, xmm1, xmm0 )         // xmm0[0] = sum(ymm4); xmm0[1] = sum(ymm7)
+    vextractf128( imm( 1 ), ymm0, xmm1 )
+    vaddps( xmm0, xmm1, xmm0 )         // xmm0[0] = sum( ymm4 ); xmm0[1] = sum( ymm7 )
 
     vhaddps( ymm13, ymm10, ymm2 )
-    vextractf128(imm(1), ymm2, xmm1 )
-    vaddps( xmm2, xmm1, xmm2 )         // xmm2[0] = sum(ymm10); xmm2[1] = sum(ymm13)
+    vextractf128( imm( 1 ), ymm2, xmm1 )
+    vaddps( xmm2, xmm1, xmm2 )         // xmm2[0] = sum( ymm10 ); xmm2[1] = sum( ymm13 )
 
-    vhaddps(xmm2,xmm0,xmm4)
+    vhaddps( xmm2, xmm0, xmm4 )
 
     vhaddps( ymm8, ymm5, ymm0 )
-    vextractf128(imm(1), ymm0, xmm1 )
+    vextractf128( imm( 1 ), ymm0, xmm1 )
     vaddps( xmm0, xmm1, xmm0 )
 
     vhaddps( ymm14, ymm11, ymm2 )
-    vextractf128(imm(1), ymm2, xmm1 )
+    vextractf128( imm( 1 ), ymm2, xmm1 )
     vaddps( xmm2, xmm1, xmm2 )
 
-    vhaddps(xmm2,xmm0,xmm5)
+    vhaddps( xmm2, xmm0, xmm5 )
 
 
     vhaddps( ymm9, ymm6, ymm0 )
-    vextractf128(imm(1), ymm0, xmm1 )
+    vextractf128( imm( 1 ), ymm0, xmm1 )
     vaddps( xmm0, xmm1, xmm0 )
 
     vhaddps( ymm15, ymm12, ymm2 )
-    vextractf128(imm(1), ymm2, xmm1 )
+    vextractf128( imm( 1 ), ymm2, xmm1 )
     vaddps( xmm2, xmm1, xmm2 )
 
-    vhaddps(xmm2,xmm0,xmm6)
-                                       // ymm4 = sum(ymm4) sum(ymm7) sum(ymm10) sum(ymm13)
-                                       // ymm5 = sum(ymm5) sum(ymm8) sum(ymm11) sum(ymm14)
-                                       // ymm6 = sum(ymm6) sum(ymm9) sum(ymm12) sum(ymm15)
+    vhaddps( xmm2, xmm0, xmm6 )
+                                       // ymm4 = sum( ymm4 ) sum( ymm7 ) sum( ymm10 ) sum( ymm13 )
+                                       // ymm5 = sum( ymm5 ) sum( ymm8 ) sum( ymm11 ) sum( ymm14 )
+                                       // ymm6 = sum( ymm6 ) sum( ymm9 ) sum( ymm12 ) sum( ymm15 )
 
-    mov(var(rs_c), rdi)                // load rs_c
-    lea(mem(, rdi, 4), rdi)            // rs_c *= sizeof(float)
+    mov( var( rs_c ), rdi )               // load rs_c
+    lea( mem(, rdi, 4 ), rdi )            // rs_c *= sizeof(float)
 
-    mov(var(alpha), rax)               // load address of alpha
-    mov(var(beta), rbx)                // load address of beta
-    vbroadcastss(mem(rax), ymm0)       // load alpha and duplicate
-    vbroadcastss(mem(rbx), ymm3)       // load beta and duplicate
+    mov( var( alpha ), rax )              // load address of alpha
+    mov( var( beta ), rbx )               // load address of beta
+    vbroadcastss( mem( rax ), ymm0 )      // load alpha and duplicate
+    vbroadcastss( mem( rbx ), ymm3 )      // load beta and duplicate
 
-    vmulps(xmm0, xmm4, xmm4)           // scale by alpha
-    vmulps(xmm0, xmm5, xmm5)
-    vmulps(xmm0, xmm6, xmm6)
-                                       // now avoid loading C if beta == 0
+    vmulps( xmm0, xmm4, xmm4 )            // scale by alpha
+    vmulps( xmm0, xmm5, xmm5 )
+    vmulps( xmm0, xmm6, xmm6 )
+                                          // now avoid loading C if beta == 0
 
-    vxorps(ymm0, ymm0, ymm0)           // set ymm0 to zero.
-    vucomisd(xmm0, xmm3)               // set ZF if beta == 0.
-    je(.SBETAZERO)                     // if ZF = 1, jump to beta == 0 case
+    vxorps( ymm0, ymm0, ymm0 )            // set ymm0 to zero.
+    vucomisd( xmm0, xmm3 )                // set ZF if beta == 0.
+    je( .SBETAZERO )                      // if ZF = 1, jump to beta == 0 case
 
-    label(.SROWSTORED)
+    label( .SROWSTORED )
 
-    vfmadd231ps(mem(rcx), xmm3, xmm4)
-    vmovups(xmm4, mem(rcx))
-    add(rdi, rcx)
+    vfmadd231ps( mem( rcx ), xmm3, xmm4 )
+    vmovups( xmm4, mem( rcx ) )
+    add( rdi, rcx )
 
-    vfmadd231ps(mem(rcx), xmm3, xmm5)
-    vmovups(xmm5, mem(rcx))
-    add(rdi, rcx)
+    vfmadd231ps( mem( rcx ), xmm3, xmm5 )
+    vmovups( xmm5, mem( rcx ) )
+    add( rdi, rcx )
 
-    vfmadd231ps(mem(rcx), xmm3, xmm6)
-    vmovups(xmm6, mem(rcx))
+    vfmadd231ps( mem( rcx ), xmm3, xmm6 )
+    vmovups( xmm6, mem( rcx ) )
 
-    jmp(.SDONE)                        // jump to end.
+    jmp( .SDONE )                        // jump to end.
 
-    label(.SBETAZERO)
+    label( .SBETAZERO )
 
 
-    label(.SROWSTORBZ)
+    label( .SROWSTORBZ )
 
-    vmovups(xmm4, mem(rcx))
-    add(rdi, rcx)
+    vmovups( xmm4, mem( rcx ) )
+    add( rdi, rcx )
 
-    vmovups(xmm5, mem(rcx))
-    add(rdi, rcx)
+    vmovups( xmm5, mem( rcx ) )
+    add( rdi, rcx )
 
-    vmovups(xmm6, mem(rcx))
+    vmovups( xmm6, mem( rcx ) )
 
-    label(.SDONE)
+    label( .SDONE )
 
-    add(imm(4*4), r12)                 // c_jj = r12 += 4*cs_c
+    add( imm( 4*4 ), r12 )             // c_jj = r12 += 4*cs_c
 
-    lea(mem(r14, r11, 4), r14)         // b_jj = r14 += 4*cs_b
+    lea( mem( r14, r11, 4 ), r14 )     // b_jj = r14 += 4*cs_b
 
-    dec(r15)                           // jj -= 1;
-    jne(.SLOOP3X4J)                    // iterate again if jj != 0.
+    dec( r15 )                         // jj -= 1;
+    jne( .SLOOP3X4J )                  // iterate again if jj != 0.
 
-    add(imm(3), r9)                    // ii += 3;
-    cmp(imm(3), r9)                    // compare ii to 3
-    jle(.SLOOP3X4I)                    // if ii <= 3, jump to beginning
+    add( imm(3 ), r9 )                 // ii += 3;
+    cmp( imm(3 ), r9 )                 // compare ii to 3
+    jle( .SLOOP3X4I )                  // if ii <= 3, jump to beginning
                                        // of ii loop; otherwise, loop ends.
 
-    label(.SRETURN)
+    label( .SRETURN )
 
     end_asm(
     : // output operands (none)
     : // input operands
       [n_iter] "m" (n_iter),
-      [k_iter32] "m" (k_iter32),
-      [k_iter8] "m" (k_iter8),
-      [k_left1] "m" (k_left1),
-      [a]      "m" (a),
-      [rs_a]   "m" (rs_a),
-      [cs_a]   "m" (cs_a),
-      [b]      "m" (b),
-      [rs_b]   "m" (rs_b),
-      [cs_b]   "m" (cs_b),
-      [alpha]  "m" (alpha),
-      [beta]   "m" (beta),
-      [c]      "m" (c),
-      [rs_c]   "m" (rs_c),
-      [cs_c]   "m" (cs_c)/*,
-      [a_next] "m" (a_next),
-      [b_next] "m" (b_next)*/
+      [k_iter32] "m" ( k_iter32 ),
+      [k_iter8] "m" ( k_iter8 ),
+      [k_left1] "m" ( k_left1 ),
+      [a]      "m" ( a ),
+      [rs_a]   "m" ( rs_a ),
+      [cs_a]   "m" ( cs_a ),
+      [b]      "m" ( b ),
+      [rs_b]   "m" ( rs_b ),
+      [cs_b]   "m" ( cs_b ),
+      [alpha]  "m" ( alpha ),
+      [beta]   "m" ( beta ),
+      [c]      "m" ( c ),
+      [rs_c]   "m" ( rs_c ),
+      [mask_vec]   "m"   ( mask_vec ),
+      [cs_c]   "m" ( cs_c )/*,
+      [a_next] "m" ( a_next),
+      [b_next] "m" ( b_next)*/
     : // register clobber list
       "rax", "rbx", "rcx", "rdx", "rsi", "rdi",
       "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15",
@@ -662,6 +711,7 @@ void bli_sgemmsup_rd_zen_asm_3x16n
     uint64_t k_left32 = k0 % 32;
     uint64_t k_iter8  = k_left32 / 8;
     uint64_t k_left1  = k_left32 % 8;
+    const int32_t *mask_vec = BLI_MASK[k_left1];
 
     uint64_t n_iter = n0 / 4;
     uint64_t n_left = n0 % 4;
@@ -678,18 +728,18 @@ void bli_sgemmsup_rd_zen_asm_3x16n
     // -------------------------------------------------------------------------
     begin_asm()
 
-    mov(var(a), rdx)                   // load address of a.
-    mov(var(rs_a), r8)                 // load rs_a
-    lea(mem(, r8, 4), r8)              // rs_a *= sizeof(float)
+    mov( var( a ), rdx )                  // load address of a.
+    mov( var( rs_a ), r8 )                // load rs_a
+    lea( mem(, r8, 4 ), r8 )              // rs_a *= sizeof(float)
 
 
-    mov(var(b), r14)                   // load address of b.
-    mov(var(cs_b), r11)                // load cs_b
-    lea(mem(, r11, 4), r11)            // cs_b *= sizeof(float)
+    mov( var( b ), r14 )                  // load address of b.
+    mov( var( cs_b ), r11 )               // load cs_b
+    lea( mem(, r11, 4 ), r11 )            // cs_b *= sizeof(float)
 
-    lea(mem(r11, r11, 2), r13)         // r13 = 3*cs_b
+    lea( mem( r11, r11, 2 ), r13 )        // r13 = 3*cs_b
 
-    mov(var(c), r12)                   // load address of c
+    mov( var( c ), r12 )                  // load address of c
 
     // r12 = rcx = c
     // rdx = rax = a
@@ -697,367 +747,405 @@ void bli_sgemmsup_rd_zen_asm_3x16n
     // r9  = unused
     // r15 = n dim index jj
 
-    mov(var(n_iter), r15)              // jj = n_iter;
+    mov( var(n_iter), r15 )            // jj = n_iter;
 
-    label(.SLOOP3X4J)                  // LOOP OVER jj = [ n_iter ... 1 0 ]
+    label( .SLOOP3X4J )                // LOOP OVER jj = [ n_iter ... 1 0 ]
                                        // zen2 can execute 4 vxorpd ipc with
                                        // a latency of 1 cycle
 
-    vxorps(ymm4,  ymm4,  ymm4)
-    vxorps(ymm5,  ymm5,  ymm5)
-    vxorps(ymm6,  ymm6,  ymm6)
-    vxorps(ymm7,  ymm7,  ymm7)
-    vxorps(ymm8,  ymm8,  ymm8)
-    vxorps(ymm9,  ymm9,  ymm9)
-    vxorps(ymm10, ymm10, ymm10)
-    vxorps(ymm11, ymm11, ymm11)
-    vxorps(ymm12, ymm12, ymm12)
-    vxorps(ymm13, ymm13, ymm13)
-    vxorps(ymm14, ymm14, ymm14)
-    vxorps(ymm15, ymm15, ymm15)
+    vxorps( ymm4,  ymm4,  ymm4 )
+    vxorps( ymm5,  ymm5,  ymm5 )
+    vxorps( ymm6,  ymm6,  ymm6 )
+    vxorps( ymm7,  ymm7,  ymm7 )
+    vxorps( ymm8,  ymm8,  ymm8 )
+    vxorps( ymm9,  ymm9,  ymm9 )
+    vxorps( ymm10, ymm10, ymm10 )
+    vxorps( ymm11, ymm11, ymm11 )
+    vxorps( ymm12, ymm12, ymm12 )
+    vxorps( ymm13, ymm13, ymm13 )
+    vxorps( ymm14, ymm14, ymm14 )
+    vxorps( ymm15, ymm15, ymm15 )
 
-    lea(mem(r12), rcx)                 // rcx = c_iijj;
-    lea(mem(rdx), rax)                 // rax = a_ii;
-    lea(mem(r14), rbx)                 // rbx = b_jj;
+    lea( mem( r12 ), rcx )                 // rcx = c_iijj;
+    lea( mem( rdx ), rax )                 // rax = a_ii;
+    lea( mem( r14 ), rbx )                 // rbx = b_jj;
 
-    mov(var(rs_c), rdi)                // load rs_c
-    lea(mem(, rdi, 4), rdi)            // rs_c *= sizeof(float)
-    prefetch(0, mem(rcx, 3*8))         // prefetch c + 0*rs_c
-    prefetch(0, mem(rcx, rdi, 1, 3*8)) // prefetch c + 1*rs_c
-    prefetch(0, mem(rcx, rdi, 2, 3*8)) // prefetch c + 2*rs_c
+    mov( var( rs_c ), rdi )                // load rs_c
+    lea( mem(, rdi, 4 ), rdi )             // rs_c *= sizeof(float)
+    prefetch( 0, mem( rcx, 3*8 ) )         // prefetch c + 0*rs_c
+    prefetch( 0, mem( rcx, rdi, 1, 3*8 ) ) // prefetch c + 1*rs_c
+    prefetch( 0, mem( rcx, rdi, 2, 3*8 ) ) // prefetch c + 2*rs_c
 
-    lea(mem(r11, r11, 2), rdi)         // rdi = 3*cs_b
-    lea(mem(rbx, r11, 4), r10)         // r10 = rbx + 4*cs_b
+    lea( mem( r11, r11, 2 ), rdi )         // rdi = 3*cs_b
+    lea( mem( rbx, r11, 4 ), r10 )         // r10 = rbx + 4*cs_b
 
-    mov(var(k_iter32), rsi)            // i = k_iter32;
-    test(rsi, rsi)                     // check i via logical AND.
-    je(.SCONSIDKITER8)                 // if i == 0, jump to code that
-                                       // contains the k_iter8 loop.
-    label(.SLOOPKITER32)               // MAIN LOOP
+    mov( var( k_iter32 ), rsi )            // i = k_iter32;
+    test( rsi, rsi )                       // check i via logical AND.
+    je( .SCONSIDKITER8 )                   // if i == 0, jump to code that
+                                           // contains the k_iter8 loop.
+    label( .SLOOPKITER32 )                 // MAIN LOOP
 
     // ---------------------------------- iteration 0
-    prefetch(0, mem(r10,         0*8)) // prefetch rbx + 4*cs_b
-    prefetch(0, mem(r10, r11, 1, 0*8)) // prefetch rbx + 5*cs_b
+    prefetch( 0, mem( r10,         0*8 ) ) // prefetch rbx + 4*cs_b
+    prefetch( 0, mem( r10, r11, 1, 0*8 ) ) // prefetch rbx + 5*cs_b
 
-    vmovups(mem(rax       ), ymm0)
-    vmovups(mem(rax, r8, 1), ymm1)
-    vmovups(mem(rax, r8, 2), ymm2)
-    add(imm(8*4), rax)                 // a += 4*cs_b = 4*8;
+    vmovups( mem( rax        ), ymm0 )
+    vmovups( mem( rax, r8, 1 ), ymm1 )
+    vmovups( mem( rax, r8, 2 ), ymm2 )
+    add( imm( 8*4 ), rax )                 // a += 8 x sizeof(float) = 4*8;
 
-    vmovups(mem(rbx        ), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm4)
-    vfmadd231ps(ymm1, ymm3, ymm5)
-    vfmadd231ps(ymm2, ymm3, ymm6)
+    vmovups( mem( rbx        ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm4 )
+    vfmadd231ps( ymm1, ymm3, ymm5 )
+    vfmadd231ps( ymm2, ymm3, ymm6 )
 
-    vmovups(mem(rbx, r11, 1), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm7)
-    vfmadd231ps(ymm1, ymm3, ymm8)
-    vfmadd231ps(ymm2, ymm3, ymm9)
+    vmovups( mem( rbx, r11, 1 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm7 )
+    vfmadd231ps( ymm1, ymm3, ymm8 )
+    vfmadd231ps( ymm2, ymm3, ymm9 )
 
-    vmovups(mem(rbx, r11, 2), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm10)
-    vfmadd231ps(ymm1, ymm3, ymm11)
-    vfmadd231ps(ymm2, ymm3, ymm12)
+    vmovups( mem( rbx, r11, 2 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm10 )
+    vfmadd231ps( ymm1, ymm3, ymm11 )
+    vfmadd231ps( ymm2, ymm3, ymm12 )
 
-    vmovups(mem(rbx, r13, 1), ymm3)
-    add(imm(8*4), rbx)                 // b += 4*rs_b = 4*8;
-    vfmadd231ps(ymm0, ymm3, ymm13)
-    vfmadd231ps(ymm1, ymm3, ymm14)
-    vfmadd231ps(ymm2, ymm3, ymm15)
+    vmovups( mem( rbx, r13, 1 ), ymm3 )
+    add( imm( 8*4 ), rbx )                 // b += 8 x sizeof(float) = 4*8;
+    vfmadd231ps( ymm0, ymm3, ymm13 )
+    vfmadd231ps( ymm1, ymm3, ymm14 )
+    vfmadd231ps( ymm2, ymm3, ymm15 )
 
     // ---------------------------------- iteration 1
-    prefetch(0, mem(r10, r11, 2, 0*8)) // prefetch rbx + 6*cs_b
-    prefetch(0, mem(r10, r13, 1, 0*8)) // prefetch rbx + 7*cs_b
+    prefetch( 0, mem( r10, r11, 2, 0*8 ) ) // prefetch rbx + 6*cs_b
+    prefetch( 0, mem( r10, r13, 1, 0*8 ) ) // prefetch rbx + 7*cs_b
 
-    vmovups(mem(rax       ), ymm0)
-    vmovups(mem(rax, r8, 1), ymm1)
-    vmovups(mem(rax, r8, 2), ymm2)
-    add(imm(8*4), rax)                 // a += 4*cs_b = 4*8;
+    vmovups( mem( rax        ), ymm0 )
+    vmovups( mem( rax, r8, 1 ), ymm1 )
+    vmovups( mem( rax, r8, 2 ), ymm2 )
+    add( imm( 8*4 ), rax )                 // a += 8 x sizeof(float) = 4*8;
 
-    vmovups(mem(rbx        ), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm4)
-    vfmadd231ps(ymm1, ymm3, ymm5)
-    vfmadd231ps(ymm2, ymm3, ymm6)
+    vmovups( mem( rbx        ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm4 )
+    vfmadd231ps( ymm1, ymm3, ymm5 )
+    vfmadd231ps( ymm2, ymm3, ymm6 )
 
-    vmovups(mem(rbx, r11, 1), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm7)
-    vfmadd231ps(ymm1, ymm3, ymm8)
-    vfmadd231ps(ymm2, ymm3, ymm9)
+    vmovups( mem( rbx, r11, 1 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm7 )
+    vfmadd231ps( ymm1, ymm3, ymm8 )
+    vfmadd231ps( ymm2, ymm3, ymm9 )
 
-    vmovups(mem(rbx, r11, 2), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm10)
-    vfmadd231ps(ymm1, ymm3, ymm11)
-    vfmadd231ps(ymm2, ymm3, ymm12)
+    vmovups( mem( rbx, r11, 2 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm10 )
+    vfmadd231ps( ymm1, ymm3, ymm11 )
+    vfmadd231ps( ymm2, ymm3, ymm12 )
 
-    vmovups(mem(rbx, r13, 1), ymm3)
-    add(imm(8*4), rbx)                 // b += 4*rs_b = 4*8;
-    vfmadd231ps(ymm0, ymm3, ymm13)
-    vfmadd231ps(ymm1, ymm3, ymm14)
-    vfmadd231ps(ymm2, ymm3, ymm15)
+    vmovups( mem( rbx, r13, 1 ), ymm3 )
+    add( imm( 8*4 ), rbx )                 // b += 8 x sizeof(float) = 4*8;
+    vfmadd231ps( ymm0, ymm3, ymm13 )
+    vfmadd231ps( ymm1, ymm3, ymm14 )
+    vfmadd231ps( ymm2, ymm3, ymm15 )
 
     // ---------------------------------- iteration 2
-    prefetch(0, mem(r10,         8*8)) // prefetch rbx + 4*cs_b + 8*rs_b
-    prefetch(0, mem(r10, r11, 1, 8*8)) // prefetch rbx + 5*cs_b + 8*rs_b
+    prefetch( 0, mem( r10,         8*8 ) ) // prefetch rbx + 4*cs_b + 8*rs_b
+    prefetch( 0, mem( r10, r11, 1, 8*8 ) ) // prefetch rbx + 5*cs_b + 8*rs_b
 
-    vmovups(mem(rax       ), ymm0)
-    vmovups(mem(rax, r8, 1), ymm1)
-    vmovups(mem(rax, r8, 2), ymm2)
-    add(imm(8*4), rax)                 // a += 4*cs_b = 4*8;
+    vmovups( mem( rax        ), ymm0 )
+    vmovups( mem( rax, r8, 1 ), ymm1 )
+    vmovups( mem( rax, r8, 2 ), ymm2 )
+    add( imm( 8*4 ), rax )                 // a += 8 x sizeof(float) = 4*8;
 
-    vmovups(mem(rbx        ), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm4)
-    vfmadd231ps(ymm1, ymm3, ymm5)
-    vfmadd231ps(ymm2, ymm3, ymm6)
+    vmovups( mem( rbx        ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm4 )
+    vfmadd231ps( ymm1, ymm3, ymm5 )
+    vfmadd231ps( ymm2, ymm3, ymm6 )
 
-    vmovups(mem(rbx, r11, 1), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm7)
-    vfmadd231ps(ymm1, ymm3, ymm8)
-    vfmadd231ps(ymm2, ymm3, ymm9)
+    vmovups( mem( rbx, r11, 1 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm7 )
+    vfmadd231ps( ymm1, ymm3, ymm8 )
+    vfmadd231ps( ymm2, ymm3, ymm9 )
 
-    vmovups(mem(rbx, r11, 2), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm10)
-    vfmadd231ps(ymm1, ymm3, ymm11)
-    vfmadd231ps(ymm2, ymm3, ymm12)
+    vmovups( mem( rbx, r11, 2 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm10 )
+    vfmadd231ps( ymm1, ymm3, ymm11 )
+    vfmadd231ps( ymm2, ymm3, ymm12 )
 
-    vmovups(mem(rbx, r13, 1), ymm3)
-    add(imm(8*4), rbx)                 // b += 4*rs_b = 4*8;
-    vfmadd231ps(ymm0, ymm3, ymm13)
-    vfmadd231ps(ymm1, ymm3, ymm14)
-    vfmadd231ps(ymm2, ymm3, ymm15)
+    vmovups( mem( rbx, r13, 1 ), ymm3 )
+    add( imm( 8*4 ), rbx )                 // b += 8 x sizeof(float) = 4*8;
+    vfmadd231ps( ymm0, ymm3, ymm13 )
+    vfmadd231ps( ymm1, ymm3, ymm14 )
+    vfmadd231ps( ymm2, ymm3, ymm15 )
 
     // ---------------------------------- iteration 3
-    prefetch(0, mem(r10, r11, 2, 8*8)) // prefetch rbx + 6*cs_b + 8*rs_b
-    prefetch(0, mem(r10, r13, 1, 8*8)) // prefetch rbx + 7*cs_b + 8*rs_b
-    add(imm(16*8), r10)                 // r10 += 8*rs_b = 8*8;
+    prefetch( 0, mem( r10, r11, 2, 8*8 ) ) // prefetch rbx + 6*cs_b + 8*rs_b
+    prefetch( 0, mem( r10, r13, 1, 8*8 ) ) // prefetch rbx + 7*cs_b + 8*rs_b
+    add( imm( 16*8 ), r10 )                // r10 += 8*rs_b = 8*8;
 
-    vmovups(mem(rax       ), ymm0)
-    vmovups(mem(rax, r8, 1), ymm1)
-    vmovups(mem(rax, r8, 2), ymm2)
-    add(imm(8*4), rax)                 // a += 4*cs_b = 4*8;
+    vmovups( mem( rax        ), ymm0 )
+    vmovups( mem( rax, r8, 1 ), ymm1 )
+    vmovups( mem( rax, r8, 2 ), ymm2 )
+    add( imm( 8*4 ), rax )                 // a += 8 x sizeof(float) = 4*8;
 
-    vmovups(mem(rbx        ), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm4)
-    vfmadd231ps(ymm1, ymm3, ymm5)
-    vfmadd231ps(ymm2, ymm3, ymm6)
+    vmovups( mem( rbx        ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm4 )
+    vfmadd231ps( ymm1, ymm3, ymm5 )
+    vfmadd231ps( ymm2, ymm3, ymm6 )
 
-    vmovups(mem(rbx, r11, 1), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm7)
-    vfmadd231ps(ymm1, ymm3, ymm8)
-    vfmadd231ps(ymm2, ymm3, ymm9)
+    vmovups( mem( rbx, r11, 1 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm7 )
+    vfmadd231ps( ymm1, ymm3, ymm8 )
+    vfmadd231ps( ymm2, ymm3, ymm9 )
 
-    vmovups(mem(rbx, r11, 2), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm10)
-    vfmadd231ps(ymm1, ymm3, ymm11)
-    vfmadd231ps(ymm2, ymm3, ymm12)
+    vmovups( mem( rbx, r11, 2 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm10 )
+    vfmadd231ps( ymm1, ymm3, ymm11 )
+    vfmadd231ps( ymm2, ymm3, ymm12 )
 
-    vmovups(mem(rbx, r13, 1), ymm3)
-    add(imm(8*4), rbx)                 // b += 4*rs_b = 4*8;
-    vfmadd231ps(ymm0, ymm3, ymm13)
-    vfmadd231ps(ymm1, ymm3, ymm14)
-    vfmadd231ps(ymm2, ymm3, ymm15)
+    vmovups( mem( rbx, r13, 1 ), ymm3 )
+    add( imm( 8*4 ), rbx )                 // b += 8 x sizeof(float) = 4*8;
+    vfmadd231ps( ymm0, ymm3, ymm13 )
+    vfmadd231ps( ymm1, ymm3, ymm14 )
+    vfmadd231ps( ymm2, ymm3, ymm15 )
 
-    dec(rsi)                           // i -= 1;
-    jne(.SLOOPKITER32)                 // iterate again if i != 0.
+    dec( rsi )                           // i -= 1;
+    jne( .SLOOPKITER32 )                 // iterate again if i != 0.
 
-    label(.SCONSIDKITER8)
+    label( .SCONSIDKITER8 )
 
-    mov(var(k_iter8), rsi)             // i = k_iter8;
-    test(rsi, rsi)                     // check i via logical AND.
-    je(.SCONSIDKLEFT1)                 // if i == 0, jump to code that
+    mov( var( k_iter8 ), rsi )         // i = k_iter8;
+    test( rsi, rsi )                   // check i via logical AND.
+    je( .SCONSIDKLEFT1 )               // if i == 0, jump to code that
                                        // considers k_left1 loop.
                                        // else, we prepare to enter k_iter8 loop.
 
 
-    label(.SLOOPKITER8)                // EDGE LOOP (ymm)
+    label( .SLOOPKITER8 )                // EDGE LOOP ( ymm)
 
-    vmovups(mem(rax       ), ymm0)
-    vmovups(mem(rax, r8, 1), ymm1)
-    vmovups(mem(rax, r8, 2), ymm2)
-    add(imm(8*4), rax)                 // a += 4*cs_b = 4*8;
+    vmovups( mem( rax        ), ymm0 )
+    vmovups( mem( rax, r8, 1 ), ymm1 )
+    vmovups( mem( rax, r8, 2 ), ymm2 )
+    add( imm( 8*4 ), rax )                 // a += 8 x sizeof(float) = 4*8;
 
-    vmovups(mem(rbx        ), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm4)
-    vfmadd231ps(ymm1, ymm3, ymm5)
-    vfmadd231ps(ymm2, ymm3, ymm6)
+    vmovups( mem( rbx        ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm4 )
+    vfmadd231ps( ymm1, ymm3, ymm5 )
+    vfmadd231ps( ymm2, ymm3, ymm6 )
 
-    vmovups(mem(rbx, r11, 1), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm7)
-    vfmadd231ps(ymm1, ymm3, ymm8)
-    vfmadd231ps(ymm2, ymm3, ymm9)
+    vmovups( mem( rbx, r11, 1 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm7 )
+    vfmadd231ps( ymm1, ymm3, ymm8 )
+    vfmadd231ps( ymm2, ymm3, ymm9 )
 
-    vmovups(mem(rbx, r11, 2), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm10)
-    vfmadd231ps(ymm1, ymm3, ymm11)
-    vfmadd231ps(ymm2, ymm3, ymm12)
+    vmovups( mem( rbx, r11, 2 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm10 )
+    vfmadd231ps( ymm1, ymm3, ymm11 )
+    vfmadd231ps( ymm2, ymm3, ymm12 )
 
-    vmovups(mem(rbx, r13, 1), ymm3)
-    add(imm(8*4), rbx)                 // b += 4*rs_b = 4*8;
-    vfmadd231ps(ymm0, ymm3, ymm13)
-    vfmadd231ps(ymm1, ymm3, ymm14)
-    vfmadd231ps(ymm2, ymm3, ymm15)
+    vmovups( mem( rbx, r13, 1 ), ymm3 )
+    add( imm( 8*4 ), rbx )                 // b += 8 x sizeof(float) = 4*8;
+    vfmadd231ps( ymm0, ymm3, ymm13 )
+    vfmadd231ps( ymm1, ymm3, ymm14 )
+    vfmadd231ps( ymm2, ymm3, ymm15 )
 
 
-    dec(rsi)                           // i -= 1;
-    jne(.SLOOPKITER8)                  // iterate again if i != 0.
+    dec( rsi )                         // i -= 1;
+    jne( .SLOOPKITER8 )                // iterate again if i != 0.
 
-    label(.SCONSIDKLEFT1)
+    label( .SCONSIDKLEFT1 )
 
-    mov(var(k_left1), rsi)             // i = k_left1;
-    test(rsi, rsi)                     // check i via logical AND.
-    je(.SPOSTACCUM)                    // if i == 0, we're done; jump to end.
+    mov( var( k_left1 ), rsi )         // i = k_left1;
+    test( rsi, rsi )                   // check i via logical AND.
+    je( .SPOSTACCUM )                  // if i == 0, we're done; jump to end.
                                        // else, we prepare to enter k_left1 loop.
 
-    label(.SLOOPKLEFT1)                // EDGE LOOP (scalar)
-                                       // NOTE: We must use ymm registers here bc
-                                       // using the xmm registers would zero out the
-                                       // high bits of the destination registers,
-                                       // which would destory intermediate results.
+    // When the remainder for k is exactly equal to 1, we default to performing
+    // a simple scalar loop iteration (without performing a masked operation)
+    // this is because the masked loads are costly on zen3 and it is better to 
+    // have a branch to execute non-masked instructions which are cheaper
+    cmp( imm( 1 ), rsi )
+    je( .S_K_EQ_1 )
 
-    vmovss(mem(rax       ), xmm0)
-    vmovss(mem(rax, r8, 1), xmm1)
-    vmovss(mem(rax, r8, 2), xmm2)
-    add(imm(1*4), rax)                 // a += 1*cs_b = 1*8;
+    // For k values < 8, a masked section which is now introduced which reduces the number
+    // of iterations performed in this loop, for example, when k = 7, previously, there were 
+    // 7 iterations being performed, this has now been reduced to 1 masked iteration
+    label( .S_K_LT_8 )                 // EDGE LOOP (masked operations on ymm registers which hold upto 8 floats)
 
-    vmovss(mem(rbx        ), xmm3)
-    vfmadd231ps(ymm0, ymm3, ymm4)
-    vfmadd231ps(ymm1, ymm3, ymm5)
-    vfmadd231ps(ymm2, ymm3, ymm6)
+    mov( var( mask_vec ), rdi )
+    vmovdqu( mem( rdi ), ymm3 )           //load mask values
 
-    vmovss(mem(rbx, r11, 1), xmm3)
-    vfmadd231ps(ymm0, ymm3, ymm7)
-    vfmadd231ps(ymm1, ymm3, ymm8)
-    vfmadd231ps(ymm2, ymm3, ymm9)
+    // In this block, ymm3 is the mask vector the MSB of each
+    // 32-bit element indicates whether to load the element or not
+    vmaskmovps( mem( rax        ), ymm3, ymm0 )   // ymm0 <- mem( rax ) & MSB of correponding element in ymm3
+    vmaskmovps( mem( rax, r8, 1 ), ymm3, ymm1 )   // ymm1 <- mem( rax, r8, 1 ) & MSB of correponding element in ymm3
+    vmaskmovps( mem( rax, r8, 2 ), ymm3, ymm2 )   // ymm2 <- mem( rax, r8, 2 ) & MSB of correponding element in ymm3
 
-    vmovss(mem(rbx, r11, 2), xmm3)
-    vfmadd231ps(ymm0, ymm3, ymm10)
-    vfmadd231ps(ymm1, ymm3, ymm11)
-    vfmadd231ps(ymm2, ymm3, ymm12)
+    vmaskmovps( mem( rbx        ), ymm3, ymm3 )   // ymm3 <- mem( rbx ) & MSB of correponding element in ymm3
+    vfmadd231ps( ymm0, ymm3, ymm4 )               // ymm4 += ymm0 * ymm3
+    vfmadd231ps( ymm1, ymm3, ymm5 )               // ymm5 += ymm1 * ymm3   
+    vfmadd231ps( ymm2, ymm3, ymm6 )               // ymm6 += ymm2 * ymm3
 
-    vmovss(mem(rbx, r13, 1), xmm3)
-    add(imm(1*4), rbx)                 // b += 1*rs_b = 1*8;
-    vfmadd231ps(ymm0, ymm3, ymm13)
-    vfmadd231ps(ymm1, ymm3, ymm14)
-    vfmadd231ps(ymm2, ymm3, ymm15)
+    vmovdqu( mem( rdi ), ymm3 )                   // reload mask values since ymm3 is overridden in previous operations
+    vmaskmovps( mem( rbx, r11, 1 ), ymm3, ymm3 )  // ymm3 <- mem( rbx, r11, 1 ) & MSB of correponding element in ymm3
+    vfmadd231ps( ymm0, ymm3, ymm7 )               // ymm7 += ymm0 * ymm3
+    vfmadd231ps( ymm1, ymm3, ymm8 )               // ymm8 += ymm1 * ymm3
+    vfmadd231ps( ymm2, ymm3, ymm9 )               // ymm9 += ymm2 * ymm3
 
-    dec(rsi)                           // i -= 1;
-    jne(.SLOOPKLEFT1)                  // iterate again if i != 0.
+    vmovdqu( mem( rdi ), ymm3 )                   // reload mask values since ymm3 is overridden in previous operations
+    vmaskmovps( mem( rbx, r11, 2 ), ymm3, ymm3 )  // ymm3 <- mem( rbx, r11, 2 ) & MSB of correponding element in ymm3
+    vfmadd231ps( ymm0, ymm3, ymm10 )              // ymm10 += ymm0 * ymm3
+    vfmadd231ps( ymm1, ymm3, ymm11 )              // ymm11 += ymm1 * ymm3
+    vfmadd231ps( ymm2, ymm3, ymm12 )              // ymm12 += ymm2 * ymm3
 
-    label(.SPOSTACCUM)
+    vmovdqu( mem( rdi ), ymm3 )                   // reload mask values since ymm3 is overridden in previous operations
+    vmaskmovps( mem( rbx, r13, 1 ), ymm3, ymm3 )  // ymm3 <- mem( rbx, r13, 1 ) & MSB of correponding element in ymm3
+    vfmadd231ps( ymm0, ymm3, ymm13 )              // ymm13 += ymm0 * ymm3
+    vfmadd231ps( ymm1, ymm3, ymm14 )              // ymm14 += ymm1 * ymm3
+    vfmadd231ps( ymm2, ymm3, ymm15 )              // ymm15 += ymm2 * ymm3
+
+    jmp( .SPOSTACCUM )
+
+    label( .S_K_EQ_1 )
+
+    vmovss( mem( rax       ), xmm0 )
+    vmovss( mem( rax, r8, 1 ), xmm1 )
+    vmovss( mem( rax, r8, 2 ), xmm2 )
+
+    vmovss( mem( rbx        ), xmm3 )
+    vfmadd231ps( ymm0, ymm3, ymm4 )
+    vfmadd231ps( ymm1, ymm3, ymm5 )
+    vfmadd231ps( ymm2, ymm3, ymm6 )
+
+    vmovss( mem( rbx, r11, 1 ), xmm3 )
+    vfmadd231ps( ymm0, ymm3, ymm7 )
+    vfmadd231ps( ymm1, ymm3, ymm8 )
+    vfmadd231ps( ymm2, ymm3, ymm9 )
+
+    vmovss( mem( rbx, r11, 2 ), xmm3 )
+    vfmadd231ps( ymm0, ymm3, ymm10 )
+    vfmadd231ps( ymm1, ymm3, ymm11 )
+    vfmadd231ps( ymm2, ymm3, ymm12 )
+
+    vmovss( mem( rbx, r13, 1 ), xmm3 )
+    vfmadd231ps( ymm0, ymm3, ymm13 )
+    vfmadd231ps( ymm1, ymm3, ymm14 )
+    vfmadd231ps( ymm2, ymm3, ymm15 )
+
+    label( .SPOSTACCUM )
                                        // ymm4  ymm7  ymm10 ymm13  
                                        // ymm5  ymm8  ymm11 ymm14
                                        // ymm6  ymm9  ymm12 ymm15
 
     vhaddps( ymm7, ymm4, ymm0 )
-    vextractf128(imm(1), ymm0, xmm1 )
-    vaddps( xmm0, xmm1, xmm0 )         // xmm0[0] = sum(ymm4); xmm0[1] = sum(ymm7)
+    vextractf128( imm( 1 ), ymm0, xmm1 )
+    vaddps( xmm0, xmm1, xmm0 )         // xmm0[0] = sum( ymm4 ); xmm0[1] = sum( ymm7 )
 
     vhaddps( ymm13, ymm10, ymm2 )
-    vextractf128(imm(1), ymm2, xmm1 )
-    vaddps( xmm2, xmm1, xmm2 )         // xmm2[0] = sum(ymm10); xmm2[1] = sum(ymm13)
+    vextractf128( imm( 1 ), ymm2, xmm1 )
+    vaddps( xmm2, xmm1, xmm2 )         // xmm2[0] = sum( ymm10 ); xmm2[1] = sum( ymm13 )
 
-    vhaddps(xmm2,xmm0,xmm4)
+    vhaddps( xmm2, xmm0, xmm4 )
 
     vhaddps( ymm8, ymm5, ymm0 )
-    vextractf128(imm(1), ymm0, xmm1 )
+    vextractf128( imm( 1 ), ymm0, xmm1 )
     vaddps( xmm0, xmm1, xmm0 )
 
     vhaddps( ymm14, ymm11, ymm2 )
-    vextractf128(imm(1), ymm2, xmm1 )
+    vextractf128( imm( 1 ), ymm2, xmm1 )
     vaddps( xmm2, xmm1, xmm2 )
 
-    vhaddps(xmm2,xmm0,xmm5)
+    vhaddps( xmm2, xmm0, xmm5 )
 
 
     vhaddps( ymm9, ymm6, ymm0 )
-    vextractf128(imm(1), ymm0, xmm1 )
+    vextractf128( imm( 1 ), ymm0, xmm1 )
     vaddps( xmm0, xmm1, xmm0 )
 
     vhaddps( ymm15, ymm12, ymm2 )
-    vextractf128(imm(1), ymm2, xmm1 )
+    vextractf128( imm( 1 ), ymm2, xmm1 )
     vaddps( xmm2, xmm1, xmm2 )
 
-    vhaddps(xmm2,xmm0,xmm6)
+    vhaddps( xmm2, xmm0, xmm6 )
 
-                                       // ymm4 = sum(ymm4) sum(ymm7) sum(ymm10) sum(ymm13)
-                                       // ymm5 = sum(ymm5) sum(ymm8) sum(ymm11) sum(ymm14)
-                                       // ymm6 = sum(ymm6) sum(ymm9) sum(ymm12) sum(ymm15)
-    mov(var(rs_c), rdi)                // load rs_c
-    lea(mem(, rdi, 4), rdi)            // rs_c *= sizeof(float)
+                                       // ymm4 = sum( ymm4 ) sum( ymm7 ) sum( ymm10 ) sum( ymm13 )
+                                       // ymm5 = sum( ymm5 ) sum( ymm8 ) sum( ymm11 ) sum( ymm14 )
+                                       // ymm6 = sum( ymm6 ) sum( ymm9 ) sum( ymm12 ) sum( ymm15 )
+    mov( var( rs_c ), rdi )              // load rs_c
+    lea( mem(, rdi, 4 ), rdi )           // rs_c *= sizeof(float)
 
-    mov(var(alpha), rax)               // load address of alpha
-    mov(var(beta), rbx)                // load address of beta
-    vbroadcastss(mem(rax), ymm0)       // load alpha and duplicate
-    vbroadcastss(mem(rbx), ymm3)       // load beta and duplicate
+    mov( var( alpha ), rax )             // load address of alpha
+    mov( var( beta ), rbx )              // load address of beta
+    vbroadcastss( mem( rax ), ymm0 )     // load alpha and duplicate
+    vbroadcastss( mem( rbx ), ymm3 )     // load beta and duplicate
 
-    vmulps(xmm0, xmm4, xmm4)           // scale by alpha
-    vmulps(xmm0, xmm5, xmm5)
-    vmulps(xmm0, xmm6, xmm6)
-                                       // now avoid loading C if beta == 0
-    vxorps(ymm0, ymm0, ymm0)           // set ymm0 to zero.
-    vucomisd(xmm0, xmm3)               // set ZF if beta == 0.
-    je(.SBETAZERO)                     // if ZF = 1, jump to beta == 0 case
-
-
-    label(.SROWSTORED)
-
-    vfmadd231ps(mem(rcx), xmm3, xmm4)
-    vmovups(xmm4, mem(rcx))
-    add(rdi, rcx)
-
-    vfmadd231ps(mem(rcx), xmm3, xmm5)
-    vmovups(xmm5, mem(rcx))
-    add(rdi, rcx)
-
-    vfmadd231ps(mem(rcx), xmm3, xmm6)
-    vmovups(xmm6, mem(rcx))
+    vmulps( xmm0, xmm4, xmm4 )           // scale by alpha
+    vmulps( xmm0, xmm5, xmm5 )
+    vmulps( xmm0, xmm6, xmm6 )
+                                         // now avoid loading C if beta == 0
+    vxorps( ymm0, ymm0, ymm0 )           // set ymm0 to zero.
+    vucomisd( xmm0, xmm3 )               // set ZF if beta == 0.
+    je( .SBETAZERO )                     // if ZF = 1, jump to beta == 0 case
 
 
-    jmp(.SDONE)                        // jump to end.
+    label( .SROWSTORED )
 
-    label(.SBETAZERO)
+    vfmadd231ps( mem( rcx ), xmm3, xmm4 )
+    vmovups( xmm4, mem( rcx ) )
+    add( rdi, rcx )
 
-    label(.SROWSTORBZ)
+    vfmadd231ps( mem( rcx ), xmm3, xmm5 )
+    vmovups( xmm5, mem( rcx ) )
+    add( rdi, rcx )
 
-    vmovups(xmm4, mem(rcx))
-    add(rdi, rcx)
+    vfmadd231ps( mem( rcx ), xmm3, xmm6 )
+    vmovups( xmm6, mem( rcx ) )
 
-    vmovups(xmm5, mem(rcx))
-    add(rdi, rcx)
 
-    vmovups(xmm6, mem(rcx))
+    jmp( .SDONE )                        // jump to end.
 
-    label(.SDONE)
+    label( .SBETAZERO )
 
-    add(imm(4*4), r12)                 // c_jj = r12 += 4*cs_c
+    label( .SROWSTORBZ )
 
-    lea(mem(r14, r11, 4), r14)         // b_jj = r14 += 4*cs_b
+    vmovups( xmm4, mem( rcx ) )
+    add( rdi, rcx )
 
-    dec(r15)                           // jj -= 1;
-    jne(.SLOOP3X4J)                    // iterate again if jj != 0.
+    vmovups( xmm5, mem( rcx ) )
+    add( rdi, rcx )
 
-    label(.SRETURN)
+    vmovups( xmm6, mem( rcx ) )
+
+    label( .SDONE )
+
+    add( imm( 4*4 ), r12 )               // c_jj = r12 += 4*cs_c
+
+    lea( mem( r14, r11, 4 ), r14 )       // b_jj = r14 += 4*cs_b
+
+    dec( r15 )                           // jj -= 1;
+    jne( .SLOOP3X4J )                    // iterate again if jj != 0.
+
+    label( .SRETURN )
 
 
     end_asm(
     : // output operands (none)
     : // input operands
       [n_iter] "m" (n_iter),
-      [k_iter32] "m" (k_iter32),
-      [k_iter8] "m" (k_iter8),
-      [k_left1] "m" (k_left1),
-      [a]      "m" (a),
-      [rs_a]   "m" (rs_a),
-      [cs_a]   "m" (cs_a),
-      [b]      "m" (b),
-      [rs_b]   "m" (rs_b),
-      [cs_b]   "m" (cs_b),
-      [alpha]  "m" (alpha),
-      [beta]   "m" (beta),
-      [c]      "m" (c),
-      [rs_c]   "m" (rs_c),
-      [cs_c]   "m" (cs_c)/*,
-      [a_next] "m" (a_next),
-      [b_next] "m" (b_next)*/
+      [k_iter32] "m" ( k_iter32 ),
+      [k_iter8] "m" ( k_iter8 ),
+      [k_left1] "m" ( k_left1 ),
+      [a]      "m" ( a ),
+      [rs_a]   "m" ( rs_a ),
+      [cs_a]   "m" ( cs_a ),
+      [b]      "m" ( b ),
+      [rs_b]   "m" ( rs_b ),
+      [cs_b]   "m" ( cs_b ),
+      [alpha]  "m" ( alpha ),
+      [beta]   "m" ( beta ),
+      [c]      "m" ( c ),
+      [rs_c]   "m" ( rs_c ),
+      [mask_vec]   "m"   ( mask_vec ),
+      [cs_c]   "m" ( cs_c )/*,
+      [a_next] "m" ( a_next),
+      [b_next] "m" ( b_next)*/
     : // register clobber list
       "rax", "rbx", "rcx", "rdx", "rsi", "rdi",
       "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15",
@@ -1133,6 +1221,7 @@ void bli_sgemmsup_rd_zen_asm_2x16n
     uint64_t k_left32 = k0 % 32;
     uint64_t k_iter8  = k_left32 / 8;
     uint64_t k_left1  = k_left32 % 8;
+    const int32_t *mask_vec = BLI_MASK[k_left1];
 
     uint64_t n_iter = n0 / 4;
     uint64_t n_left = n0 % 4;
@@ -1149,17 +1238,17 @@ void bli_sgemmsup_rd_zen_asm_2x16n
     // -------------------------------------------------------------------------
     begin_asm()
 
-    mov(var(a), rdx)                   // load address of a.
-    mov(var(rs_a), r8)                 // load rs_a
-    lea(mem(, r8, 4), r8)              // rs_a *= sizeof(float)
+    mov( var( a ), rdx )                  // load address of a.
+    mov( var( rs_a ), r8 )                // load rs_a
+    lea( mem(, r8, 4 ), r8 )              // rs_a *= sizeof(float)
 
-    mov(var(b), r14)                   // load address of b.
-    mov(var(cs_b), r11)                // load cs_b
-    lea(mem(, r11, 4), r11)            // cs_b *= sizeof(float)
+    mov( var( b ), r14 )                  // load address of b.
+    mov( var( cs_b ), r11 )               // load cs_b
+    lea( mem(, r11, 4 ), r11 )            // cs_b *= sizeof(float)
 
-    lea(mem(r11, r11, 2), r13)         // r13 = 3*cs_b
+    lea( mem( r11, r11, 2 ), r13 )        // r13 = 3*cs_b
 
-    mov(var(c), r12)                   // load address of c
+    mov( var( c ), r12 )                  // load address of c
 
     // r12 = rcx = c
     // rdx = rax = a
@@ -1167,311 +1256,341 @@ void bli_sgemmsup_rd_zen_asm_2x16n
     // r9  = unused
     // r15 = n dim index jj
 
-    mov(var(n_iter), r15)              // jj = n_iter;
+    mov( var(n_iter), r15 )               // jj = n_iter;
 
-    label(.SLOOP3X4J)                  // LOOP OVER jj = [ n_iter ... 1 0 ]
-                                       // zen2 can execute 4 vxorpd ipc with
-                                       // a latency of 1 cycle
+    label( .SLOOP3X4J )                   // LOOP OVER jj = [ n_iter ... 1 0 ]
+                                          // zen2 can execute 4 vxorpd ipc with
+                                          // a latency of 1 cycle
 
-    vxorps(ymm4,  ymm4,  ymm4)
-    vxorps(ymm5,  ymm5,  ymm5)
-    vxorps(ymm7,  ymm7,  ymm7)
-    vxorps(ymm8,  ymm8,  ymm8)
-    vxorps(ymm10, ymm10, ymm10)
-    vxorps(ymm11, ymm11, ymm11)
-    vxorps(ymm13, ymm13, ymm13)
-    vxorps(ymm14, ymm14, ymm14)
+    mov( var( mask_vec ), rbx )
+    vmovdqu( mem( rbx ), ymm2 )           //load mask values
 
-    lea(mem(r12), rcx)                 // rcx = c_iijj;
-    lea(mem(rdx), rax)                 // rax = a_ii;
-    lea(mem(r14), rbx)                 // rbx = b_jj;
+    vxorps( ymm4,  ymm4,  ymm4 )
+    vxorps( ymm5,  ymm5,  ymm5 )
+    vxorps( ymm7,  ymm7,  ymm7 )
+    vxorps( ymm8,  ymm8,  ymm8 )
+    vxorps( ymm10, ymm10, ymm10 )
+    vxorps( ymm11, ymm11, ymm11 )
+    vxorps( ymm13, ymm13, ymm13 )
+    vxorps( ymm14, ymm14, ymm14 )
 
-    mov(var(rs_c), rdi)                // load rs_c
-    lea(mem(, rdi, 4), rdi)            // rs_c *= sizeof(float)
-    prefetch(0, mem(rcx, 3*8))         // prefetch c + 0*rs_c
-    prefetch(0, mem(rcx, rdi, 1, 3*8)) // prefetch c + 1*rs_c
+    lea( mem( r12 ), rcx )                 // rcx = c_iijj;
+    lea( mem( rdx ), rax )                 // rax = a_ii;
+    lea( mem( r14 ), rbx )                 // rbx = b_jj;
 
-    lea(mem(r11, r11, 2), rdi)         // rdi = 3*cs_b
-    lea(mem(rbx, r11, 4), r10)         // r10 = rbx + 4*cs_b
+    mov( var( rs_c ), rdi )                // load rs_c
+    lea( mem(, rdi, 4 ), rdi )             // rs_c *= sizeof(float)
+    prefetch( 0, mem( rcx, 3*8 ) )         // prefetch c + 0*rs_c
+    prefetch( 0, mem( rcx, rdi, 1, 3*8 ) ) // prefetch c + 1*rs_c
 
-    mov(var(k_iter32), rsi)            // i = k_iter32;
-    test(rsi, rsi)                     // check i via logical AND.
-    je(.SCONSIDKITER8)                 // if i == 0, jump to code that
-                                       // contains the k_iter8 loop.
+    lea( mem( r11, r11, 2 ), rdi )         // rdi = 3*cs_b
+    lea( mem( rbx, r11, 4 ), r10 )         // r10 = rbx + 4*cs_b
 
-    label(.SLOOPKITER32)               // MAIN LOOP
+    mov( var( k_iter32 ), rsi )            // i = k_iter32;
+    test( rsi, rsi )                       // check i via logical AND.
+    je( .SCONSIDKITER8 )                   // if i == 0, jump to code that
+                                           // contains the k_iter8 loop.
+
+    label( .SLOOPKITER32 )                 // MAIN LOOP
 
     // ---------------------------------- iteration 0
-    prefetch(0, mem(r10,         0*8)) // prefetch rbx + 4*cs_b
-    prefetch(0, mem(r10, r11, 1, 0*8)) // prefetch rbx + 5*cs_b
+    prefetch( 0, mem( r10,         0*8 ) ) // prefetch rbx + 4*cs_b
+    prefetch( 0, mem( r10, r11, 1, 0*8 ) ) // prefetch rbx + 5*cs_b
 
-    vmovups(mem(rax       ), ymm0)
-    vmovups(mem(rax, r8, 1), ymm1)
-    add(imm(8*4), rax)                 // a += 4*cs_b = 4*8;
+    vmovups( mem( rax        ), ymm0 )
+    vmovups( mem( rax, r8, 1 ), ymm1 )
+    add( imm( 8*4 ), rax )                 // a += 8 x sizeof(float) = 4*8;
 
-    vmovups(mem(rbx        ), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm4)
-    vfmadd231ps(ymm1, ymm3, ymm5)
+    vmovups( mem( rbx        ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm4 )
+    vfmadd231ps( ymm1, ymm3, ymm5 )
 
-    vmovups(mem(rbx, r11, 1), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm7)
-    vfmadd231ps(ymm1, ymm3, ymm8)
+    vmovups( mem( rbx, r11, 1 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm7 )
+    vfmadd231ps( ymm1, ymm3, ymm8 )
 
-    vmovups(mem(rbx, r11, 2), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm10)
-    vfmadd231ps(ymm1, ymm3, ymm11)
+    vmovups( mem( rbx, r11, 2 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm10 )
+    vfmadd231ps( ymm1, ymm3, ymm11 )
 
-    vmovups(mem(rbx, r13, 1), ymm3)
-    add(imm(8*4), rbx)                 // b += 4*rs_b = 4*8;
-    vfmadd231ps(ymm0, ymm3, ymm13)
-    vfmadd231ps(ymm1, ymm3, ymm14)
+    vmovups( mem( rbx, r13, 1 ), ymm3 )
+    add( imm( 8*4 ), rbx )                 // b += 8 x sizeof(float) = 4*8;
+    vfmadd231ps( ymm0, ymm3, ymm13 )
+    vfmadd231ps( ymm1, ymm3, ymm14 )
 
     // ---------------------------------- iteration 1
-    prefetch(0, mem(r10, r11, 2, 0*8)) // prefetch rbx + 6*cs_b
-    prefetch(0, mem(r10, r13, 1, 0*8)) // prefetch rbx + 7*cs_b
+    prefetch( 0, mem( r10, r11, 2, 0*8 ) ) // prefetch rbx + 6*cs_b
+    prefetch( 0, mem( r10, r13, 1, 0*8 ) ) // prefetch rbx + 7*cs_b
 
-    vmovups(mem(rax       ), ymm0)
-    vmovups(mem(rax, r8, 1), ymm1)
-    add(imm(8*4), rax)                 // a += 4*cs_b = 4*8;
+    vmovups( mem( rax        ), ymm0 )
+    vmovups( mem( rax, r8, 1 ), ymm1 )
+    add( imm( 8*4 ), rax )                 // a += 8 x sizeof(float) = 4*8;
 
-    vmovups(mem(rbx        ), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm4)
-    vfmadd231ps(ymm1, ymm3, ymm5)
+    vmovups( mem( rbx        ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm4 )
+    vfmadd231ps( ymm1, ymm3, ymm5 )
 
-    vmovups(mem(rbx, r11, 1), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm7)
-    vfmadd231ps(ymm1, ymm3, ymm8)
+    vmovups( mem( rbx, r11, 1 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm7 )
+    vfmadd231ps( ymm1, ymm3, ymm8 )
 
-    vmovups(mem(rbx, r11, 2), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm10)
-    vfmadd231ps(ymm1, ymm3, ymm11)
+    vmovups( mem( rbx, r11, 2 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm10 )
+    vfmadd231ps( ymm1, ymm3, ymm11 )
 
-    vmovups(mem(rbx, r13, 1), ymm3)
-    add(imm(8*4), rbx)                 // b += 4*rs_b = 4*8;
-    vfmadd231ps(ymm0, ymm3, ymm13)
-    vfmadd231ps(ymm1, ymm3, ymm14)
+    vmovups( mem( rbx, r13, 1 ), ymm3 )
+    add( imm( 8*4 ), rbx )                 // b += 8 x sizeof(float) = 4*8;
+    vfmadd231ps( ymm0, ymm3, ymm13 )
+    vfmadd231ps( ymm1, ymm3, ymm14 )
 
     // ---------------------------------- iteration 2
-    prefetch(0, mem(r10,         8*8)) // prefetch rbx + 4*cs_b + 8*rs_b
-    prefetch(0, mem(r10, r11, 1, 8*8)) // prefetch rbx + 5*cs_b + 8*rs_b
+    prefetch( 0, mem( r10,         8*8 ) ) // prefetch rbx + 4*cs_b + 8*rs_b
+    prefetch( 0, mem( r10, r11, 1, 8*8 ) ) // prefetch rbx + 5*cs_b + 8*rs_b
 
-    vmovups(mem(rax       ), ymm0)
-    vmovups(mem(rax, r8, 1), ymm1)
-    add(imm(8*4), rax)                 // a += 4*cs_b = 4*8;
+    vmovups( mem( rax        ), ymm0 )
+    vmovups( mem( rax, r8, 1 ), ymm1 )
+    add( imm( 8*4 ), rax )                 // a += 8 x sizeof(float) = 4*8;
 
-    vmovups(mem(rbx        ), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm4)
-    vfmadd231ps(ymm1, ymm3, ymm5)
+    vmovups( mem( rbx        ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm4 )
+    vfmadd231ps( ymm1, ymm3, ymm5 )
 
-    vmovups(mem(rbx, r11, 1), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm7)
-    vfmadd231ps(ymm1, ymm3, ymm8)
+    vmovups( mem( rbx, r11, 1 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm7 )
+    vfmadd231ps( ymm1, ymm3, ymm8 )
 
-    vmovups(mem(rbx, r11, 2), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm10)
-    vfmadd231ps(ymm1, ymm3, ymm11)
+    vmovups( mem( rbx, r11, 2 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm10 )
+    vfmadd231ps( ymm1, ymm3, ymm11 )
 
-    vmovups(mem(rbx, r13, 1), ymm3)
-    add(imm(8*4), rbx)                 // b += 4*rs_b = 4*8;
-    vfmadd231ps(ymm0, ymm3, ymm13)
-    vfmadd231ps(ymm1, ymm3, ymm14)
+    vmovups( mem( rbx, r13, 1 ), ymm3 )
+    add( imm( 8*4 ), rbx )                 // b += 8 x sizeof(float) = 4*8;
+    vfmadd231ps( ymm0, ymm3, ymm13 )
+    vfmadd231ps( ymm1, ymm3, ymm14 )
 
     // ---------------------------------- iteration 3
-    prefetch(0, mem(r10, r11, 2, 8*8)) // prefetch rbx + 6*cs_b + 8*rs_b
-    prefetch(0, mem(r10, r13, 1, 8*8)) // prefetch rbx + 7*cs_b + 8*rs_b
-    add(imm(16*8), r10)                 // r10 += 8*rs_b = 8*8;
+    prefetch( 0, mem( r10, r11, 2, 8*8 ) ) // prefetch rbx + 6*cs_b + 8*rs_b
+    prefetch( 0, mem( r10, r13, 1, 8*8 ) ) // prefetch rbx + 7*cs_b + 8*rs_b
+    add( imm( 16*8 ), r10 )                // r10 += 8*rs_b = 8*8;
 
-    vmovups(mem(rax       ), ymm0)
-    vmovups(mem(rax, r8, 1), ymm1)
-    add(imm(8*4), rax)                 // a += 4*cs_b = 4*8;
+    vmovups( mem( rax        ), ymm0 )
+    vmovups( mem( rax, r8, 1 ), ymm1 )
+    add( imm( 8*4 ), rax )                 // a += 8 x sizeof(float) = 4*8;
 
-    vmovups(mem(rbx        ), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm4)
-    vfmadd231ps(ymm1, ymm3, ymm5)
+    vmovups( mem( rbx        ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm4 )
+    vfmadd231ps( ymm1, ymm3, ymm5 )
 
-    vmovups(mem(rbx, r11, 1), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm7)
-    vfmadd231ps(ymm1, ymm3, ymm8)
+    vmovups( mem( rbx, r11, 1 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm7 )
+    vfmadd231ps( ymm1, ymm3, ymm8 )
 
-    vmovups(mem(rbx, r11, 2), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm10)
-    vfmadd231ps(ymm1, ymm3, ymm11)
+    vmovups( mem( rbx, r11, 2 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm10 )
+    vfmadd231ps( ymm1, ymm3, ymm11 )
 
-    vmovups(mem(rbx, r13, 1), ymm3)
-    add(imm(8*4), rbx)                 // b += 4*rs_b = 4*8;
-    vfmadd231ps(ymm0, ymm3, ymm13)
-    vfmadd231ps(ymm1, ymm3, ymm14)
+    vmovups( mem( rbx, r13, 1 ), ymm3 )
+    add( imm( 8*4 ), rbx )                 // b += 8 x sizeof(float) = 4*8;
+    vfmadd231ps( ymm0, ymm3, ymm13 )
+    vfmadd231ps( ymm1, ymm3, ymm14 )
 
-    dec(rsi)                           // i -= 1;
-    jne(.SLOOPKITER32)                 // iterate again if i != 0.
+    dec( rsi )                             // i -= 1;
+    jne( .SLOOPKITER32 )                   // iterate again if i != 0.
 
-    label(.SCONSIDKITER8)
+    label( .SCONSIDKITER8 )
 
-    mov(var(k_iter8), rsi)             // i = k_iter8;
-    test(rsi, rsi)                     // check i via logical AND.
-    je(.SCONSIDKLEFT1)                 // if i == 0, jump to code that
-                                       // considers k_left1 loop.
-                                       // else, we prepare to enter k_iter8 loop.
+    mov( var( k_iter8 ), rsi )             // i = k_iter8;
+    test( rsi, rsi )                       // check i via logical AND.
+    je( .SCONSIDKLEFT1 )                   // if i == 0, jump to code that
+                                           // considers k_left1 loop.
+                                           // else, we prepare to enter k_iter8 loop.
 
-    label(.SLOOPKITER8)                // EDGE LOOP (ymm)
+    label( .SLOOPKITER8 )                  // EDGE LOOP ( ymm)
 
-    vmovups(mem(rax       ), ymm0)
-    vmovups(mem(rax, r8, 1), ymm1)
-    add(imm(8*4), rax)                 // a += 4*cs_b = 4*8;
+    vmovups( mem( rax        ), ymm0 )
+    vmovups( mem( rax, r8, 1 ), ymm1 )
+    add( imm( 8*4 ), rax )                 // a += 8 x sizeof(float) = 4*8;
 
-    vmovups(mem(rbx        ), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm4)
-    vfmadd231ps(ymm1, ymm3, ymm5)
+    vmovups( mem( rbx        ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm4 )
+    vfmadd231ps( ymm1, ymm3, ymm5 )
 
-    vmovups(mem(rbx, r11, 1), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm7)
-    vfmadd231ps(ymm1, ymm3, ymm8)
+    vmovups( mem( rbx, r11, 1 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm7 )
+    vfmadd231ps( ymm1, ymm3, ymm8 )
 
-    vmovups(mem(rbx, r11, 2), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm10)
-    vfmadd231ps(ymm1, ymm3, ymm11)
+    vmovups( mem( rbx, r11, 2 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm10 )
+    vfmadd231ps( ymm1, ymm3, ymm11 )
 
-    vmovups(mem(rbx, r13, 1), ymm3)
-    add(imm(8*4), rbx)                 // b += 4*rs_b = 4*8;
-    vfmadd231ps(ymm0, ymm3, ymm13)
-    vfmadd231ps(ymm1, ymm3, ymm14)
+    vmovups( mem( rbx, r13, 1 ), ymm3 )
+    add( imm( 8*4 ), rbx )                 // b += 8 x sizeof(float) = 4*8;
+    vfmadd231ps( ymm0, ymm3, ymm13 )
+    vfmadd231ps( ymm1, ymm3, ymm14 )
 
-    dec(rsi)                           // i -= 1;
-    jne(.SLOOPKITER8)                  // iterate again if i != 0.
+    dec( rsi )                           // i -= 1;
+    jne( .SLOOPKITER8 )                  // iterate again if i != 0.
 
-    label(.SCONSIDKLEFT1)
+    label( .SCONSIDKLEFT1 )
 
-    mov(var(k_left1), rsi)             // i = k_left1;
-    test(rsi, rsi)                     // check i via logical AND.
-    je(.SPOSTACCUM)                    // if i == 0, we're done; jump to end.
+    mov( var( k_left1 ), rsi )         // i = k_left1;
+    test( rsi, rsi )                   // check i via logical AND.
+    je( .SPOSTACCUM )                  // if i == 0, we're done; jump to end.
                                        // else, we prepare to enter k_left1 loop.
 
-    label(.SLOOPKLEFT1)                // EDGE LOOP (scalar)
-                                       // NOTE: We must use ymm registers here bc
-                                       // using the xmm registers would zero out the
-                                       // high bits of the destination registers,
-                                       // which would destory intermediate results.
+    // When the remainder for k is exactly equal to 1, we default to performing
+    // a simple scalar loop iteration (without performing a masked operation)
+    // this is because the masked loads are costly on zen3 and it is better to 
+    // have a branch to execute non-masked instructions which are cheaper
+    cmp( imm( 1 ), rsi )
+    je( .S_K_EQ_1 )
 
-    vmovss(mem(rax       ), xmm0)
-    vmovss(mem(rax, r8, 1), xmm1)
-    add(imm(1*4), rax)                 // a += 1*cs_b = 1*8;
+    // For k values < 8, a masked section which is now introduced which reduces the number
+    // of iterations performed in this loop, for example, when k = 7, previously, there were 
+    // 7 iterations being performed, this has now been reduced to 1 masked iteration
+    label( .S_K_LT_8 )                 // EDGE LOOP (masked operations on ymm registers which hold upto 8 floats)
+    
+    // In this block, ymm2 is the mask vector the MSB of each (loaded earlier)
+    // 32-bit element indicates whether to load the element or not
+    vmaskmovps( mem( rax        ), ymm2, ymm0 )     // ymm0 <- mem( rax ) & MSB of correponding element in ymm2  
+    vmaskmovps( mem( rax, r8, 1 ), ymm2, ymm1 )     // ymm1 <- mem( rax, r8, 1 ) & MSB of correponding element in ymm2
 
-    vmovss(mem(rbx        ), xmm3)
-    vfmadd231ps(ymm0, ymm3, ymm4)
-    vfmadd231ps(ymm1, ymm3, ymm5)
+    vmaskmovps( mem( rbx        ), ymm2, ymm3 )     // ymm3 <- mem( rbx ) & MSB of correponding element in ymm2
+    vfmadd231ps( ymm0, ymm3, ymm4 )                 // ymm4 += ymm0 * ymm3
+    vfmadd231ps( ymm1, ymm3, ymm5 )                 // ymm5 += ymm1 * ymm3
 
-    vmovss(mem(rbx, r11, 1), xmm3)
-    vfmadd231ps(ymm0, ymm3, ymm7)
-    vfmadd231ps(ymm1, ymm3, ymm8)
+    vmaskmovps( mem( rbx, r11, 1 ), ymm2, ymm3 )    // ymm3 <- mem( rbx, r11, 1 ) & MSB of correponding element in ymm2
+    vfmadd231ps( ymm0, ymm3, ymm7 )                 // ymm7 += ymm0 * ymm3
+    vfmadd231ps( ymm1, ymm3, ymm8 )                 // ymm8 += ymm1 * ymm3
 
-    vmovss(mem(rbx, r11, 2), xmm3)
-    vfmadd231ps(ymm0, ymm3, ymm10)
-    vfmadd231ps(ymm1, ymm3, ymm11)
+    vmaskmovps( mem( rbx, r11, 2 ), ymm2, ymm3 )    // ymm3 <- mem( rbx, r11, 2 ) & MSB of correponding element in ymm2
+    vfmadd231ps( ymm0, ymm3, ymm10 )                // ymm10 += ymm0 * ymm3
+    vfmadd231ps( ymm1, ymm3, ymm11 )                // ymm11 += ymm1 * ymm3
 
-    vmovss(mem(rbx, r13, 1), xmm3)
-    add(imm(1*4), rbx)                 // b += 1*rs_b = 1*8;
-    vfmadd231ps(ymm0, ymm3, ymm13)
-    vfmadd231ps(ymm1, ymm3, ymm14)
+    vmaskmovps( mem( rbx, r13, 1 ), ymm2, ymm3 )    // ymm3 <- mem( rbx, r13, 1 ) & MSB of correponding element in ymm2
+    vfmadd231ps( ymm0, ymm3, ymm13 )                // ymm13 += ymm0 * ymm3
+    vfmadd231ps( ymm1, ymm3, ymm14 )                // ymm14 += ymm1 * ymm3
 
-    dec(rsi)                           // i -= 1;
-    jne(.SLOOPKLEFT1)                  // iterate again if i != 0.
+    jmp( .SPOSTACCUM )
 
-    label(.SPOSTACCUM)
+    label( .S_K_EQ_1 )
+
+    vmovss( mem( rax       ), xmm0 )
+    vmovss( mem( rax, r8, 1 ), xmm1 )
+
+    vmovss( mem( rbx        ), xmm3 )
+    vfmadd231ps( ymm0, ymm3, ymm4 )
+    vfmadd231ps( ymm1, ymm3, ymm5 )
+
+    vmovss( mem( rbx, r11, 1 ), xmm3 )
+    vfmadd231ps( ymm0, ymm3, ymm7 )
+    vfmadd231ps( ymm1, ymm3, ymm8 )
+
+    vmovss( mem( rbx, r11, 2 ), xmm3 )
+    vfmadd231ps( ymm0, ymm3, ymm10 )
+    vfmadd231ps( ymm1, ymm3, ymm11 )
+
+    vmovss( mem( rbx, r13, 1 ), xmm3 )
+    vfmadd231ps( ymm0, ymm3, ymm13 )
+    vfmadd231ps( ymm1, ymm3, ymm14 )
+
+    label( .SPOSTACCUM )
                                        // ymm4  ymm7  ymm10 ymm13  
                                        // ymm5  ymm8  ymm11 ymm14
                                        // ymm6  ymm9  ymm12 ymm15
 
     vhaddps( ymm7, ymm4, ymm0 )
-    vextractf128(imm(1), ymm0, xmm1 )
-    vaddps( xmm0, xmm1, xmm0 )         // xmm0[0] = sum(ymm4); xmm0[1] = sum(ymm7)
+    vextractf128( imm( 1 ), ymm0, xmm1 )
+    vaddps( xmm0, xmm1, xmm0 )         // xmm0[0] = sum( ymm4 ); xmm0[1] = sum( ymm7 )
 
     vhaddps( ymm13, ymm10, ymm2 )
-    vextractf128(imm(1), ymm2, xmm1 )
-    vaddps( xmm2, xmm1, xmm2 )         // xmm2[0] = sum(ymm10); xmm2[1] = sum(ymm13)
+    vextractf128( imm( 1 ), ymm2, xmm1 )
+    vaddps( xmm2, xmm1, xmm2 )         // xmm2[0] = sum( ymm10 ); xmm2[1] = sum( ymm13 )
 
-    vhaddps(xmm2,xmm0,xmm4)
+    vhaddps( xmm2, xmm0, xmm4 )
 
     vhaddps( ymm8, ymm5, ymm0 )
-    vextractf128(imm(1), ymm0, xmm1 )
+    vextractf128( imm( 1 ), ymm0, xmm1 )
     vaddps( xmm0, xmm1, xmm0 )
 
     vhaddps( ymm14, ymm11, ymm2 )
-    vextractf128(imm(1), ymm2, xmm1 )
+    vextractf128( imm( 1 ), ymm2, xmm1 )
     vaddps( xmm2, xmm1, xmm2 )
 
-    vhaddps(xmm2,xmm0,xmm5)
+    vhaddps( xmm2, xmm0, xmm5 )
 
-                                       // ymm4 = sum(ymm4) sum(ymm7) sum(ymm10) sum(ymm13)
-                                       // ymm5 = sum(ymm5) sum(ymm8) sum(ymm11) sum(ymm14)
-    mov(var(rs_c), rdi)                // load rs_c
-    lea(mem(, rdi, 4), rdi)            // rs_c *= sizeof(float)
+                                       // ymm4 = sum( ymm4 ) sum( ymm7 ) sum( ymm10 ) sum( ymm13 )
+                                       // ymm5 = sum( ymm5 ) sum( ymm8 ) sum( ymm11 ) sum( ymm14 )
+    mov( var( rs_c ), rdi )               // load rs_c
+    lea( mem(, rdi, 4 ), rdi )            // rs_c *= sizeof(float)
 
-    mov(var(alpha), rax)               // load address of alpha
-    mov(var(beta), rbx)                // load address of beta
-    vbroadcastss(mem(rax), ymm0)       // load alpha and duplicate
-    vbroadcastss(mem(rbx), ymm3)       // load beta and duplicate
+    mov( var( alpha ), rax )              // load address of alpha
+    mov( var( beta ), rbx )               // load address of beta
+    vbroadcastss( mem( rax ), ymm0 )      // load alpha and duplicate
+    vbroadcastss( mem( rbx ), ymm3 )      // load beta and duplicate
 
-    vmulps(xmm0, xmm4, xmm4)           // scale by alpha
-    vmulps(xmm0, xmm5, xmm5)
-    vmulps(xmm0, xmm6, xmm6)
+    vmulps( xmm0, xmm4, xmm4 )            // scale by alpha
+    vmulps( xmm0, xmm5, xmm5 )
+    vmulps( xmm0, xmm6, xmm6 )
 
-                                       // now avoid loading C if beta == 0
+                                          // now avoid loading C if beta == 0
 
-    vxorps(ymm0, ymm0, ymm0)           // set ymm0 to zero.
-    vucomisd(xmm0, xmm3)               // set ZF if beta == 0.
-    je(.SBETAZERO)                     // if ZF = 1, jump to beta == 0 case
+    vxorps( ymm0, ymm0, ymm0 )            // set ymm0 to zero.
+    vucomisd( xmm0, xmm3 )                // set ZF if beta == 0.
+    je( .SBETAZERO )                      // if ZF = 1, jump to beta == 0 case
 
-    label(.SROWSTORED)
+    label( .SROWSTORED )
 
-    vfmadd231ps(mem(rcx), xmm3, xmm4)
-    vmovups(xmm4, mem(rcx))
-    add(rdi, rcx)
+    vfmadd231ps( mem( rcx ), xmm3, xmm4 )
+    vmovups( xmm4, mem( rcx ) )
+    add( rdi, rcx )
 
-    vfmadd231ps(mem(rcx), xmm3, xmm5)
-    vmovups(xmm5, mem(rcx))
+    vfmadd231ps( mem( rcx ), xmm3, xmm5 )
+    vmovups( xmm5, mem( rcx ) )
 
-    jmp(.SDONE)                        // jump to end.
+    jmp( .SDONE )                        // jump to end.
 
-    label(.SBETAZERO)
+    label( .SBETAZERO )
 
-    label(.SROWSTORBZ)
+    label( .SROWSTORBZ )
 
-    vmovups(xmm4, mem(rcx))
-    add(rdi, rcx)
+    vmovups( xmm4, mem( rcx ) )
+    add( rdi, rcx )
 
-    vmovups(xmm5, mem(rcx))
+    vmovups( xmm5, mem( rcx ) )
 
-    label(.SDONE)
+    label( .SDONE )
 
-    add(imm(4*4), r12)                 // c_jj = r12 += 4*cs_c
+    add( imm( 4*4 ), r12 )               // c_jj = r12 += 4*cs_c
 
-    lea(mem(r14, r11, 4), r14)         // b_jj = r14 += 4*cs_b
+    lea( mem( r14, r11, 4 ), r14 )       // b_jj = r14 += 4*cs_b
 
-    dec(r15)                           // jj -= 1;
-    jne(.SLOOP3X4J)                    // iterate again if jj != 0.
+    dec( r15 )                           // jj -= 1;
+    jne( .SLOOP3X4J )                    // iterate again if jj != 0.
 
-    label(.SRETURN)
+    label( .SRETURN )
 
     end_asm(
     : // output operands (none)
     : // input operands
       [n_iter] "m" (n_iter),
-      [k_iter32] "m" (k_iter32),
-      [k_iter8] "m" (k_iter8),
-      [k_left1] "m" (k_left1),
-      [a]      "m" (a),
-      [rs_a]   "m" (rs_a),
-      [cs_a]   "m" (cs_a),
-      [b]      "m" (b),
-      [rs_b]   "m" (rs_b),
-      [cs_b]   "m" (cs_b),
-      [alpha]  "m" (alpha),
-      [beta]   "m" (beta),
-      [c]      "m" (c),
-      [rs_c]   "m" (rs_c),
-      [cs_c]   "m" (cs_c)/*,
-      [a_next] "m" (a_next),
-      [b_next] "m" (b_next)*/
+      [k_iter32] "m" ( k_iter32 ),
+      [k_iter8] "m" ( k_iter8 ),
+      [k_left1] "m" ( k_left1 ),
+      [a]      "m" ( a ),
+      [rs_a]   "m" ( rs_a ),
+      [cs_a]   "m" ( cs_a ),
+      [b]      "m" ( b ),
+      [rs_b]   "m" ( rs_b ),
+      [cs_b]   "m" ( cs_b ),
+      [alpha]  "m" ( alpha ),
+      [beta]   "m" ( beta ),
+      [c]      "m" ( c ),
+      [rs_c]   "m" ( rs_c ),
+      [mask_vec]   "m"   ( mask_vec ),
+      [cs_c]   "m" ( cs_c )/*,
+      [a_next] "m" ( a_next),
+      [b_next] "m" ( b_next)*/
     : // register clobber list
       "rax", "rbx", "rcx", "rdx", "rsi", "rdi",
       "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15",
@@ -1547,6 +1666,7 @@ void bli_sgemmsup_rd_zen_asm_1x16n
     uint64_t k_left32 = k0 % 32;
     uint64_t k_iter8  = k_left32 / 8;
     uint64_t k_left1  = k_left32 % 8;
+    const int32_t *mask_vec = BLI_MASK[k_left1];
 
     uint64_t n_iter = n0 / 4;
     uint64_t n_left = n0 % 4;
@@ -1563,15 +1683,15 @@ void bli_sgemmsup_rd_zen_asm_1x16n
     // -------------------------------------------------------------------------
     begin_asm()
 
-    mov(var(a), rdx)                   // load address of a.
+    mov( var( a ), rdx )                  // load address of a.
 
-    mov(var(b), r14)                   // load address of b.
-    mov(var(cs_b), r11)                // load cs_b
-    lea(mem(, r11, 4), r11)            // cs_b *= sizeof(float)
+    mov( var( b ), r14 )                  // load address of b.
+    mov( var( cs_b ), r11 )               // load cs_b
+    lea( mem(, r11, 4 ), r11 )            // cs_b *= sizeof(float)
 
-    lea(mem(r11, r11, 2), r13)         // r13 = 3*cs_b
+    lea( mem( r11, r11, 2 ), r13 )        // r13 = 3*cs_b
 
-    mov(var(c), r12)                   // load address of c
+    mov( var( c ), r12 )                  // load address of c
 
     // r12 = rcx = c
     // rdx = rax = a
@@ -1579,260 +1699,283 @@ void bli_sgemmsup_rd_zen_asm_1x16n
     // r9  = unused
     // r15 = n dim index jj
 
-    mov(var(n_iter), r15)              // jj = n_iter;
+    mov( var(n_iter), r15 )            // jj = n_iter;
 
-    label(.SLOOP3X4J)                  // LOOP OVER jj = [ n_iter ... 1 0 ]
+    label( .SLOOP3X4J )                // LOOP OVER jj = [ n_iter ... 1 0 ]
 
                                        // zen2 can execute 4 vxorpd ipc with
                                        // a latency of 1 cycle
+    mov( var( mask_vec ), rbx )
+    vmovdqu( mem( rbx ), ymm2 )        // load mask values
 
-    vxorps(ymm4,  ymm4,  ymm4)
-    vxorps(ymm7,  ymm7,  ymm7)
-    vxorps(ymm10, ymm10, ymm10)
-    vxorps(ymm13, ymm13, ymm13)
+    vxorps( ymm4,  ymm4,  ymm4 )
+    vxorps( ymm7,  ymm7,  ymm7 )
+    vxorps( ymm10, ymm10, ymm10 )
+    vxorps( ymm13, ymm13, ymm13 )
 
-    lea(mem(r12), rcx)                 // rcx = c_iijj;
-    lea(mem(rdx), rax)                 // rax = a_ii;
-    lea(mem(r14), rbx)                 // rbx = b_jj;
+    lea( mem( r12 ), rcx )                 // rcx = c_iijj;
+    lea( mem( rdx ), rax )                 // rax = a_ii;
+    lea( mem( r14 ), rbx )                 // rbx = b_jj;
 
-    mov(var(rs_c), rdi)                // load rs_c
-    lea(mem(, rdi, 4), rdi)            // rs_c *= sizeof(float)
-    prefetch(0, mem(rcx, 3*8))         // prefetch c + 0*rs_c
-    prefetch(0, mem(rcx, rdi, 1, 3*8)) // prefetch c + 1*rs_c
+    mov( var( rs_c ), rdi )                // load rs_c
+    lea( mem(, rdi, 4 ), rdi )             // rs_c *= sizeof(float)
+    prefetch( 0, mem( rcx, 3*8 ) )         // prefetch c + 0*rs_c
+    prefetch( 0, mem( rcx, rdi, 1, 3*8 ) ) // prefetch c + 1*rs_c
 
-    lea(mem(r11, r11, 2), rdi)         // rdi = 3*cs_b
-    lea(mem(rbx, r11, 4), r10)         // r10 = rbx + 4*cs_b
+    lea( mem( r11, r11, 2 ), rdi )         // rdi = 3*cs_b
+    lea( mem( rbx, r11, 4 ), r10 )         // r10 = rbx + 4*cs_b
 
 
-    mov(var(k_iter32), rsi)            // i = k_iter32;
-    test(rsi, rsi)                     // check i via logical AND.
-    je(.SCONSIDKITER8)                 // if i == 0, jump to code that
-                                       // contains the k_iter8 loop.
+    mov( var( k_iter32 ), rsi )            // i = k_iter32;
+    test( rsi, rsi )                       // check i via logical AND.
+    je( .SCONSIDKITER8 )                   // if i == 0, jump to code that
+                                           // contains the k_iter8 loop.
 
-    label(.SLOOPKITER32)               // MAIN LOOP
+    label( .SLOOPKITER32 )                 // MAIN LOOP
 
     // ---------------------------------- iteration 0
-    prefetch(0, mem(r10,         0*8)) // prefetch rbx + 4*cs_b
-    prefetch(0, mem(r10, r11, 1, 0*8)) // prefetch rbx + 5*cs_b
+    prefetch( 0, mem( r10,         0*8 ) ) // prefetch rbx + 4*cs_b
+    prefetch( 0, mem( r10, r11, 1, 0*8 ) ) // prefetch rbx + 5*cs_b
 
-    vmovups(mem(rax       ), ymm0)
-    add(imm(8*4), rax)                 // a += 4*cs_b = 4*8;
+    vmovups( mem( rax        ), ymm0 )
+    add( imm( 8*4 ), rax )                 // a += 8 x sizeof(float) = 4*8;
 
-    vmovups(mem(rbx        ), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm4)
+    vmovups( mem( rbx        ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm4 )
 
-    vmovups(mem(rbx, r11, 1), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm7)
+    vmovups( mem( rbx, r11, 1 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm7 )
 
-    vmovups(mem(rbx, r11, 2), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm10)
+    vmovups( mem( rbx, r11, 2 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm10 )
 
-    vmovups(mem(rbx, r13, 1), ymm3)
-    add(imm(8*4), rbx)                 // b += 4*rs_b = 4*8;
-    vfmadd231ps(ymm0, ymm3, ymm13)
+    vmovups( mem( rbx, r13, 1 ), ymm3 )
+    add( imm( 8*4 ), rbx )                 // b += 8 x sizeof(float) = 4*8;
+    vfmadd231ps( ymm0, ymm3, ymm13 )
 
     // ---------------------------------- iteration 1
-    prefetch(0, mem(r10, r11, 2, 0*8)) // prefetch rbx + 6*cs_b
-    prefetch(0, mem(r10, r13, 1, 0*8)) // prefetch rbx + 7*cs_b
+    prefetch( 0, mem( r10, r11, 2, 0*8 ) ) // prefetch rbx + 6*cs_b
+    prefetch( 0, mem( r10, r13, 1, 0*8 ) ) // prefetch rbx + 7*cs_b
 
-    vmovups(mem(rax       ), ymm0)
-    add(imm(8*4), rax)                 // a += 4*cs_b = 4*8;
+    vmovups( mem( rax        ), ymm0 )
+    add( imm( 8*4 ), rax )                 // a += 8 x sizeof(float) = 4*8;
 
-    vmovups(mem(rbx        ), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm4)
+    vmovups( mem( rbx        ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm4 )
 
-    vmovups(mem(rbx, r11, 1), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm7)
+    vmovups( mem( rbx, r11, 1 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm7 )
 
-    vmovups(mem(rbx, r11, 2), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm10)
+    vmovups( mem( rbx, r11, 2 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm10 )
 
-    vmovups(mem(rbx, r13, 1), ymm3)
-    add(imm(8*4), rbx)                 // b += 4*rs_b = 4*8;
-    vfmadd231ps(ymm0, ymm3, ymm13)
+    vmovups( mem( rbx, r13, 1 ), ymm3 )
+    add( imm( 8*4 ), rbx )                 // b += 8 x sizeof(float) = 4*8;
+    vfmadd231ps( ymm0, ymm3, ymm13 )
 
     // ---------------------------------- iteration 2
-    prefetch(0, mem(r10,         8*8)) // prefetch rbx + 4*cs_b + 8*rs_b
-    prefetch(0, mem(r10, r11, 1, 8*8)) // prefetch rbx + 5*cs_b + 8*rs_b
+    prefetch( 0, mem( r10,         8*8 ) ) // prefetch rbx + 4*cs_b + 8*rs_b
+    prefetch( 0, mem( r10, r11, 1, 8*8 ) ) // prefetch rbx + 5*cs_b + 8*rs_b
 
-    vmovups(mem(rax       ), ymm0)
-    add(imm(8*4), rax)                 // a += 4*cs_b = 4*8;
+    vmovups( mem( rax        ), ymm0 )
+    add( imm( 8*4 ), rax )                 // a += 8 x sizeof(float) = 4*8;
 
-    vmovups(mem(rbx        ), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm4)
+    vmovups( mem( rbx        ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm4 )
 
-    vmovups(mem(rbx, r11, 1), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm7)
+    vmovups( mem( rbx, r11, 1 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm7 )
 
-    vmovups(mem(rbx, r11, 2), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm10)
+    vmovups( mem( rbx, r11, 2 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm10 )
 
-    vmovups(mem(rbx, r13, 1), ymm3)
-    add(imm(8*4), rbx)                 // b += 4*rs_b = 4*8;
-    vfmadd231ps(ymm0, ymm3, ymm13)
+    vmovups( mem( rbx, r13, 1 ), ymm3 )
+    add( imm( 8*4 ), rbx )                 // b += 8 x sizeof(float) = 4*8;
+    vfmadd231ps( ymm0, ymm3, ymm13 )
 
     // ---------------------------------- iteration 3
-    prefetch(0, mem(r10, r11, 2, 8*8)) // prefetch rbx + 6*cs_b + 8*rs_b
-    prefetch(0, mem(r10, r13, 1, 8*8)) // prefetch rbx + 7*cs_b + 8*rs_b
-    add(imm(16*8), r10)                 // r10 += 8*rs_b = 8*8;
+    prefetch( 0, mem( r10, r11, 2, 8*8 ) ) // prefetch rbx + 6*cs_b + 8*rs_b
+    prefetch( 0, mem( r10, r13, 1, 8*8 ) ) // prefetch rbx + 7*cs_b + 8*rs_b
+    add( imm( 16*8 ), r10 )                // r10 += 8*rs_b = 8*8;
 
-    vmovups(mem(rax       ), ymm0)
-    add(imm(8*4), rax)                 // a += 4*cs_b = 4*8;
+    vmovups( mem( rax        ), ymm0 )
+    add( imm( 8*4 ), rax )                 // a += 8 x sizeof(float) = 4*8;
 
-    vmovups(mem(rbx        ), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm4)
+    vmovups( mem( rbx        ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm4 )
 
-    vmovups(mem(rbx, r11, 1), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm7)
+    vmovups( mem( rbx, r11, 1 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm7 )
 
-    vmovups(mem(rbx, r11, 2), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm10)
+    vmovups( mem( rbx, r11, 2 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm10 )
 
-    vmovups(mem(rbx, r13, 1), ymm3)
-    add(imm(8*4), rbx)                 // b += 4*rs_b = 4*8;
-    vfmadd231ps(ymm0, ymm3, ymm13)
+    vmovups( mem( rbx, r13, 1 ), ymm3 )
+    add( imm( 8*4 ), rbx )                 // b += 8 x sizeof(float) = 4*8;
+    vfmadd231ps( ymm0, ymm3, ymm13 )
 
-    dec(rsi)                           // i -= 1;
-    jne(.SLOOPKITER32)                 // iterate again if i != 0.
+    dec( rsi )                           // i -= 1;
+    jne( .SLOOPKITER32 )                 // iterate again if i != 0.
 
-    label(.SCONSIDKITER8)
+    label( .SCONSIDKITER8 )
 
-    mov(var(k_iter8), rsi)             // i = k_iter8;
-    test(rsi, rsi)                     // check i via logical AND.
-    je(.SCONSIDKLEFT1)                 // if i == 0, jump to code that
+    mov( var( k_iter8 ), rsi )         // i = k_iter8;
+    test( rsi, rsi )                   // check i via logical AND.
+    je( .SCONSIDKLEFT1 )               // if i == 0, jump to code that
                                        // considers k_left1 loop.
                                        // else, we prepare to enter k_iter8 loop.
 
-    label(.SLOOPKITER8)                // EDGE LOOP (ymm)
+    label( .SLOOPKITER8 )              // EDGE LOOP ( ymm)
 
-    vmovups(mem(rax       ), ymm0)
-    add(imm(8*4), rax)                 // a += 4*cs_b = 4*8;
+    vmovups( mem( rax        ), ymm0 )
+    add( imm( 8*4 ), rax )                 // a += 8 x sizeof(float) = 4*8;
 
-    vmovups(mem(rbx        ), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm4)
+    vmovups( mem( rbx        ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm4 )
 
-    vmovups(mem(rbx, r11, 1), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm7)
+    vmovups( mem( rbx, r11, 1 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm7 )
 
-    vmovups(mem(rbx, r11, 2), ymm3)
-    vfmadd231ps(ymm0, ymm3, ymm10)
+    vmovups( mem( rbx, r11, 2 ), ymm3 )
+    vfmadd231ps( ymm0, ymm3, ymm10 )
 
-    vmovups(mem(rbx, r13, 1), ymm3)
-    add(imm(8*4), rbx)                 // b += 4*rs_b = 4*8;
-    vfmadd231ps(ymm0, ymm3, ymm13)
+    vmovups( mem( rbx, r13, 1 ), ymm3 )
+    add( imm( 8*4 ), rbx )                 // b += 8 x sizeof(float) = 4*8;
+    vfmadd231ps( ymm0, ymm3, ymm13 )
 
-    dec(rsi)                           // i -= 1;
-    jne(.SLOOPKITER8)                  // iterate again if i != 0.
+    dec( rsi )                           // i -= 1;
+    jne( .SLOOPKITER8 )                  // iterate again if i != 0.
 
-    label(.SCONSIDKLEFT1)
+    label( .SCONSIDKLEFT1 )
 
-    mov(var(k_left1), rsi)             // i = k_left1;
-    test(rsi, rsi)                     // check i via logical AND.
-    je(.SPOSTACCUM)                    // if i == 0, we're done; jump to end.
+    mov( var( k_left1 ), rsi )         // i = k_left1;
+    test( rsi, rsi )                   // check i via logical AND.
+    je( .SPOSTACCUM )                  // if i == 0, we're done; jump to end.
                                        // else, we prepare to enter k_left1 loop.
 
-    label(.SLOOPKLEFT1)                // EDGE LOOP (scalar)
-                                       // NOTE: We must use ymm registers here bc
-                                       // using the xmm registers would zero out the
-                                       // high bits of the destination registers,
-                                       // which would destory intermediate results.
+    // When the remainder for k is exactly equal to 1, we default to performing
+    // a simple scalar loop iteration (without performing a masked operation)
+    // this is because the masked loads are costly on zen3 and it is better to 
+    // have a branch to execute non-masked instructions which are cheaper
+    cmp( imm( 1 ), rsi )
+    je( .S_K_EQ_1 )
 
-    vmovss(mem(rax       ), xmm0)
-    add(imm(1*4), rax)                 // a += 1*cs_b = 1*8;
+    // For k values < 8, a masked section which is now introduced which reduces the number
+    // of iterations performed in this loop, for example, when k = 7, previously, there were 
+    // 7 iterations being performed, this has now been reduced to 1 masked iteration
+    label( .S_K_LT_8 )                 // EDGE LOOP (masked operations on ymm registers which hold upto 8 floats)
+    
+    // In this block, ymm2 is the mask vector the MSB of each (loaded earlier)
+    // 32-bit element indicates whether to load the element or not
+    vmaskmovps( mem( rax       ), ymm2, ymm0 )    // ymm0 <- mem( rax ) & MSB of correponding element in ymm2
 
-    vmovss(mem(rbx        ), xmm3)
-    vfmadd231ps(ymm0, ymm3, ymm4)
+    vmaskmovps( mem( rbx       ), ymm2, ymm3 )    // ymm3 <- mem( rbx ) & MSB of correponding element in ymm2
+    vfmadd231ps( ymm0, ymm3, ymm4 )               // ymm4 += ymm0 * ymm3
 
-    vmovss(mem(rbx, r11, 1), xmm3)
-    vfmadd231ps(ymm0, ymm3, ymm7)
+    vmaskmovps( mem( rbx, r11, 1 ), ymm2, ymm3 )  // ymm3 <- mem( rbx, r11, 1 ) & MSB of correponding element in ymm2
+    vfmadd231ps( ymm0, ymm3, ymm7 )               // ymm7 += ymm0 * ymm3
 
-    vmovss(mem(rbx, r11, 2), xmm3)
-    vfmadd231ps(ymm0, ymm3, ymm10)
+    vmaskmovps( mem( rbx, r11, 2 ), ymm2, ymm3 )  // ymm3 <- mem( rbx, r11, 2 ) & MSB of correponding element in ymm2
+    vfmadd231ps( ymm0, ymm3, ymm10 )              // ymm10 += ymm0 * ymm3
 
-    vmovss(mem(rbx, r13, 1), xmm3)
-    add(imm(1*4), rbx)                 // b += 1*rs_b = 1*8;
-    vfmadd231ps(ymm0, ymm3, ymm13)
+    vmaskmovps( mem( rbx, r13, 1 ), ymm2, ymm3 )  // ymm3 <- mem( rbx, r13, 1 ) & MSB of correponding element in ymm2
+    vfmadd231ps( ymm0, ymm3, ymm13 )              // ymm13 += ymm0 * ymm3
 
+    jmp( .SPOSTACCUM )
 
-    dec(rsi)                           // i -= 1;
-    jne(.SLOOPKLEFT1)                  // iterate again if i != 0.
+    label( .S_K_EQ_1 )
 
-    label(.SPOSTACCUM)
+    vmovss( mem( rax       ), xmm0 )
+
+    vmovss( mem( rbx        ), xmm3 )
+    vfmadd231ps( ymm0, ymm3, ymm4 )
+
+    vmovss( mem( rbx, r11, 1 ), xmm3 )
+    vfmadd231ps( ymm0, ymm3, ymm7 )
+
+    vmovss( mem( rbx, r11, 2 ), xmm3 )
+    vfmadd231ps( ymm0, ymm3, ymm10 )
+
+    vmovss( mem( rbx, r13, 1 ), xmm3 )
+    vfmadd231ps( ymm0, ymm3, ymm13 )
+
+    label( .SPOSTACCUM )
                                        // ymm4  ymm7  ymm10 ymm13  
                                        // ymm5  ymm8  ymm11 ymm14
                                        // ymm6  ymm9  ymm12 ymm15
 
     vhaddps( ymm7, ymm4, ymm0 )
-    vextractf128(imm(1), ymm0, xmm1 )
-    vaddps( xmm0, xmm1, xmm0 )         // xmm0[0] = sum(ymm4); xmm0[1] = sum(ymm7)
+    vextractf128( imm( 1 ), ymm0, xmm1 )
+    vaddps( xmm0, xmm1, xmm0 )         // xmm0[0] = sum( ymm4 ); xmm0[1] = sum( ymm7 )
 
     vhaddps( ymm13, ymm10, ymm2 )
-    vextractf128(imm(1), ymm2, xmm1 )
-    vaddps( xmm2, xmm1, xmm2 )         // xmm2[0] = sum(ymm10); xmm2[1] = sum(ymm13)
+    vextractf128( imm( 1 ), ymm2, xmm1 )
+    vaddps( xmm2, xmm1, xmm2 )         // xmm2[0] = sum( ymm10 ); xmm2[1] = sum( ymm13 )
 
-    vhaddps(xmm2,xmm0,xmm4)
+    vhaddps( xmm2, xmm0, xmm4 )
 
-                                       // ymm4 = sum(ymm4) sum(ymm7) sum(ymm10) sum(ymm13)
+                                       // ymm4 = sum( ymm4 ) sum( ymm7 ) sum( ymm10 ) sum( ymm13 )
 
-    mov(var(rs_c), rdi)                // load rs_c
-    lea(mem(, rdi, 4), rdi)            // rs_c *= sizeof(float)
+    mov( var( rs_c ), rdi )               // load rs_c
+    lea( mem(, rdi, 4 ), rdi )            // rs_c *= sizeof(float)
 
-    mov(var(alpha), rax)               // load address of alpha
-    mov(var(beta), rbx)                // load address of beta
-    vbroadcastss(mem(rax), ymm0)       // load alpha and duplicate
-    vbroadcastss(mem(rbx), ymm3)       // load beta and duplicate
+    mov( var( alpha ), rax )              // load address of alpha
+    mov( var( beta ), rbx )               // load address of beta
+    vbroadcastss( mem( rax ), ymm0 )      // load alpha and duplicate
+    vbroadcastss( mem( rbx ), ymm3 )      // load beta and duplicate
 
-    vmulps(xmm0, xmm4, xmm4)           // scale by alpha
+    vmulps( xmm0, xmm4, xmm4 )            // scale by alpha
 
-                                       // now avoid loading C if beta == 0
-    vxorps(ymm0, ymm0, ymm0)           // set ymm0 to zero.
-    vucomisd(xmm0, xmm3)               // set ZF if beta == 0.
-    je(.SBETAZERO)                     // if ZF = 1, jump to beta == 0 case
+                                          // now avoid loading C if beta == 0
+    vxorps( ymm0, ymm0, ymm0 )            // set ymm0 to zero.
+    vucomisd( xmm0, xmm3 )                // set ZF if beta == 0.
+    je( .SBETAZERO )                      // if ZF = 1, jump to beta == 0 case
 
-    label(.SROWSTORED)
+    label( .SROWSTORED )
 
-    vfmadd231ps(mem(rcx), xmm3, xmm4)
-    vmovups(xmm4, mem(rcx))
+    vfmadd231ps( mem( rcx ), xmm3, xmm4 )
+    vmovups( xmm4, mem( rcx ) )
 
-    jmp(.SDONE)                        // jump to end.
+    jmp( .SDONE )                        // jump to end.
 
-    label(.SBETAZERO)
+    label( .SBETAZERO )
 
-    label(.SROWSTORBZ)
+    label( .SROWSTORBZ )
 
-    vmovups(xmm4, mem(rcx))
+    vmovups( xmm4, mem( rcx ) )
 
-    label(.SDONE)
+    label( .SDONE )
 
-    add(imm(4*4), r12)                 // c_jj = r12 += 4*cs_c
+    add( imm( 4*4 ), r12 )               // c_jj = r12 += 4*cs_c
 
-    lea(mem(r14, r11, 4), r14)         // b_jj = r14 += 4*cs_b
+    lea( mem( r14, r11, 4 ), r14 )       // b_jj = r14 += 4*cs_b
 
-    dec(r15)                           // jj -= 1;
-    jne(.SLOOP3X4J)                    // iterate again if jj != 0.
+    dec( r15 )                           // jj -= 1;
+    jne( .SLOOP3X4J )                    // iterate again if jj != 0.
 
-    label(.SRETURN)
+    label( .SRETURN )
 
     end_asm(
     : // output operands (none)
     : // input operands
       [n_iter] "m" (n_iter),
-      [k_iter32] "m" (k_iter32),
-      [k_iter8] "m" (k_iter8),
-      [k_left1] "m" (k_left1),
-      [a]      "m" (a),
-      [rs_a]   "m" (rs_a),
-      [cs_a]   "m" (cs_a),
-      [b]      "m" (b),
-      [rs_b]   "m" (rs_b),
-      [cs_b]   "m" (cs_b),
-      [alpha]  "m" (alpha),
-      [beta]   "m" (beta),
-      [c]      "m" (c),
-      [rs_c]   "m" (rs_c),
-      [cs_c]   "m" (cs_c)/*,
-      [a_next] "m" (a_next),
-      [b_next] "m" (b_next)*/
+      [k_iter32] "m" ( k_iter32 ),
+      [k_iter8] "m" ( k_iter8 ),
+      [k_left1] "m" ( k_left1 ),
+      [a]      "m" ( a ),
+      [rs_a]   "m" ( rs_a ),
+      [cs_a]   "m" ( cs_a ),
+      [b]      "m" ( b ),
+      [rs_b]   "m" ( rs_b ),
+      [cs_b]   "m" ( cs_b ),
+      [alpha]  "m" ( alpha ),
+      [beta]   "m" ( beta ),
+      [c]      "m" ( c ),
+      [rs_c]   "m" ( rs_c ),
+      [mask_vec]   "m"   ( mask_vec ),
+      [cs_c]   "m" ( cs_c )/*,
+      [a_next] "m" ( a_next),
+      [b_next] "m" ( b_next)*/
     : // register clobber list
       "rax", "rbx", "rcx", "rdx", "rsi", "rdi",
       "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15",

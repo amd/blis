@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -86,11 +86,10 @@ void bli_sgemmsup_rd_zen4_asm_5x64
     lea( mem( , r10, 4 ), r10 )         // cs_a *= sizeof(dt) => cs_a *= 4
     lea( mem( r9, r9, 2 ), r13 )        // r13 = 3 * rs_b
 
-    mov(var(iter_1_mask), esi)          // Load mask values for the last loop
-    kmovw(esi, K(1))
+    mov( var( iter_1_mask ), esi )      // Load mask values for the last loop
+    kmovw( esi, K(1) )
 
-
-    mov(imm(0), r15)                    // jj = 0;
+    mov( imm(0), r15 )                  // jj = 0;
     label( .SLOOP3X4J )                 // LOOP OVER jj = [ 0 1 ... ]
 
     mov( var( abuf ), r14 )             // load address of a
@@ -101,7 +100,7 @@ void bli_sgemmsup_rd_zen4_asm_5x64
     imul( imm( 1*4 ), rsi )
     lea( mem( r12, rsi, 1 ), r12 )      // c += r15 * cs_c
 
-    lea(mem(   , r15, 1), rsi)          // rsi = r15 = 4*jj;
+    lea( mem(   , r15, 1), rsi )        // rsi = r15 = 4*jj;
     imul( r9, rsi )                     // rsi *= cs_b;
     lea( mem( rdx, rsi, 1 ), rdx )      // rbx = b + 4*jj*cs_b;
 
@@ -117,7 +116,6 @@ void bli_sgemmsup_rd_zen4_asm_5x64
     mov( var( k_iter64 ), rsi )         // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_32 )
-
 
     label( .K_LOOP_ITER64 )
 
@@ -176,7 +174,6 @@ void bli_sgemmsup_rd_zen4_asm_5x64
     add( imm( 16*4 ), rax )
 
     vmovups(        ( rbx ), zmm6 )
-    vmovups(        ( rbx ), zmm6 )
     VFMA5(  8,  9, 10, 20, 21 )
 
     vmovups( ( rbx, r9, 1 ), zmm6 )
@@ -221,9 +218,6 @@ void bli_sgemmsup_rd_zen4_asm_5x64
     mov( var( k_iter32 ), rsi )       // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_16 )
-
-
-    
 
     // ITER 0
     vmovups(         ( rax ), zmm0 )
@@ -270,7 +264,6 @@ void bli_sgemmsup_rd_zen4_asm_5x64
     VFMA5( 17, 18, 19, 29, 30 )
 
     add( imm( 16*4 ), rbx )
-
 
     label( .CONSIDER_K_ITER_16 )
     mov( var( k_iter16 ), rsi )
@@ -379,7 +372,6 @@ void bli_sgemmsup_rd_zen4_asm_5x64
     vucomiss( xmm1, xmm0 )          // check if beta = 0
     je( .POST_ACCUM_STOR_BZ )
 
-
     // Accumulating & storing the results when beta != 0
     label( .POST_ACCUM_STOR )
 
@@ -418,7 +410,6 @@ void bli_sgemmsup_rd_zen4_asm_5x64
     C_STOR2                         // Storing result to C
 
     jmp( .SDONE )
-
 
     // Accumulating & storing the results when beta == 0
     label( .POST_ACCUM_STOR_BZ )
@@ -501,7 +492,7 @@ void bli_sgemmsup_rd_zen4_asm_5x64
       "zmm16", "zmm17", "zmm18", "zmm19",
       "zmm20", "zmm21", "zmm22", "zmm23", "zmm24", "zmm25", "zmm26",
       "zmm27", "zmm28", "zmm29", "zmm30", "zmm31",
-      "memory"
+      "memory", "k1"
     )
 }
 
@@ -552,8 +543,8 @@ void bli_sgemmsup_rd_zen4_asm_4x64
     lea( mem( , r10, 4 ), r10 )         // cs_a *= sizeof(dt) => cs_a *= 4
     lea( mem( r9, r9, 2 ), r13 )        // r13 = 3 * rs_b
 
-    mov(var(iter_1_mask), esi)          // Load mask values for the last loop
-    kmovw(esi, K(1))
+    mov( var( iter_1_mask ), esi )          // Load mask values for the last loop
+    kmovw( esi, K(1) )
 
     mov( imm( 0 ), r15 )                // jj = 0;
     label( .SLOOP3X4J )                 // LOOP OVER jj = [ 0 1 ... ]
@@ -574,8 +565,8 @@ void bli_sgemmsup_rd_zen4_asm_4x64
     lea( mem( r14 ), rax )              // load a to rax
     lea( mem( rdx ), rbx )              // load b to rbx
 
-    lea( mem(  r8, r8, 2 ), r10 )    // r10 = 3 * rs_b
-    lea( mem( r10, r8, 2 ), rdi )   // rdi = 5 * rs_b
+    lea( mem(  r8, r8, 2 ), r10 )    // r10 = 3 * rs_a
+    lea( mem( r10, r8, 2 ), rdi )    // rdi = 5 * rs_a
 
     INIT_REG
 
@@ -639,7 +630,6 @@ void bli_sgemmsup_rd_zen4_asm_4x64
 
     // load column from B
     vmovups(        ( rbx ), zmm6 )
-    vmovups(        ( rbx ), zmm6 )
     VFMA4(  8,  9, 10, 20 )
 
     vmovups( ( rbx, r9, 1 ), zmm6 )
@@ -683,8 +673,6 @@ void bli_sgemmsup_rd_zen4_asm_4x64
     mov( var( k_iter32 ), rsi )       // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_16 )
-
-    
 
     // ITER 0
     // load row from A
@@ -730,7 +718,6 @@ void bli_sgemmsup_rd_zen4_asm_4x64
     VFMA4( 17, 18, 19, 29 )
 
     add( imm( 16*4 ), rbx )
-
 
     label( .CONSIDER_K_ITER_16 )
     mov( var( k_iter16 ), rsi )
@@ -833,7 +820,6 @@ void bli_sgemmsup_rd_zen4_asm_4x64
     mov( var( beta ), rax )         // load address of beta
     vbroadcastss( ( rax ), xmm0 )
 
-
     vxorps( xmm1, xmm1, xmm1 )
     vucomiss( xmm1, xmm0 )          // check if beta = 0
     je( .POST_ACCUM_STOR_BZ )
@@ -850,7 +836,7 @@ void bli_sgemmsup_rd_zen4_asm_4x64
 
     ALPHA_SCALE     // Scaling the result of A*B with alpha
 
-    C_STOR       // Storing result to C
+    C_STOR          // Storing result to C
 
     ZMM_TO_YMM( 20, 23, 26, 29,  4,  5,  6,  7 )
 
@@ -884,17 +870,17 @@ void bli_sgemmsup_rd_zen4_asm_4x64
 
     ALPHA_SCALE     // Scaling the result of A*B with alpha
 
-    C_STOR_BZ1       // Storing result to C
+    C_STOR_BZ1      // Storing result to C
 
     label( .SDONE )
 
     mov( var( rs_c ), rdi )         // load rs_c
     lea( mem( , rdi, 4 ), rdi )     // rs_c *= sizeof(float) => rs_c *= 4
-    lea( mem( r12, rdi, 2 ), r12 )         //
-    lea( mem( r12, rdi, 4 ), r12 )         // c_ii = r12 += 3*rs_c
+    lea( mem( r12, rdi, 2 ), r12 )
+    lea( mem( r12, rdi, 4 ), r12 )  // c_ii = r12 += 3*rs_c
 
-    lea( mem( r14, r8,  2 ), r14 )         //
-    lea( mem( r14, r8,  4 ), r14 )         // a_ii = r14 += 3*rs_a
+    lea( mem( r14, r8,  2 ), r14 )
+    lea( mem( r14, r8,  4 ), r14 )  // a_ii = r14 += 3*rs_a
 
     add( imm(  4 ), r15 )
     cmp( imm( 64 ), r15 )
@@ -941,7 +927,7 @@ void bli_sgemmsup_rd_zen4_asm_4x64
       "zmm16", "zmm17", "zmm18", "zmm19",
       "zmm20", "zmm21", "zmm22", "zmm23", "zmm24", "zmm25", "zmm26",
       "zmm27", "zmm28", "zmm29", "zmm30", "zmm31",
-      "memory"
+      "memory", "k1"
     )
 }
 
@@ -990,10 +976,10 @@ void bli_sgemmsup_rd_zen4_asm_3x64
     lea( mem( , r9, 4 ), r9 )           // cs_b *= sizeof(dt) => cs_b *= 4
     mov( var( cs_a ), r10 )             // load cs_a
     lea( mem( , r10, 4 ), r10 )         // cs_a *= sizeof(dt) => cs_a *= 4
-    lea( mem( r9, r9, 2 ), r13 )    // r13 = 3 * rs_b
+    lea( mem( r9, r9, 2 ), r13 )        // r13 = 3 * rs_b
 
-    mov(var(iter_1_mask), esi)          // Load mask values for the last loop
-    kmovw(esi, K(1))
+    mov( var( iter_1_mask ), esi )      // Load mask values for the last loop
+    kmovw( esi, K(1) )
 
     mov( imm( 0 ), r15 )                // jj = 0;
     label( .SLOOP3X4J )                 // LOOP OVER jj = [ 0 1 ... ]
@@ -1004,7 +990,7 @@ void bli_sgemmsup_rd_zen4_asm_3x64
 
     lea( mem( , r15, 1 ), rsi )
     imul( imm( 1*4 ), rsi )
-    lea( mem( r12, rsi, 1 ), r12 )  // c += r15 * cs_c
+    lea( mem( r12, rsi, 1 ), r12 )      // c += r15 * cs_c
 
     lea( mem(  , r15, 1 ), rsi )        // rsi = r15 = 4*jj;
     imul( r9, rsi )                     // rsi *= cs_b;
@@ -1014,15 +1000,14 @@ void bli_sgemmsup_rd_zen4_asm_3x64
     lea( mem( r14 ), rax )              // load a to rax
     lea( mem( rdx ), rbx )              // load b to rbx
 
-    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_b
-    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_b
+    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_a
+    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_a
 
     INIT_REG
 
     mov( var( k_iter64 ), rsi )       // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_32 )
-
 
     label( .K_LOOP_ITER64 )
 
@@ -1114,15 +1099,11 @@ void bli_sgemmsup_rd_zen4_asm_3x64
     dec( rsi )
     jne( .K_LOOP_ITER64 )
 
-
     label( .CONSIDER_K_ITER_32 )
 
     mov( var( k_iter32 ), rsi )       // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_16 )
-
-
-    
 
     // ITER 0
     // load row from A
@@ -1166,7 +1147,6 @@ void bli_sgemmsup_rd_zen4_asm_3x64
     VFMA3( 17, 18, 19 )
 
     add( imm( 16*4 ), rbx )
-
 
     label( .CONSIDER_K_ITER_16 )
     mov( var( k_iter16 ), rsi )
@@ -1269,7 +1249,6 @@ void bli_sgemmsup_rd_zen4_asm_3x64
     vucomiss( xmm1, xmm0 )          // check if beta = 0
     je( .POST_ACCUM_STOR_BZ )
 
-
     // Accumulating & storing the results when beta != 0
     label( .POST_ACCUM_STOR )
 
@@ -1287,7 +1266,6 @@ void bli_sgemmsup_rd_zen4_asm_3x64
 
     jmp( .SDONE )
 
-
     // Accumulating & storing the results when beta == 0
     label( .POST_ACCUM_STOR_BZ )
 
@@ -1302,7 +1280,6 @@ void bli_sgemmsup_rd_zen4_asm_3x64
     ALPHA_SCALE                     // Scaling the result of A*B with alpha
 
     C_STOR_BZ                       // Storing result to C
-
 
     label( .SDONE )
 
@@ -1357,7 +1334,7 @@ void bli_sgemmsup_rd_zen4_asm_3x64
       "zmm16", "zmm17", "zmm18", "zmm19",
       "zmm20", "zmm21", "zmm22", "zmm23", "zmm24", "zmm25", "zmm26",
       "zmm27", "zmm28", "zmm29", "zmm30", "zmm31",
-      "memory"
+      "memory", "k1"
     )
 }
 
@@ -1410,9 +1387,8 @@ void bli_sgemmsup_rd_zen4_asm_2x64
     lea( mem( , rdi, 4 ), rdi )         // rs_c *= sizeof(float) => rs_c *= 4
     lea( mem( r9, r9, 2 ), r13 )        // r13 = 3 * rs_b
 
-    mov(var(iter_1_mask), esi)          // Load mask values for the last loop
-    kmovw(esi, K(1))
-
+    mov( var( iter_1_mask ), esi )      // Load mask values for the last loop
+    kmovw( esi, K(1) )
 
     mov( imm( 0 ), r15 )                // jj = 0;
     label( .SLOOP3X4J )                 // LOOP OVER jj = [ 0 1 ... ]
@@ -1433,15 +1409,14 @@ void bli_sgemmsup_rd_zen4_asm_2x64
     lea( mem( r14 ), rax )              // load a to rax
     lea( mem( rdx ), rbx )              // load b to rbx
 
-    lea( mem(  r8, r8, 2 ), r10 )    // r10 = 3 * rs_b
-    lea( mem( r10, r8, 2 ), rdi )   // rdi = 5 * rs_b
+    lea( mem(  r8, r8, 2 ), r10 )    // r10 = 3 * rs_a
+    lea( mem( r10, r8, 2 ), rdi )    // rdi = 5 * rs_a
 
     INIT_REG
 
     mov( var( k_iter64 ), rsi )       // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_32 )
-
 
     label( .K_LOOP_ITER64 )
 
@@ -1493,7 +1468,6 @@ void bli_sgemmsup_rd_zen4_asm_2x64
 
     // load column from B
     vmovups(        ( rbx ), zmm6 )
-    vmovups(        ( rbx ), zmm6 )
     VFMA2( 8, 9 )
 
     vmovups( ( rbx, r9, 1 ), zmm6 )
@@ -1530,15 +1504,11 @@ void bli_sgemmsup_rd_zen4_asm_2x64
     dec( rsi )
     jne( .K_LOOP_ITER64 )
 
-
     label( .CONSIDER_K_ITER_32 )
 
     mov( var( k_iter32 ), rsi )       // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_16 )
-
-
-    
 
     // ITER 0
     // load row from A
@@ -1580,7 +1550,6 @@ void bli_sgemmsup_rd_zen4_asm_2x64
     VFMA2( 17, 18 )
 
     add( imm( 16*4 ), rbx )
-
 
     label( .CONSIDER_K_ITER_16 )
     mov( var( k_iter16 ), rsi )
@@ -1680,7 +1649,6 @@ void bli_sgemmsup_rd_zen4_asm_2x64
     vucomiss( xmm1, xmm0 )          // check if beta = 0
     je( .POST_ACCUM_STOR_BZ )
 
-
     // Accumulating & storing the results when beta != 0
     label( .POST_ACCUM_STOR )
 
@@ -1695,7 +1663,6 @@ void bli_sgemmsup_rd_zen4_asm_2x64
     C_STOR2                     // Storing result to C
 
     jmp( .SDONE )
-
 
     // Accumulating & storing the results when beta == 0
     label( .POST_ACCUM_STOR_BZ )
@@ -1755,7 +1722,7 @@ void bli_sgemmsup_rd_zen4_asm_2x64
       "zmm16", "zmm17", "zmm18", "zmm19",
       "zmm20", "zmm21", "zmm22", "zmm23", "zmm24", "zmm25", "zmm26",
       "zmm27", "zmm28", "zmm29", "zmm30", "zmm31",
-      "memory"
+      "memory", "k1"
     )
 }
 
@@ -1808,8 +1775,8 @@ void bli_sgemmsup_rd_zen4_asm_1x64
     lea( mem( , rdi, 4 ), rdi )         // rs_c *= sizeof(float) => rs_c *= 4
     lea( mem( r9, r9, 2 ), r13 )        // r13 = 3 * rs_b
 
-    mov(var(iter_1_mask), esi)          // Load mask values for the last loop
-    kmovw(esi, K(1))
+    mov( var( iter_1_mask ), esi )      // Load mask values for the last loop
+    kmovw( esi, K(1) )
 
     mov( imm( 0 ), r15 )                // jj = 0;
     label( .SLOOP3X4J )                 // LOOP OVER jj = [ 0 1 ... ]
@@ -1830,16 +1797,14 @@ void bli_sgemmsup_rd_zen4_asm_1x64
     lea( mem( r14 ), rax )              // load a to rax
     lea( mem( rdx ), rbx )              // load b to rbx
 
-    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_b
-    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_b
-
+    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_a
+    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_a
 
     INIT_REG
 
     mov( var( k_iter64 ), rsi )       // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_32 )
-
 
     label( .K_LOOP_ITER64 )
 
@@ -1923,14 +1888,11 @@ void bli_sgemmsup_rd_zen4_asm_1x64
     dec( rsi )
     jne( .K_LOOP_ITER64 )
 
-
     label( .CONSIDER_K_ITER_32 )
 
     mov( var( k_iter32 ), rsi )       // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_16 )
-
-    
 
     // ITER 0
     // load row from A
@@ -1970,7 +1932,6 @@ void bli_sgemmsup_rd_zen4_asm_1x64
     VFMA1( 17 )
 
     add( imm( 16*4 ), rbx )
-
 
     label( .CONSIDER_K_ITER_16 )
     mov( var( k_iter16 ), rsi )
@@ -2067,7 +2028,6 @@ void bli_sgemmsup_rd_zen4_asm_1x64
     vucomiss( xmm1, xmm0 )          // check if beta = 0
     je( .POST_ACCUM_STOR_BZ )
 
-
     // Accumulating & storing the results when beta != 0
     label( .POST_ACCUM_STOR )
 
@@ -2081,7 +2041,6 @@ void bli_sgemmsup_rd_zen4_asm_1x64
 
     jmp( .SDONE )
 
-
     // Accumulating & storing the results when beta == 0
     label( .POST_ACCUM_STOR_BZ )
 
@@ -2092,7 +2051,6 @@ void bli_sgemmsup_rd_zen4_asm_1x64
     ALPHA_SCALE1                // Scaling the result of A*B with alpha
 
     C_STOR_BZ1                  // Storing result to C
-
 
     label( .SDONE )
 
@@ -2139,7 +2097,7 @@ void bli_sgemmsup_rd_zen4_asm_1x64
       "zmm16", "zmm17", "zmm18", "zmm19",
       "zmm20", "zmm21", "zmm22", "zmm23", "zmm24", "zmm25", "zmm26",
       "zmm27", "zmm28", "zmm29", "zmm30", "zmm31",
-      "memory"
+      "memory", "k1"
     )
 }
 
@@ -2190,9 +2148,8 @@ void bli_sgemmsup_rd_zen4_asm_5x48
     lea( mem( , r10, 4 ), r10 )         // cs_a *= sizeof(dt) => cs_a *= 4
     lea( mem( r9, r9, 2 ), r13 )        // r13 = 3 * rs_b
 
-    mov(var(iter_1_mask), esi)          // Load mask values for the last loop
-    kmovw(esi, K(1))
-
+    mov( var( iter_1_mask ), esi )      // Load mask values for the last loop
+    kmovw( esi, K(1) )
 
     mov( imm( 0 ), r15 )                // jj = 0;
     label( .SLOOP3X4J )                 // LOOP OVER jj = [ 0 1 ... ]
@@ -2213,15 +2170,14 @@ void bli_sgemmsup_rd_zen4_asm_5x48
     lea( mem( r14 ), rax )              // load a to rax
     lea( mem( rdx ), rbx )              // load b to rbx
 
-    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_b
-    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_b
+    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_a
+    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_a
 
     INIT_REG
 
     mov( var( k_iter64 ), rsi )       // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_32 )
-
 
     label( .K_LOOP_ITER64 )
 
@@ -2282,7 +2238,6 @@ void bli_sgemmsup_rd_zen4_asm_5x48
 
     // load column from B
     vmovups(        ( rbx ), zmm6 )
-    vmovups(        ( rbx ), zmm6 )
     VFMA5( 8, 9, 10, 20, 21 )
 
     vmovups( ( rbx, r9, 1 ), zmm6 )
@@ -2322,15 +2277,11 @@ void bli_sgemmsup_rd_zen4_asm_5x48
     dec( rsi )
     jne( .K_LOOP_ITER64 )
 
-
     label( .CONSIDER_K_ITER_32 )
 
     mov( var( k_iter32 ), rsi )       // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_16 )
-
-
-    
 
     // ITER 0
     // load row from A
@@ -2486,7 +2437,6 @@ void bli_sgemmsup_rd_zen4_asm_5x48
     vucomiss( xmm1, xmm0 )          // check if beta = 0
     je( .POST_ACCUM_STOR_BZ )
 
-
     // Accumulating & storing the results when beta != 0
     label( .POST_ACCUM_STOR )
 
@@ -2513,7 +2463,6 @@ void bli_sgemmsup_rd_zen4_asm_5x48
     C_STOR2                     // Storing result to C
 
     jmp( .SDONE )
-
 
     // Accumulating & storing the results when beta == 0
     label( .POST_ACCUM_STOR_BZ )
@@ -2595,7 +2544,7 @@ void bli_sgemmsup_rd_zen4_asm_5x48
       "zmm16", "zmm17", "zmm18", "zmm19",
       "zmm20", "zmm21", "zmm22", "zmm23", "zmm24", "zmm25", "zmm26",
       "zmm27", "zmm28", "zmm29", "zmm30", "zmm31",
-      "memory"
+      "memory", "k1"
     )
 }
 
@@ -2646,8 +2595,8 @@ void bli_sgemmsup_rd_zen4_asm_4x48
     lea( mem( , r10, 4 ), r10 )         // cs_a *= sizeof(dt) => cs_a *= 4
     lea( mem( r9, r9, 2 ), r13 )        // r13 = 3 * rs_b
 
-    mov(var(iter_1_mask), esi)          // Load mask values for the last loop
-    kmovw(esi, K(1))
+    mov( var( iter_1_mask ), esi )      // Load mask values for the last loop
+    kmovw( esi, K(1) )
 
     mov( imm( 0 ), r15 )                // jj = 0;
     label( .SLOOP3X4J )                 // LOOP OVER jj = [ 0 1 ... ]
@@ -2668,8 +2617,8 @@ void bli_sgemmsup_rd_zen4_asm_4x48
     lea( mem( r14 ), rax )              // load a to rax
     lea( mem( rdx ), rbx )              // load b to rbx
 
-    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_b
-    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_b
+    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_a
+    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_a
 
     INIT_REG
 
@@ -2733,7 +2682,6 @@ void bli_sgemmsup_rd_zen4_asm_4x48
 
     // load column from B
     vmovups(        ( rbx ), zmm6 )
-    vmovups(        ( rbx ), zmm6 )
     VFMA4(  8,  9, 10, 20 )
 
     vmovups( ( rbx, r9, 1 ), zmm6 )
@@ -2772,15 +2720,11 @@ void bli_sgemmsup_rd_zen4_asm_4x48
     dec( rsi )
     jne( .K_LOOP_ITER64 )
 
-
     label( .CONSIDER_K_ITER_32 )
 
     mov( var( k_iter32 ), rsi )       // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_16 )
-
-
-    
 
     // ITER 0
     // load row from A
@@ -2931,7 +2875,6 @@ void bli_sgemmsup_rd_zen4_asm_4x48
     vucomiss( xmm1, xmm0 )          // check if beta = 0
     je( .POST_ACCUM_STOR_BZ )
 
-
     // Accumulating & storing the results when beta != 0
     label( .POST_ACCUM_STOR )
 
@@ -2957,7 +2900,6 @@ void bli_sgemmsup_rd_zen4_asm_4x48
 
     jmp( .SDONE )
 
-
     // Accumulating & storing the results when beta == 0
     label( .POST_ACCUM_STOR_BZ )
 
@@ -2982,7 +2924,6 @@ void bli_sgemmsup_rd_zen4_asm_4x48
     ALPHA_SCALE             // Scaling the result of A*B with alpha
 
     C_STOR_BZ1              // Storing result to C
-
 
     label( .SDONE )
 
@@ -3039,7 +2980,7 @@ void bli_sgemmsup_rd_zen4_asm_4x48
       "zmm16", "zmm17", "zmm18", "zmm19",
       "zmm20", "zmm21", "zmm22", "zmm23", "zmm24", "zmm25", "zmm26",
       "zmm27", "zmm28", "zmm29", "zmm30", "zmm31",
-      "memory"
+      "memory", "k1"
     )
 }
 
@@ -3090,9 +3031,8 @@ void bli_sgemmsup_rd_zen4_asm_3x48
     lea( mem( , r10, 4 ), r10 )         // cs_a *= sizeof(dt) => cs_a *= 4
     lea( mem( r9, r9, 2 ), r13 )        // r13 = 3 * rs_b
 
-    mov(var(iter_1_mask), esi)          // Load mask values for the last loop
-    kmovw(esi, K(1))
-
+    mov( var( iter_1_mask ), esi )      // Load mask values for the last loop
+    kmovw( esi, K(1) )
 
     mov( imm( 0 ), r15 )                // jj = 0;
     label( .SLOOP3X4J )                 // LOOP OVER jj = [ 0 1 ... ]
@@ -3113,15 +3053,14 @@ void bli_sgemmsup_rd_zen4_asm_3x48
     lea( mem( r14 ), rax )              // load a to rax
     lea( mem( rdx ), rbx )              // load b to rbx
 
-    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_b
-    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_b
+    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_a
+    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_a
 
     INIT_REG
 
     mov( var( k_iter64 ), rsi )         // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_32 )
-
 
     label( .K_LOOP_ITER64 )
 
@@ -3213,15 +3152,11 @@ void bli_sgemmsup_rd_zen4_asm_3x48
     dec( rsi )
     jne( .K_LOOP_ITER64 )
 
-
     label( .CONSIDER_K_ITER_32 )
 
     mov( var( k_iter32 ), rsi )       // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_16 )
-
-
-    
 
     // ITER 0
     // load row from A
@@ -3367,7 +3302,6 @@ void bli_sgemmsup_rd_zen4_asm_3x48
     vucomiss( xmm1, xmm0 )          // check if beta = 0
     je( .POST_ACCUM_STOR_BZ )
 
-
     // Accumulating & storing the results when beta != 0
     label( .POST_ACCUM_STOR )
 
@@ -3384,7 +3318,6 @@ void bli_sgemmsup_rd_zen4_asm_3x48
     C_STOR                      // Storing result to C
 
     jmp( .SDONE )
-
 
     // Accumulating & storing the results when beta == 0
     label( .POST_ACCUM_STOR_BZ )
@@ -3454,7 +3387,7 @@ void bli_sgemmsup_rd_zen4_asm_3x48
       "zmm16", "zmm17", "zmm18", "zmm19",
       "zmm20", "zmm21", "zmm22", "zmm23", "zmm24", "zmm25", "zmm26",
       "zmm27", "zmm28", "zmm29", "zmm30", "zmm31",
-      "memory"
+      "memory", "k1"
     )
 }
 
@@ -3507,9 +3440,8 @@ void bli_sgemmsup_rd_zen4_asm_2x48
     lea( mem( , rdi, 4 ), rdi )         // rs_c *= sizeof(float) => rs_c *= 4
     lea( mem( r9, r9, 2 ), r13 )        // r13 = 3 * rs_b
 
-    mov(var(iter_1_mask), esi)          // Load mask values for the last loop
-    kmovw(esi, K(1))
-
+    mov( var( iter_1_mask ), esi )      // Load mask values for the last loop
+    kmovw( esi, K(1) )
 
     mov( imm( 0 ), r15 )                // jj = 0;
     label( .SLOOP3X4J )                 // LOOP OVER jj = [ 0 1 ... ]
@@ -3530,16 +3462,14 @@ void bli_sgemmsup_rd_zen4_asm_2x48
     lea( mem( r14 ), rax )              // load a to rax
     lea( mem( rdx ), rbx )              // load b to rbx
 
-    lea( mem(  r8, r8, 2 ), r10 )    // r10 = 3 * rs_b
-    lea( mem( r10, r8, 2 ), rdi )   // rdi = 5 * rs_b
-
+    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_a
+    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_a
 
     INIT_REG
 
     mov( var( k_iter64 ), rsi )       // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_32 )
-
 
     label( .K_LOOP_ITER64 )
 
@@ -3591,7 +3521,6 @@ void bli_sgemmsup_rd_zen4_asm_2x48
 
     // load column from B
     vmovups(        ( rbx ), zmm6 )
-    vmovups(        ( rbx ), zmm6 )
     VFMA2( 8, 9 )
 
     vmovups( ( rbx, r9, 1 ), zmm6 )
@@ -3628,15 +3557,11 @@ void bli_sgemmsup_rd_zen4_asm_2x48
     dec( rsi )
     jne( .K_LOOP_ITER64 )
 
-
     label( .CONSIDER_K_ITER_32 )
 
     mov( var( k_iter32 ), rsi )       // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_16 )
-
-
-    
 
     // ITER 0
     // load row from A
@@ -3678,7 +3603,6 @@ void bli_sgemmsup_rd_zen4_asm_2x48
     VFMA2( 17, 18 )
 
     add( imm( 16*4 ), rbx )
-
 
     label( .CONSIDER_K_ITER_16 )
     mov( var( k_iter16 ), rsi )
@@ -3778,7 +3702,6 @@ void bli_sgemmsup_rd_zen4_asm_2x48
     vucomiss( xmm1, xmm0 )          // check if beta = 0
     je( .POST_ACCUM_STOR_BZ )
 
-
     // Accumulating & storing the results when beta != 0
     label( .POST_ACCUM_STOR )
 
@@ -3794,7 +3717,6 @@ void bli_sgemmsup_rd_zen4_asm_2x48
 
     jmp( .SDONE )
 
-
     // Accumulating & storing the results when beta == 0
     label( .POST_ACCUM_STOR_BZ )
 
@@ -3807,7 +3729,6 @@ void bli_sgemmsup_rd_zen4_asm_2x48
     ALPHA_SCALE2                // Scaling the result of A*B with alpha
 
     C_STOR_BZ2                  // Storing result to C
-
 
     label( .SDONE )
 
@@ -3854,7 +3775,7 @@ void bli_sgemmsup_rd_zen4_asm_2x48
       "zmm16", "zmm17", "zmm18", "zmm19",
       "zmm20", "zmm21", "zmm22", "zmm23", "zmm24", "zmm25", "zmm26",
       "zmm27", "zmm28", "zmm29", "zmm30", "zmm31",
-      "memory"
+      "memory", "k1"
     )
 }
 
@@ -3907,9 +3828,8 @@ void bli_sgemmsup_rd_zen4_asm_1x48
     lea( mem( , rdi, 4 ), rdi )         // rs_c *= sizeof(float) => rs_c *= 4
     lea( mem( r9, r9, 2 ), r13 )        // r13 = 3 * rs_b
 
-    mov(var(iter_1_mask), esi)          // Load mask values for the last loop
-    kmovw(esi, K(1))
-
+    mov( var( iter_1_mask ), esi )      // Load mask values for the last loop
+    kmovw( esi, K(1) )
 
     mov( imm( 0 ), r15 )                // jj = 0;
     label( .SLOOP3X4J )                 // LOOP OVER jj = [ 0 1 ... ]
@@ -3930,15 +3850,14 @@ void bli_sgemmsup_rd_zen4_asm_1x48
     lea( mem( r14 ), rax )              // load a to rax
     lea( mem( rdx ), rbx )              // load b to rbx
 
-    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_b
-    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_b
+    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_a
+    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_a
 
     INIT_REG
 
-    mov( var( k_iter64 ), rsi )       // load k_iter
+    mov( var( k_iter64 ), rsi )         // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_32 )
-
 
     label( .K_LOOP_ITER64 )
 
@@ -4022,15 +3941,11 @@ void bli_sgemmsup_rd_zen4_asm_1x48
     dec( rsi )
     jne( .K_LOOP_ITER64 )
 
-
     label( .CONSIDER_K_ITER_32 )
 
     mov( var( k_iter32 ), rsi )       // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_16 )
-
-
-    
 
     // ITER 0
     // load row from A
@@ -4070,7 +3985,6 @@ void bli_sgemmsup_rd_zen4_asm_1x48
     VFMA1( 17 )
 
     add( imm( 16*4 ), rbx )
-
 
     label( .CONSIDER_K_ITER_16 )
     mov( var( k_iter16 ), rsi )
@@ -4167,7 +4081,6 @@ void bli_sgemmsup_rd_zen4_asm_1x48
     vucomiss( xmm1, xmm0 )          // check if beta = 0
     je( .POST_ACCUM_STOR_BZ )
 
-
     // Accumulating & storing the results when beta != 0
     label( .POST_ACCUM_STOR )
 
@@ -4181,7 +4094,6 @@ void bli_sgemmsup_rd_zen4_asm_1x48
 
     jmp( .SDONE )
 
-
     // Accumulating & storing the results when beta == 0
     label( .POST_ACCUM_STOR_BZ )
 
@@ -4192,7 +4104,6 @@ void bli_sgemmsup_rd_zen4_asm_1x48
     ALPHA_SCALE1                // Scaling the result of A*B with alpha
 
     C_STOR_BZ1                  // Storing result to C
-
 
     label( .SDONE )
 
@@ -4238,7 +4149,7 @@ void bli_sgemmsup_rd_zen4_asm_1x48
       "zmm16", "zmm17", "zmm18", "zmm19",
       "zmm20", "zmm21", "zmm22", "zmm23", "zmm24", "zmm25", "zmm26",
       "zmm27", "zmm28", "zmm29", "zmm30", "zmm31",
-      "memory"
+      "memory", "k1"
     )
 }
 
@@ -4289,9 +4200,8 @@ void bli_sgemmsup_rd_zen4_asm_5x32
     lea( mem( , r10, 4 ), r10 )         // cs_a *= sizeof(dt) => cs_a *= 4
     lea( mem( r9, r9, 2 ), r13 )        // r13 = 3 * rs_b
 
-    mov(var(iter_1_mask), esi)          // Load mask values for the last loop
-    kmovw(esi, K(1))
-
+    mov( var( iter_1_mask ), esi )      // Load mask values for the last loop
+    kmovw( esi, K(1) )
 
     mov( imm( 0 ), r15 )                // jj = 0;
     label( .SLOOP3X4J )                 // LOOP OVER jj = [ 0 1 ... ]
@@ -4312,15 +4222,14 @@ void bli_sgemmsup_rd_zen4_asm_5x32
     lea( mem( r14 ), rax )              // load a to rax
     lea( mem( rdx ), rbx )              // load b to rbx
 
-    lea( mem(  r8, r8, 2 ), r10 )    // r10 = 3 * rs_b
-    lea( mem( r10, r8, 2 ), rdi )   // rdi = 5 * rs_b
+    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_a
+    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_a
 
     INIT_REG
 
     mov( var( k_iter64 ), rsi )       // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_32 )
-
 
     label( .K_LOOP_ITER64 )
 
@@ -4381,7 +4290,6 @@ void bli_sgemmsup_rd_zen4_asm_5x32
 
     // load column from B
     vmovups(        ( rbx ), zmm6 )
-    vmovups(        ( rbx ), zmm6 )
     VFMA5( 8, 9, 10, 20, 21 )
 
     vmovups( ( rbx, r9, 1 ), zmm6 )
@@ -4426,9 +4334,6 @@ void bli_sgemmsup_rd_zen4_asm_5x32
     mov( var( k_iter32 ), rsi )       // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_16 )
-
-
-    
 
     // ITER 0
     // load row from A
@@ -4476,7 +4381,6 @@ void bli_sgemmsup_rd_zen4_asm_5x32
     VFMA5( 17, 18, 19, 29, 30 )
 
     add( imm( 16*4 ), rbx )
-
 
     label( .CONSIDER_K_ITER_16 )
     mov( var( k_iter16 ), rsi )
@@ -4585,7 +4489,6 @@ void bli_sgemmsup_rd_zen4_asm_5x32
     vucomiss( xmm1, xmm0 )          // check if beta = 0
     je( .POST_ACCUM_STOR_BZ )
 
-
     // Accumulating & storing the results when beta != 0
     label( .POST_ACCUM_STOR )
 
@@ -4612,7 +4515,6 @@ void bli_sgemmsup_rd_zen4_asm_5x32
     C_STOR2                     // Storing result to C
 
     jmp( .SDONE )
-
 
     // Accumulating & storing the results when beta == 0
     label( .POST_ACCUM_STOR_BZ )
@@ -4694,7 +4596,7 @@ void bli_sgemmsup_rd_zen4_asm_5x32
       "zmm16", "zmm17", "zmm18", "zmm19",
       "zmm20", "zmm21", "zmm22", "zmm23", "zmm24", "zmm25", "zmm26",
       "zmm27", "zmm28", "zmm29", "zmm30", "zmm31",
-      "memory"
+      "memory", "k1"
     )
 }
 
@@ -4745,9 +4647,8 @@ void bli_sgemmsup_rd_zen4_asm_4x32
     lea( mem( , r10, 4 ), r10 )         // cs_a *= sizeof(dt) => cs_a *= 4
     lea( mem( r9, r9, 2 ), r13 )        // r13 = 3 * rs_b
 
-    mov(var(iter_1_mask), esi)          // Load mask values for the last loop
-    kmovw(esi, K(1))
-
+    mov( var( iter_1_mask ), esi )      // Load mask values for the last loop
+    kmovw( esi, K(1) )
 
     mov( imm( 0 ), r15 )                // jj = 0;
     label( .SLOOP3X4J )                 // LOOP OVER jj = [ 0 1 ... ]
@@ -4768,15 +4669,14 @@ void bli_sgemmsup_rd_zen4_asm_4x32
     lea( mem( r14 ), rax )              // load a to rax
     lea( mem( rdx ), rbx )              // load b to rbx
 
-    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_b
-    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_b
+    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_a
+    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_a
 
     INIT_REG
 
-    mov( var( k_iter64 ), rsi )       // load k_iter
+    mov( var( k_iter64 ), rsi )         // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_32 )
-
 
     label( .K_LOOP_ITER64 )
 
@@ -4834,7 +4734,6 @@ void bli_sgemmsup_rd_zen4_asm_4x32
 
     // load column from B
     vmovups(        ( rbx ), zmm6 )
-    vmovups(        ( rbx ), zmm6 )
     VFMA4(  8,  9, 10, 20 )
 
     vmovups( ( rbx, r9, 1 ), zmm6 )
@@ -4873,15 +4772,11 @@ void bli_sgemmsup_rd_zen4_asm_4x32
     dec( rsi )
     jne( .K_LOOP_ITER64 )
 
-
     label( .CONSIDER_K_ITER_32 )
 
     mov( var( k_iter32 ), rsi )       // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_16 )
-
-
-    
 
     // ITER 0
     // load row from A
@@ -4927,7 +4822,6 @@ void bli_sgemmsup_rd_zen4_asm_4x32
     VFMA4( 17, 18, 19, 29 )
 
     add( imm( 16*4 ), rbx )
-
 
     label( .CONSIDER_K_ITER_16 )
     mov( var( k_iter16 ), rsi )
@@ -5033,7 +4927,6 @@ void bli_sgemmsup_rd_zen4_asm_4x32
     vucomiss( xmm1, xmm0 )          // check if beta = 0
     je( .POST_ACCUM_STOR_BZ )
 
-
     // Accumulating & storing the results when beta != 0
     label( .POST_ACCUM_STOR )
 
@@ -5059,7 +4952,6 @@ void bli_sgemmsup_rd_zen4_asm_4x32
 
     jmp( .SDONE )
 
-
     // Accumulating & storing the results when beta == 0
     label( .POST_ACCUM_STOR_BZ )
 
@@ -5082,7 +4974,6 @@ void bli_sgemmsup_rd_zen4_asm_4x32
     ALPHA_SCALE                 // Scaling the result of A*B with alpha
 
     C_STOR_BZ1                  // Storing result to C
-
 
     label( .SDONE )
 
@@ -5138,7 +5029,7 @@ void bli_sgemmsup_rd_zen4_asm_4x32
       "zmm16", "zmm17", "zmm18", "zmm19",
       "zmm20", "zmm21", "zmm22", "zmm23", "zmm24", "zmm25", "zmm26",
       "zmm27", "zmm28", "zmm29", "zmm30", "zmm31",
-      "memory"
+      "memory", "k1"
     )
 }
 
@@ -5189,9 +5080,8 @@ void bli_sgemmsup_rd_zen4_asm_3x32
     lea( mem( , r10, 4 ), r10 )         // cs_a *= sizeof(dt) => cs_a *= 4
     lea( mem( r9, r9, 2 ), r13 )        // r13 = 3 * rs_b
 
-    mov(var(iter_1_mask), esi)          // Load mask values for the last loop
-    kmovw(esi, K(1))
-
+    mov( var( iter_1_mask ), esi )      // Load mask values for the last loop
+    kmovw( esi, K(1) )
 
     mov( imm( 0 ), r15 )                // jj = 0;
     label( .SLOOP3X4J )                 // LOOP OVER jj = [ 0 1 ... ]
@@ -5212,15 +5102,14 @@ void bli_sgemmsup_rd_zen4_asm_3x32
     lea( mem( r14 ), rax )              // load a to rax
     lea( mem( rdx ), rbx )              // load b to rbx
 
-    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_b
-    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_b
+    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_a
+    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_a
 
     INIT_REG
 
-    mov( var( k_iter64 ), rsi )       // load k_iter
+    mov( var( k_iter64 ), rsi )         // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_32 )
-
 
     label( .K_LOOP_ITER64 )
 
@@ -5312,15 +5201,11 @@ void bli_sgemmsup_rd_zen4_asm_3x32
     dec( rsi )
     jne( .K_LOOP_ITER64 )
 
-
     label( .CONSIDER_K_ITER_32 )
 
     mov( var( k_iter32 ), rsi )       // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_16 )
-
-
-    
 
     // ITER 0
     // load row from A
@@ -5364,7 +5249,6 @@ void bli_sgemmsup_rd_zen4_asm_3x32
     VFMA3( 17, 18, 19 )
 
     add( imm( 16*4 ), rbx )
-
 
     label( .CONSIDER_K_ITER_16 )
     mov( var( k_iter16 ), rsi )
@@ -5467,7 +5351,6 @@ void bli_sgemmsup_rd_zen4_asm_3x32
     vucomiss( xmm1, xmm0 )          // check if beta = 0
     je( .POST_ACCUM_STOR_BZ )
 
-
     // Accumulating & storing the results when beta != 0
     label( .POST_ACCUM_STOR )
 
@@ -5485,7 +5368,6 @@ void bli_sgemmsup_rd_zen4_asm_3x32
 
     jmp( .SDONE )
 
-
     // Accumulating & storing the results when beta == 0
     label( .POST_ACCUM_STOR_BZ )
 
@@ -5500,7 +5382,6 @@ void bli_sgemmsup_rd_zen4_asm_3x32
     ALPHA_SCALE                 // Scaling the result of A*B with alpha
 
     C_STOR_BZ                   // Storing result to C
-
 
     label( .SDONE )
 
@@ -5555,7 +5436,7 @@ void bli_sgemmsup_rd_zen4_asm_3x32
       "zmm16", "zmm17", "zmm18", "zmm19",
       "zmm20", "zmm21", "zmm22", "zmm23", "zmm24", "zmm25", "zmm26",
       "zmm27", "zmm28", "zmm29", "zmm30", "zmm31",
-      "memory"
+      "memory", "k1"
     )
 }
 
@@ -5608,9 +5489,8 @@ void bli_sgemmsup_rd_zen4_asm_2x32
     lea( mem( , rdi, 4 ), rdi )         // rs_c *= sizeof(float) => rs_c *= 4
     lea( mem( r9, r9, 2 ), r13 )        // r13 = 3 * rs_b
 
-    mov(var(iter_1_mask), esi)          // Load mask values for the last loop
-    kmovw(esi, K(1))
-
+    mov( var( iter_1_mask ), esi )      // Load mask values for the last loop
+    kmovw( esi, K(1) )
 
     mov( imm( 0 ), r15 )                // jj = 0;
     label( .SLOOP3X4J )                 // LOOP OVER jj = [ 0 1 ... ]
@@ -5631,15 +5511,14 @@ void bli_sgemmsup_rd_zen4_asm_2x32
     lea( mem( r14 ), rax )              // load a to rax
     lea( mem( rdx ), rbx )              // load b to rbx
 
-    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_b
-    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_b
+    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_a
+    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_a
 
     INIT_REG
 
-    mov( var( k_iter64 ), rsi )       // load k_iter
+    mov( var( k_iter64 ), rsi )         // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_32 )
-
 
     label( .K_LOOP_ITER64 )
 
@@ -5691,7 +5570,6 @@ void bli_sgemmsup_rd_zen4_asm_2x32
 
     // load column from B
     vmovups(        ( rbx ), zmm6 )
-    vmovups(        ( rbx ), zmm6 )
     VFMA2( 8, 9 )
 
     vmovups( ( rbx, r9, 1 ), zmm6 )
@@ -5728,15 +5606,11 @@ void bli_sgemmsup_rd_zen4_asm_2x32
     dec( rsi )
     jne( .K_LOOP_ITER64 )
 
-
     label( .CONSIDER_K_ITER_32 )
 
     mov( var( k_iter32 ), rsi )       // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_16 )
-
-
-    
 
     // ITER 0
     // load row from A
@@ -5778,7 +5652,6 @@ void bli_sgemmsup_rd_zen4_asm_2x32
     VFMA2( 17, 18 )
 
     add( imm( 16*4 ), rbx )
-
 
     label( .CONSIDER_K_ITER_16 )
     mov( var( k_iter16 ), rsi )
@@ -5878,7 +5751,6 @@ void bli_sgemmsup_rd_zen4_asm_2x32
     vucomiss( xmm1, xmm0 )          // check if beta = 0
     je( .POST_ACCUM_STOR_BZ )
 
-
     // Accumulating & storing the results when beta != 0
     label( .POST_ACCUM_STOR )
 
@@ -5894,7 +5766,6 @@ void bli_sgemmsup_rd_zen4_asm_2x32
 
     jmp( .SDONE )
 
-
     // Accumulating & storing the results when beta == 0
     label( .POST_ACCUM_STOR_BZ )
 
@@ -5907,7 +5778,6 @@ void bli_sgemmsup_rd_zen4_asm_2x32
     ALPHA_SCALE2                // Scaling the result of A*B with alpha
 
     C_STOR_BZ2                  // Storing result to C
-
 
     label( .SDONE )
 
@@ -5954,7 +5824,7 @@ void bli_sgemmsup_rd_zen4_asm_2x32
       "zmm16", "zmm17", "zmm18", "zmm19",
       "zmm20", "zmm21", "zmm22", "zmm23", "zmm24", "zmm25", "zmm26",
       "zmm27", "zmm28", "zmm29", "zmm30", "zmm31",
-      "memory"
+      "memory", "k1"
     )
 }
 
@@ -6007,8 +5877,8 @@ void bli_sgemmsup_rd_zen4_asm_1x32
     lea( mem( , rdi, 4 ), rdi )         // rs_c *= sizeof(float) => rs_c *= 4
     lea( mem( r9, r9, 2 ), r13 )        // r13 = 3 * rs_b
 
-    mov(var(iter_1_mask), esi)          // Load mask values for the last loop
-    kmovw(esi, K(1))
+    mov( var( iter_1_mask ), esi )      // Load mask values for the last loop
+    kmovw( esi, K(1) )
 
     mov( imm( 0 ), r15 )                // jj = 0;
     label( .SLOOP3X4J )                 // LOOP OVER jj = [ 0 1 ... ]
@@ -6029,16 +5899,14 @@ void bli_sgemmsup_rd_zen4_asm_1x32
     lea( mem( r14 ), rax )              // load a to rax
     lea( mem( rdx ), rbx )              // load b to rbx
 
-    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_b
-    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_b
-
+    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_a
+    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_a
 
     INIT_REG
 
     mov( var( k_iter64 ), rsi )         // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_32 )
-
 
     label( .K_LOOP_ITER64 )
 
@@ -6122,7 +5990,6 @@ void bli_sgemmsup_rd_zen4_asm_1x32
     dec( rsi )
     jne( .K_LOOP_ITER64 )
 
-
     label( .CONSIDER_K_ITER_32 )
 
     mov( var( k_iter32 ), rsi )       // load k_iter
@@ -6167,7 +6034,6 @@ void bli_sgemmsup_rd_zen4_asm_1x32
     VFMA1( 17 )
 
     add( imm( 16*4 ), rbx )
-
 
     label( .CONSIDER_K_ITER_16 )
     mov( var( k_iter16 ), rsi )
@@ -6264,7 +6130,6 @@ void bli_sgemmsup_rd_zen4_asm_1x32
     vucomiss( xmm1, xmm0 )          // check if beta = 0
     je( .POST_ACCUM_STOR_BZ )
 
-
     // Accumulating & storing the results when beta != 0
     label( .POST_ACCUM_STOR )
 
@@ -6278,7 +6143,6 @@ void bli_sgemmsup_rd_zen4_asm_1x32
 
     jmp( .SDONE )
 
-
     // Accumulating & storing the results when beta == 0
     label( .POST_ACCUM_STOR_BZ )
 
@@ -6289,7 +6153,6 @@ void bli_sgemmsup_rd_zen4_asm_1x32
     ALPHA_SCALE1                // Scaling the result of A*B with alpha
 
     C_STOR_BZ1                  // Storing result to C
-
 
     label( .SDONE )
 
@@ -6336,6 +6199,6 @@ void bli_sgemmsup_rd_zen4_asm_1x32
       "zmm16", "zmm17", "zmm18", "zmm19",
       "zmm20", "zmm21", "zmm22", "zmm23", "zmm24", "zmm25", "zmm26",
       "zmm27", "zmm28", "zmm29", "zmm30", "zmm31",
-      "memory"
+      "memory", "k1"
     )
 }
