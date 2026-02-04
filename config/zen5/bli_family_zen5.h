@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2024 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2024 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -32,8 +32,10 @@
 
 */
 
-#ifndef BLI_FAMILY_ZEN5_
-#define BLI_FAMILY_ZEN5_
+#ifndef BLIS_FAMILY_ZEN5_H
+#define BLIS_FAMILY_ZEN5_H
+
+#define BLIS_FAMILY_TO_ARCH_VALUE BLIS_ARCH_ZEN5
 
 #include "bli_config_zen5.h"
 

@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2018 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -73,8 +73,8 @@ static model_t actual_model_id = -1;
 // The arch and model ids for the currently running hardware, or the values
 // the user specifies to use. We initialize to -1, which will be overwritten
 // upon calling bli_arch_set_id().
-static arch_t arch_id = -1;
-static model_t model_id = -1;
+arch_t g_arch_id = -1;
+model_t g_model_id = -1;
 
 // Variable used to communicate if user has set '__blis_arch_type_name' between
 // bli_arch_set_id() and bli_arch_check_id()
@@ -91,48 +91,25 @@ bool bli_aocl_enable_instruction_query( void )
 
 arch_t bli_arch_query_id( void )
 {
-	bli_arch_check_id_once();
-
-	// Simply return the id that was previously cached.
-	return arch_id;
+	return bli_arch_query_id_internal();
 }
 
 model_t bli_model_query_id( void )
 {
-	bli_arch_check_id_once();
-
-	// Simply return the model_id that was previously cached.
-	return model_id;
+	return bli_model_query_id_internal();
 }
 
 model_t bli_init_model_query_id( void )
 {
-	bli_arch_set_id_once();
-
-	// Simply return the model_id that was previously cached.
-	return model_id;
+	return bli_init_model_query_id_internal();
 }
 
 // -----------------------------------------------------------------------------
 
 // A pthread structure used in pthread_once(). pthread_once() is guaranteed to
 // execute exactly once among all threads that pass in this control object.
-static bli_pthread_once_t once_id_init = BLIS_PTHREAD_ONCE_INIT;
-static bli_pthread_once_t once_id_check = BLIS_PTHREAD_ONCE_INIT;
-
-void bli_arch_set_id_once( void )
-{
-#ifndef BLIS_CONFIGURETIME_CPUID
-	bli_pthread_once( &once_id_init, bli_arch_set_id );
-#endif
-}
-
-void bli_arch_check_id_once( void )
-{
-#ifndef BLIS_CONFIGURETIME_CPUID
-	bli_pthread_once( &once_id_check, bli_arch_check_id );
-#endif
-}
+bli_pthread_once_t once_id_init = BLIS_PTHREAD_ONCE_INIT;
+bli_pthread_once_t once_id_check = BLIS_PTHREAD_ONCE_INIT;
 
 // -----------------------------------------------------------------------------
 
@@ -209,7 +186,7 @@ void bli_arch_set_id( void )
 		// bli_arch_check_id() called later.
 
 		// For now, we can only be confident that req_id is in range.
-		arch_id = req_id;
+		g_arch_id = req_id;
         }
         else
 #endif
@@ -226,101 +203,19 @@ void bli_arch_set_id( void )
 		    defined BLIS_FAMILY_X86_64       || \
 		    defined BLIS_FAMILY_ARM64        || \
 		    defined BLIS_FAMILY_ARM32
-		arch_id = actual_arch_id;
-		#endif
-
-		// Intel microarchitectures.
-		#ifdef BLIS_FAMILY_SKX
-		arch_id = BLIS_ARCH_SKX;
-		#endif
-		#ifdef BLIS_FAMILY_KNL
-		arch_id = BLIS_ARCH_KNL;
-		#endif
-		#ifdef BLIS_FAMILY_KNC
-		arch_id = BLIS_ARCH_KNC;
-		#endif
-		#ifdef BLIS_FAMILY_HASWELL
-		arch_id = BLIS_ARCH_HASWELL;
-		#endif
-		#ifdef BLIS_FAMILY_SANDYBRIDGE
-		arch_id = BLIS_ARCH_SANDYBRIDGE;
-		#endif
-		#ifdef BLIS_FAMILY_PENRYN
-		arch_id = BLIS_ARCH_PENRYN;
-		#endif
-
-		// AMD microarchitectures.
-		#ifdef BLIS_FAMILY_ZEN5
-		arch_id = BLIS_ARCH_ZEN5;
-		#endif
-		#ifdef BLIS_FAMILY_ZEN4
-		arch_id = BLIS_ARCH_ZEN4;
-		#endif
-		#ifdef BLIS_FAMILY_ZEN3
-		arch_id = BLIS_ARCH_ZEN3;
-		#endif
-		#ifdef BLIS_FAMILY_ZEN2
-		arch_id = BLIS_ARCH_ZEN2;
-		#endif
-		#ifdef BLIS_FAMILY_ZEN
-		arch_id = BLIS_ARCH_ZEN;
-		#endif
-		#ifdef BLIS_FAMILY_EXCAVATOR
-		arch_id = BLIS_ARCH_EXCAVATOR;
-		#endif
-		#ifdef BLIS_FAMILY_STEAMROLLER
-		arch_id = BLIS_ARCH_STEAMROLLER;
-		#endif
-		#ifdef BLIS_FAMILY_PILEDRIVER
-		arch_id = BLIS_ARCH_PILEDRIVER;
-		#endif
-		#ifdef BLIS_FAMILY_BULLDOZER
-		arch_id = BLIS_ARCH_BULLDOZER;
-		#endif
-
-		// ARM microarchitectures.
-		#ifdef BLIS_FAMILY_ARMSVE
-		arch_id = BLIS_ARCH_ARMSVE;
-		#endif
-		#ifdef BLIS_FAMILY_A64FX
-		arch_id = BLIS_ARCH_A64FX;
-		#endif
-		#ifdef BLIS_FAMILY_FIRESTORM
-		id = BLIS_ARCH_FIRESTORM;
-		#endif
-		#ifdef BLIS_FAMILY_THUNDERX2
-		arch_id = BLIS_ARCH_THUNDERX2;
-		#endif
-		#ifdef BLIS_FAMILY_CORTEXA57
-		arch_id = BLIS_ARCH_CORTEXA57;
-		#endif
-		#ifdef BLIS_FAMILY_CORTEXA53
-		arch_id = BLIS_ARCH_CORTEXA53;
-		#endif
-		#ifdef BLIS_FAMILY_CORTEXA15
-		arch_id = BLIS_ARCH_CORTEXA15;
-		#endif
-		#ifdef BLIS_FAMILY_CORTEXA9
-		arch_id = BLIS_ARCH_CORTEXA9;
-		#endif
-
-		// IBM microarchitectures.
-		#ifdef BLIS_FAMILY_POWER10
-		arch_id = BLIS_ARCH_POWER10;
-		#endif
-		#ifdef BLIS_FAMILY_POWER9
-		arch_id = BLIS_ARCH_POWER9;
-		#endif
-		#ifdef BLIS_FAMILY_POWER7
-		arch_id = BLIS_ARCH_POWER7;
-		#endif
-		#ifdef BLIS_FAMILY_BGQ
-		arch_id = BLIS_ARCH_BGQ;
-		#endif
-
-		// Generic microarchitecture.
-		#ifdef BLIS_FAMILY_GENERIC
-		arch_id = BLIS_ARCH_GENERIC;
+			g_arch_id = actual_arch_id;
+		#else
+			#ifdef BLIS_FAMILY_TO_ARCH_VALUE
+				// For single sub-configuration builds, get value from header file
+				g_arch_id = BLIS_FAMILY_TO_ARCH_VALUE;
+			#else
+				// For "auto" build, initialize to generic as starting point.
+				// It will then determine the correct architecture and set
+				// BLIS_FAMILY_TO_ARCH_VALUE. This will also be the fallback
+				// if BLIS_FAMILY_TO_ARCH_VALUE is not set in the relevant
+				// config header file.
+				g_arch_id = BLIS_ARCH_GENERIC;
+			#endif
 		#endif
 	}
 
@@ -336,14 +231,14 @@ void bli_arch_set_id( void )
 	if ( req_model != -1 )
 	{
 		// BLIS_MODEL_TYPE was set. Cautiously check whether its value is usable.
-		// Assume here that arch_id is valid.
+		// Assume here that g_arch_id is valid.
 
 		// If req_model was set to an invalid model_t value (ie: both outside
 		// the range appropriate for the given architecture and not default),
 		// set to default value and continue.
 		if ( bli_error_checking_is_enabled() )
 		{
-			err_t e_val = bli_check_valid_model_id( arch_id, req_model );
+			err_t e_val = bli_check_valid_model_id( g_arch_id, req_model );
 			if (e_val != BLIS_SUCCESS)
 			{
 				req_model = BLIS_MODEL_DEFAULT;
@@ -354,7 +249,7 @@ void bli_arch_set_id( void )
 
 		// We can now be confident that req_model is in range for the
 		// selected architecture, or it has been reset to be default.
-		model_id = req_model;
+		g_model_id = req_model;
 	}
 	else
 #endif
@@ -363,25 +258,27 @@ void bli_arch_set_id( void )
 	{
 		// BLIS_MODEL_TYPE was unset. Proceed with normal subconfiguration
 		// selection behavior, based on value of architecture id selected
-		// above. Unlike for arch_id, we cannot simply use actual_model_id
-		// here, as we need to choose model_id based on the arch_id we are
+		// above. Unlike for g_arch_id, we cannot simply use actual_model_id
+		// here, as we need to choose g_model_id based on the g_arch_id we are
 		// using, which could be different to actual_arch_id.
 
-		model_id = bli_cpuid_query_model_id( arch_id );
+		g_model_id = bli_cpuid_query_model_id( g_arch_id );
 	}
 
-	//printf( "blis_arch_query_id(): arch_id, model_id = %u, %u\n", arch_id, model_id );
+	//printf( "blis_arch_query_id(): g_arch_id, g_model_id = %u, %u\n", g_arch_id, g_model_id );
 	//exit(1);
 }
 
 void bli_arch_check_id( void )
 {
-	bli_arch_set_id_once();
+#ifndef BLIS_CONFIGURETIME_CPUID
+	bli_pthread_once( &once_id_init, bli_arch_set_id );
+#endif
 
 	bool arch_not_in_build = FALSE;
 	bool arch_reset = FALSE;
 	arch_t orig_arch_id= req_id;
-	model_t orig_model_id = model_id;
+	model_t orig_model_id = g_model_id;
 
 	// Check arch value against configured options. Only needed
 	// if user has set it. This function will also do the
@@ -424,7 +321,7 @@ void bli_arch_check_id( void )
 					arch_not_in_build = TRUE;
 					arch_reset = TRUE;
 					req_id = actual_arch_id;
-					model_id = actual_model_id;
+					g_model_id = actual_model_id;
 				}
 			}
 
@@ -450,7 +347,7 @@ void bli_arch_check_id( void )
 					case BLIS_ARCH_HASWELL:
 						arch_reset = TRUE;
 						req_id = actual_arch_id;
-						model_id = actual_model_id;
+						g_model_id = actual_model_id;
 						break;
 				}
 			}
@@ -469,7 +366,7 @@ void bli_arch_check_id( void )
 					case BLIS_ARCH_SKX:
 						arch_reset = TRUE;
 						req_id = actual_arch_id;
-						model_id = actual_model_id;
+						g_model_id = actual_model_id;
 						break;
 				}
 			}
@@ -498,12 +395,12 @@ void bli_arch_check_id( void )
 				bli_check_error_code( e_val );
 			}
 			// If BLIS_ARCH_TYPE (or renamed version of this environment variable)
-			// was set, we always use this value of req_id to set arch_id.
+			// was set, we always use this value of req_id to set g_arch_id.
 		}
 
 		// Finally, we can be confident that req_id (1) is in range and (2)
 		// refers to a context that has been initialized.
-		arch_id = req_id;
+		g_arch_id = req_id;
 	}
 #endif
 
@@ -514,18 +411,18 @@ void bli_arch_check_id( void )
 		if ( req_id == -1 && aocl_e_i)
 		{
 			// AOCL_ENABLE_INSTRUCTIONS was set to an invalid value
-			// normal system arch_id was used instead.
-			if ( model_id == BLIS_MODEL_DEFAULT )
+			// normal system g_arch_id was used instead.
+			if ( g_model_id == BLIS_MODEL_DEFAULT )
 			{
 				fprintf( stderr, "libblis: AOCL_ENABLE_INSTRUCTIONS env var was set to an invalid value.\n"
                                                  "libblis: Selecting system default sub-configuration '%s'.\n",
-					 bli_arch_string( arch_id ) );
+					 bli_arch_string( g_arch_id ) );
 			}
 			else
 			{
 				fprintf( stderr, "libblis: AOCL_ENABLE_INSTRUCTIONS env var was set to an invalid value.\n"
                                                  "libblis: Selecting system default sub-configuration '%s', model '%s'.\n",
-					 bli_arch_string( arch_id ), bli_model_string( model_id ) );
+					 bli_arch_string( g_arch_id ), bli_model_string( g_model_id ) );
 			}
 		}
 		else if ( arch_not_in_build )
@@ -534,13 +431,13 @@ void bli_arch_check_id( void )
 			{
 				fprintf( stderr, "libblis: Sub-configuration '%s' is not implemented in this build.\n"
                                                  "libblis: Selecting system default sub-configuration '%s'.\n",
-					 bli_arch_string( orig_arch_id ), bli_arch_string( arch_id ) );
+					 bli_arch_string( orig_arch_id ), bli_arch_string( g_arch_id ) );
 			}
 			else
 			{
 				fprintf( stderr, "libblis: Sub-configuration '%s', model '%s' is not implemented in this build.\n"
                                                  "libblis: Selecting system default sub-configuration '%s', model '%s'.\n",
-					 bli_arch_string( orig_arch_id ), bli_model_string( orig_model_id ), bli_arch_string( arch_id ), bli_model_string( model_id ) );
+					 bli_arch_string( orig_arch_id ), bli_model_string( orig_model_id ), bli_arch_string( g_arch_id ), bli_model_string( g_model_id ) );
 			}
 		}
 		else if ( arch_reset )
@@ -549,27 +446,27 @@ void bli_arch_check_id( void )
 			{
 				fprintf( stderr, "libblis: Sub-configuration '%s' is not supported on this system.\n"
                                                  "libblis: Selecting system default sub-configuration '%s'.\n",
-					 bli_arch_string( orig_arch_id ), bli_arch_string( arch_id ) );
+					 bli_arch_string( orig_arch_id ), bli_arch_string( g_arch_id ) );
 			}
 			else
 			{
 				fprintf( stderr, "libblis: Sub-configuration '%s', model '%s' is not supported on this system.\n"
                                                  "libblis: Selecting system default sub-configuration '%s', model '%s'.\n",
-					 bli_arch_string( orig_arch_id ), bli_model_string( orig_model_id ), bli_arch_string( arch_id ), bli_model_string( model_id ) );
+					 bli_arch_string( orig_arch_id ), bli_model_string( orig_model_id ), bli_arch_string( g_arch_id ), bli_model_string( g_model_id ) );
 			}
 		}
 		else
 		{
-			if ( model_id == BLIS_MODEL_DEFAULT )
+			if ( g_model_id == BLIS_MODEL_DEFAULT )
 			{
 #ifdef DISABLE_BLIS_ARCH_TYPE
 				fprintf( stderr, "libblis: Selecting sub-configuration '%s'.\n"
                                                  "libblis: User control of sub-configuration using AOCL_ENABLE_INSTRUCTIONS\n"
                                                  "libblis: or using "__blis_arch_type_name" and "__blis_model_type_name" is disabled.\n",
-					 bli_arch_string( arch_id ) );
+					 bli_arch_string( g_arch_id ) );
 #else
 				fprintf( stderr, "libblis: Selecting sub-configuration '%s'.\n",
-					 bli_arch_string( arch_id ) );
+					 bli_arch_string( g_arch_id ) );
 #endif
 			}
 			else
@@ -578,10 +475,10 @@ void bli_arch_check_id( void )
 				fprintf( stderr, "libblis: Selecting sub-configuration '%s', model '%s'.\n"
                                                  "libblis: User control of sub-configuration using AOCL_ENABLE_INSTRUCTIONS\n"
                                                  "libblis: or using "__blis_arch_type_name" and "__blis_model_type_name" is disabled.\n",
-					 bli_arch_string( arch_id ), bli_model_string( model_id ) );
+					 bli_arch_string( g_arch_id ), bli_model_string( g_model_id ) );
 #else
 				fprintf( stderr, "libblis: Selecting sub-configuration '%s', model '%s'.\n",
-					 bli_arch_string( arch_id ), bli_model_string( model_id ) );
+					 bli_arch_string( g_arch_id ), bli_model_string( g_model_id ) );
 #endif
 			}
 		}
@@ -601,7 +498,7 @@ void bli_arch_check_id( void )
 #endif
         }
 
-	//printf( "blis_arch_check_id(): arch_id, model_id = %u, %u\n", arch_id, model_id );
+	//printf( "blis_arch_check_id(): g_arch_id, g_model_id = %u, %u\n", g_arch_id, g_model_id );
 	//exit(1);
 }
 

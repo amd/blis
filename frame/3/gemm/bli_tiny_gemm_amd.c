@@ -74,7 +74,7 @@ err_t PASTEMAC( ch, tfuncname ) \
         return BLIS_FAILURE; \
 \
     /* Query the architecture ID */ \
-    arch_t arch_id = bli_arch_query_id(); \
+    arch_t arch_id = bli_arch_query_id_internal(); \
     /* Declaring the object to hold the kernel information */ \
     gemmtiny_ukr_info_t gemmtiny_ukr_info; \
     /* Variable to flag success/failure of obtaining the kernel */ \
@@ -483,7 +483,7 @@ err_t bli_dgemm_tiny
 )
 {
     // Query the architecture ID
-    arch_t arch_id = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id_internal();
     bool is_mt = bli_thread_get_is_parallel();
     {
         // Pick the kernel based on the architecture ID

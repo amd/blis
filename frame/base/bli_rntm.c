@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2021 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2021 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -557,7 +557,7 @@ void bli_nthreads_optimum(
 		dim_t k = bli_obj_width_after_trans(a);
 
 		// Query the architecture ID
-		arch_t arch_id = bli_arch_query_id();
+		arch_t arch_id = bli_arch_query_id_internal();
 
 		if(arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
 		{
@@ -1209,7 +1209,7 @@ void bli_nthreads_optimum(
 		dim_t k = bli_obj_width_after_trans(a);
 
 		// Query the architecture ID
-		arch_t arch_id = bli_arch_query_id();
+		arch_t arch_id = bli_arch_query_id_internal();
 
 		if( arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4 )
 		{
@@ -1643,7 +1643,7 @@ void bli_nthreads_optimum(
 		dim_t k = bli_obj_width_after_trans(a);
 
 		// Query the architecture ID
-		arch_t arch_id = bli_arch_query_id();
+		arch_t arch_id = bli_arch_query_id_internal();
 
 		if( arch_id == BLIS_ARCH_ZEN5 )
 		{
@@ -2255,7 +2255,7 @@ void bli_nthreads_optimum(
 		dim_t n = bli_obj_width(c);
 
 		// Query the architecture ID
-		arch_t arch_id = bli_arch_query_id();
+		arch_t arch_id = bli_arch_query_id_internal();
 
 		if (arch_id == BLIS_ARCH_ZEN5)
 		{

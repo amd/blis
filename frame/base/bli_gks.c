@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2018 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -519,10 +519,10 @@ cntx_t* bli_gks_query_nat_cntx( void )
 
 	// Return the address of the native context for the architecture id
 	// corresponding to the current hardware, as determined by
-	// bli_arch_query_id().
+	// bli_arch_query_id_internal().
 
 	// Query the architecture id.
-	arch_t arch_id = bli_arch_query_id();
+	arch_t arch_id = bli_arch_query_id_internal();
 
 	// Use the architecture id to look up a pointer to its context.
 	cntx_t* cntx = bli_gks_lookup_nat_cntx( arch_id );
@@ -538,7 +538,7 @@ cntx_t* bli_gks_query_cntx_noinit( void )
 	// does not call bli_init_once().
 
 	// Query the architecture id.
-	arch_t arch_id = bli_arch_query_id();
+	arch_t arch_id = bli_arch_query_id_internal();
 
 	// Use the architecture id to look up a pointer to its context.
 	cntx_t* cntx = bli_gks_lookup_nat_cntx( arch_id );
@@ -566,7 +566,7 @@ cntx_t* bli_gks_query_ind_cntx
 	// Return the address of a context that will be suited for executing a
 	// level-3 operation via the requested induced method (and datatype) for
 	// the architecture id corresponding to the current hardware, as
-	// determined by bli_arch_query_id().
+	// determined by bli_arch_query_id_internal().
 
 	// This function is called when a level-3 operation via induced method is
 	// called, e.g. bli_gemm1m(). If this is the first time that induced method
@@ -577,7 +577,7 @@ cntx_t* bli_gks_query_ind_cntx
 	// ensure thread safety and deterministic behavior.
 
 	// Query the architecture id.
-	arch_t arch_id = bli_arch_query_id();
+	arch_t arch_id = bli_arch_query_id_internal();
 
 	// Sanity check: verify that the arch_t id is valid.
 	if ( bli_error_checking_is_enabled() )
@@ -658,7 +658,7 @@ void bli_gks_init_ref_cntx
     )
 {
 	// Query the architecture id.
-	arch_t arch_id = bli_arch_query_id();
+	arch_t arch_id = bli_arch_query_id_internal();
 
 	// Sanity check: verify that the arch_t id is valid.
 	if ( bli_error_checking_is_enabled() )
@@ -687,7 +687,7 @@ bool bli_gks_cntx_l3_nat_ukr_is_ref
 	cntx_t ref_cntx;
 
 	// Initialize a context with reference kernels for the arch_t id queried
-	// via bli_arch_query_id().
+	// via bli_arch_query_id_internal().
 	bli_gks_init_ref_cntx( &ref_cntx );
 
 	// Query each context for the micro-kernel function pointer for the
@@ -779,7 +779,7 @@ kimpl_t bli_gks_l3_ukr_impl_type( l3ukr_t ukr, ind_t method, num_t dt )
 		cntx_t ref_cntx_l;
 
 		// Query the architecture id.
-		arch_t arch_id = bli_arch_query_id();
+		arch_t arch_id = bli_arch_query_id_internal();
 
 		// Sanity check: verify that the arch_t id is valid.
 		if ( bli_error_checking_is_enabled() )

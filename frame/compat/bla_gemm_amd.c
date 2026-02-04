@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2019 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2019 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -42,7 +42,7 @@
 
     #define GEMM_BLIS_IMPL(ch, blasname) \
         PASTEF77S(ch,blasname) ( transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc ); \
-        arch_t arch_id = bli_arch_query_id(); \
+        arch_t arch_id = bli_arch_query_id_internal(); \
         if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4) \
         { \
             bli_zero_zmm(); \
@@ -684,7 +684,7 @@ void dgemm_blis_impl
         err_t k1_status = BLIS_FAILURE;
 
         // Query the architecture ID
-        arch_t arch_id = bli_arch_query_id();
+        arch_t arch_id = bli_arch_query_id_internal();
 
         if ( arch_id == BLIS_ARCH_ZEN || arch_id == BLIS_ARCH_ZEN2 ||
              arch_id == BLIS_ARCH_ZEN3 )
@@ -821,7 +821,7 @@ void dgemm_blis_impl
     bool entry_to_small = false;
     /* AVX512 GEMM tiny path is performant enough to handle small skinny inputs on ZEN4/5 */
     /* AVX2 gemm_small path is invoked on ZEN/2/3 only */
-    arch_t arch_id = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id_internal();
 
     if( arch_id == BLIS_ARCH_ZEN3 || arch_id == BLIS_ARCH_ZEN2 || arch_id == BLIS_ARCH_ZEN )
     {
@@ -929,7 +929,7 @@ void dgemm_
 {
     dgemm_blis_impl(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
 #if defined(BLIS_KERNELS_ZEN4)
-    arch_t arch_id = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id_internal();
     if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
     {
         bli_zero_zmm();
@@ -1179,7 +1179,7 @@ void zgemm_blis_impl
         err_t k1_status = BLIS_FAILURE;
 
         // Query the architecture ID
-        arch_t arch_id = bli_arch_query_id();
+        arch_t arch_id = bli_arch_query_id_internal();
 
         if ( arch_id == BLIS_ARCH_ZEN || arch_id == BLIS_ARCH_ZEN2 ||
              arch_id == BLIS_ARCH_ZEN3 )
@@ -1335,7 +1335,7 @@ void zgemm_blis_impl
 #endif
 
     /* Query the architecture ID */
-    arch_t arch_id = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id_internal();
 
     /* Boolean to track the entry to small path */
     bool entry_to_small = false;
@@ -1491,7 +1491,7 @@ void zgemm_
 {
     zgemm_blis_impl(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
 #if defined(BLIS_KERNELS_ZEN4)
-    arch_t arch_id = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id_internal();
     if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
     {
         bli_zero_zmm();
@@ -1741,7 +1741,7 @@ void cgemm_blis_impl
     if( ( k0 == 1 ) && bli_is_notrans( blis_transa ) && bli_is_notrans( blis_transb ) )
     {
         // Query the architecture ID
-        arch_t arch_id = bli_arch_query_id();
+        arch_t arch_id = bli_arch_query_id_internal();
 
         if ( ( arch_id == BLIS_ARCH_ZEN4 ) || ( arch_id == BLIS_ARCH_ZEN5 ) )
         {
@@ -1887,7 +1887,7 @@ void cgemm_
 {
     cgemm_blis_impl(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
 #if defined(BLIS_KERNELS_ZEN4)
-    arch_t arch_id = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id_internal();
     if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
     {
         bli_zero_zmm();
@@ -2170,7 +2170,7 @@ void sgemm_
 { 
         sgemm_blis_impl(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
 #if defined(BLIS_KERNELS_ZEN4)
-    arch_t arch_id = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id_internal();
     if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
     {
         bli_zero_zmm();
@@ -2340,7 +2340,7 @@ void dzgemm_
 {
     dzgemm_blis_impl( transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc );
 #if defined(BLIS_KERNELS_ZEN4)
-    arch_t arch_id = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id_internal();
     if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
     {
         bli_zero_zmm();

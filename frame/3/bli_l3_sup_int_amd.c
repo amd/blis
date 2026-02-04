@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2019 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2019 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -139,7 +139,7 @@ err_t bli_gemmsup_int
 	  //Enable packing of B matrix for double data type when dims at per
 	  //thread level are above caches and enable packing of A when transA
 	  //(RRC or CRC storage ids) to avoid rd kernels
-	  if(bli_is_double(dt) && (bli_arch_query_id() == BLIS_ARCH_ZEN3))
+	  if(bli_is_double(dt) && (bli_arch_query_id_internal() == BLIS_ARCH_ZEN3))
 	  {
 		  dim_t m_pt = (m/bli_rntm_ways_for( BLIS_MC, rntm ));
 		  dim_t n_pt = (n/bli_rntm_ways_for( BLIS_NC, rntm ));
@@ -217,7 +217,7 @@ err_t bli_gemmsup_int
 	  //Enable packing of B matrix for double data type when dims at per
 	  //thread level are above caches and enable packing of A when transA
 	  //(RRC or CRC storage ids) to avoid rd kernels
-	  if(bli_is_double(dt) && (bli_arch_query_id() == BLIS_ARCH_ZEN3))
+	  if(bli_is_double(dt) && (bli_arch_query_id_internal() == BLIS_ARCH_ZEN3))
 	  {
 		  dim_t m_pt = (m/bli_rntm_ways_for( BLIS_NC, rntm ));
 		  dim_t n_pt = (n/bli_rntm_ways_for( BLIS_MC, rntm ));
@@ -427,7 +427,7 @@ err_t bli_gemmtsup_int
 
 		/* Enable packing for A matrix for higher sizes. Note that pack A
 		 * * becomes pack B inside var2m because this is transpose case*/
-		arch_t arch_id = bli_arch_query_id();
+		arch_t arch_id = bli_arch_query_id_internal();
 		/* Do not pack A for ZEN4 and ZEN5 because the GEMM kernels
 		 * used are column major and GEMMT kernels used are row major.
 		 * Packing matrix A makes matrix B in the GEMMT kernels column

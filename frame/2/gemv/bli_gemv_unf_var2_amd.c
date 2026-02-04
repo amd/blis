@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2020 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2020 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -271,7 +271,7 @@ void bli_dgemv_unf_var2 (
       the support of AVX512 or AVX2, if AVX512 - arch_id will be zen4
       or for AVX2 it will be zen3.
     */
-    arch_t arch_id = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id_internal();
 
     // b_fuse stores the fusing factor for AXPYF kernel.
     dim_t b_fuse;
@@ -707,7 +707,7 @@ void bli_zgemv_unf_var2
   conja = bli_extract_conj(transa);
 
   // Query the architecture ID
-  arch_t arch_id = bli_arch_query_id();
+  arch_t arch_id = bli_arch_query_id_internal();
 
   /*
     Function pointer declaration for the functions

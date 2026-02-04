@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2022 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2022 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -168,7 +168,7 @@ void scopy_blis_impl
 	cntx_t *cntx = NULL;
 
 	// Query the architecture ID
-	arch_t arch_id = bli_arch_query_id();
+	arch_t arch_id = bli_arch_query_id_internal();
 
 	// Function pointer declaration for the function
 	// that will be used by this API
@@ -290,7 +290,7 @@ void dcopy_blis_impl
 	cntx_t *cntx = NULL;
 
 	// Query the architecture ID
-	arch_t arch_id = bli_arch_query_id();
+	arch_t arch_id = bli_arch_query_id_internal();
 
 	// Function pointer declaration for the function
 	// that will be used by this API
@@ -552,7 +552,7 @@ void zcopy_blis_impl
 	cntx_t *cntx = NULL;
 
 	// Query the architecture ID
-	arch_t arch_id = bli_arch_query_id();
+	arch_t arch_id = bli_arch_query_id_internal();
 
 	// Function pointer declaration for the function
 	// that will be used by this API

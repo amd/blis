@@ -35,7 +35,6 @@
 //#ifndef BLIS_FAMILY_H
 //#define BLIS_FAMILY_H
 
-
 // -- MEMORY ALLOCATION --------------------------------------------------------
 
 #define BLIS_SIMD_ALIGN_SIZE 16

@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2022 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2022 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -240,7 +240,7 @@ AOCL_GEMM_MATMUL(bfloat16,bfloat16,float,float,bf16bf16f32of32)
 	*  as the tiny path for BF16->FP32 is not available. Hence the arch_id also has to be
 	*  verified here.
 	*/
-	arch_t arch_id =  bli_arch_query_id();
+	arch_t arch_id =  bli_arch_query_id_internal();
 	if( ( bli_cpuid_is_avx512bf16_supported() == TRUE ) && ( ( arch_id == BLIS_ARCH_ZEN4 ) || ( arch_id == BLIS_ARCH_ZEN5 ) ) &&
 		 ( is_tiny_input_bf16of32( m, n, k, lcntx_g ) == TRUE ) &&
 		 ( is_single_thread( &rntm_g ) == TRUE) &&

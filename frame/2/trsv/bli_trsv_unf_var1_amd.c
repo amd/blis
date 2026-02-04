@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2019 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2019 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -304,7 +304,7 @@ void bli_dtrsv_unf_var1
     if (bli_cpuid_is_avx2fma3_supported() == TRUE) {
 
         // Query the architecture ID
-        arch_t arch_id = bli_arch_query_id();
+        arch_t arch_id = bli_arch_query_id_internal();
 
         switch ( arch_id )
         {
