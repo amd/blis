@@ -35,6 +35,10 @@
 #include "immintrin.h"
 #include "blis.h"
 
+#ifdef BLIS_ENABLE_OPENMP
+#include <omp.h>
+#endif
+
 #if defined __clang__
     #define UNROLL_LOOP_FULL() _Pragma("clang loop unroll(full)")
 #elif defined __GNUC__

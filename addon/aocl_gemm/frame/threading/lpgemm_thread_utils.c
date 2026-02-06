@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2024 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2024 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -34,6 +34,10 @@
 
 #include "blis.h"
 #include "lpgemm_thread_utils.h"
+
+#ifdef BLIS_ENABLE_OPENMP
+#include <omp.h>
+#endif
 
 static bli_pthread_once_t once_check_lpgemm_thread_topo_init = BLIS_PTHREAD_ONCE_INIT;
 

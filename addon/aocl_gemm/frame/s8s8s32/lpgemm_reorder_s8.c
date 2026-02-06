@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -38,6 +38,10 @@
 #include "lpgemm_packa_s8.h"
 #include "lpgemm_packb_s8.h"
 #include "lpgemm_config.h"
+
+#ifdef BLIS_ENABLE_OPENMP
+#include <omp.h>
+#endif
 
 void unreorderb_nr64_s8s8s32os32_reference
     (

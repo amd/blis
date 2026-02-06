@@ -35,6 +35,10 @@
 
 #include "blis.h"
 
+#ifdef BLIS_ENABLE_OPENMP
+#include <omp.h>
+#endif
+
 // Enable fast path for small GEMV problems when AOCL_DYNAMIC is defined.
 #if defined(AOCL_DYNAMIC)
   // Fast path is enabled if the total problem size is below a threshold,

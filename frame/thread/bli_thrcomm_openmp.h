@@ -39,8 +39,6 @@
 // Define thrcomm_t for situations when OpenMP multithreading is enabled.
 #ifdef BLIS_ENABLE_OPENMP
 
-#include <omp.h>
-
 // Define thrcomm_t for tree barriers and non-tree barriers.
 #ifdef BLIS_TREE_BARRIER
 struct barrier_s

@@ -35,6 +35,9 @@
 #include "immintrin.h"
 #include "blis.h"
 
+#ifdef BLIS_ENABLE_OPENMP
+#include <omp.h>
+#endif
 
 // #define INTERLEAVE_LOAD_FMA // enable interleave load and FMA for A matrix
 

@@ -5,6 +5,7 @@
    libraries.
 
    Copyright (C) 2021, The University of Texas at Austin
+   Copyright (C) 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -35,6 +36,8 @@
 #include "blis.h"
 
 #ifdef BLIS_ENABLE_OPENMP
+
+#include <omp.h>
 
 // Define a dummy thread entry function, which is needed in the pthreads
 // version, so that when building Windows DLLs (with OpenMP enabled or with

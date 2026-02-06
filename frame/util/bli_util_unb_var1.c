@@ -36,6 +36,10 @@
 #include "blis.h"
 #include <fenv.h>
 
+#ifdef BLIS_ENABLE_OPENMP
+#include <omp.h>
+#endif
+
 //
 // Define BLAS-like interfaces with typed operands.
 //

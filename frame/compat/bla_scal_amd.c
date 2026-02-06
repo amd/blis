@@ -35,6 +35,10 @@
 
 #include "blis.h"
 
+#ifdef BLIS_ENABLE_OPENMP
+#include <omp.h>
+#endif
+
 /*
   Early return conditions
   ------------------------
