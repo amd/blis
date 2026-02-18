@@ -597,21 +597,23 @@ bool bli_arch_get_logging( void )
 
 void bli_arch_log( char* fmt, ... )
 {
-	char prefix[] = "libblis: ";
-	int  n_chars  = strlen( prefix ) + strlen( fmt ) + 1;
-
 	if ( bli_arch_get_logging() && fmt )
 	{
+		char prefix[] = "libblis: ";
+		int  n_chars  = strlen( prefix ) + strlen( fmt ) + 1;
 		char* prefix_fmt = malloc( n_chars );
+		
+		if (prefix_fmt != NULL)
+		{
+			snprintf( prefix_fmt, n_chars, "%s%s", prefix, fmt );
 
-		snprintf( prefix_fmt, n_chars, "%s%s", prefix, fmt );
+			va_list ap;
+			va_start( ap, fmt );
+			vfprintf( stderr, prefix_fmt, ap );
+			va_end( ap );
 
-		va_list ap;
-		va_start( ap, fmt );
-		vfprintf( stderr, prefix_fmt, ap );
-		va_end( ap );
-
-		free( prefix_fmt );
+			free( prefix_fmt );
+		}
 	}
 }
 
