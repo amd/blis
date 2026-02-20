@@ -4,7 +4,7 @@
 #  An object-based framework for developing high-performance BLAS-like
 #  libraries.
 #
-#  Copyright (C) 2021 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+#  Copyright (C) 2021 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 #
 #  Redistribution and use in source and binary forms, with or without
 #  modification, are permitted provided that the following conditions are
@@ -70,6 +70,41 @@ else ifeq ($(CC_VENDOR),clang)
 else
   $(error gcc or clang are required for this configuration.)
 endif
+
+ifeq ($(CC_VENDOR),clang)
+  # But also set these in case we are using upstream LLVM clang
+  VENDOR_STRING := $(strip $(shell ${CC_VENDOR} --version | egrep -o '[0-9]+\.[0-9]+\.?[0-9]*'))
+  CC_MAJOR := $(shell (echo ${VENDOR_STRING} | cut -d. -f1))
+  # Detect whether this is AOCC from the compiler version string
+  CLANG_VERSION_STRING := $(strip $(shell $(CC) --version 2>&1 | head -1))
+  # Extract if the compiler is AOCC
+  IS_AOCC := $(findstring AOCC,$(CLANG_VERSION_STRING))
+  AOCC_VERSION_STRING :=
+  ifneq ($(IS_AOCC),)
+    # AOCC detected - extract version string
+    # Try to match AOCC_x.y.z format first, then remove AOCC_ prefix if found
+    AOCC_VERSION_STRING := $(strip $(shell $(CC) --version 2>&1 | grep -oE 'AOCC_[0-9]+\.[0-9]+\.[0-9]+' | head -1 | sed 's/AOCC_//'))
+    # If AOCC_x.y.z not found, try AOCC_x_y_z format
+    ifeq ($(AOCC_VERSION_STRING),)
+      AOCC_VERSION_STRING := $(strip $(shell $(CC) --version 2>&1 | grep -oE 'AOCC_[0-9]+_[0-9]+_[0-9]+' | head -1 | sed 's/AOCC_//'))
+      # Replace underscores with dots in the version string
+      AOCC_VERSION_STRING := $(shell echo $(AOCC_VERSION_STRING) | sed 's/_/./g')
+    endif
+    # If AOCC_x.y.z or AOCC_x_y_z not found, try AOCC.LLVM.x.y.z format
+    ifeq ($(AOCC_VERSION_STRING),)
+      AOCC_VERSION_STRING := $(strip $(shell $(CC) --version 2>&1 | grep -oE 'AOCC\.LLVM\.[0-9]+\.[0-9]+\.[0-9]+' | head -1 | sed 's/AOCC\.LLVM\.//'))
+    endif
+    # If AOCC detected but no version extracted, hard fail
+    ifeq ($(AOCC_VERSION_STRING),)
+      $(error Could not extract AOCC version from clang version string: $(CLANG_VERSION_STRING))
+    endif
+    
+    # Extract major version number from AOCC version
+    AOCC_MAJOR := $(shell (echo ${AOCC_VERSION_STRING} | cut -d. -f1))
+  endif
+  
+  #$(error Detected AOCC compiler version $(AOCC_VERSION_STRING), major version $(AOCC_MAJOR), clang version $(VENDOR_STRING), CC_MAJOR $(CC_MAJOR))
+endif # clang
 
 # Flags specific to reference kernels.
 CROPTFLAGS     := $(CKOPTFLAGS)
