@@ -168,7 +168,9 @@ err_t lpgemm_translate_to_group_postops_list
 			    ( ( post_op_unparsed->b_scl)->scale_factor == NULL ) ) return BLIS_FAILURE;
 		}
 
-		if( ( ( post_op_unparsed->a_scl )->scale_factor_type ) != ( ( post_op_unparsed->b_scl )->scale_factor_type ) )
+		if ( ( post_op_unparsed->a_scl != NULL ) &&
+		     ( post_op_unparsed->b_scl != NULL ) &&
+		     ( ( post_op_unparsed->a_scl )->scale_factor_type ) != ( ( post_op_unparsed->b_scl )->scale_factor_type ) )
 		{
 			bli_print_msg(" A and B scale factor type mismatch. Exiting..", __FILE__, __LINE__ );
 			return BLIS_FAILURE;
