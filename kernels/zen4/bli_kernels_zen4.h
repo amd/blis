@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2022 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2022 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -218,18 +218,33 @@ GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_6x64m )
 GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_6x48m )
 GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_6x32m )
 GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_6x16m )
-GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_4x64m )
-GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_4x48m )
-GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_4x32m )
-GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_4x16m )
-GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_2x64m )
-GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_2x48m )
-GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_2x32m )
-GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_2x16m )
-GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_1x64m )
-GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_1x48m )
-GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_1x32m )
-GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_1x16m )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_4x64 )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_4x48 )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_4x32 )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_4x16 )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_2x64 )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_2x48 )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_2x32 )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_2x16 )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_1x64 )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_1x48 )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_1x32 )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_1x16 )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_6x16m_mask )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_4x16_mask )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_2x16_mask )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_1x16_mask )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_6x8m_mask )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_4x8_mask )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_2x8_mask )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_1x8_mask )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_6x4m_mask )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_5x4_mask )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_4x4_mask )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_3x4_mask )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_2x4_mask )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_1x4_mask )
+
 
 GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_6x64n )
 GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_5x64n )
@@ -244,6 +259,11 @@ GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_5x16 )
 GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_3x48 )
 GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_3x32 )
 GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_3x16 )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_5x16_mask )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_5x8_mask )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_3x16_mask )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen4_asm_3x8_mask )
+
 
 // sgemm rd sup
 GEMMSUP_KER_PROT( float,   s, gemmsup_rd_zen4_asm_6x64m )

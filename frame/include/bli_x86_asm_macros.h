@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2018, The University of Texas at Austin
-   Copyright (C) 2019 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2019 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -149,6 +149,19 @@
 #define ALIGN32 ".p2align 5 \n\t"
 #define ALIGN64 ".p2align 6 \n\t"
 
+
+// Each entry in a jump table needs to be specified in this macro
+#define TABLE_ENTRY(label) ".long" " " ".L" "." STRINGIFY_(label) "%=" "-" "." "\n\t"
+
+// Jump table macros - can accept variadic table entries
+// Use relative offsets (PC-relative) to avoid relocations in read-only sections
+#define JUMP_TABLE(table_label, ...) \
+    "." STRINGIFY_(table_label) "%=" ":" "\n\t" \
+    __VA_ARGS__
+
+#define table_entry(label) TABLE_ENTRY(label)
+#define jump_table(table_label, ...) JUMP_TABLE(table_label, __VA_ARGS__)
+
 #endif
 
 #define begin_asm() BEGIN_ASM()
@@ -272,6 +285,7 @@
 #define RBP REGISTER_(rbp)
 #define RDI REGISTER_(rdi)
 #define RSI REGISTER_(rsi)
+#define RIP REGISTER_(rip)
 #define R8 REGISTER_(r8)
 #define R9 REGISTER_(r9)
 #define R10 REGISTER_(r10)
@@ -289,6 +303,7 @@
 #define rbp RBP
 #define rdi RDI
 #define rsi RSI
+#define rip RIP
 #define r8 R8
 #define r9 R9
 #define r10 R10
@@ -520,19 +535,23 @@
 // MEM(rax,rsi,4,0x80) -> 0x80(%rax,%rsi,4) or [rax + rsi*4 + 0x80]
 
 #define MEM(...) GET_MACRO_(__VA_ARGS__,MEM_4_,MEM_3_,MEM_2_,MEM_1_)(__VA_ARGS__)
+#define MEM_1TO4(...) MEM(__VA_ARGS__) MASK_(1to4)
 #define MEM_1TO8(...) MEM(__VA_ARGS__) MASK_(1to8)
 #define MEM_1TO16(...) MEM(__VA_ARGS__) MASK_(1to16)
 #define MEM_BCAST(...) MEM(__VA_ARGS__) MASK_(b)
 
 #define mem(...) MEM(__VA_ARGS__)
+#define mem_1to4(...) MEM_1TO4(__VA_ARGS__)
 #define mem_1to8(...) MEM_1TO8(__VA_ARGS__)
 #define mem_1to16(...) MEM_1TO16(__VA_ARGS__)
 #define mem_bcast(...) MEM_BCAST(__VA_ARGS__)
 
+#define VAR_1TO4(...) VAR(__VA_ARGS__) MASK_(1to4)
 #define VAR_1TO8(...) VAR(__VA_ARGS__) MASK_(1to8)
 #define VAR_1TO16(...) VAR(__VA_ARGS__) MASK_(1to16)
 #define VAR_BCAST(...) VAR(__VA_ARGS__) MASK_(b)
 
+#define var_1to4(...) VAR_1TO4(__VA_ARGS__)
 #define var_1to8(...) VAR_1TO8(__VA_ARGS__)
 #define var_1to16(...) VAR_1TO16(__VA_ARGS__)
 #define var_bcast(...) VAR_BCAST(__VA_ARGS__)
@@ -624,6 +643,10 @@
 
 #define jmp(_0) JMP(_0)
 
+// Indirect jump through memory
+#define JMPI(_0) "jmp" " " "*" STRINGIFY_(_0) "\n\t"
+#define jmpi(_0) JMPI(_0)
+
 #define SETE(_0) INSTR_(sete, _0)
 #define SETZ(_0) SETE(_0)
 
@@ -670,11 +693,13 @@
 
 // Memory access
 
+#define LEA_RIP(label, reg) "lea" " " "." STRINGIFY_(label) "%=" "(%%rip)," STRINGIFY_(reg) "\n\t"
 #define LEA(_0, _1) INSTR_(lea, _0, _1)
 #define MOV(_0, _1) INSTR_(mov, _0, _1)
 #define MOVD(_0, _1) INSTR_(movd, _0, _1)
 #define MOVL(_0, _1) INSTR_(movl, _0, _1)
 #define MOVQ(_0, _1) INSTR_(movq, _0, _1)
+#define MOVSLQ(_0, _1) INSTR_(movslq, _0, _1)
 #define CMOVA(_0, _1) INSTR_(cmova, _0, _1)
 #define CMOVAE(_0, _1) INSTR_(cmovae, _0, _1)
 #define CMOVB(_0, _1) INSTR_(cmovb, _0, _1)
@@ -704,11 +729,13 @@
 #define CMOVNL(_0, _1) INSTR_(cmovnl, _0, _1)
 #define CMOVNLE(_0, _1) INSTR_(cmovnle, _0, _1)
 
+#define lea_rip(label, reg) LEA_RIP(label, reg)
 #define lea(_0, _1) LEA(_0, _1)
 #define mov(_0, _1) MOV(_0, _1)
 #define movd(_0, _1) MOVD(_0, _1)
 #define movl(_0, _1) MOVL(_0, _1)
 #define movq(_0, _1) MOVQ(_0, _1)
+#define movslq(_0, _1) MOVSLQ(_0, _1)
 #define cmova(_0, _1) CMOVA(_0, _1)
 #define cmovae(_0, _1) CMOVAE(_0, _1)
 #define cmovb(_0, _1) CMOVB(_0, _1)
