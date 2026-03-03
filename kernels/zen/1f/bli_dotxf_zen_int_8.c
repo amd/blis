@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2018, The University of Texas at Austin
-   Copyright (C) 2017 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2017 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -35,6 +35,53 @@
 
 #include "immintrin.h"
 #include "blis.h"
+
+/* AVX2 helper to horizontally add packed single-precision (32-bit) floats.
+    Reduce the packed single-precision (32-bit) floating-point elements in x by addition.
+    Returns the sum of all elements in x.
+
+    x = [x7 x6 x5 x4 x3 x2 x1 x0] <- LS
+    xu = __mm256_extractf128_ps( x ,1)
+    xu = [x7 x6 x5 x4]
+
+    xl = _mm256_castps256_ps128(x)
+    xl = [x3 x2 x1 x0]
+
+	x128 = xu + xl
+    [x3+x7, x2+x6, x1+x5, x0+x4]
+
+	If we index elements as a = {a0, a1, a2, a3} and b = {b0, b1, b2, b3}, then:
+    _mm_movehl_ps(a, b) → { b2, b3, a2, a3 }
+    __m128 y = _mm_movhl_ps(x128, x128)
+    y128 = [x3+x7, x2+x6, x3+x7, x2+x6]
+
+	__m128 x64 = x128 + y128
+    [., ., x1+x5+x3+x7, x0+x4+x2+x6]
+
+	x = { x0, x1, x2, x3 }
+    _mm_shuffle_ps(x, x, 0x55) → { x1, x1, x1, x1 }
+    xsh = _mm_shuffle_ps(x64, ...)
+    __m128 xsh = [x1+x5+x3+x7, x1+x5+x3+x7,x1+x5+x3+x7, x1+x5+x3+x7]
+    __m128 x32 = x64 + xsh
+
+	= [... x0+x4+x2+x6 + x1 + x5+ x3+x7]
+
+	x = { x0, x1, x2, x3 }
+    float f = _mm_cvtss_f32(x); // f = x0
+
+	only the lowest 32-bit float is used - the other three elements are ignored.
+*/
+static inline float _mm256_reduce_add_ps(__m256 x)
+{
+    /* ( x3+x7, x2+x6, x1+x5, x0+x4 ) */
+    const __m128 x128 = _mm_add_ps(_mm256_extractf128_ps(x, 1), _mm256_castps256_ps128(x));
+    /* ( -, -, x1+x3+x5+x7, x0+x2+x4+x6 ) */
+    const __m128 x64 = _mm_add_ps(x128, _mm_movehl_ps(x128, x128));
+    /* ( -, -, -, x0+x1+x2+x3+x4+x5+x6+x7 ) */
+    const __m128 x32 = _mm_add_ss(x64, _mm_shuffle_ps(x64, x64, 0x55));
+    /* Conversion to float is a no-op */
+    return _mm_cvtss_f32(x32);
+}
 
 /* Union data structure to access AVX registers
    One 256-bit AVX register holds 8 SP elements. */
@@ -140,8 +187,14 @@ void bli_sdotxf_zen_int_8
 	// distinguishes between (1) and (2).
 
 	// Intermediate variables to hold the completed dot products
-    float rho0 = 0, rho1 = 0, rho2 = 0, rho3 = 0,
-	      rho4 = 0, rho5 = 0, rho6 = 0, rho7 = 0;
+    float rho0 = 0;
+    float rho1 = 0;
+    float rho2 = 0;
+    float rho3 = 0;
+    float rho4 = 0;
+    float rho5 = 0;
+    float rho6 = 0;
+    float rho7 = 0;
 
 	if ( inca == 1 && incx == 1 )
 	{
@@ -211,28 +264,16 @@ void bli_sdotxf_zen_int_8
 			a6 += n_elem_per_reg * n_iter_unroll;
 			a7 += n_elem_per_reg * n_iter_unroll;
 		}
-		
-		// Now we need to sum the elements within each vector.
-		// Sum the elements of a given rho?v with hadd.
 
-		rho0v.v = _mm256_hadd_ps( rho0v.v, rho1v.v);
-		rho1v.v = _mm256_hadd_ps( rho2v.v, rho3v.v);
-		rho2v.v = _mm256_hadd_ps( rho4v.v, rho5v.v);
-		rho3v.v = _mm256_hadd_ps( rho6v.v, rho7v.v);
-		rho0v.v = _mm256_hadd_ps( rho0v.v, rho0v.v);
-		rho1v.v = _mm256_hadd_ps( rho1v.v, rho1v.v);
-		rho2v.v = _mm256_hadd_ps( rho2v.v, rho2v.v);
-		rho3v.v = _mm256_hadd_ps( rho3v.v, rho3v.v);
-
-		// Manually add the results from above to finish the sum.
-		rho0    = rho0v.f[0] + rho0v.f[4];
-		rho1    = rho0v.f[1] + rho0v.f[5];
-		rho2    = rho1v.f[0] + rho1v.f[4];
-		rho3    = rho1v.f[1] + rho1v.f[5];
-		rho4    = rho2v.f[0] + rho2v.f[4];
-		rho5    = rho2v.f[1] + rho2v.f[5];
-		rho6    = rho3v.f[0] + rho3v.f[4];
-		rho7    = rho3v.f[1] + rho3v.f[5];
+		// Add the results from above to scalars.
+		rho0    = _mm256_reduce_add_ps(rho0v.v);
+		rho1    = _mm256_reduce_add_ps(rho1v.v);
+		rho2    = _mm256_reduce_add_ps(rho2v.v);
+		rho3    = _mm256_reduce_add_ps(rho3v.v);
+		rho4    = _mm256_reduce_add_ps(rho4v.v);
+		rho5    = _mm256_reduce_add_ps(rho5v.v);
+		rho6    = _mm256_reduce_add_ps(rho6v.v);
+		rho7    = _mm256_reduce_add_ps(rho7v.v);
 
 		// Adjust for scalar subproblem.
 		m -= n_elem_per_reg * n_iter_unroll * m_viter;
@@ -308,6 +349,18 @@ void bli_sdotxf_zen_int_8
 		// No vectorization possible; use scalar iterations for the entire
 		// problem.
 	}
+	// fails in gcc 11 because of a compiler bug, despite the accumulation
+	// rho being in non vector registers(rho0 to rho7), vzeroupper is clearing
+	// these variables. Most likely a compiler bug. Therefore vzeroupper
+	// is commented out.
+	// Known related GCC bugs to reference
+    //    GCC Bug #56812 — incorrect code with vzeroupper and register allocation
+    //    GCC Bug #95483 — vzeroupper clobbers live values
+    //    GCC Bug #101617 — wrong code generation with AVX intrinsics and transitions
+	// _mm256_zeroupper();
+
+	v8sf_t rho0v;
+	v8sf_t y0v;
 
 	// Scalar edge case.
 	{
@@ -322,28 +375,27 @@ void bli_sdotxf_zen_int_8
 		float* restrict a6 = a + 6*lda;
 		float* restrict a7 = a + 7*lda;
 
-		// If there are leftover iterations, perform them with scalar code.
-		for ( dim_t i = 0; i < m ; ++i )
+		__m128 v_rho0 = _mm_set_ss(rho0);
+		__m128 v_rho1 = _mm_set_ss(rho1);
+		__m128 v_rho2 = _mm_set_ss(rho2);
+		__m128 v_rho3 = _mm_set_ss(rho3);
+		__m128 v_rho4 = _mm_set_ss(rho4);
+		__m128 v_rho5 = _mm_set_ss(rho5);
+		__m128 v_rho6 = _mm_set_ss(rho6);
+		__m128 v_rho7 = _mm_set_ss(rho7);
+
+		for ( dim_t i = 0; i < m; ++i )
 		{
-			const float x0c = *x0;
+			__m128 v_x0c = _mm_set_ss(*x0);
 
-			const float a0c = *a0;
-			const float a1c = *a1;
-			const float a2c = *a2;
-			const float a3c = *a3;
-			const float a4c = *a4;
-			const float a5c = *a5;
-			const float a6c = *a6;
-			const float a7c = *a7;
-
-			rho0 += a0c * x0c;
-			rho1 += a1c * x0c;
-			rho2 += a2c * x0c;
-			rho3 += a3c * x0c;
-			rho4 += a4c * x0c;
-			rho5 += a5c * x0c;
-			rho6 += a6c * x0c;
-			rho7 += a7c * x0c;
+			v_rho0 = _mm_fmadd_ss(_mm_set_ss(*a0), v_x0c, v_rho0);
+			v_rho1 = _mm_fmadd_ss(_mm_set_ss(*a1), v_x0c, v_rho1);
+			v_rho2 = _mm_fmadd_ss(_mm_set_ss(*a2), v_x0c, v_rho2);
+			v_rho3 = _mm_fmadd_ss(_mm_set_ss(*a3), v_x0c, v_rho3);
+			v_rho4 = _mm_fmadd_ss(_mm_set_ss(*a4), v_x0c, v_rho4);
+			v_rho5 = _mm_fmadd_ss(_mm_set_ss(*a5), v_x0c, v_rho5);
+			v_rho6 = _mm_fmadd_ss(_mm_set_ss(*a6), v_x0c, v_rho6);
+			v_rho7 = _mm_fmadd_ss(_mm_set_ss(*a7), v_x0c, v_rho7);
 
 			x0 += incx;
 			a0 += inca;
@@ -355,22 +407,17 @@ void bli_sdotxf_zen_int_8
 			a6 += inca;
 			a7 += inca;
 		}
+
+		// Insert the scalar rho values into a single vector.
+		rho0v.f[0] = _mm_cvtss_f32(v_rho0);
+		rho0v.f[1] = _mm_cvtss_f32(v_rho1);
+		rho0v.f[2] = _mm_cvtss_f32(v_rho2);
+		rho0v.f[3] = _mm_cvtss_f32(v_rho3);
+		rho0v.f[4] = _mm_cvtss_f32(v_rho4);
+		rho0v.f[5] = _mm_cvtss_f32(v_rho5);
+		rho0v.f[6] = _mm_cvtss_f32(v_rho6);
+		rho0v.f[7] = _mm_cvtss_f32(v_rho7);
 	}
-
-	// Now prepare the final rho values to output/accumulate back into
-	// the y vector.
-
-	v8sf_t rho0v, y0v;
-
-	// Insert the scalar rho values into a single vector.
-	rho0v.f[0] = rho0;
-	rho0v.f[1] = rho1;
-	rho0v.f[2] = rho2;
-	rho0v.f[3] = rho3;
-	rho0v.f[4] = rho4;
-	rho0v.f[5] = rho5;
-	rho0v.f[6] = rho6;
-	rho0v.f[7] = rho7;
 
 	// Broadcast the alpha scalar.
 	v8sf_t alphav; alphav.v = _mm256_broadcast_ss( alpha );
