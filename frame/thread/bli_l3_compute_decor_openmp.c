@@ -114,12 +114,37 @@ void bli_l3_compute_thread_decorator
           thread
         );
 
-        // NOTE: The barrier here is very important as it prevents memory being
-		// released by the chief of some thread sub-group before its peers are done
-		// using it. See PR #702 for more info [1].
-		// [1] https://github.com/flame/blis/pull/702
-    	bli_thread_barrier( thread );
-        // Free the current thread's thrinfo_t structure
+        // NOTE: Unlike the conventional path (bli_l3_decor_openmp.c), no
+	      // barrier is needed here before freeing the thrinfo_t tree. The
+	      // conventional path requires a barrier (see PR #702 [1]) because
+	      // pack buffers are cached in the control tree (cntl_t->pack_mem)
+	      // and freed in the decorator; a fast chief could release a pack
+	      // buffer back to the PBA pool while slower peers still read it.
+	      // In the sup path this cannot happen for three reasons:
+	      //
+	      // 1. Pack buffers are stack-local (mem_t in var2m) and freed
+	      //    inside func() by packm_sup_finalize_mem_a()/packm_sup_finalize_mem_b(),
+	      //    which run after internal loop barriers — never in this decorator.
+	      //
+	      // 2. The global communicator (gl_comm) is freed outside the
+	      //    parallel region (below), protected by the implicit OpenMP
+	      //    barrier at the end of the parallel construct.
+	      //
+	      // 3. Sub-group communicators (when packa/packb is enabled) are
+	      //    freed only by the ochief thread. Non-chief threads never
+	      //    dereference the shared communicator during bli_thrinfo_free
+	      //    — they only read thread-local fields (ocomm_id, free_comm).
+	      //    When neither matrix is packed, no sub-communicators exist
+	      //    (ocomm=NULL, free_comm=FALSE).
+	      //
+	      // Removing this barrier avoids a ~10% DGEMM regression at high
+	      // thread counts (e.g. 96 threads) caused by the custom spin-wait
+	      // barrier implementation being much slower than the OpenMP
+	      // runtime's optimized barrier.
+	      //
+	      // [1] https://github.com/flame/blis/pull/702
+	      //
+	      // Free the current thread's thrinfo_t structure.
         bli_l3_sup_thrinfo_free( rntm_p, thread );
     }
 
