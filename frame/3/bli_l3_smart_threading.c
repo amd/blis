@@ -252,7 +252,7 @@ static err_t bli_gemm_ic_jc_optimum_sup_arch_dispatcher
 				    max_available_nt, cntx, rntm
 				  );
 	}
-	else if ( arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4 )
+	else if ( arch_id == BLIS_ARCH_ZEN6 || arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4 )
 	{
 		ret_val = bli_gemm_ic_jc_optimum_sup_zen4
 				  (

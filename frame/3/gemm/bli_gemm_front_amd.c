@@ -320,6 +320,7 @@ void bli_gemm_front
 	{
 		switch (bli_arch_query_id_internal() )
 		{
+		case BLIS_ARCH_ZEN6:
 		case BLIS_ARCH_ZEN5:
 		#if defined(BLIS_KERNELS_ZEN5)
 			cntx_copy = *cntx; // create a copy of cntx.

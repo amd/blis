@@ -45,7 +45,7 @@
     #define TRSM_BLIS_IMPL(ch, blasname) \
         PASTEF77S(ch,blasname) ( side, uploa, transa, diaga, m, n, alpha, a, lda, b, ldb ); \
         arch_t arch_id = bli_arch_query_id_internal(); \
-        if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4) \
+        if (arch_id == BLIS_ARCH_ZEN6 || arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4) \
         { \
             bli_zero_zmm(); \
         } \
@@ -848,7 +848,7 @@ void strsm_
     strsm_blis_impl ( side, uploa, transa, diaga, m, n, alpha, a, lda, b, ldb );
 #if defined(BLIS_KERNELS_ZEN4)
     arch_t arch_id = bli_arch_query_id_internal();
-    if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
+    if (arch_id == BLIS_ARCH_ZEN6 || arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
     {
         bli_zero_zmm();
     }
@@ -1158,6 +1158,7 @@ void dtrsm_blis_impl
         bool is_parallel = bli_thread_get_is_parallel();
         switch ( arch_id )
         {
+            case BLIS_ARCH_ZEN6:
             case BLIS_ARCH_ZEN5:
 #if defined(BLIS_KERNELS_ZEN5)
                 // In native code path, input buffers are packed.
@@ -1240,6 +1241,7 @@ void dtrsm_blis_impl
 #ifdef BLIS_ENABLE_OPENMP
         switch ( arch_id )
         {
+            case BLIS_ARCH_ZEN6:
             case BLIS_ARCH_ZEN5:
 #if defined(BLIS_KERNELS_ZEN5)
                 if( (is_parallel) && (((m0 > 58 ) || (n0 > 138)) && ((m0 > 1020) || (n0 > 12))))
@@ -1352,7 +1354,7 @@ void dtrsm_
     dtrsm_blis_impl ( side, uploa, transa, diaga, m, n, alpha, a, lda, b, ldb );
 #if defined(BLIS_KERNELS_ZEN4)
     arch_t arch_id = bli_arch_query_id_internal();
-    if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
+    if (arch_id == BLIS_ARCH_ZEN6 || arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
     {
         bli_zero_zmm();
     }
@@ -1724,6 +1726,7 @@ void ztrsm_blis_impl
 #if defined(BLIS_ENABLE_OPENMP)
         switch ( arch_id )
         {
+        case BLIS_ARCH_ZEN6:
         case BLIS_ARCH_ZEN5:
 #if defined(BLIS_KERNELS_ZEN5)
             if (( is_parallel ) &&
@@ -1770,6 +1773,7 @@ void ztrsm_blis_impl
         {
             switch ( arch_id )
             {
+                case BLIS_ARCH_ZEN6:
                 case BLIS_ARCH_ZEN5:
 #if defined(BLIS_KERNELS_ZEN5)
                     if (bli_obj_has_conj(&ao))
@@ -1896,7 +1900,7 @@ void ztrsm_
     ztrsm_blis_impl ( side, uploa, transa, diaga, m, n, alpha, a, lda, b, ldb );
 #if defined(BLIS_KERNELS_ZEN4)
     arch_t arch_id = bli_arch_query_id_internal();
-    if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
+    if (arch_id == BLIS_ARCH_ZEN6 || arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
     {
         bli_zero_zmm();
     }
@@ -2307,7 +2311,7 @@ void ctrsm_
     ctrsm_blis_impl ( side, uploa, transa, diaga, m, n, alpha, a, lda, b, ldb );
 #if defined(BLIS_KERNELS_ZEN4)
     arch_t arch_id = bli_arch_query_id_internal();
-    if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
+    if (arch_id == BLIS_ARCH_ZEN6 || arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
     {
         bli_zero_zmm();
     }

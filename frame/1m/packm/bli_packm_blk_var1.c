@@ -192,7 +192,8 @@ void bli_packm_blk_var1
 	if
 	( 
 		( bli_obj_dt( p ) == BLIS_DOUBLE ) &&
-		( ( arch_id == BLIS_ARCH_ZEN5 ) ||
+		( ( arch_id == BLIS_ARCH_ZEN6 ) ||
+		  ( arch_id == BLIS_ARCH_ZEN5 ) ||
 		  ( arch_id == BLIS_ARCH_ZEN4 ) )
 	)
 	{

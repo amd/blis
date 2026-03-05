@@ -312,7 +312,7 @@ void bli_dtrsv_unf_var2
             // Query the architecture ID
             arch_t arch_id = bli_arch_query_id_internal();
 
-            if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4 )
+            if (arch_id == BLIS_ARCH_ZEN6 || arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4 )
             {
                 if ( m < 2500 )
                 {
@@ -340,7 +340,7 @@ void bli_dtrsv_unf_var2
                 }
 #endif //BLIS_ENABLE_OPENMP
             }
-            else // (arch_id != BLIS_ARCH_ZEN5 && arch_id != BLIS_ARCH_ZEN4 )
+            else // (arch_id != BLIS_ARCH_ZEN6 && arch_id != BLIS_ARCH_ZEN5 && arch_id != BLIS_ARCH_ZEN4 )
 #endif //BLIS_KERNELS_ZEN4
             {
                 kfp_af = bli_daxpyf_zen_int_16x4;

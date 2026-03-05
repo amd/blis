@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2018 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -150,6 +150,10 @@ gint_t bli_env_get_var_arch_type( const char* env, gint_t fallback )
 				r_val = BLIS_ARCH_PENRYN;
 			}
 			// AMD
+			else if (strcmp(str, "zen6") == 0)
+			{
+				r_val = BLIS_ARCH_ZEN6;
+			}
 			else if (strcmp(str, "zen5") == 0)
 			{
 				r_val = BLIS_ARCH_ZEN5;
@@ -193,7 +197,7 @@ gint_t bli_env_get_var_arch_type( const char* env, gint_t fallback )
 #if defined(BLIS_FAMILY_AMDZEN)
 			else if (strcmp(str, "avx512") == 0)
 			{
-				r_val = BLIS_ARCH_ZEN4;
+				r_val = BLIS_ARCH_ZEN5;
 			}
 			else if (strcmp(str, "avx2") == 0)
 			{
@@ -219,7 +223,7 @@ gint_t bli_env_get_var_arch_type( const char* env, gint_t fallback )
 #if defined(BLIS_FAMILY_X86_64)
 			else if (strcmp(str, "avx512") == 0)
 			{
-				r_val = BLIS_ARCH_ZEN4;
+				r_val = BLIS_ARCH_ZEN5;
 			}
 			else if (strcmp(str, "avx2") == 0)
 			{

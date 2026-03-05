@@ -312,6 +312,7 @@ f77_int idamax_blis_impl
     // Pick the kernel based on the architecture ID
     switch ( arch_id )
     {
+      case BLIS_ARCH_ZEN6:
       case BLIS_ARCH_ZEN5:
       case BLIS_ARCH_ZEN4:
 #if defined(BLIS_KERNELS_ZEN4)

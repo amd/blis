@@ -307,6 +307,7 @@ void bli_dgemv_unf_var1
 
     switch ( arch_id )
     {
+      case BLIS_ARCH_ZEN6:
       case BLIS_ARCH_ZEN5:
 #if defined(BLIS_KERNELS_ZEN5)
         gemv_kr_ptr   = bli_dgemv_t_zen4_int;    // DGEMV
@@ -900,6 +901,7 @@ void bli_zgemv_unf_var1
 
     switch ( arch_id )
     {
+      case BLIS_ARCH_ZEN6:
       case BLIS_ARCH_ZEN5:
       case BLIS_ARCH_ZEN4:
 #if defined(BLIS_KERNELS_ZEN4)

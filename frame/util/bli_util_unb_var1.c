@@ -329,6 +329,7 @@ void bli_cnormfv_unb_var1
     arch_t arch_id = bli_arch_query_id_internal();
     switch ( arch_id )
     {
+        case BLIS_ARCH_ZEN6:
         case BLIS_ARCH_ZEN5:
         case BLIS_ARCH_ZEN4:
         case BLIS_ARCH_ZEN3:
@@ -467,6 +468,7 @@ void bli_znormfv_unb_var1
     arch_t arch_id = bli_arch_query_id_internal();
     switch ( arch_id )
     {
+        case BLIS_ARCH_ZEN6:
         case BLIS_ARCH_ZEN5:
         case BLIS_ARCH_ZEN4:
         case BLIS_ARCH_ZEN3:
@@ -946,6 +948,7 @@ void bli_snormfv_unb_var1
     arch_t arch_id = bli_arch_query_id_internal();
     switch ( arch_id )
     {
+        case BLIS_ARCH_ZEN6:
         case BLIS_ARCH_ZEN5:
         case BLIS_ARCH_ZEN4:
         case BLIS_ARCH_ZEN3:
@@ -1091,6 +1094,7 @@ void bli_dnormfv_unb_var1
     arch_t arch_id = bli_arch_query_id_internal();
     switch ( arch_id )
     {
+        case BLIS_ARCH_ZEN6:
         case BLIS_ARCH_ZEN5:
 #if defined(BLIS_KERNELS_ZEN4)
 

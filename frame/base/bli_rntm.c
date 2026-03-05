@@ -559,7 +559,7 @@ void bli_nthreads_optimum(
 		// Query the architecture ID
 		arch_t arch_id = bli_arch_query_id_internal();
 
-		if(arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
+		if(arch_id == BLIS_ARCH_ZEN6 || arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
 		{
 			if(n < m)
 			{
@@ -1122,7 +1122,7 @@ void bli_nthreads_optimum(
 				}
 			}
 		}
-		else // Not BLIS_ARCH_ZEN5 or BLIS_ARCH_ZEN4
+		else // Not BLIS_ARCH_ZEN6 or BLIS_ARCH_ZEN5 or BLIS_ARCH_ZEN4
 		{
 			if( k >= 128)
 			{
@@ -1211,7 +1211,7 @@ void bli_nthreads_optimum(
 		// Query the architecture ID
 		arch_t arch_id = bli_arch_query_id_internal();
 
-		if( arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4 )
+		if( arch_id == BLIS_ARCH_ZEN6 || arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4 )
 		{
 			/*
 				The logic for ideal thread selection is as follows:
@@ -1645,7 +1645,7 @@ void bli_nthreads_optimum(
 		// Query the architecture ID
 		arch_t arch_id = bli_arch_query_id_internal();
 
-		if( arch_id == BLIS_ARCH_ZEN5 )
+		if( arch_id == BLIS_ARCH_ZEN6 || arch_id == BLIS_ARCH_ZEN5 )
 		{
 			/*
 				The logic for ideal thread selection is as follows:
@@ -2207,7 +2207,7 @@ void bli_nthreads_optimum(
 					n_threads_ideal = 192;
 			}
 		}
-		else // Not BLIS_ARCH_ZEN5 or BLIS_ARCH_ZEN4
+		else // Not BLIS_ARCH_ZEN6 or BLIS_ARCH_ZEN5 or BLIS_ARCH_ZEN4
 		{
 			if((m<=128 || n<=128 || k<=128) && ((m+n+k) <= 400))
 			{
@@ -2257,7 +2257,7 @@ void bli_nthreads_optimum(
 		// Query the architecture ID
 		arch_t arch_id = bli_arch_query_id_internal();
 
-		if (arch_id == BLIS_ARCH_ZEN5)
+		if (arch_id == BLIS_ARCH_ZEN6 || arch_id == BLIS_ARCH_ZEN5)
 		{
 			if ( (m < 58 && n < 138) || (m < 1020 && n < 12))
 				n_threads_ideal = 1;
@@ -2618,6 +2618,7 @@ BLIS_INLINE void aocl_dscalv_dynamic
 	*/
 	switch ( arch_id )
 	{
+		case BLIS_ARCH_ZEN6:
 		case BLIS_ARCH_ZEN5:
 			if ( n_elem <= 63894 )
 				*nt_ideal = 1;
@@ -2722,6 +2723,7 @@ BLIS_INLINE void aocl_zdscalv_dynamic
 	*/
 	switch ( arch_id )
 	{
+		case BLIS_ARCH_ZEN6:
 		case BLIS_ARCH_ZEN5:
 		case BLIS_ARCH_ZEN4:
 		case BLIS_ARCH_ZEN:
@@ -2792,6 +2794,7 @@ BLIS_INLINE void aocl_daxpyv_dynamic
 	*/
 	switch ( arch_id )
 	{
+		case BLIS_ARCH_ZEN6:
 		case BLIS_ARCH_ZEN5:
 
 			if ( n_elem <= 34000 )
@@ -2903,6 +2906,7 @@ BLIS_INLINE void aocl_zaxpyv_dynamic
 	*/
 	switch ( arch_id )
 	{
+		case BLIS_ARCH_ZEN6:
 		case BLIS_ARCH_ZEN5:
 
 			if ( n_elem <= 16000 )
@@ -3001,6 +3005,7 @@ BLIS_INLINE void aocl_ddotv_dynamic
 	*/
 	switch ( arch_id )
 	{
+		case BLIS_ARCH_ZEN6:
 		case BLIS_ARCH_ZEN5:
 		case BLIS_ARCH_ZEN4:
 		case BLIS_ARCH_ZEN:
@@ -3049,6 +3054,7 @@ BLIS_INLINE void aocl_zdotv_dynamic
 	*/
 	switch ( arch_id )
 	{
+		case BLIS_ARCH_ZEN6:
 		case BLIS_ARCH_ZEN5:
 		case BLIS_ARCH_ZEN4:
 		case BLIS_ARCH_ZEN:
@@ -3120,6 +3126,7 @@ BLIS_INLINE void aocl_dcopyv_dynamic
 
 	switch ( arch_id )
 	{
+		case BLIS_ARCH_ZEN6:
 		case BLIS_ARCH_ZEN5:
 
 			if (n_elem <= 38000)
@@ -3215,6 +3222,7 @@ BLIS_INLINE void aocl_zcopyv_dynamic
 
 	switch ( arch_id )
 	{
+		case BLIS_ARCH_ZEN6:
 		case BLIS_ARCH_ZEN5:
 		case BLIS_ARCH_ZEN4:
 		case BLIS_ARCH_ZEN:
@@ -3284,6 +3292,7 @@ void aocl_dnormfv_dynamic
     */
     switch ( arch_id )
     {
+        case BLIS_ARCH_ZEN6:
         case BLIS_ARCH_ZEN5:
 
             #ifdef __clang__
@@ -3392,6 +3401,7 @@ void aocl_znormfv_dynamic
     */
     switch ( arch_id )
     {
+        case BLIS_ARCH_ZEN6:
         case BLIS_ARCH_ZEN5:
         case BLIS_ARCH_ZEN4:
         case BLIS_ARCH_ZEN:
@@ -3440,6 +3450,7 @@ static void aocl_daxpyf_dynamic
 
 	switch ( arch_id )
 	{
+		case BLIS_ARCH_ZEN6:
 		case BLIS_ARCH_ZEN5:
 		case BLIS_ARCH_ZEN4:
 		case BLIS_ARCH_ZEN3:
@@ -3841,6 +3852,7 @@ BLIS_INLINE void aocl_dgemv_dynamic
     {
         switch ( arch_id )
         {
+            case BLIS_ARCH_ZEN6:
             case BLIS_ARCH_ZEN5:
 
                 if ( size <  12000 )
@@ -3919,6 +3931,7 @@ BLIS_INLINE void aocl_dgemv_dynamic
     {
         switch ( arch_id )
         {
+        case BLIS_ARCH_ZEN6:
         case BLIS_ARCH_ZEN5:
             // logic tuned using linear regression
             if ( size <= 95000 )

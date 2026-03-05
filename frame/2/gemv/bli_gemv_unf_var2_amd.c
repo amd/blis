@@ -287,6 +287,7 @@ void bli_dgemv_unf_var2 (
 
     switch ( arch_id )
     {
+        case BLIS_ARCH_ZEN6:
         case BLIS_ARCH_ZEN5:
 #if defined(BLIS_KERNELS_ZEN4)
         //this is the main Interface kernel present in zen4 kernel 
@@ -727,6 +728,7 @@ void bli_zgemv_unf_var2
 
   switch ( arch_id )
   {
+    case BLIS_ARCH_ZEN6:
     case BLIS_ARCH_ZEN5:
     case BLIS_ARCH_ZEN4:
 #if defined(BLIS_KERNELS_ZEN4)

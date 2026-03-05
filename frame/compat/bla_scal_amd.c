@@ -170,6 +170,7 @@ void sscal_blis_impl
     // Pick the kernel based on the architecture ID
     switch ( arch_id )
     {
+        case BLIS_ARCH_ZEN6:
         case BLIS_ARCH_ZEN5:
         case BLIS_ARCH_ZEN4:
 #if defined(BLIS_KERNELS_ZEN4)
@@ -265,6 +266,7 @@ void dscal_blis_impl
     // Pick the kernel based on the architecture ID
     switch ( arch_id )
     {
+        case BLIS_ARCH_ZEN6:
         case BLIS_ARCH_ZEN5:
 #if defined(BLIS_KERNELS_ZEN5)
           // AVX512 Kernel
@@ -468,6 +470,7 @@ void zdscal_blis_impl
     // Pick the kernel based on the architecture ID
     switch ( arch_id )
     {
+        case BLIS_ARCH_ZEN6:
         case BLIS_ARCH_ZEN5:
         case BLIS_ARCH_ZEN4:
 #if defined(BLIS_KERNELS_ZEN4)
@@ -639,6 +642,7 @@ void cscal_blis_impl
     // Pick the kernel based on the architecture ID
     switch ( arch_id )
     {
+        case BLIS_ARCH_ZEN6:
         case BLIS_ARCH_ZEN5:
         case BLIS_ARCH_ZEN4:
 #if defined(BLIS_KERNELS_ZEN4)
@@ -734,6 +738,7 @@ void zscal_blis_impl
     // Pick the kernel based on the architecture ID
     switch ( arch_id )
     {
+        case BLIS_ARCH_ZEN6:
         case BLIS_ARCH_ZEN5:
         case BLIS_ARCH_ZEN4:
 #if defined(BLIS_KERNELS_ZEN4)

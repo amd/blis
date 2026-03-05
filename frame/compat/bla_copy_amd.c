@@ -180,6 +180,7 @@ void scopy_blis_impl
 	// Pick the kernel based on the architecture ID
 	switch ( arch_id )
 	{
+		case BLIS_ARCH_ZEN6:
 		case BLIS_ARCH_ZEN5:
 		case BLIS_ARCH_ZEN4:
 #if defined(BLIS_KERNELS_ZEN4)
@@ -309,6 +310,7 @@ void dcopy_blis_impl
 	// Pick the kernel based on the architecture ID
 	switch ( arch_id )
 	{
+		case BLIS_ARCH_ZEN6:
 		case BLIS_ARCH_ZEN5:
 #if defined(BLIS_KERNELS_ZEN5)
 			// For Zen4 and Zen5, kernel implemented in AVX512 is used
@@ -564,6 +566,7 @@ void zcopy_blis_impl
 	// Pick the kernel based on the architecture ID
 	switch ( arch_id )
 	{
+		case BLIS_ARCH_ZEN6:
 		case BLIS_ARCH_ZEN5:
 		case BLIS_ARCH_ZEN4:
 #if defined(BLIS_KERNELS_ZEN4)

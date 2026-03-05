@@ -183,7 +183,8 @@ void bli_gemm_ker_var2
 	if
 	(
 		 ( bli_obj_dt( c ) == BLIS_DOUBLE ) &&
-		 ( ( arch_id == BLIS_ARCH_ZEN5 ) ||
+		 ( ( arch_id == BLIS_ARCH_ZEN6 ) ||
+		   ( arch_id == BLIS_ARCH_ZEN5 ) ||
 		   ( arch_id == BLIS_ARCH_ZEN4 ) ) &&
 		 ( cs_c == 1 ) && // use this kernel only for row major C
 		 // use generic macro kernel for mixed precision

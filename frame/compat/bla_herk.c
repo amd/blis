@@ -45,7 +45,7 @@
     #define HERK_BLIS_IMPL(ch, blasname) \
         PASTEF77S(ch,blasname) ( uploc, transa, m, k, alpha, a, lda, beta, c, ldc ); \
         arch_t arch_id = bli_arch_query_id_internal(); \
-        if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4) \
+        if (arch_id == BLIS_ARCH_ZEN6 || arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4) \
         { \
             bli_zero_zmm(); \
         } \

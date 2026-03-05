@@ -70,6 +70,7 @@ bool bli_cpuid_is_sandybridge( uint32_t family, uint32_t model, uint32_t feature
 bool bli_cpuid_is_penryn( uint32_t family, uint32_t model, uint32_t features );
 
 // AMD
+bool bli_cpuid_is_zen6( uint32_t family, uint32_t model, uint32_t features );
 bool bli_cpuid_is_zen5( uint32_t family, uint32_t model, uint32_t features );
 bool bli_cpuid_is_zen4( uint32_t family, uint32_t model, uint32_t features );
 bool bli_cpuid_is_zen3( uint32_t family, uint32_t model, uint32_t features );
@@ -80,6 +81,7 @@ bool bli_cpuid_is_steamroller( uint32_t family, uint32_t model, uint32_t feature
 bool bli_cpuid_is_piledriver( uint32_t family, uint32_t model, uint32_t features );
 bool bli_cpuid_is_bulldozer( uint32_t family, uint32_t model, uint32_t features );
 
+model_t bli_cpuid_get_zen6_cpuid_model( uint32_t family, uint32_t model, uint32_t features );
 model_t bli_cpuid_get_zen5_cpuid_model( uint32_t family, uint32_t model, uint32_t features );
 model_t bli_cpuid_get_zen4_cpuid_model( uint32_t family, uint32_t model, uint32_t features );
 model_t bli_cpuid_get_zen3_cpuid_model( uint32_t family, uint32_t model, uint32_t features );
@@ -159,11 +161,13 @@ bool bli_cpuid_is_avx2fma3_supported(void);
 bool bli_cpuid_is_avx512_supported(void);
 bool bli_cpuid_is_avx512vnni_supported(void);
 bool bli_cpuid_is_avx512bf16_supported(void);
+bool bli_cpuid_is_avx512fp16_supported(void);
 
 void bli_cpuid_check_avx2fma3_support( uint32_t family, uint32_t model, uint32_t features );
 void bli_cpuid_check_avx512_support( uint32_t family, uint32_t model, uint32_t features );
 void bli_cpuid_check_avx512vnni_support( uint32_t family, uint32_t model, uint32_t features );
 void bli_cpuid_check_avx512bf16_support( uint32_t family, uint32_t model, uint32_t features );
+void bli_cpuid_check_avx512fp16_support( uint32_t family, uint32_t model, uint32_t features );
 
 enum
 {
@@ -193,7 +197,8 @@ enum
 	FEATURE_AVXVNNI            = 0x020000,
 	FEATURE_AVX512VP2INTERSECT = 0x040000,
 	FEATURE_MOVDIRI            = 0x080000,
-	FEATURE_MOVDIR64B          = 0x100000
+	FEATURE_MOVDIR64B          = 0x100000,
+	FEATURE_AVX512FP16         = 0x200000
 };
 
 // To reduce confusion, include MOVU bit so enum values match those in

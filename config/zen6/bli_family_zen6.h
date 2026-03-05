@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2021 - 2026, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -32,12 +32,11 @@
 
 */
 
-#ifndef BLIS_FAMILY_AMDZEN_H
-#define BLIS_FAMILY_AMDZEN_H
+#ifndef BLI_FAMILY_ZEN6_H
+#define BLI_FAMILY_ZEN6_H
 
-#include "bli_config_zen.h"
-#include "bli_config_zen4.h"
-#include "bli_config_zen5.h"
+#define BLIS_FAMILY_TO_ARCH_VALUE BLIS_ARCH_ZEN6
+
 #include "bli_config_zen6.h"
 
 // By default, it is effective to parallelize the outer loops.
@@ -50,9 +49,5 @@
 #define BLIS_SMALL_MATRIX_THRES        700
 #define BLIS_SMALL_M_RECT_MATRIX_THRES 160
 #define BLIS_SMALL_K_RECT_MATRIX_THRES 128
-
-// When running HPL with pure MPI without DGEMM threading (Single-threaded
-// BLIS), defining this macro as 1 yields better performance.
-#define AOCL_BLIS_MULTIINSTANCE   0
 
 #endif

@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2026, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -32,7 +32,7 @@
 
 ]=]
 
-# FLAGS that are specific to the 'zen5' architecture are added here.
+# FLAGS that are specific to the 'zen6' architecture are added here.
 # FLAGS that are common for all the AMD architectures are present in
 # config/zen/amd_config.mk.
 
@@ -40,9 +40,19 @@
 include(${PROJECT_SOURCE_DIR}/config/zen/amd_config.cmake)
 
 if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
-    if(CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 14.0.0)
+    if(CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 16.0.0)
+        # gcc 16.0 or later
+        list(APPEND CKVECFLAGS -march=znver6)
+        list(APPEND CRVECFLAGS -march=znver6)
+        # Update CKLPOPTFLAGS for gcc to use O3 optimization without
+        # -ftree-pre and -ftree-partial-pre flag. These flag results
+        # in suboptimal code generation for instrinsic based kernels.
+        # The -ftree-loop-vectorize results in inefficient code gen
+        # for amd optimized l1 kernels based on instrinsics.
+        list(APPEND CKLPOPTFLAGS -fno-tree-partial-pre -fno-tree-pre -fno-tree-loop-vectorize)
+    elseif(CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 14.0.0)
         # gcc 14.0 or later
-        list(APPEND CKVECFLAGS -march=znver5)
+        list(APPEND CKVECFLAGS -march=znver5 -mavx512fp16)
         list(APPEND CRVECFLAGS -march=znver5)
         # Update CKLPOPTFLAGS for gcc to use O3 optimization without
         # -ftree-pre and -ftree-partial-pre flag. These flag results
@@ -52,13 +62,18 @@ if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
         list(APPEND CKLPOPTFLAGS -fno-tree-partial-pre -fno-tree-pre -fno-tree-loop-vectorize)
     elseif(CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 13.0.0)
         # gcc 13.0 or later
-        list(APPEND CKVECFLAGS -march=znver4)
+        list(APPEND CKVECFLAGS -march=znver4 -mavx512fp16)
         list(APPEND CRVECFLAGS -march=znver4)
         # Update CKLPOPTFLAGS for gcc to use O3 optimization without
         # -ftree-pre and -ftree-partial-pre flag. These flag results
         # in suboptimal code generation for instrinsic based kernels.
         # The -ftree-loop-vectorize results in inefficient code gen
         # for amd optimized l1 kernels based on instrinsics.
+        list(APPEND CKLPOPTFLAGS -fno-tree-partial-pre -fno-tree-pre -fno-tree-loop-vectorize)
+    elseif(CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 12.0.0)
+        # gcc 12.0 or later
+        list(APPEND CKVECFLAGS -march=znver3 -mavx512f -mavx512dq -mavx512bw -mavx512vl -mavx512vnni -mavx512bf16 -mavx512vbmi -mavx512fp16)
+        list(APPEND CRVECFLAGS -march=znver3)
         list(APPEND CKLPOPTFLAGS -fno-tree-partial-pre -fno-tree-pre -fno-tree-loop-vectorize)
     elseif(CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 11.0.0)
         # gcc 11.0 or later
@@ -99,13 +114,17 @@ if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
     if(NOT WIN32)
       set(alignloops "-falign-loops=64")
     endif()
-    if(AOCC_VERSION_STRING VERSION_GREATER_EQUAL 5.0.0)
+    if(AOCC_VERSION_STRING VERSION_GREATER_EQUAL 6.0.0)
+      # AOCC version 6x we will enable znver6
+      list(APPEND CKVECFLAGS -march=znver6 ${alignloops})
+      list(APPEND CRVECFLAGS -march=znver6)
+    elseif(AOCC_VERSION_STRING VERSION_GREATER_EQUAL 5.0.0)
       # AOCC version 5x we will enable znver5
-      list(APPEND CKVECFLAGS -march=znver5 ${alignloops})
+      list(APPEND CKVECFLAGS -march=znver5 -mavx512fp16 ${alignloops})
       list(APPEND CRVECFLAGS -march=znver5)
     elseif(AOCC_VERSION_STRING VERSION_GREATER_EQUAL 4.0.0)
       # AOCC version 4x we will enable znver4
-      list(APPEND CKVECFLAGS -march=znver4 ${alignloops})
+      list(APPEND CKVECFLAGS -march=znver4 -mavx512fp16 ${alignloops})
       list(APPEND CRVECFLAGS -march=znver4)
     elseif(AOCC_VERSION_STRING VERSION_GREATER_EQUAL 3.0.0)
       # AOCC version 3x we will enable znver3
@@ -115,14 +134,22 @@ if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
       # AOCC version 2x we will enable znver2
       list(APPEND CKVECFLAGS -march=znver2 -mavx512f -mavx512dq -mavx512bw -mavx512vl -mavx512vnni -mavx512vbmi)
       list(APPEND CRVECFLAGS -march=znver2)
+    elseif(CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 23.0.0)
+      # LLVM clang 23.0 or later
+      list(APPEND CKVECFLAGS -march=znver6 ${alignloops})
+      list(APPEND CRVECFLAGS -march=znver6)
     elseif(CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 19.0.0)
       # LLVM clang 19.0 or later
-      list(APPEND CKVECFLAGS -march=znver5 ${alignloops})
+      list(APPEND CKVECFLAGS -march=znver5 -mavx512fp16 ${alignloops})
       list(APPEND CRVECFLAGS -march=znver5)
     elseif(CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 16.0.0)
       # LLVM clang 16.0 or later
-      list(APPEND CKVECFLAGS -march=znver4 ${alignloops})
+      list(APPEND CKVECFLAGS -march=znver4 -mavx512fp16 ${alignloops})
       list(APPEND CRVECFLAGS -march=znver4)
+    elseif(CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 14.0.0)
+      # LLVM clang 14.0 or later
+      list(APPEND CKVECFLAGS -march=znver3 -mavx512f -mavx512dq -mavx512bw -mavx512vl -mavx512vnni -mavx512bf16 -mavx512vbmi -mavx512fp16 ${alignloops})
+      list(APPEND CRVECFLAGS -march=znver3)
     elseif(CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 13.0.0)
       # LLVM clang 13.0 or later
       list(APPEND CKVECFLAGS -march=znver3 -mavx512f -mavx512dq -mavx512bw -mavx512vl -mavx512vnni -mavx512bf16 -mavx512vbmi ${alignloops})

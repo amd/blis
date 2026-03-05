@@ -197,11 +197,11 @@ void bli_arch_set_id( void )
 		// selection behavior.
 
 		// Architecture families.
-		#if defined BLIS_FAMILY_INTEL64      || \
-		    defined BLIS_FAMILY_AMDZEN       || \
-		    defined BLIS_FAMILY_AMD64_LEGACY || \
-		    defined BLIS_FAMILY_X86_64       || \
-		    defined BLIS_FAMILY_ARM64        || \
+		#if defined BLIS_FAMILY_INTEL64       || \
+		    defined BLIS_FAMILY_AMDZEN        || \
+		    defined BLIS_FAMILY_AMD64_LEGACY  || \
+		    defined BLIS_FAMILY_X86_64        || \
+		    defined BLIS_FAMILY_ARM64         || \
 		    defined BLIS_FAMILY_ARM32
 			g_arch_id = actual_arch_id;
 		#else
@@ -328,7 +328,7 @@ void bli_arch_check_id( void )
 #if defined(__x86_64__) || defined(_M_X64) || defined(__i386) || defined(_M_IX86)
 
 			// If AVX2 test fails here we assume either:
-			// 1. Config was either zen, zen2, zen3, zen4, zen5, haswell or skx,
+			// 1. Config was either zen, zen2, zen3, zen4, zen5, zen6, haswell or skx,
 			//    so there is no fallback code path, hence error checking
 			//    above will fail.
 			// 2. Config was amdzen, intel64 or x86_64, and will have 
@@ -337,6 +337,7 @@ void bli_arch_check_id( void )
 			{
 				switch (req_id)
 				{
+					case BLIS_ARCH_ZEN6:
 					case BLIS_ARCH_ZEN5:
 					case BLIS_ARCH_ZEN4:
 					case BLIS_ARCH_ZEN3:
@@ -352,7 +353,7 @@ void bli_arch_check_id( void )
 				}
 			}
 			// If AVX512 test fails here we assume either:
-			// 1. Config was either zen5, zen4 or skx, so there is
+			// 1. Config was either zen6, zen5, zen4 or skx, so there is
 			//    no fallback code path, hence error checking
 			//    above will fail.
 			// 2. Config was amdzen, intel64 or x86_64, and will have 
@@ -361,6 +362,7 @@ void bli_arch_check_id( void )
 			{
 				switch (req_id)
 				{
+					case BLIS_ARCH_ZEN6:
 					case BLIS_ARCH_ZEN5:
 					case BLIS_ARCH_ZEN4:
 					case BLIS_ARCH_SKX:
@@ -523,6 +525,7 @@ static char* config_name[ BLIS_NUM_ARCHS ] =
     "sandybridge",
     "penryn",
 
+    "zen6",
     "zen5",
     "zen4",
     "zen3",
@@ -564,6 +567,9 @@ static char* model_name[ BLIS_NUM_MODELS ] =
     "error",
 
     "default",
+
+    "Venice",
+    "Venice Dense",
 
     "Turin",
     "Turin Dense",

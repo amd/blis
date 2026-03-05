@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2025 - 2026, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -32,8 +32,8 @@
 
 */
 
-#ifndef BLIS_CONFIG_ZEN5_H
-#define BLIS_CONFIG_ZEN5_H
+#ifndef BLIS_CONFIG_ZEN6_H
+#define BLIS_CONFIG_ZEN6_H
 
 /* NOTE : The order in the macro naming is as follows : THRESH_{API}_{dt}_{codepath}_{march}_{isa}
           The case-sensitivity of {dt} is small, since it is passed from a higher layer(where is it
@@ -51,15 +51,15 @@
 // and define a condition that checks for entry based on these parameters
 
 // Macro for checking if the request is for a single-threaded operation on CGEMM, for the AVX2 ISA
-#define IS_TINY_NOT_PARALLEL_c_ZEN5_AVX2( transa, transb, m, n, k, is_parallel ) \
+#define IS_TINY_NOT_PARALLEL_c_ZEN6_AVX2( transa, transb, m, n, k, is_parallel ) \
   ( 0 )
 
 // Macro for checking if the request is for a multi-threaded operation on CGEMM, for the AVX2 ISA
-#define IS_TINY_PARALLEL_c_ZEN5_AVX2( transa, transb, m, n, k, is_parallel ) \
+#define IS_TINY_PARALLEL_c_ZEN6_AVX2( transa, transb, m, n, k, is_parallel ) \
   ( 0 )
 
 // Macro for checking if the request is for a single-threaded operation on CGEMM, for the AVX512 ISA
-#define IS_TINY_NOT_PARALLEL_c_ZEN5_AVX512( transa, transb, m, n, k, is_parallel ) \
+#define IS_TINY_NOT_PARALLEL_c_ZEN6_AVX512( transa, transb, m, n, k, is_parallel ) \
   ( ( !is_parallel ) && \
     ( ( ( bli_is_notrans( transa ) && \
       ( ( ( k <= 48 ) && ( m <= 396 ) && ( n <= 396 ) ) || \
@@ -76,7 +76,7 @@
               ( ( m <= 72 ) && ( k <= 192 ) ) ) ) ) ) ) ) )
 
 // Macro for checking if the request is for a multi-threaded operation on CGEMM, for the AVX512 ISA
-#define IS_TINY_PARALLEL_c_ZEN5_AVX512( transa, transb, m, n, k, is_parallel ) \
+#define IS_TINY_PARALLEL_c_ZEN6_AVX512( transa, transb, m, n, k, is_parallel ) \
   ( ( is_parallel ) && \
     ( ( ( bli_is_notrans( transa ) && \
         ( ( ( n <= 8 ) && \
@@ -90,19 +90,19 @@
           ( ( m <= 72 ) && ( n <= 8 ) && ( k <= 200 ) ) || \
           ( ( m <= 24 ) && ( n <= 100 ) && ( k <= 16 ) ) ) ) ) ) )
 
-// Main macro to check entry to Tiny-CGEMM-ZEN5-AVX2
-#define THRESH_GEMM_c_TINY_ZEN5_AVX2( transa, transb, m, n, k, is_parallel ) \
+// Main macro to check entry to Tiny-CGEMM-ZEN6-AVX2
+#define THRESH_GEMM_c_TINY_ZEN6_AVX2( transa, transb, m, n, k, is_parallel ) \
   /* In case of single-threaded request */ \
-  IS_TINY_NOT_PARALLEL_c_ZEN5_AVX2( transa, transb, m, n, k, is_parallel ) || \
+  IS_TINY_NOT_PARALLEL_c_ZEN6_AVX2( transa, transb, m, n, k, is_parallel ) || \
   /* In case of multi-threaded request */ \
-  IS_TINY_PARALLEL_c_ZEN5_AVX2( transa, transb, m, n, k, is_parallel )
+  IS_TINY_PARALLEL_c_ZEN6_AVX2( transa, transb, m, n, k, is_parallel )
 
-// Main macro to check entry to Tiny-CGEMM-ZEN5-AVX512
-#define THRESH_GEMM_c_TINY_ZEN5_AVX512( stor_id, transa, transb, m, n, k, is_parallel ) \
+// Main macro to check entry to Tiny-CGEMM-ZEN6-AVX512
+#define THRESH_GEMM_c_TINY_ZEN6_AVX512( stor_id, transa, transb, m, n, k, is_parallel ) \
   /* In case of single-threaded request */ \
-  IS_TINY_NOT_PARALLEL_c_ZEN5_AVX512( transa, transb, m, n, k, is_parallel ) || \
+  IS_TINY_NOT_PARALLEL_c_ZEN6_AVX512( transa, transb, m, n, k, is_parallel ) || \
   /* In case of multi-threaded request */ \
-  IS_TINY_PARALLEL_c_ZEN5_AVX512( transa, transb, m, n, k, is_parallel )
+  IS_TINY_PARALLEL_c_ZEN6_AVX512( transa, transb, m, n, k, is_parallel )
 
 // Thresholds for ZGEMM Tiny code-paths
 // This is specific to the micro-architecture
@@ -110,14 +110,14 @@
 // and define a condition that checks for entry based on these parameters
 
 // Macro for checking if the request is for a single-threaded operation on ZGEMM, for the AVX2 ISA
-#define IS_TINY_NOT_PARALLEL_z_ZEN5_AVX2( transa, transb, m, n, k, is_parallel ) \
+#define IS_TINY_NOT_PARALLEL_z_ZEN6_AVX2( transa, transb, m, n, k, is_parallel ) \
   ( ( !is_parallel ) && \
     /* Separate thresholds based on transpose value of A */ \
     ( ( bli_is_notrans( transa ) && ( m < 8 ) && ( n < 200 ) && ( k < 200 ) ) || \
       ( bli_is_trans( transa ) && ( m < 8 ) && ( n < 200 ) && ( k < 200 ) && ( k >= 8 ) ) ) )
 
 // Macro for checking if the request is for a multi-threaded operation on ZGEMM, for the AVX2 ISA
-#define IS_TINY_PARALLEL_z_ZEN5_AVX2( transa, transb, m, n, k, is_parallel ) \
+#define IS_TINY_PARALLEL_z_ZEN6_AVX2( transa, transb, m, n, k, is_parallel ) \
   ( ( is_parallel ) && \
     /* Separate thresholds based on transpose value of A */ \
     ( ( bli_is_notrans( transa ) && \
@@ -126,14 +126,14 @@
       ( ( m <= 4 ) && ( n >= 12 ) && ( n <= 200 ) && ( k <= 4 ) ) ) ) )
 
 // Macro for checking if the request is for a single-threaded operation on ZGEMM, for the AVX512 ISA
-#define IS_TINY_NOT_PARALLEL_z_ZEN5_AVX512( transa, transb, m, n, k, is_parallel ) \
+#define IS_TINY_NOT_PARALLEL_z_ZEN6_AVX512( transa, transb, m, n, k, is_parallel ) \
   ( ( !is_parallel ) && \
     /* Separate thresholds based on transpose value of A */ \
     ( ( bli_is_notrans( transa ) && ( m < 200 ) && ( n < 200 ) && ( k < 200 ) ) || \
       ( bli_is_trans( transa ) && ( m < 200 ) && ( n < 200 ) && ( k < 200 ) && ( k >= 8 ) ) ) )
 
 // Macro for checking if the request is for a multi-threaded operation on ZGEMM, for the AVX512 ISA
-#define IS_TINY_PARALLEL_z_ZEN5_AVX512( transa, transb, m, n, k, is_parallel ) \
+#define IS_TINY_PARALLEL_z_ZEN6_AVX512( transa, transb, m, n, k, is_parallel ) \
   ( ( is_parallel ) && \
     /* Separate thresholds based on transpose value of A */ \
     ( ( bli_is_notrans( transa ) && \
@@ -143,34 +143,34 @@
         ( ( m <= 200 ) && ( k <= 200 ) && ( ( ( n <= 16 ) && ( ( m * k ) <= 7000 ) ) || \
           ( ( n <= 16 ) && ( ( m * k ) <= 6000 ) ) ) ) ) ) )
 
-// Main macro to check entry to Tiny-ZGEMM-ZEN5-AVX2
-#define THRESH_GEMM_z_TINY_ZEN5_AVX2( transa, transb, m, n, k, is_parallel ) \
+// Main macro to check entry to Tiny-ZGEMM-ZEN6-AVX2
+#define THRESH_GEMM_z_TINY_ZEN6_AVX2( transa, transb, m, n, k, is_parallel ) \
   /* In case of single-threaded request */ \
-  IS_TINY_NOT_PARALLEL_z_ZEN5_AVX2( transa, transb, m, n, k, is_parallel ) || \
+  IS_TINY_NOT_PARALLEL_z_ZEN6_AVX2( transa, transb, m, n, k, is_parallel ) || \
   /* In case of multi-threaded request */ \
-  IS_TINY_PARALLEL_z_ZEN5_AVX2( transa, transb, m, n, k, is_parallel )
+  IS_TINY_PARALLEL_z_ZEN6_AVX2( transa, transb, m, n, k, is_parallel )
 
-// Main macro to check entry to Tiny-ZGEMM-ZEN5-AVX512
-#define THRESH_GEMM_z_TINY_ZEN5_AVX512( stor_id, transa, transb, m, n, k, is_parallel ) \
+// Main macro to check entry to Tiny-ZGEMM-ZEN6-AVX512
+#define THRESH_GEMM_z_TINY_ZEN6_AVX512( stor_id, transa, transb, m, n, k, is_parallel ) \
   /* In case of single-threaded request */ \
-  IS_TINY_NOT_PARALLEL_z_ZEN5_AVX512( transa, transb, m, n, k, is_parallel ) || \
+  IS_TINY_NOT_PARALLEL_z_ZEN6_AVX512( transa, transb, m, n, k, is_parallel ) || \
   /* In case of multi-threaded request */ \
-  IS_TINY_PARALLEL_z_ZEN5_AVX512( transa, transb, m, n, k, is_parallel )
+  IS_TINY_PARALLEL_z_ZEN6_AVX512( transa, transb, m, n, k, is_parallel )
 
-#define THRESH_GEMM_s_TINY_ZEN5_AVX2( transa, transb, m, n, k, is_parallel ) \
+#define THRESH_GEMM_s_TINY_ZEN6_AVX2( transa, transb, m, n, k, is_parallel ) \
   ( 0 )
 
-#define THRESH_GEMM_s_TINY_ZEN5_AVX512( stor_id, transa, transb, m, n, k, is_parallel ) \
+#define THRESH_GEMM_s_TINY_ZEN6_AVX512( stor_id, transa, transb, m, n, k, is_parallel ) \
   ( !( is_parallel ) &&  \
    ( ( ( ( (m) + (k) ) *  (n)  + ( (m) * (k) ) ) < 12288 ) || \
   bli_is_sgemm_tiny_zen( (stor_id) , (transa) , (transb) , (m) , (n) , (k) , (is_parallel), 64, 16, 12288, 262144  ) ) \
   )
 
 /* Defining the macro to be used for selecting the kernel at runtime */
-#define ZEN5_UKR_SELECTOR( ch, transa, transb, m, n, k, stor_id, ukr_support, gemmtiny_ukr_info, is_parallel ) \
-    if ( PASTECH2( THRESH_GEMM_, ch, _TINY_ZEN5_AVX2 )( transa, transb, m, n, k, is_parallel ) ) \
+#define ZEN6_UKR_SELECTOR( ch, transa, transb, m, n, k, stor_id, ukr_support, gemmtiny_ukr_info, is_parallel ) \
+    if ( PASTECH2( THRESH_GEMM_, ch, _TINY_ZEN6_AVX2 )( transa, transb, m, n, k, is_parallel ) ) \
       LOOKUP_AVX2_UKR( ch, stor_id, ukr_support, gemmtiny_ukr_info ) \
-    else if ( PASTECH2( THRESH_GEMM_, ch, _TINY_ZEN5_AVX512 )( stor_id, transa, transb, m, n, k, is_parallel ) ) \
+    else if ( PASTECH2( THRESH_GEMM_, ch, _TINY_ZEN6_AVX512 )( stor_id, transa, transb, m, n, k, is_parallel ) ) \
       LOOKUP_AVX512_UKR( ch, stor_id, ukr_support, gemmtiny_ukr_info ) \
     break;
 

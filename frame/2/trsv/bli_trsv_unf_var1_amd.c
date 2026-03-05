@@ -309,6 +309,7 @@ void bli_dtrsv_unf_var1
         switch ( arch_id )
         {
 #if defined(BLIS_KERNELS_ZEN4)
+            case BLIS_ARCH_ZEN6:
             case BLIS_ARCH_ZEN5:
             case BLIS_ARCH_ZEN4:
                 kfp_df = bli_ddotxf_zen4_int;

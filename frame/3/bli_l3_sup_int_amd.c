@@ -448,7 +448,7 @@ err_t bli_gemmtsup_int
 		 * and as result it will break the DGEMMT kernel assumption that A is
 		 * row-storage.
 		**/
-		if( ( arch_id != BLIS_ARCH_ZEN4 && arch_id != BLIS_ARCH_ZEN5) &&
+		if( ( arch_id != BLIS_ARCH_ZEN6 && arch_id != BLIS_ARCH_ZEN5 && arch_id != BLIS_ARCH_ZEN4) &&
 		    bli_is_double(dt) && (n_threads==1))
 		{
 			if((m > 320) &&  (k > 50))
