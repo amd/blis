@@ -1884,9 +1884,24 @@ void bli_thread_init_rntm_from_env
 		bli_rntm_set_blis_mt_only(FALSE, rntm);
 
 #ifdef BLIS_ENABLE_OPENMP
+
+#if defined(_OPENMP) && _OPENMP < 200811
+		// OpenMP 2.0 compatibility: Support older binary choice of nested
+		// parallelism enabled or disabled.
+		// Some compilers (e.g., MSVC, older GCC) only support OpenMP 2.0 which lacks:
+		//   - omp_get_active_level() (OpenMP 3.0)
+		//   - omp_get_max_active_levels() (OpenMP 3.0)
+		// The _OPENMP macro is set to version-specific values by OpenMP-compliant compilers:
+		//   200203 = OpenMP 2.0, 200811 = OpenMP 3.0, 201107 = OpenMP 3.1, etc.
+
+		dim_t nested_enabled = omp_get_nested();
+		dim_t in_parallel = omp_in_parallel();
+		if ( ( nested_enabled ) || ( ! in_parallel ) )
+#else
 		dim_t active_level = omp_get_active_level();
 		dim_t max_levels = omp_get_max_active_levels();
 		if ( active_level < max_levels )
+#endif
 		{
 		      nt = omp_get_max_threads();
 		} else {
@@ -2102,9 +2117,19 @@ void bli_thread_update_rntm_from_env
 		// Reminder that we are setting values here for local rntm, thus
 		// BLIS threading settings remain unchanged in tl_rntm for
 		// consideration in future calls.
+
+#if defined(_OPENMP) && _OPENMP < 200811
+		// OpenMP 2.0 compatibility: Support older binary choice of nested
+		// parallelism enabled or disabled.
+
+		dim_t nested_enabled = omp_get_nested();
+		dim_t in_parallel = omp_in_parallel();
+		if ( ( ! nested_enabled ) && ( in_parallel ) )
+#else
 		dim_t active_level = omp_get_active_level();
 		dim_t max_levels = omp_get_max_active_levels();
 		if ( active_level >= max_levels )
+#endif
 		{
 			nt = -1;
 			jc = pc = ic = jr = ir = 1;
@@ -2117,9 +2142,19 @@ void bli_thread_update_rntm_from_env
 		// BLIS threading env vars and/or APIs have not been used.
 
 #ifdef BLIS_ENABLE_OPENMP
+
+#if defined(_OPENMP) && _OPENMP < 200811
+		// OpenMP 2.0 compatibility: Support older binary choice of nested
+		// parallelism enabled or disabled.
+
+		dim_t nested_enabled = omp_get_nested();
+		dim_t in_parallel = omp_in_parallel();
+		if ( ( nested_enabled ) || ( ! in_parallel ) )
+#else
 		dim_t active_level = omp_get_active_level();
 		dim_t max_levels = omp_get_max_active_levels();
 		if ( active_level < max_levels )
+#endif
 		{
 		      nt = omp_get_max_threads();
 		} else {
