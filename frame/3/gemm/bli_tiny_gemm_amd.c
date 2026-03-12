@@ -390,7 +390,6 @@ err_t PASTEMAC( ch, tfuncname ) \
 } \
 
 GENTFUNC( scomplex, c, gemm_tiny )
-GENTFUNC( dcomplex, z, gemm_tiny )
 GENTFUNC(    float, s, gemm_tiny )
 
 /*
@@ -568,6 +567,116 @@ err_t bli_dgemm_tiny
     return BLIS_FAILURE;
 }
 
+err_t bli_zgemm_tiny
+    (
+      trans_t transa,
+      trans_t transb,
+      dim_t  m,
+      dim_t  n,
+      dim_t  k,
+      const dcomplex*    alpha,
+      const dcomplex*    a, const inc_t rs_a0, const inc_t cs_a0,
+      const dcomplex*    b, const inc_t rs_b0, const inc_t cs_b0,
+      const dcomplex*    beta,
+      dcomplex*    c, const inc_t rs_c0, const inc_t cs_c0,
+      bool is_parallel
+    )
+{
+    // Query the architecture ID
+    arch_t arch_id = bli_arch_query_id_internal();
+    bool is_mt = is_parallel;
+    // Pick the kernel based on the architecture ID
+    switch ( arch_id )
+    {
+        case BLIS_ARCH_ZEN6:
+        case BLIS_ARCH_ZEN5:
+        case BLIS_ARCH_ZEN4:
+#if defined(BLIS_FAMILY_ZEN6) || defined(BLIS_FAMILY_ZEN5) || defined(BLIS_FAMILY_ZEN4) || defined(BLIS_FAMILY_AMDZEN) || defined(BLIS_FAMILY_X86_64)
+       /**
+        * Note: Kernel supports the following combinations of Op(A) and Op(B):
+        *   - Op(A) = A,       Op(B) = B        (NO_TRANSPOSE, NO_TRANSPOSE)
+        *   - Op(A) = A^T,     Op(B) = B        (TRANSPOSE, NO_TRANSPOSE)
+        *   - Op(A) = A,       Op(B) = B^T      (NO_TRANSPOSE, TRANSPOSE)
+        *   - Op(A) = A^T,     Op(B) = B^T      (TRANSPOSE, TRANSPOSE)
+        *   - Op(A) = conj(A), Op(B) = B        (CONJ_NO_TRANSPOSE, NO_TRANSPOSE)
+        *   - Op(A) = A^H,     Op(B) = B        (CONJ_TRANSPOSE, NO_TRANSPOSE)
+        *   - Op(A) = A,       Op(B) = conj(B)  (NO_TRANSPOSE, CONJ_NO_TRANSPOSE)
+        *   - Op(A) = A,       Op(B) = B^H      (NO_TRANSPOSE, CONJ_TRANSPOSE)
+        *   - Op(A) = A^T,     Op(B) = conj(B)  (TRANSPOSE, CONJ_NO_TRANSPOSE)
+        *   - Op(A) = A^T,     Op(B) = B^H      (TRANSPOSE, CONJ_TRANSPOSE)
+        *   - Op(A) = conj(A), Op(B) = B^T      (CONJ_NO_TRANSPOSE, TRANSPOSE)
+        *   - Op(A) = conj(A), Op(B) = B^H      (CONJ_NO_TRANSPOSE, CONJ_TRANSPOSE)
+        *   - Op(A) = A^H,     Op(B) = B^T      (CONJ_TRANSPOSE, TRANSPOSE)
+        *   - Op(A) = A^H,     Op(B) = conj(B)  (CONJ_TRANSPOSE, CONJ_NO_TRANSPOSE)
+        *
+        * However framework changes are needed for:
+        *   - Op(A) = conj(A), Op(B) = conj(B)  (CONJ_NO_TRANSPOSE, CONJ_NO_TRANSPOSE)
+        *   - Op(A) = A^H,     Op(B) = B^H      (CONJ_TRANSPOSE, CONJ_TRANSPOSE)
+        * So currently these remain unsupported for zen4/zen5.
+        * TODO: add framework support for these combinations.
+        */
+        if( ( m < 300 ) && ( n < 300 ) && ( k < 300 ) && !(transa == BLIS_CONJ_TRANSPOSE && transb == BLIS_CONJ_TRANSPOSE) && !(transa == BLIS_CONJ_NO_TRANSPOSE && transb == BLIS_CONJ_NO_TRANSPOSE) )
+        {
+            if(is_mt == FALSE)
+            {
+                /* single threaded execution */
+                return bli_zgemm_tiny_zen4_12x4
+                (
+                    ((transa == BLIS_CONJ_NO_TRANSPOSE) || (transa == BLIS_CONJ_TRANSPOSE)) ? BLIS_CONJUGATE : BLIS_NO_CONJUGATE,
+                    ((transb == BLIS_CONJ_NO_TRANSPOSE) || (transb == BLIS_CONJ_TRANSPOSE)) ? BLIS_CONJUGATE : BLIS_NO_CONJUGATE,
+                    transa,
+                    transb,
+                    m,
+                    n,
+                    k,
+                    alpha,
+                    a, rs_a0, cs_a0,
+                    b, rs_b0, cs_b0,
+                    beta,
+                    c, rs_c0, cs_c0
+                );
+            }
+        }
+#endif
+        break;
+
+        case BLIS_ARCH_ZEN:
+        case BLIS_ARCH_ZEN2:
+        case BLIS_ARCH_ZEN3:
+        if( is_mt == FALSE )
+        {
+        /**
+         * Note conjugate A, B matrices are not supported for zen/2/3.
+         */
+            if( ( bli_is_notrans( transa ) && ( m < 60 ) && ( n >= 4 ) && ( n < 200 ) && ( k < 68 ) && (m % 2 == 0) ) ||
+            ( bli_is_trans( transa ) && ( m < 200 ) && ( n < 200 ) && ( k < 200 ) && ( k >= 16 ) && (m % 2 == 0) ) )
+            {
+                return bli_zgemm_tiny_zen_3x4
+                (
+                    ((transa == BLIS_CONJ_NO_TRANSPOSE) || (transa == BLIS_CONJ_TRANSPOSE)) ? BLIS_CONJUGATE : BLIS_NO_CONJUGATE,
+                    ((transb == BLIS_CONJ_NO_TRANSPOSE) || (transb == BLIS_CONJ_TRANSPOSE)) ? BLIS_CONJUGATE : BLIS_NO_CONJUGATE,
+                    transa,
+                    transb,
+                    m,
+                    n,
+                    k,
+                    alpha,
+                    a, rs_a0, cs_a0,
+                    b, rs_b0, cs_b0,
+                    beta,
+                    c, rs_c0, cs_c0
+                );
+            }
+        }
+        break;
+
+        default:
+            return BLIS_FAILURE;
+    }
+
+    return BLIS_FAILURE;
+
+}
 
 bool bli_is_sgemm_tiny_zen
   (

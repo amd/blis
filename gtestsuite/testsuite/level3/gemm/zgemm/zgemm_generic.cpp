@@ -386,6 +386,143 @@ INSTANTIATE_TEST_SUITE_P(
     );
 
 INSTANTIATE_TEST_SUITE_P(
+        Skinny_Matrix_Trans_CN,
+        zgemmGeneric,
+        ::testing::Combine(
+            ::testing::Values('c'
+#ifndef TEST_BLAS_LIKE
+                             ,'r'
+#endif
+            ),                                                              // storage format
+            ::testing::Values('c'),                                         // transa
+            ::testing::Values('n'),                                         // transb
+            ::testing::Values(gtint_t(100), gtint_t(105)),                  // m
+            ::testing::Values(gtint_t(80), gtint_t(85)),                    // n
+            ::testing::Values(gtint_t(1000), gtint_t(1010)),                // k
+            ::testing::Values(dcomplex{-1.0, -2.0}, dcomplex{0.0, -30.0},
+                              dcomplex{1.0, 0.0}, dcomplex{-1.0, 0.0},
+                              dcomplex{5.0, 0.0}),                          // alpha
+            ::testing::Values(dcomplex{12.0, 2.3}, dcomplex{0.0, 1.3},
+                              dcomplex{1.0, 0.0}, dcomplex{-1.0, 0.0},
+                              dcomplex{5.0, 0.0}),                          // beta
+            ::testing::Values(gtint_t(540)),                                  // increment to the leading dim of a
+            ::testing::Values(gtint_t(940)),                                  // increment to the leading dim of b
+            ::testing::Values(gtint_t(240))                                   // increment to the leading dim of c
+        ),
+        ::gemmGenericPrint<dcomplex>()
+    );
+
+INSTANTIATE_TEST_SUITE_P(
+        Skinny_Matrix_Trans_NC,
+        zgemmGeneric,
+        ::testing::Combine(
+            ::testing::Values('c'
+#ifndef TEST_BLAS_LIKE
+                             ,'r'
+#endif
+            ),                                                              // storage format
+            ::testing::Values('n'),                                         // transa
+            ::testing::Values('c'),                                         // transb
+            ::testing::Values(gtint_t(100), gtint_t(105)),                  // m
+            ::testing::Values(gtint_t(80), gtint_t(85)),                    // n
+            ::testing::Values(gtint_t(1000), gtint_t(1010)),                // k
+            ::testing::Values(dcomplex{-1.0, -2.0}, dcomplex{0.0, -30.0},
+                              dcomplex{1.0, 0.0}, dcomplex{-1.0, 0.0},
+                              dcomplex{5.0, 0.0}),                          // alpha
+            ::testing::Values(dcomplex{12.0, 2.3}, dcomplex{0.0, 1.3},
+                              dcomplex{1.0, 0.0}, dcomplex{-1.0, 0.0},
+                              dcomplex{5.0, 0.0}),                          // beta
+            ::testing::Values(gtint_t(540)),                                  // increment to the leading dim of a
+            ::testing::Values(gtint_t(940)),                                  // increment to the leading dim of b
+            ::testing::Values(gtint_t(240))                                   // increment to the leading dim of c
+        ),
+        ::gemmGenericPrint<dcomplex>()
+    );
+
+INSTANTIATE_TEST_SUITE_P(
+        Skinny_Matrix_Trans_CT,
+        zgemmGeneric,
+        ::testing::Combine(
+            ::testing::Values('c'
+#ifndef TEST_BLAS_LIKE
+                             ,'r'
+#endif
+            ),                                                              // storage format
+            ::testing::Values('c'),                                         // transa
+            ::testing::Values('t'),                                         // transb
+            ::testing::Values(gtint_t(100), gtint_t(105)),                  // m
+            ::testing::Values(gtint_t(80), gtint_t(85)),                    // n
+            ::testing::Values(gtint_t(1000), gtint_t(1010)),                // k
+            ::testing::Values(dcomplex{-1.0, -2.0}, dcomplex{0.0, -30.0},
+                              dcomplex{1.0, 0.0}, dcomplex{-1.0, 0.0},
+                              dcomplex{5.0, 0.0}),                          // alpha
+            ::testing::Values(dcomplex{12.0, 2.3}, dcomplex{0.0, 1.3},
+                              dcomplex{1.0, 0.0}, dcomplex{-1.0, 0.0},
+                              dcomplex{5.0, 0.0}),                          // beta
+            ::testing::Values(gtint_t(540)),                                  // increment to the leading dim of a
+            ::testing::Values(gtint_t(940)),                                  // increment to the leading dim of b
+            ::testing::Values(gtint_t(240))                                   // increment to the leading dim of c
+        ),
+        ::gemmGenericPrint<dcomplex>()
+    );
+
+INSTANTIATE_TEST_SUITE_P(
+        Skinny_Matrix_Trans_TC,
+        zgemmGeneric,
+        ::testing::Combine(
+            ::testing::Values('c'
+#ifndef TEST_BLAS_LIKE
+                             ,'r'
+#endif
+            ),                                                              // storage format
+            ::testing::Values('t'),                                         // transa
+            ::testing::Values('c'),                                         // transb
+            ::testing::Values(gtint_t(100), gtint_t(105)),                  // m
+            ::testing::Values(gtint_t(80), gtint_t(85)),                    // n
+            ::testing::Values(gtint_t(1000), gtint_t(1010)),                // k
+            ::testing::Values(dcomplex{-1.0, -2.0}, dcomplex{0.0, -30.0},
+                              dcomplex{1.0, 0.0}, dcomplex{-1.0, 0.0},
+                              dcomplex{5.0, 0.0}),                          // alpha
+            ::testing::Values(dcomplex{12.0, 2.3}, dcomplex{0.0, 1.3},
+                              dcomplex{1.0, 0.0}, dcomplex{-1.0, 0.0},
+                              dcomplex{5.0, 0.0}),                          // beta
+            ::testing::Values(gtint_t(540)),                                  // increment to the leading dim of a
+            ::testing::Values(gtint_t(940)),                                  // increment to the leading dim of b
+            ::testing::Values(gtint_t(240))                                   // increment to the leading dim of c
+        ),
+        ::gemmGenericPrint<dcomplex>()
+    );
+
+
+INSTANTIATE_TEST_SUITE_P(
+        Skinny_Matrix_Trans_C,
+        zgemmGeneric,
+        ::testing::Combine(
+            ::testing::Values('c'
+#ifndef TEST_BLAS_LIKE
+                             ,'r'
+#endif
+            ),                                                              // storage format
+            ::testing::Values('c'),                                         // transa
+            ::testing::Values('c'),                                         // transb
+            ::testing::Values(gtint_t(100), gtint_t(105)),                  // m
+            ::testing::Values(gtint_t(80), gtint_t(85)),                    // n
+            ::testing::Values(gtint_t(1000), gtint_t(1010)),                // k
+            ::testing::Values(dcomplex{-1.0, -2.0}, dcomplex{0.0, -30.0},
+                              dcomplex{1.0, 0.0}, dcomplex{-1.0, 0.0},
+                              dcomplex{5.0, 0.0}),                          // alpha
+            ::testing::Values(dcomplex{12.0, 2.3}, dcomplex{0.0, 1.3},
+                              dcomplex{1.0, 0.0}, dcomplex{-1.0, 0.0},
+                              dcomplex{5.0, 0.0}),                          // beta
+            ::testing::Values(gtint_t(540)),                                  // increment to the leading dim of a
+            ::testing::Values(gtint_t(940)),                                  // increment to the leading dim of b
+            ::testing::Values(gtint_t(240))                                   // increment to the leading dim of c
+        ),
+        ::gemmGenericPrint<dcomplex>()
+    );
+
+
+INSTANTIATE_TEST_SUITE_P(
         Large_Matrix_Trans_N_C_T,
         zgemmGeneric,
         ::testing::Combine(

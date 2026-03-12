@@ -456,6 +456,22 @@ err_t bli_dgemm_tiny_zen4_24x8
         double*    c, const inc_t rs_c0, const inc_t cs_c0
      );
 
+err_t bli_zgemm_tiny_zen4_12x4
+     (
+        conj_t              conja,
+        conj_t              conjb,
+        trans_t transa,
+        trans_t transb,
+        dim_t  m,
+        dim_t  n,
+        dim_t  k,
+        const dcomplex*    alpha,
+        const dcomplex*    a, const inc_t rs_a0, const inc_t cs_a0,
+        const dcomplex*    b, const inc_t rs_b0, const inc_t cs_b0,
+        const dcomplex*    beta,
+        dcomplex*    c, const inc_t rs_c0, const inc_t cs_c0
+     );
+
 void bli_dnorm2fv_zen4_int_unb_var1
      (
        dim_t    n,
