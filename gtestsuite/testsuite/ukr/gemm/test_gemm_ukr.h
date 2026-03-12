@@ -35,6 +35,7 @@
 #pragma once
 #include "level3/ref_gemm.h"
 #include "inc/check_error.h"
+#include "inc/data_pool.h"
 #include <stdexcept>
 #include <algorithm>
 #include "blis.h"
@@ -129,12 +130,14 @@ static void test_gemmnat_ukr(
     T* buf_c    = (T*)buf_c_ptrs.greenzone_1;
     T* buf_cref = (T*)buf_c_ref_ptrs.greenzone_1;
 
+    // Set index to a starting position for this test
+    get_pool<T>().set_index(m, n, k);
     /* Initialize Matrices with random numbers */
-    testinghelpers::datagenerators::randomgenerators<T>( -2, 8, 'c', m, k, (T*)(buf_a), 'n', lda);
-    testinghelpers::datagenerators::randomgenerators<T>( -5, 2, 'r', k, n, (T*)(buf_b), 'n', ldb);
+    get_pool<T>().randomgenerators( 'c', m, k, (T*)(buf_a), 'n', lda);
+    get_pool<T>().randomgenerators( 'r', k, n, (T*)(buf_b), 'n', ldb);
 
     if (beta != testinghelpers::ZERO<T>())
-        testinghelpers::datagenerators::randomgenerators<T>( -5, 2, storage , m, n, (T*)(buf_c), 'n', ldc);
+        get_pool<T>().randomgenerators( storage , m, n, (T*)(buf_c), 'n', ldc);
     else
     {
         // Matrix C should not be read, only set.
@@ -266,11 +269,13 @@ static void test_gemmk1_ukr( FT ukr_fp, gtint_t m, gtint_t n, gtint_t k, char st
         printf("Memory not allocated for input and output Matrix.\n");
         return ;
     }
-    testinghelpers::datagenerators::randomgenerators<T>( -2, 8, storage, m, k, (T*)(buf_a), 'n', lda);
-    testinghelpers::datagenerators::randomgenerators<T>( -5, 2, storage, k, n, (T*)(buf_b), 'n', ldb);
+    // Set index to a starting position for this test
+    get_pool<T>().set_index(m, n, k);
+    get_pool<T>().randomgenerators( storage, m, k, (T*)(buf_a), 'n', lda);
+    get_pool<T>().randomgenerators( storage, k, n, (T*)(buf_b), 'n', ldb);
 
     if (beta != testinghelpers::ZERO<T>())
-        testinghelpers::datagenerators::randomgenerators<T>( -3, 5, storage , m, n, (T*)(buf_c), 'n', ldc);
+        get_pool<T>().randomgenerators( storage , m, n, (T*)(buf_c), 'n', ldc);
     else
     {
         // Matrix C should not be read, only set.
@@ -387,11 +392,13 @@ static void test_gemmsup_ukr( FT ukr_fp, char trnsa, char trnsb, gtint_t m, gtin
         printf("Memory not allocated for input and output Matrix.\n");
         return ;
     }
-    testinghelpers::datagenerators::randomgenerators<T>( -2, 8, storage, m, k, (T*)(buf_a), trnsa, lda);
-    testinghelpers::datagenerators::randomgenerators<T>( -5, 2, storage, k, n, (T*)(buf_b), trnsb, ldb);
+    // Set index to a starting position for this test
+    get_pool<T>().set_index(m, n, k);
+    get_pool<T>().randomgenerators( storage, m, k, (T*)(buf_a), trnsa, lda);
+    get_pool<T>().randomgenerators( storage, k, n, (T*)(buf_b), trnsb, ldb);
 
     if (beta != testinghelpers::ZERO<T>())
-        testinghelpers::datagenerators::randomgenerators<T>( -3, 5, storage , m, n, (T*)(buf_c), 'n', ldc);
+        get_pool<T>().randomgenerators( storage , m, n, (T*)(buf_c), 'n', ldc);
     else
     {
         // Matrix C should not be read, only set.

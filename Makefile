@@ -1247,6 +1247,10 @@ endif # ifeq ($(IS_WIN),no)
 # --- Query current configuration ---
 
 showconfig: check-env
+	@echo "CC (C compiler):             $(CC)"
+	@echo "CXX (C++ compiler):          $(CXX)"
+	@echo "CFLAGS:                      $(CFLAGS)"
+	@echo "-------------------------"
 	@echo "configuration family:        $(CONFIG_NAME)"
 	@echo "sub-configurations:          $(CONFIG_LIST)"
 	@echo "requisite kernels sets:      $(KERNEL_LIST)"

@@ -174,7 +174,7 @@ int computeErrorM(
  }
 
 /*
- *printing matix and vector
+ *printing matrix and vector
  *
  */
 

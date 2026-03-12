@@ -94,7 +94,7 @@ endif
 #BLIS_LIB       := $(BLIS_LIB_PATH)/libblis-mt.a
 
 # BLAS library path(s). This is where the BLAS libraries reside.
-BLAS_LIB_PATH  := $(HOME)/mylibs/openblas/lib
+BLAS_LIB_PATH  := /usr/lib/x86_64-linux-gnu
 
 MKL_LIB_PATH   := ${MKLROOT}/lib/intel64
 

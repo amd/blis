@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -45,7 +45,7 @@
  * @param[in]     uploa  specifies whether the upper or lower triangular part of the array A
  * @param[in]     transa specifies the form of op( A ) to be used in matrix multiplication
  * @param[in]     diaga  specifies whether the upper or lower triangular part of the array A
- * @param[in]     n      specifies the number  of rows  of the  matrix A
+ * @param[in]     n      specifies the number of rows of the matrix A
  * @param[in]     alpha  specifies the scalar alpha.
  * @param[in]     ap     specifies pointer which points to the first element of ap
  * @param[in]     lda    specifies leading dimension of the matrix.
@@ -221,7 +221,7 @@ static void trsv( char storage, char uploa, char transa, char diaga,
     computediff<char>( "transa", transa, transa_cpy );
     computediff<char>( "diaga", diaga, diaga_cpy );
     computediff<gtint_t>( "n", n, n_cpy );
-    if (alpha) computediff<T>( "alpha", *alpha, *alpha_cpy );
+    if (alpha) computediff<T>( "alpha", *alpha, *alpha_cpy, true );
     computediff<gtint_t>( "lda", lda, lda_cpy );
     computediff<gtint_t>( "incx", incx, incx_cpy );
 

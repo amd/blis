@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2024 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2024 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -761,7 +761,6 @@ TEST_P( dgemmGenericSmall, gemm_small)
     }
     if ( is_memory_test )
     {
-        //srand(time(NULL));
         double *a, *b, *c, *cref = NULL;
         // Allocate memory for A
         testinghelpers::ProtectedBuffer a_buf( m * k * lda * sizeof(double), false, is_memory_test );
@@ -774,6 +773,8 @@ TEST_P( dgemmGenericSmall, gemm_small)
         c = (double*)c_buf.greenzone_1;
 
         cref = (double*)malloc(m * n * ldc * sizeof(double));
+
+        srand(SRAND_SEED);
 
         testinghelpers::datagenerators::randomgenerators<double>( -2, 8, 'c', m, k, (a), 'n', lda);
         memset(b, rand() % 5, n*k*ldb*sizeof(double));
@@ -842,7 +843,7 @@ TEST_P( dgemmGenericSmall, gemm_small)
     else
     {
         //----------------------------------------------------------
-        //         Initialize matrics with random numbers
+        //         Initialize matrices with random numbers
         //----------------------------------------------------------
         std::vector<T> a = testinghelpers::get_random_matrix<T>( -2, 8, storageC, 'n', m, k, lda );
         std::vector<T> b = testinghelpers::get_random_matrix<T>( -5, 2, storageC, 'n', k, n, ldb );

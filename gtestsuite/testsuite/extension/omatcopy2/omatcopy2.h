@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2024 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -110,7 +110,7 @@ static void omatcopy2( char trans, gtint_t m, gtint_t n, T alpha, T* A, gtint_t 
     computediff<char>( "trans", trans, trans_cpy );
     computediff<gtint_t>( "m", m, m_cpy );
     computediff<gtint_t>( "n", n, n_cpy );
-    computediff<T>( "alpha", alpha, alpha_cpy );
+    computediff<T>( "alpha", alpha, alpha_cpy, true );
     computediff<gtint_t>( "lda", lda, lda_cpy );
     computediff<gtint_t>( "stridea", stridea, stridea_cpy );
     computediff<gtint_t>( "ldb", ldb, ldb_cpy );

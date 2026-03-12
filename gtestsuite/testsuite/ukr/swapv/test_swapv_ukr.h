@@ -35,7 +35,7 @@
 #pragma once
 
 #include <stdexcept>
-
+#include "level1/ref_swapv.h"
 #include "level1/swapv/swapv.h"
 #include "inc/check_error.h"
 
@@ -109,9 +109,15 @@ static void test_swapv_ukr( FT ukr, gtint_t n, gtint_t incx, gtint_t incy,
     testinghelpers::ProtectedBuffer::stop_signal_handler();
 
     //----------------------------------------------------------
+    //    Call reference implementation to get ref results.
+    //----------------------------------------------------------
+    testinghelpers::ref_swapv<T>( n, x_ref, incx, y_ref, incy );
+
+    //----------------------------------------------------------
     //              Compute binary comparison
     //----------------------------------------------------------
-    computediff<T>( n, x, x_ref, y, y_ref, incx, incy, false );
+    computediff<T>( "x", n, x, x_ref, incx, false );
+    computediff<T>( "y", n, y, y_ref, incy, false );
 
 }
 

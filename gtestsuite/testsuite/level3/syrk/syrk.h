@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -215,9 +215,9 @@ static void syrk( char storage, char uplo, char transa, gtint_t n, gtint_t k,
     computediff<char>( "transa", transa, transa_cpy );
     computediff<gtint_t>( "n", n, n_cpy );
     computediff<gtint_t>( "k", k, k_cpy );
-    if (alpha) computediff<T>( "alpha", *alpha, *alpha_cpy );
+    if (alpha) computediff<T>( "alpha", *alpha, *alpha_cpy, true );
     computediff<gtint_t>( "lda", lda, lda_cpy );
-    if (beta) computediff<T>( "beta", *beta, *beta_cpy );
+    if (beta) computediff<T>( "beta", *beta, *beta_cpy, true );
     computediff<gtint_t>( "ldc", ldc, ldc_cpy );
 
     //----------------------------------------------------------

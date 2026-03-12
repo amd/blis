@@ -166,10 +166,11 @@ function(generate_addon_targets addon_target)
         set_target_properties(${addon_target}_C99_KERNEL_ADDON PROPERTIES FOLDER object-libs-targets)
     endif()
 
-    if(("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU") AND (CMAKE_C_COMPILER_VERSION VERSION_LESS 11.2.0))
-        # Collect all subdirectory paths that have at least one file with suffix in ADDON_CXX_SUFS list.
-        get_filepaths_with_suffixes(LOCAL_SOURCE_CXX_FILES "${CMAKE_CURRENT_SOURCE_DIR}/${addon_target}" "${ADDON_CXX_SUFS}")
-    endif()
+    # Note: C++ files (JIT code) are not collected here.
+    # The main CMakeLists.txt already filters out aocl_gemm addon for compilers
+    # that don't support BF16 intrinsics (GCC < 11.2, Clang < 12.0).
+    # For supported compilers, we only use C files with intrinsics, not JIT.
+    set(LOCAL_SOURCE_CXX_FILES "")
 
     # Only generate the object library if there is at least one source file.
     list(LENGTH LOCAL_SOURCE_CXX_FILES size)

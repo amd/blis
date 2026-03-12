@@ -92,22 +92,27 @@ int main( int argc, char** argv )
     dt = DT;
 
     if (argc < 3)
-      {
-        printf("Usage: ./test_syrk_XX.x input.csv output.csv\n");
-        exit(1);
-      }
+    {
+      printf("Usage: ./test_syrk_XX.x input.csv output.csv\n");
+      exit(1);
+    }
     fin = fopen(argv[1], "r");
     if (fin == NULL)
-      {
-        printf("Error opening the file %s\n", argv[1]);
-        exit(1);
-      }
+    {
+      printf("Error opening the file %s\n", argv[1]);
+      exit(1);
+    }
     fout = fopen(argv[2], "w");
     if (fout == NULL)
-      {
-        printf("Error opening output file %s\n", argv[2]);
-        exit(1);
-      }
+    {
+      printf("Error opening output file %s\n", argv[2]);
+      exit(1);
+    }
+    if (argc > 3)
+    {
+      n_repeats = atoi(argv[3]);
+    }
+
     fprintf(fout, "Func Dt uploc transa n k alphaR alphaI lda betaR betaI ldc gflops\n");
 
 
@@ -122,7 +127,7 @@ int main( int argc, char** argv )
     stor_scheme = 'C'; // since logs are collected at BLAS APIs
 
     // {S,D,C,Z}{ uploc, transa, n, k, alpha_real, alpha_imag, lda, beta_real, beta_imag, ldc}
-    while (fscanf(fin, "%s %c %c %c " INT_FS INT_FS " %lf %lf " UINT_FS " %lf %lf " UINT_FS "\n",\
+    while (fscanf(fin, "%s %c %c %c " INT_FS INT_FS " %lf %lf " UINT_FS " %lf %lf " UINT_FS"%*[^\n]",\
 			tmp, &dt_ch, &uplo_c, &transA_c, &n, &k, &alpha_r,\
 			&alpha_i, &lda, &beta_r, &beta_i, &ldc) == 12)
     {

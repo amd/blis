@@ -113,7 +113,9 @@ function(generate_kernel_targets kernel_target)
 
     # Only generate the object library if there is at least one source file.
     list(LENGTH LOCAL_LPGEMM_SOURCE_FILES size_lpgemm)
-    if (size_lpgemm GREATER 0)
+    # Check if aocl_gemm addon is enabled before building LPGEMM kernels
+    # ENABLE_ADDON is filtered in the main CMakeLists.txt based on compiler version
+    if((size_lpgemm GREATER 0) AND ("aocl_gemm" IN_LIST ENABLE_ADDON))
         # Create an object library using the source file list above.
         add_library(${kernel_target}_LPGEMM_KERNELS
                 OBJECT

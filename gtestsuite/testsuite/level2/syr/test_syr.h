@@ -48,7 +48,7 @@ void test_syr( char storage, char uploa, char conjx, gtint_t n, T alpha,
     gtint_t lda = testinghelpers::get_leading_dimension( storage, 'n', n, n, lda_inc );
 
     //----------------------------------------------------------
-    //        Initialize matrics with random integer numbers.
+    //        Initialize matrices with random integer numbers.
     //----------------------------------------------------------
     std::vector<T> a = testinghelpers::get_random_matrix<T>( -2, 5, storage, 'n', n, n, lda );
     std::vector<T> x = testinghelpers::get_random_vector<T>( -3, 3, n, incx );

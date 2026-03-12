@@ -52,6 +52,11 @@
    Thus, it would take the subsequent paths(small, sup, native) */
 #define THRESH_GEMM_z_TINY_ZEN_AVX2( transa, transb, m, n, k, is_parallel ) \
   ( 0 ) \
+  
+#define THRESH_GEMM_s_TINY_ZEN_AVX2( transa, transb, m, n, k, is_parallel ) \
+  ( ( !is_parallel ) && ( ( ( (m) + (k) ) *  (n)  + ( (m) * (k) ) ) < 8192 ) ) // Make sure that all the matrices fit in the L1 cache
+                                                                               // Currently, tiny path is only enabled in the single threaded mode
+
 
 /* Defining the macro to be used for selecting the kernel at runtime */
 #define ZEN_UKR_SELECTOR( ch, transa, transb, m, n, k, stor_id, ukr_support, gemmtiny_ukr_info, is_parallel ) \

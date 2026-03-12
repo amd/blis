@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2025, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -121,9 +121,13 @@ void bli_l3_compute_thread_decorator
         bli_l3_sup_thrinfo_free( rntm_p, thread );
     }
 
-    // We shouldn't free the global communicator since it was already freed
-    // by the global communicator's chief thread in bli_l3_thrinfo_free()
-    // (called from the thread entry function).
+    // Now global communicator is not freed in bli_l3_sup_thrinfo_free().
+    // Free the global communicator after the parallel region completes.
+    // This ensures that no thread can be using gl_comm when it is freed,
+    // avoiding a potential data race where the chief thread would free
+    // gl_comm inside bli_thrinfo_free() while non-chief threads might
+    // still hold pointers to it.
+    bli_thrcomm_free(rntm, gl_comm);
 
     // Check the array_t back into the small block allocator. Similar to the
     // check-out, this is done using a lock embedded within the sba to ensure

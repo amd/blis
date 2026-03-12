@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -43,7 +43,7 @@
  *   A := alpha*x*y**T + alpha*y*x**T + A,
  * @param[in]     storage specifies the form of storage in the memory matrix A
  * @param[in]     uploa  specifies whether the upper or lower triangular part of the array A
- * @param[in]     n      specifies the number  of rows  of the  matrix A
+ * @param[in]     n      specifies the number of rows of the matrix A
  * @param[in]     alpha  specifies the scalar alpha.
  * @param[in]     xp     specifies pointer which points to the first element of xp
  * @param[in]     incx   specifies storage spacing between elements of xp.
@@ -151,15 +151,15 @@ static void her2( char storage, char uploa, char conj_x, char conj_y, gtint_t n,
 
     // Create copy of input arrays so we can check that they are not altered.
     T* xp_cpy = nullptr;
-    gtint_t size_xp;
-    size_xp = testinghelpers::buff_dim( n, incx );
+    gtint_t size_xp = testinghelpers::buff_dim( n, incx );
+    if (xp && size_xp > 0)
     {
         xp_cpy = new T[size_xp];
         memcpy( xp_cpy, xp, size_xp * sizeof( T ) );
     }
     T* yp_cpy = nullptr;
-    gtint_t size_yp;
-    size_yp = testinghelpers::buff_dim( n, incy );
+    gtint_t size_yp = testinghelpers::buff_dim( n, incy );
+    if (yp && size_yp > 0)
     {
         yp_cpy = new T[size_yp];
         memcpy( yp_cpy, yp, size_yp * sizeof( T ) );
@@ -194,7 +194,7 @@ static void her2( char storage, char uploa, char conj_x, char conj_y, gtint_t n,
     computediff<char>( "conj_x", conj_x, conj_x_cpy );
     computediff<char>( "conj_y", conj_y, conj_y_cpy );
     computediff<gtint_t>( "n", n, n_cpy );
-    if (alpha) computediff<T>( "alpha", *alpha, *alpha_cpy );
+    if (alpha) computediff<T>( "alpha", *alpha, *alpha_cpy, true );
     computediff<gtint_t>( "lda", lda, lda_cpy );
     computediff<gtint_t>( "incx", incx, incx_cpy );
     computediff<gtint_t>( "incy", incy, incy_cpy );

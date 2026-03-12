@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2025 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -59,6 +59,7 @@ TYPED_TEST(syr_IIT_ERS, invalid_storage)
     static const char CONJ = 'n';
     static const gtint_t N = 4;
     // Set the dimension for row/col of A and B, depending on the value of trans.
+    gtint_t incx = 1;
     gtint_t LDA = N;
     T alpha;
     testinghelpers::initone<T>( alpha );
@@ -71,12 +72,12 @@ TYPED_TEST(syr_IIT_ERS, invalid_storage)
 #endif
 
     // Test with all arguments correct except for the value we are choosing to test.
-    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, N, LDA);
+    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 1, 3, N, incx );
     // Copy so that we check that the elements of C are not modified.
     std::vector<T> a_ref(a);
 
-    // Call BLIS syr with a invalid value for TRANS value for A.
+    // Call BLIS syr with a invalid value for storage.
     syr<T>( 'x', UPLO, CONJ, N, &alpha, x.data(), incx, a.data(), LDA );
     // Use bitwise comparison (no threshold).
     computediff<T>( "C", STORAGE, N, N, a.data(), a_ref.data(), LDA);
@@ -98,8 +99,7 @@ TYPED_TEST(syr_IIT_ERS, invalid_storage)
     1. When UPLO != 'U' || UPLO != 'L' (info = 1)
     2. When n < 0 (info = 2)
     3. When incx = 0 (info = 5)
-    4. When incy = 0 (info = 7)
-    5. When LDA < max(1, n) (info = 9)
+    4. When LDA < max(1, n) (info = 7)
 
 */
 
@@ -129,12 +129,12 @@ TYPED_TEST(syr_IIT_ERS, invalid_uplo)
 #endif
 
     // Test with all arguments correct except for the value we are choosing to test.
-    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, N, LDA);
+    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 1, 3, N, incx );
     // Copy so that we check that the elements of C are not modified.
     std::vector<T> a_ref(a);
 
-    // Call BLIS syr with a invalid value for TRANS value for A.
+    // Call BLIS syr with a invalid value for uplo.
     syr<T>( STORAGE, 'p', CONJ, N, &alpha, x.data(), incx, a.data(), LDA );
     // Use bitwise comparison (no threshold).
     computediff<T>( "C", STORAGE, N, N, a.data(), a_ref.data(), LDA);
@@ -171,12 +171,12 @@ TYPED_TEST(syr_IIT_ERS, n_lt_zero)
 #endif
 
     // Test with all arguments correct except for the value we are choosing to test.
-    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, N, LDA);
+    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 1, 3, N, incx );
     // Copy so that we check that the elements of C are not modified.
     std::vector<T> a_ref(a);
 
-    // Call BLIS syr with a invalid value for m.
+    // Call BLIS syr with a invalid value for n.
     syr<T>( STORAGE, UPLO, CONJ, -1, &alpha, x.data(), incx, a.data(), LDA );
     // Use bitwise comparison (no threshold).
     computediff<T>( "C", STORAGE, N, N, a.data(), a_ref.data(), LDA);
@@ -213,12 +213,12 @@ TYPED_TEST(syr_IIT_ERS, incx_eq_zero)
 #endif
 
     // Test with all arguments correct except for the value we are choosing to test.
-    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, N, LDA);
+    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 1, 3, N, incx );
     // Copy so that we check that the elements of C are not modified.
     std::vector<T> a_ref(a);
 
-    // Call BLIS syr with a invalid value for lda.
+    // Call BLIS syr with a invalid value for incx.
     syr<T>( STORAGE, UPLO, CONJ, N, &alpha, x.data(), 0, a.data(), LDA );
     // Use bitwise comparison (no threshold).
     computediff<T>( "C", STORAGE, N, N, a.data(), a_ref.data(), LDA);
@@ -255,7 +255,7 @@ TYPED_TEST(syr_IIT_ERS, invalid_LDA)
 #endif
 
     // Test with all arguments correct except for the value we are choosing to test.
-    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, N, LDA);
+    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 1, 3, N, incx );
     // Copy so that we check that the elements of C are not modified.
     std::vector<T> a_ref(a);
@@ -307,7 +307,7 @@ TYPED_TEST(syr_IIT_ERS, n_eq_zero)
 #endif
 
     // Test with all arguments correct except for the value we are choosing to test.
-    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, N, LDA);
+    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 1, 3, N, incx );
     // Copy so that we check that the elements of C are not modified.
     std::vector<T> a_ref(a);
@@ -348,7 +348,7 @@ TYPED_TEST(syr_IIT_ERS, alpha_zero)
 #endif
 
     // Test with all arguments correct except for the value we are choosing to test.
-    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, N, LDA);
+    std::vector<T> a = testinghelpers::get_random_matrix<T>( 1, 5, STORAGE, UPLO, N, LDA);
     std::vector<T> x = testinghelpers::get_random_vector<T>( 1, 3, N, incx );
     // Copy so that we check that the elements of C are not modified.
     std::vector<T> a_ref(a);

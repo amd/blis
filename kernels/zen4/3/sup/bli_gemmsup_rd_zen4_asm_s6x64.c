@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -59,8 +59,9 @@ void bli_sgemmsup_rd_zen4_asm_5x64
     uint64_t k_left64 = k0 % 64;
     uint64_t k_iter32 = k_left64 / 32;
     uint64_t k_left32 = k_left64 % 32;
-    uint64_t k_iter8  = k_left32 / 8;
-    uint64_t k_left1  = k_left32 % 8;
+    uint64_t k_iter16 = k_left32 / 16;
+    uint64_t k_left1  = k_left32 % 16;
+    int32_t iter_1_mask = (1 << k_left1) - 1;
 
     uint64_t m_iter = m0 / 6;
 
@@ -85,8 +86,10 @@ void bli_sgemmsup_rd_zen4_asm_5x64
     lea( mem( , r10, 4 ), r10 )         // cs_a *= sizeof(dt) => cs_a *= 4
     lea( mem( r9, r9, 2 ), r13 )        // r13 = 3 * rs_b
 
+    mov( var( iter_1_mask ), esi )      // Load mask values for the last loop
+    kmovw( esi, K(1) )
 
-    mov(imm(0), r15)                    // jj = 0;
+    mov( imm(0), r15 )                  // jj = 0;
     label( .SLOOP3X4J )                 // LOOP OVER jj = [ 0 1 ... ]
 
     mov( var( abuf ), r14 )             // load address of a
@@ -97,7 +100,7 @@ void bli_sgemmsup_rd_zen4_asm_5x64
     imul( imm( 1*4 ), rsi )
     lea( mem( r12, rsi, 1 ), r12 )      // c += r15 * cs_c
 
-    lea(mem(   , r15, 1), rsi)          // rsi = r15 = 4*jj;
+    lea( mem(   , r15, 1), rsi )        // rsi = r15 = 4*jj;
     imul( r9, rsi )                     // rsi *= cs_b;
     lea( mem( rdx, rsi, 1 ), rdx )      // rbx = b + 4*jj*cs_b;
 
@@ -113,7 +116,6 @@ void bli_sgemmsup_rd_zen4_asm_5x64
     mov( var( k_iter64 ), rsi )         // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_32 )
-
 
     label( .K_LOOP_ITER64 )
 
@@ -172,7 +174,6 @@ void bli_sgemmsup_rd_zen4_asm_5x64
     add( imm( 16*4 ), rax )
 
     vmovups(        ( rbx ), zmm6 )
-    vmovups(        ( rbx ), zmm6 )
     VFMA5(  8,  9, 10, 20, 21 )
 
     vmovups( ( rbx, r9, 1 ), zmm6 )
@@ -216,10 +217,7 @@ void bli_sgemmsup_rd_zen4_asm_5x64
 
     mov( var( k_iter32 ), rsi )       // load k_iter
     test( rsi, rsi )
-    je( .CONSIDER_K_ITER_8 )
-
-
-    label( .K_LOOP_ITER32 )
+    je( .CONSIDER_K_ITER_16 )
 
     // ITER 0
     vmovups(         ( rax ), zmm0 )
@@ -267,89 +265,104 @@ void bli_sgemmsup_rd_zen4_asm_5x64
 
     add( imm( 16*4 ), rbx )
 
-    dec( rsi )
-    jne( .K_LOOP_ITER32 )
-
-
-    label( .CONSIDER_K_ITER_8 )
-    mov( var( k_iter8 ), rsi )
+    label( .CONSIDER_K_ITER_16 )
+    mov( var( k_iter16 ), rsi )
     test( rsi, rsi )
-    je( .CONSIDER_K_LEFT_1 )
+    je( .CONSIDER_K_LEFT_1)
 
-    label( .K_LOOP_ITER8 )
+    // If the k-loop decomposition uses iterations of 64, 32, and 8 elements, which is inefficient for k values below 32.
+    // For example, when k=31, the current implementation requires three 8-element loops (processing 24 elements) followed 
+    // by seven scalar 1-element loops (processing the remaining 7 elements), totaling 10 loop iterations.
+    // By redesigning the decomposition to use 64, 32, 16, and masked operations instead, the same k=31 case would 
+    // require only one 16-element loop followed by a single masked operation to process the remaining 15 elements. 
+    // This reduces the total iterations from 10 down to 2, significantly improving efficiency for k values in the range of 16-31.
+    
     // ITER 0
-    // Load row from A using ymm registers
-    // Upper 256-bit lanes are cleared for the
-    // zmm counterpart
-    vmovups(         ( rax ), ymm0 )
-    vmovups( ( rax,  r8, 1 ), ymm1 )
-    vmovups( ( rax,  r8, 2 ), ymm2 )
-    vmovups( ( rax, r10, 1 ), ymm3 )
-    vmovups( ( rax,  r8, 4 ), ymm4 )
-    add( imm( 8*4 ), rax )
+    vmovups(         ( rax ), zmm0 )
+    vmovups( ( rax,  r8, 1 ), zmm1 )
+    vmovups( ( rax,  r8, 2 ), zmm2 )
+    vmovups( ( rax, r10, 1 ), zmm3 )
+    vmovups( ( rax,  r8, 4 ), zmm4 )
+    add( imm( 16*4 ), rax )
 
-    // Load column from B using ymm registers
-    // Upper 256-bit lane is cleared for the
-    // zmm counterpart
-    // Thus, we can re-use the VFMA6 macro
-    vmovups(        ( rbx ), ymm6 )
+    vmovups(        ( rbx ), zmm6 )
     VFMA5(  8,  9, 10, 20, 21 )
 
-    vmovups( ( rbx, r9, 1 ), ymm6 )
+    vmovups( ( rbx, r9, 1 ), zmm6 )
     VFMA5( 11, 12, 13, 23, 24 )
 
-    vmovups( ( rbx, r9, 2 ), ymm6 )
+    vmovups( ( rbx, r9, 2 ), zmm6 )
     VFMA5( 14, 15, 16, 26, 27 )
 
-    vmovups( ( rbx, r13, 1 ), ymm6 )
+    vmovups( ( rbx, r13, 1 ), zmm6 )
     VFMA5( 17, 18, 19, 29, 30 )
 
-    add( imm( 8*4 ), rbx )
-
-    dec( rsi )
-    jne( .K_LOOP_ITER8 )
-
+    add( imm( 16*4 ), rbx )
 
     label( .CONSIDER_K_LEFT_1 )
-    mov( var( k_left1 ), rsi )
+    mov( var(k_left1), rsi )
     test( rsi, rsi )
     je( .POST_ACCUM )
 
-    label( .K_LOOP_LEFT1 )
+    // In the case where we need to only compute on floats
+    // which fit in the ymm register, it is better to 
+    // operate on masked ymm registers in this case
+    // because on Zen4, the throughput of masked loads
+    // on zmm is 0.5 while on ymm/xmm is 1
+    cmp( imm(8), rsi )
+    jle( .K_FLOATS_LEFT_LE_8 )
 
-    // Load row from A using xmm registers
-    // Upper 256-bit lanes and the upper 224
-    // bits of the lower 256-bit lane are cleared
-    // for the zmm counterpart
-    vmovss(         ( rax ), xmm0 )
-    vmovss( ( rax,  r8, 1 ), xmm1 )
-    vmovss( ( rax,  r8, 2 ), xmm2 )
-    vmovss( ( rax, r10, 1 ), xmm3 )
-    vmovss( ( rax,  r8, 4 ), xmm4 )
-    add( imm( 1*4 ), rax )
+    label( .K_FLOATS_LEFT_GT_8 )
+    // Instead of looping over element by element and performing
+    // VFMAs on for every element which is wasteful. 
+    // Perform a masked FMA operation on the remaining elements
+    vmovups(         mem(rax), ZMM(0 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 1), ZMM(1 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 2), ZMM(2 MASK_KZ(1) ) )
+    vmovups( mem(rax, r10, 1), ZMM(3 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 4), ZMM(4 MASK_KZ(1) ) )
 
-    // Load column from B using xmm registers
-    // Upper 256-bit lanes and the upper 224
-    // bits of the lower 256-bit lane are cleared
-    // for the zmm counterpart
-    // Thus, we can re-use the VFMA6 macro
-    vmovss(        ( rbx ), xmm6 )
+    vmovups(         mem(rbx), ZMM(6 MASK_KZ(1) ) )
     VFMA5(  8,  9, 10, 20, 21 )
 
-    vmovss( ( rbx, r9, 1 ), xmm6 )
+    vmovups(  mem(rbx, r9, 1), ZMM(6 MASK_KZ(1) ) )
     VFMA5( 11, 12, 13, 23, 24 )
 
-    vmovss( ( rbx, r9, 2 ), xmm6 )
+    vmovups( mem(rbx, r9, 2),  ZMM(6 MASK_KZ(1) ) )
     VFMA5( 14, 15, 16, 26, 27 )
 
-    vmovss( ( rbx, r13, 1 ), xmm6 )
+    vmovups( mem(rbx, r13, 1), ZMM(6 MASK_KZ(1) ) )
     VFMA5( 17, 18, 19, 29, 30 )
 
-    add( imm( 1*4 ), rbx )
+    // unconditional branch to end of the loop after 
+    // the computation of the case processing >8 floats
+    jmp( .POST_ACCUM ) 
 
-    dec( rsi )
-    jne( .K_LOOP_LEFT1 )
+    label( .K_FLOATS_LEFT_LE_8 )
+    // When operating on elements <= 8, it is better to operate
+    // on masked YMM registers on Zen4 because vmovups on 
+    // masked YMM registers has a throughput of 1 while 
+    // the same operation on ZMM has a throughput of 0.5
+    // Instead of looping over element by element and performing
+    // VFMAs on for every element which is wasteful. 
+    // Perform a masked FMA operation on the remaining elements
+    vmovups(         mem(rax), YMM(0 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 1), YMM(1 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 2), YMM(2 MASK_KZ(1) ) )
+    vmovups( mem(rax, r10, 1), YMM(3 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 4), YMM(4 MASK_KZ(1) ) )
 
+    vmovups(         mem(rbx), YMM(6 MASK_KZ(1) ) )
+    VFMA5(  8,  9, 10, 20, 21 )
+
+    vmovups(  mem(rbx, r9, 1), YMM(6 MASK_KZ(1) ) )
+    VFMA5( 11, 12, 13, 23, 24 )
+
+    vmovups( mem(rbx, r9, 2),  YMM(6 MASK_KZ(1) ) )
+    VFMA5( 14, 15, 16, 26, 27 )
+
+    vmovups( mem(rbx, r13, 1), YMM(6 MASK_KZ(1) ) )
+    VFMA5( 17, 18, 19, 29, 30 )
 
     label( .POST_ACCUM )
 
@@ -358,7 +371,6 @@ void bli_sgemmsup_rd_zen4_asm_5x64
     vxorps( xmm1, xmm1, xmm1 )
     vucomiss( xmm1, xmm0 )          // check if beta = 0
     je( .POST_ACCUM_STOR_BZ )
-
 
     // Accumulating & storing the results when beta != 0
     label( .POST_ACCUM_STOR )
@@ -398,7 +410,6 @@ void bli_sgemmsup_rd_zen4_asm_5x64
     C_STOR2                         // Storing result to C
 
     jmp( .SDONE )
-
 
     // Accumulating & storing the results when beta == 0
     label( .POST_ACCUM_STOR_BZ )
@@ -442,11 +453,12 @@ void bli_sgemmsup_rd_zen4_asm_5x64
     end_asm(
     : // output operands (none)
     : // input operands
+      [iter_1_mask] "m" (iter_1_mask),
       [k_iter64] "m" (k_iter64),
       [k_left64] "m" (k_left64),
       [k_iter32] "m" (k_iter32),
       [k_left32] "m" (k_left32),
-      [k_iter8]  "m" (k_iter8),
+      [k_iter16] "m" (k_iter16),
       [k_left1]  "m" (k_left1),
       [a]        "m" (a),
       [rs_a]     "m" (rs_a),
@@ -480,7 +492,7 @@ void bli_sgemmsup_rd_zen4_asm_5x64
       "zmm16", "zmm17", "zmm18", "zmm19",
       "zmm20", "zmm21", "zmm22", "zmm23", "zmm24", "zmm25", "zmm26",
       "zmm27", "zmm28", "zmm29", "zmm30", "zmm31",
-      "memory"
+      "memory", "k1"
     )
 }
 
@@ -504,8 +516,9 @@ void bli_sgemmsup_rd_zen4_asm_4x64
     uint64_t k_left64 = k0 % 64;
     uint64_t k_iter32 = k_left64 / 32;
     uint64_t k_left32 = k_left64 % 32;
-    uint64_t k_iter8  = k_left32 / 8;
-    uint64_t k_left1  = k_left32 % 8;
+    uint64_t k_iter16 = k_left32 / 16;
+    uint64_t k_left1  = k_left32 % 16;
+    int32_t iter_1_mask = (1 << k_left1) - 1;
 
     uint64_t m_iter = m0 / 6;
 
@@ -530,6 +543,9 @@ void bli_sgemmsup_rd_zen4_asm_4x64
     lea( mem( , r10, 4 ), r10 )         // cs_a *= sizeof(dt) => cs_a *= 4
     lea( mem( r9, r9, 2 ), r13 )        // r13 = 3 * rs_b
 
+    mov( var( iter_1_mask ), esi )          // Load mask values for the last loop
+    kmovw( esi, K(1) )
+
     mov( imm( 0 ), r15 )                // jj = 0;
     label( .SLOOP3X4J )                 // LOOP OVER jj = [ 0 1 ... ]
 
@@ -549,8 +565,8 @@ void bli_sgemmsup_rd_zen4_asm_4x64
     lea( mem( r14 ), rax )              // load a to rax
     lea( mem( rdx ), rbx )              // load b to rbx
 
-    lea( mem(  r8, r8, 2 ), r10 )    // r10 = 3 * rs_b
-    lea( mem( r10, r8, 2 ), rdi )   // rdi = 5 * rs_b
+    lea( mem(  r8, r8, 2 ), r10 )    // r10 = 3 * rs_a
+    lea( mem( r10, r8, 2 ), rdi )    // rdi = 5 * rs_a
 
     INIT_REG
 
@@ -614,7 +630,6 @@ void bli_sgemmsup_rd_zen4_asm_4x64
 
     // load column from B
     vmovups(        ( rbx ), zmm6 )
-    vmovups(        ( rbx ), zmm6 )
     VFMA4(  8,  9, 10, 20 )
 
     vmovups( ( rbx, r9, 1 ), zmm6 )
@@ -657,9 +672,7 @@ void bli_sgemmsup_rd_zen4_asm_4x64
 
     mov( var( k_iter32 ), rsi )       // load k_iter
     test( rsi, rsi )
-    je( .CONSIDER_K_ITER_8 )
-
-    label( .K_LOOP_ITER32 )
+    je( .CONSIDER_K_ITER_16 )
 
     // ITER 0
     // load row from A
@@ -706,92 +719,106 @@ void bli_sgemmsup_rd_zen4_asm_4x64
 
     add( imm( 16*4 ), rbx )
 
-    dec( rsi )
-    jne( .K_LOOP_ITER32 )
-
-
-    label( .CONSIDER_K_ITER_8 )
-    mov( var( k_iter8 ), rsi )
+    label( .CONSIDER_K_ITER_16 )
+    mov( var( k_iter16 ), rsi )
     test( rsi, rsi )
-    je( .CONSIDER_K_LEFT_1 )
+    je( .CONSIDER_K_LEFT_1)
 
-    label( .K_LOOP_ITER8 )
+    // If the k-loop decomposition uses iterations of 64, 32, and 8 elements, which is inefficient for k values below 32.
+    // For example, when k=31, the current implementation requires three 8-element loops (processing 24 elements) followed 
+    // by seven scalar 1-element loops (processing the remaining 7 elements), totaling 10 loop iterations.
+    // By redesigning the decomposition to use 64, 32, 16, and masked operations instead, the same k=31 case would 
+    // require only one 16-element loop followed by a single masked operation to process the remaining 15 elements. 
+    // This reduces the total iterations from 10 down to 2, significantly improving efficiency for k values in the range of 16-31.
+    
     // ITER 0
-    // Load row from A using ymm registers
-    // Upper 256-bit lanes are cleared for the
-    // zmm counterpart
-    vmovups(         ( rax ), ymm0 )
-    vmovups( ( rax,  r8, 1 ), ymm1 )
-    vmovups( ( rax,  r8, 2 ), ymm2 )
-    vmovups( ( rax, r10, 1 ), ymm3 )
-    add( imm( 8*4 ), rax )
+    vmovups(         ( rax ), zmm0 )
+    vmovups( ( rax,  r8, 1 ), zmm1 )
+    vmovups( ( rax,  r8, 2 ), zmm2 )
+    vmovups( ( rax, r10, 1 ), zmm3 )
+    add( imm( 16*4 ), rax )
 
-    // Load column from B using ymm registers
-    // Upper 256-bit lane is cleared for the
-    // zmm counterpart
-    // Thus, we can re-use the VFMA6 macro
-    vmovups(        ( rbx ), ymm6 )
+    vmovups(        ( rbx ), zmm6 )
     VFMA4(  8,  9, 10, 20 )
 
-    vmovups( ( rbx, r9, 1 ), ymm6 )
+    vmovups( ( rbx, r9, 1 ), zmm6 )
     VFMA4( 11, 12, 13, 23 )
 
-    vmovups( ( rbx, r9, 2 ), ymm6 )
+    vmovups( ( rbx, r9, 2 ), zmm6 )
     VFMA4( 14, 15, 16, 26 )
 
-    vmovups( ( rbx, r13, 1 ), ymm6 )
+    vmovups( ( rbx, r13, 1 ), zmm6 )
     VFMA4( 17, 18, 19, 29 )
 
-    add( imm( 8*4 ), rbx )
-
-    dec( rsi )
-    jne( .K_LOOP_ITER8 )
-
+    add( imm( 16*4 ), rbx )
 
     label( .CONSIDER_K_LEFT_1 )
-    mov( var( k_left1 ), rsi )
+    mov( var(k_left1), rsi )
     test( rsi, rsi )
     je( .POST_ACCUM )
 
-    label( .K_LOOP_LEFT1 )
+    // In the case where we need to only compute on floats
+    // which fit in the ymm register, it is better to 
+    // operate on masked ymm registers in this case
+    // because on Zen4, the throughput of masked loads
+    // on zmm is 0.5 while on ymm/xmm is 1
+    cmp( imm(8), rsi )
+    jle( .K_FLOATS_LEFT_LE_8 )
 
-    // Load row from A using xmm registers
-    // Upper 256-bit lanes and the upper 224
-    // bits of the lower 256-bit lane are cleared
-    // for the zmm counterpart
-    vmovss(         ( rax ), xmm0 )
-    vmovss( ( rax,  r8, 1 ), xmm1 )
-    vmovss( ( rax,  r8, 2 ), xmm2 )
-    vmovss( ( rax, r10, 1 ), xmm3 )
-    add( imm( 1*4 ), rax )                 // a += 1*cs_b = 1*4;
+    label( .K_FLOATS_LEFT_GT_8 )
+    // Instead of looping over element by element and performing
+    // VFMAs on for every element which is wasteful. 
+    // Perform a masked FMA operation on the remaining elements
+    vmovups(         mem(rax), ZMM(0 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 1), ZMM(1 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 2), ZMM(2 MASK_KZ(1) ) )
+    vmovups( mem(rax, r10, 1), ZMM(3 MASK_KZ(1) ) )
 
-    // Load column from B using xmm registers
-    // Upper 256-bit lanes and the upper 224
-    // bits of the lower 256-bit lane are cleared
-    // for the zmm counterpart
-    // Thus, we can re-use the VFMA6 macro
-    vmovss(        ( rbx ), xmm6 )
+    vmovups(         mem(rbx), ZMM(6 MASK_KZ(1) ) )
     VFMA4(  8,  9, 10, 20 )
 
-    vmovss( ( rbx, r9, 1 ), xmm6 )
+    vmovups(  mem(rbx, r9, 1), ZMM(6 MASK_KZ(1) ) )
     VFMA4( 11, 12, 13, 23 )
 
-    vmovss( ( rbx, r9, 2 ), xmm6 )
+    vmovups( mem(rbx, r9, 2),  ZMM(6 MASK_KZ(1) ) )
     VFMA4( 14, 15, 16, 26 )
 
-    vmovss( ( rbx, r13, 1 ), xmm6 )
+    vmovups( mem(rbx, r13, 1), ZMM(6 MASK_KZ(1) ) )
     VFMA4( 17, 18, 19, 29 )
 
-    add( imm( 1*4 ), rbx )                 // b += 1*rs_b = 1*4;
+    // unconditional branch to end of the loop after 
+    // the computation of the case processing >8 floats
+    jmp( .POST_ACCUM ) 
 
-    dec( rsi )
-    jne( .K_LOOP_LEFT1 )
+    label( .K_FLOATS_LEFT_LE_8 )
+    // When operating on elements <= 8, it is better to operate
+    // on masked YMM registers on Zen4 because vmovups on 
+    // masked YMM registers has a throughput of 1 while 
+    // the same operation on ZMM has a throughput of 0.5
+    // Instead of looping over element by element and performing
+    // VFMAs on for every element which is wasteful. 
+    // Perform a masked FMA operation on the remaining elements
+    vmovups(         mem(rax), YMM(0 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 1), YMM(1 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 2), YMM(2 MASK_KZ(1) ) )
+    vmovups( mem(rax, r10, 1), YMM(3 MASK_KZ(1) ) )
+
+    vmovups(         mem(rbx), YMM(6 MASK_KZ(1) ) )
+    VFMA4(  8,  9, 10, 20 )
+
+    vmovups(  mem(rbx, r9, 1), YMM(6 MASK_KZ(1) ) )
+    VFMA4( 11, 12, 13, 23 )
+
+    vmovups( mem(rbx, r9, 2),  YMM(6 MASK_KZ(1) ) )
+    VFMA4( 14, 15, 16, 26 )
+
+    vmovups( mem(rbx, r13, 1), YMM(6 MASK_KZ(1) ) )
+    VFMA4( 17, 18, 19, 29 )
 
     label( .POST_ACCUM )
 
     mov( var( beta ), rax )         // load address of beta
     vbroadcastss( ( rax ), xmm0 )
-
 
     vxorps( xmm1, xmm1, xmm1 )
     vucomiss( xmm1, xmm0 )          // check if beta = 0
@@ -809,7 +836,7 @@ void bli_sgemmsup_rd_zen4_asm_4x64
 
     ALPHA_SCALE     // Scaling the result of A*B with alpha
 
-    C_STOR       // Storing result to C
+    C_STOR          // Storing result to C
 
     ZMM_TO_YMM( 20, 23, 26, 29,  4,  5,  6,  7 )
 
@@ -843,17 +870,17 @@ void bli_sgemmsup_rd_zen4_asm_4x64
 
     ALPHA_SCALE     // Scaling the result of A*B with alpha
 
-    C_STOR_BZ1       // Storing result to C
+    C_STOR_BZ1      // Storing result to C
 
     label( .SDONE )
 
     mov( var( rs_c ), rdi )         // load rs_c
     lea( mem( , rdi, 4 ), rdi )     // rs_c *= sizeof(float) => rs_c *= 4
-    lea( mem( r12, rdi, 2 ), r12 )         //
-    lea( mem( r12, rdi, 4 ), r12 )         // c_ii = r12 += 3*rs_c
+    lea( mem( r12, rdi, 2 ), r12 )
+    lea( mem( r12, rdi, 4 ), r12 )  // c_ii = r12 += 3*rs_c
 
-    lea( mem( r14, r8,  2 ), r14 )         //
-    lea( mem( r14, r8,  4 ), r14 )         // a_ii = r14 += 3*rs_a
+    lea( mem( r14, r8,  2 ), r14 )
+    lea( mem( r14, r8,  4 ), r14 )  // a_ii = r14 += 3*rs_a
 
     add( imm(  4 ), r15 )
     cmp( imm( 64 ), r15 )
@@ -862,11 +889,12 @@ void bli_sgemmsup_rd_zen4_asm_4x64
     end_asm(
     : // output operands (none)
     : // input operands
+      [iter_1_mask] "m" (iter_1_mask),
       [k_iter64] "m" (k_iter64),
       [k_left64] "m" (k_left64),
       [k_iter32] "m" (k_iter32),
       [k_left32] "m" (k_left32),
-      [k_iter8]  "m" (k_iter8),
+      [k_iter16] "m" (k_iter16),
       [k_left1]  "m" (k_left1),
       [a]        "m" (a),
       [rs_a]     "m" (rs_a),
@@ -899,7 +927,7 @@ void bli_sgemmsup_rd_zen4_asm_4x64
       "zmm16", "zmm17", "zmm18", "zmm19",
       "zmm20", "zmm21", "zmm22", "zmm23", "zmm24", "zmm25", "zmm26",
       "zmm27", "zmm28", "zmm29", "zmm30", "zmm31",
-      "memory"
+      "memory", "k1"
     )
 }
 
@@ -923,8 +951,9 @@ void bli_sgemmsup_rd_zen4_asm_3x64
     uint64_t k_left64 = k0 % 64;
     uint64_t k_iter32 = k_left64 / 32;
     uint64_t k_left32 = k_left64 % 32;
-    uint64_t k_iter8  = k_left32 / 8;
-    uint64_t k_left1  = k_left32 % 8;
+    uint64_t k_iter16 = k_left32 / 16;
+    uint64_t k_left1  = k_left32 % 16;
+    int32_t iter_1_mask = (1 << k_left1) - 1;
 
     uint64_t m_iter = m0 / 6;
 
@@ -947,9 +976,10 @@ void bli_sgemmsup_rd_zen4_asm_3x64
     lea( mem( , r9, 4 ), r9 )           // cs_b *= sizeof(dt) => cs_b *= 4
     mov( var( cs_a ), r10 )             // load cs_a
     lea( mem( , r10, 4 ), r10 )         // cs_a *= sizeof(dt) => cs_a *= 4
+    lea( mem( r9, r9, 2 ), r13 )        // r13 = 3 * rs_b
 
-    lea( mem( r9, r9, 2 ), r13 )    // r13 = 3 * rs_b
-
+    mov( var( iter_1_mask ), esi )      // Load mask values for the last loop
+    kmovw( esi, K(1) )
 
     mov( imm( 0 ), r15 )                // jj = 0;
     label( .SLOOP3X4J )                 // LOOP OVER jj = [ 0 1 ... ]
@@ -960,7 +990,7 @@ void bli_sgemmsup_rd_zen4_asm_3x64
 
     lea( mem( , r15, 1 ), rsi )
     imul( imm( 1*4 ), rsi )
-    lea( mem( r12, rsi, 1 ), r12 )  // c += r15 * cs_c
+    lea( mem( r12, rsi, 1 ), r12 )      // c += r15 * cs_c
 
     lea( mem(  , r15, 1 ), rsi )        // rsi = r15 = 4*jj;
     imul( r9, rsi )                     // rsi *= cs_b;
@@ -970,15 +1000,14 @@ void bli_sgemmsup_rd_zen4_asm_3x64
     lea( mem( r14 ), rax )              // load a to rax
     lea( mem( rdx ), rbx )              // load b to rbx
 
-    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_b
-    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_b
+    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_a
+    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_a
 
     INIT_REG
 
     mov( var( k_iter64 ), rsi )       // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_32 )
-
 
     label( .K_LOOP_ITER64 )
 
@@ -1070,15 +1099,11 @@ void bli_sgemmsup_rd_zen4_asm_3x64
     dec( rsi )
     jne( .K_LOOP_ITER64 )
 
-
     label( .CONSIDER_K_ITER_32 )
 
     mov( var( k_iter32 ), rsi )       // load k_iter
     test( rsi, rsi )
-    je( .CONSIDER_K_ITER_8 )
-
-
-    label( .K_LOOP_ITER32 )
+    je( .CONSIDER_K_ITER_16 )
 
     // ITER 0
     // load row from A
@@ -1123,86 +1148,98 @@ void bli_sgemmsup_rd_zen4_asm_3x64
 
     add( imm( 16*4 ), rbx )
 
-    dec( rsi )
-    jne( .K_LOOP_ITER32 )
-
-
-    label( .CONSIDER_K_ITER_8 )
-    mov( var( k_iter8 ), rsi )
+    label( .CONSIDER_K_ITER_16 )
+    mov( var( k_iter16 ), rsi )
     test( rsi, rsi )
-    je( .CONSIDER_K_LEFT_1 )
+    je( .CONSIDER_K_LEFT_1)
 
-
-    label( .K_LOOP_ITER8 )
+    // If the k-loop decomposition uses iterations of 64, 32, and 8 elements, which is inefficient for k values below 32.
+    // For example, when k=31, the current implementation requires three 8-element loops (processing 24 elements) followed 
+    // by seven scalar 1-element loops (processing the remaining 7 elements), totaling 10 loop iterations.
+    // By redesigning the decomposition to use 64, 32, 16, and masked operations instead, the same k=31 case would 
+    // require only one 16-element loop followed by a single masked operation to process the remaining 15 elements. 
+    // This reduces the total iterations from 10 down to 2, significantly improving efficiency for k values in the range of 16-31.
+    
     // ITER 0
-    // Load row from A using ymm registers
-    // Upper 256-bit lanes are cleared for the
-    // zmm counterpart
-    vmovups(         ( rax ), ymm0 )
-    vmovups( ( rax,  r8, 1 ), ymm1 )
-    vmovups( ( rax,  r8, 2 ), ymm2 )
-    add( imm( 8*4 ), rax )
+    vmovups(         ( rax ), zmm0 )
+    vmovups( ( rax,  r8, 1 ), zmm1 )
+    vmovups( ( rax,  r8, 2 ), zmm2 )
+    add( imm( 16*4 ), rax )
 
-    // Load column from B using ymm registers
-    // Upper 256-bit lane is cleared for the
-    // zmm counterpart
-    // Thus, we can re-use the VFMA6 macro
-    vmovups(        ( rbx ), ymm6 )
+    vmovups(        ( rbx ), zmm6 )
     VFMA3(  8,  9, 10 )
 
-    vmovups( ( rbx, r9, 1 ), ymm6 )
+    vmovups( ( rbx, r9, 1 ), zmm6 )
     VFMA3( 11, 12, 13 )
 
-    vmovups( ( rbx, r9, 2 ), ymm6 )
+    vmovups( ( rbx, r9, 2 ), zmm6 )
     VFMA3( 14, 15, 16 )
 
-    vmovups( ( rbx, r13, 1 ), ymm6 )
+    vmovups( ( rbx, r13, 1 ), zmm6 )
     VFMA3( 17, 18, 19 )
 
-    add( imm( 8*4 ), rbx )
-
-    dec( rsi )
-    jne( .K_LOOP_ITER8 )
-
+    add( imm( 16*4 ), rbx )
 
     label( .CONSIDER_K_LEFT_1 )
-    mov( var( k_left1 ), rsi )
+    mov( var(k_left1), rsi )
     test( rsi, rsi )
     je( .POST_ACCUM )
 
-    label( .K_LOOP_LEFT1 )
+    // In the case where we need to only compute on floats
+    // which fit in the ymm register, it is better to 
+    // operate on masked ymm registers in this case
+    // because on Zen4, the throughput of masked loads
+    // on zmm is 0.5 while on ymm/xmm is 1
+    cmp( imm(8), rsi )
+    jle( .K_FLOATS_LEFT_LE_8 )
 
-    // Load row from A using xmm registers
-    // Upper 256-bit lanes and the upper 224
-    // bits of the lower 256-bit lane are cleared
-    // for the zmm counterpart
-    vmovss(         ( rax ), xmm0 )
-    vmovss( ( rax,  r8, 1 ), xmm1 )
-    vmovss( ( rax,  r8, 2 ), xmm2 )
-    add( imm( 1*4 ), rax )                 // a += 1*cs_b = 1*4;
+    label( .K_FLOATS_LEFT_GT_8 )
+    // Instead of looping over element by element and performing
+    // VFMAs on for every element which is wasteful. 
+    // Perform a masked FMA operation on the remaining elements
+    vmovups(         mem(rax), ZMM(0 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 1), ZMM(1 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 2), ZMM(2 MASK_KZ(1) ) )
 
-    // Load column from B using xmm registers
-    // Upper 256-bit lanes and the upper 224
-    // bits of the lower 256-bit lane are cleared
-    // for the zmm counterpart
-    // Thus, we can re-use the VFMA6 macro
-    vmovss(        ( rbx ), xmm6 )
+    vmovups(         mem(rbx), ZMM(6 MASK_KZ(1) ) )
     VFMA3(  8,  9, 10 )
 
-    vmovss( ( rbx, r9, 1 ), xmm6 )
+    vmovups(  mem(rbx, r9, 1), ZMM(6 MASK_KZ(1) ) )
     VFMA3( 11, 12, 13 )
 
-    vmovss( ( rbx, r9, 2 ), xmm6 )
+    vmovups( mem(rbx, r9, 2),  ZMM(6 MASK_KZ(1) ) )
     VFMA3( 14, 15, 16 )
 
-    vmovss( ( rbx, r13, 1 ), xmm6 )
+    vmovups( mem(rbx, r13, 1), ZMM(6 MASK_KZ(1) ) )
     VFMA3( 17, 18, 19 )
 
-    add( imm( 1*4 ), rbx )                 // b += 1*rs_b = 1*4;
+    // unconditional branch to end of the loop after 
+    // the computation of the case processing >8 floats
+    jmp( .POST_ACCUM ) 
 
-    dec( rsi )
-    jne( .K_LOOP_LEFT1 )
+    label( .K_FLOATS_LEFT_LE_8 )
+    // When operating on elements <= 8, it is better to operate
+    // on masked YMM registers on Zen4 because vmovups on 
+    // masked YMM registers has a throughput of 1 while 
+    // the same operation on ZMM has a throughput of 0.5
+    // Instead of looping over element by element and performing
+    // VFMAs on for every element which is wasteful. 
+    // Perform a masked FMA operation on the remaining elements
+    vmovups(         mem(rax), YMM(0 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 1), YMM(1 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 2), YMM(2 MASK_KZ(1) ) )
 
+    vmovups(         mem(rbx), YMM(6 MASK_KZ(1) ) )
+    VFMA3(  8,  9, 10 )
+
+    vmovups(  mem(rbx, r9, 1), YMM(6 MASK_KZ(1) ) )
+    VFMA3( 11, 12, 13 )
+
+    vmovups( mem(rbx, r9, 2),  YMM(6 MASK_KZ(1) ) )
+    VFMA3( 14, 15, 16 )
+
+    vmovups( mem(rbx, r13, 1), YMM(6 MASK_KZ(1) ) )
+    VFMA3( 17, 18, 19 )
 
     label( .POST_ACCUM )
 
@@ -1211,7 +1248,6 @@ void bli_sgemmsup_rd_zen4_asm_3x64
     vxorps( xmm1, xmm1, xmm1 )
     vucomiss( xmm1, xmm0 )          // check if beta = 0
     je( .POST_ACCUM_STOR_BZ )
-
 
     // Accumulating & storing the results when beta != 0
     label( .POST_ACCUM_STOR )
@@ -1230,7 +1266,6 @@ void bli_sgemmsup_rd_zen4_asm_3x64
 
     jmp( .SDONE )
 
-
     // Accumulating & storing the results when beta == 0
     label( .POST_ACCUM_STOR_BZ )
 
@@ -1245,7 +1280,6 @@ void bli_sgemmsup_rd_zen4_asm_3x64
     ALPHA_SCALE                     // Scaling the result of A*B with alpha
 
     C_STOR_BZ                       // Storing result to C
-
 
     label( .SDONE )
 
@@ -1263,11 +1297,12 @@ void bli_sgemmsup_rd_zen4_asm_3x64
     end_asm(
     : // output operands (none)
     : // input operands
+      [iter_1_mask] "m" (iter_1_mask),
       [k_iter64] "m" (k_iter64),
       [k_left64] "m" (k_left64),
       [k_iter32] "m" (k_iter32),
       [k_left32] "m" (k_left32),
-      [k_iter8]  "m" (k_iter8),
+      [k_iter16] "m" (k_iter16),
       [k_left1]  "m" (k_left1),
       [a]        "m" (a),
       [rs_a]     "m" (rs_a),
@@ -1299,7 +1334,7 @@ void bli_sgemmsup_rd_zen4_asm_3x64
       "zmm16", "zmm17", "zmm18", "zmm19",
       "zmm20", "zmm21", "zmm22", "zmm23", "zmm24", "zmm25", "zmm26",
       "zmm27", "zmm28", "zmm29", "zmm30", "zmm31",
-      "memory"
+      "memory", "k1"
     )
 }
 
@@ -1323,8 +1358,9 @@ void bli_sgemmsup_rd_zen4_asm_2x64
     uint64_t k_left64 = k0 % 64;
     uint64_t k_iter32 = k_left64 / 32;
     uint64_t k_left32 = k_left64 % 32;
-    uint64_t k_iter8  = k_left32 / 8;
-    uint64_t k_left1  = k_left32 % 8;
+    uint64_t k_iter16 = k_left32 / 16;
+    uint64_t k_left1  = k_left32 % 16;
+    int32_t iter_1_mask = (1 << k_left1) - 1;
 
     uint64_t rs_a   = rs_a0;
     uint64_t cs_a   = cs_a0;
@@ -1351,6 +1387,8 @@ void bli_sgemmsup_rd_zen4_asm_2x64
     lea( mem( , rdi, 4 ), rdi )         // rs_c *= sizeof(float) => rs_c *= 4
     lea( mem( r9, r9, 2 ), r13 )        // r13 = 3 * rs_b
 
+    mov( var( iter_1_mask ), esi )      // Load mask values for the last loop
+    kmovw( esi, K(1) )
 
     mov( imm( 0 ), r15 )                // jj = 0;
     label( .SLOOP3X4J )                 // LOOP OVER jj = [ 0 1 ... ]
@@ -1371,16 +1409,14 @@ void bli_sgemmsup_rd_zen4_asm_2x64
     lea( mem( r14 ), rax )              // load a to rax
     lea( mem( rdx ), rbx )              // load b to rbx
 
-    lea( mem(  r8, r8, 2 ), r10 )    // r10 = 3 * rs_b
-    lea( mem( r10, r8, 2 ), rdi )   // rdi = 5 * rs_b
-
+    lea( mem(  r8, r8, 2 ), r10 )    // r10 = 3 * rs_a
+    lea( mem( r10, r8, 2 ), rdi )    // rdi = 5 * rs_a
 
     INIT_REG
 
     mov( var( k_iter64 ), rsi )       // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_32 )
-
 
     label( .K_LOOP_ITER64 )
 
@@ -1432,7 +1468,6 @@ void bli_sgemmsup_rd_zen4_asm_2x64
 
     // load column from B
     vmovups(        ( rbx ), zmm6 )
-    vmovups(        ( rbx ), zmm6 )
     VFMA2( 8, 9 )
 
     vmovups( ( rbx, r9, 1 ), zmm6 )
@@ -1469,15 +1504,11 @@ void bli_sgemmsup_rd_zen4_asm_2x64
     dec( rsi )
     jne( .K_LOOP_ITER64 )
 
-
     label( .CONSIDER_K_ITER_32 )
 
     mov( var( k_iter32 ), rsi )       // load k_iter
     test( rsi, rsi )
-    je( .CONSIDER_K_ITER_8 )
-
-
-    label( .K_LOOP_ITER32 )
+    je( .CONSIDER_K_ITER_16 )
 
     // ITER 0
     // load row from A
@@ -1520,85 +1551,95 @@ void bli_sgemmsup_rd_zen4_asm_2x64
 
     add( imm( 16*4 ), rbx )
 
-    dec( rsi )
-    jne( .K_LOOP_ITER32 )
-
-
-    label( .CONSIDER_K_ITER_8 )
-    mov( var( k_iter8 ), rsi )
+    label( .CONSIDER_K_ITER_16 )
+    mov( var( k_iter16 ), rsi )
     test( rsi, rsi )
-    je( .CONSIDER_K_LEFT_1 )
+    je( .CONSIDER_K_LEFT_1)
 
-
-    label( .K_LOOP_ITER8 )
+    // If the k-loop decomposition uses iterations of 64, 32, and 8 elements, which is inefficient for k values below 32.
+    // For example, when k=31, the current implementation requires three 8-element loops (processing 24 elements) followed 
+    // by seven scalar 1-element loops (processing the remaining 7 elements), totaling 10 loop iterations.
+    // By redesigning the decomposition to use 64, 32, 16, and masked operations instead, the same k=31 case would 
+    // require only one 16-element loop followed by a single masked operation to process the remaining 15 elements. 
+    // This reduces the total iterations from 10 down to 2, significantly improving efficiency for k values in the range of 16-31.
+    
     // ITER 0
-    // Load row from A using ymm registers
-    // Upper 256-bit lanes are cleared for the
-    // zmm counterpart
-    vmovups(         ( rax ), ymm0 )
-    vmovups( ( rax,  r8, 1 ), ymm1 )
-    add( imm( 8*4 ), rax )
+    vmovups(         ( rax ), zmm0 )
+    vmovups( ( rax,  r8, 1 ), zmm1 )
+    add( imm( 16*4 ), rax )
 
-    // Load column from B using ymm registers
-    // Upper 256-bit lane is cleared for the
-    // zmm counterpart
-    // Thus, we can re-use the VFMA6 macro
-    vmovups(        ( rbx ), ymm6 )
+    vmovups(        ( rbx ), zmm6 )
     VFMA2( 8, 9 )
 
-    vmovups( ( rbx, r9, 1 ), ymm6 )
+    vmovups( ( rbx, r9, 1 ), zmm6 )
     VFMA2( 11, 12 )
 
-    vmovups( ( rbx, r9, 2 ), ymm6 )
+    vmovups( ( rbx, r9, 2 ), zmm6 )
     VFMA2( 14, 15 )
 
-    vmovups( ( rbx, r13, 1 ), ymm6 )
+    vmovups( ( rbx, r13, 1 ), zmm6 )
     VFMA2( 17, 18 )
 
-    add( imm( 8*4 ), rbx )
-
-    dec( rsi )
-    jne( .K_LOOP_ITER8 )
-
+    add( imm( 16*4 ), rbx )
 
     label( .CONSIDER_K_LEFT_1 )
-    mov( var( k_left1 ), rsi )
+    mov( var(k_left1), rsi )
     test( rsi, rsi )
     je( .POST_ACCUM )
 
+    // In the case where we need to only compute on floats
+    // which fit in the ymm register, it is better to 
+    // operate on masked ymm registers in this case
+    // because on Zen4, the throughput of masked loads
+    // on zmm is 0.5 while on ymm/xmm is 1
+    cmp( imm(8), rsi )
+    jle( .K_FLOATS_LEFT_LE_8 )
 
-    label( .K_LOOP_LEFT1 )
+    label( .K_FLOATS_LEFT_GT_8 )
+    // Instead of looping over element by element and performing
+    // VFMAs on for every element which is wasteful. 
+    // Perform a masked FMA operation on the remaining elements
+    vmovups(         mem(rax), ZMM(0 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 1), ZMM(1 MASK_KZ(1) ) )
 
-    // Load row from A using xmm registers
-    // Upper 256-bit lanes and the upper 224
-    // bits of the lower 256-bit lane are cleared
-    // for the zmm counterpart
-    vmovss(         ( rax ), xmm0 )
-    vmovss( ( rax,  r8, 1 ), xmm1 )
-    add( imm( 1*4 ), rax )                 // a += 1*cs_b = 1*4;
-
-    // Load column from B using xmm registers
-    // Upper 256-bit lanes and the upper 224
-    // bits of the lower 256-bit lane are cleared
-    // for the zmm counterpart
-    // Thus, we can re-use the VFMA6 macro
-    vmovss(        ( rbx ), xmm6 )
+    vmovups(         mem(rbx), ZMM(6 MASK_KZ(1) ) )
     VFMA2( 8, 9 )
 
-    vmovss( ( rbx, r9, 1 ), xmm6 )
+    vmovups(  mem(rbx, r9, 1), ZMM(6 MASK_KZ(1) ) )
     VFMA2( 11, 12 )
 
-    vmovss( ( rbx, r9, 2 ), xmm6 )
+    vmovups( mem(rbx, r9, 2),  ZMM(6 MASK_KZ(1) ) )
     VFMA2( 14, 15 )
 
-    vmovss( ( rbx, r13, 1 ), xmm6 )
+    vmovups( mem(rbx, r13, 1), ZMM(6 MASK_KZ(1) ) )
     VFMA2( 17, 18 )
 
-    add( imm( 1*4 ), rbx )                 // b += 1*rs_b = 1*4;
+    // unconditional branch to end of the loop after 
+    // the computation of the case processing >8 floats
+    jmp( .POST_ACCUM ) 
 
-    dec( rsi )
-    jne( .K_LOOP_LEFT1 )
+    label( .K_FLOATS_LEFT_LE_8 )
+    // When operating on elements <= 8, it is better to operate
+    // on masked YMM registers on Zen4 because vmovups on 
+    // masked YMM registers has a throughput of 1 while 
+    // the same operation on ZMM has a throughput of 0.5
+    // Instead of looping over element by element and performing
+    // VFMAs on for every element which is wasteful. 
+    // Perform a masked FMA operation on the remaining elements
+    vmovups(         mem(rax), YMM(0 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 1), YMM(1 MASK_KZ(1) ) )
 
+    vmovups(         mem(rbx), YMM(6 MASK_KZ(1) ) )
+    VFMA2( 8, 9 )
+
+    vmovups(  mem(rbx, r9, 1), YMM(6 MASK_KZ(1) ) )
+    VFMA2( 11, 12 )
+
+    vmovups( mem(rbx, r9, 2),  YMM(6 MASK_KZ(1) ) )
+    VFMA2( 14, 15 )
+
+    vmovups( mem(rbx, r13, 1), YMM(6 MASK_KZ(1) ) )
+    VFMA2( 17, 18 )
 
     label( .POST_ACCUM )
 
@@ -1607,7 +1648,6 @@ void bli_sgemmsup_rd_zen4_asm_2x64
     vxorps( xmm1, xmm1, xmm1 )
     vucomiss( xmm1, xmm0 )          // check if beta = 0
     je( .POST_ACCUM_STOR_BZ )
-
 
     // Accumulating & storing the results when beta != 0
     label( .POST_ACCUM_STOR )
@@ -1623,7 +1663,6 @@ void bli_sgemmsup_rd_zen4_asm_2x64
     C_STOR2                     // Storing result to C
 
     jmp( .SDONE )
-
 
     // Accumulating & storing the results when beta == 0
     label( .POST_ACCUM_STOR_BZ )
@@ -1647,11 +1686,12 @@ void bli_sgemmsup_rd_zen4_asm_2x64
     end_asm(
     : // output operands (none)
     : // input operands
+      [iter_1_mask] "m" (iter_1_mask),
       [k_iter64] "m" (k_iter64),
       [k_left64] "m" (k_left64),
       [k_iter32] "m" (k_iter32),
       [k_left32] "m" (k_left32),
-      [k_iter8]  "m" (k_iter8),
+      [k_iter16] "m" (k_iter16),
       [k_left1]  "m" (k_left1),
       [a]        "m" (a),
       [rs_a]     "m" (rs_a),
@@ -1682,7 +1722,7 @@ void bli_sgemmsup_rd_zen4_asm_2x64
       "zmm16", "zmm17", "zmm18", "zmm19",
       "zmm20", "zmm21", "zmm22", "zmm23", "zmm24", "zmm25", "zmm26",
       "zmm27", "zmm28", "zmm29", "zmm30", "zmm31",
-      "memory"
+      "memory", "k1"
     )
 }
 
@@ -1706,8 +1746,9 @@ void bli_sgemmsup_rd_zen4_asm_1x64
     uint64_t k_left64 = k0 % 64;
     uint64_t k_iter32 = k_left64 / 32;
     uint64_t k_left32 = k_left64 % 32;
-    uint64_t k_iter8  = k_left32 / 8;
-    uint64_t k_left1  = k_left32 % 8;
+    uint64_t k_iter16 = k_left32 / 16;
+    uint64_t k_left1  = k_left32 % 16;
+    int32_t iter_1_mask = (1 << k_left1) - 1;
 
     uint64_t rs_a   = rs_a0;
     uint64_t cs_a   = cs_a0;
@@ -1734,6 +1775,9 @@ void bli_sgemmsup_rd_zen4_asm_1x64
     lea( mem( , rdi, 4 ), rdi )         // rs_c *= sizeof(float) => rs_c *= 4
     lea( mem( r9, r9, 2 ), r13 )        // r13 = 3 * rs_b
 
+    mov( var( iter_1_mask ), esi )      // Load mask values for the last loop
+    kmovw( esi, K(1) )
+
     mov( imm( 0 ), r15 )                // jj = 0;
     label( .SLOOP3X4J )                 // LOOP OVER jj = [ 0 1 ... ]
 
@@ -1753,16 +1797,14 @@ void bli_sgemmsup_rd_zen4_asm_1x64
     lea( mem( r14 ), rax )              // load a to rax
     lea( mem( rdx ), rbx )              // load b to rbx
 
-    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_b
-    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_b
-
+    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_a
+    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_a
 
     INIT_REG
 
     mov( var( k_iter64 ), rsi )       // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_32 )
-
 
     label( .K_LOOP_ITER64 )
 
@@ -1846,14 +1888,11 @@ void bli_sgemmsup_rd_zen4_asm_1x64
     dec( rsi )
     jne( .K_LOOP_ITER64 )
 
-
     label( .CONSIDER_K_ITER_32 )
 
     mov( var( k_iter32 ), rsi )       // load k_iter
     test( rsi, rsi )
-    je( .CONSIDER_K_ITER_8 )
-
-    label( .K_LOOP_ITER32 )
+    je( .CONSIDER_K_ITER_16 )
 
     // ITER 0
     // load row from A
@@ -1894,83 +1933,92 @@ void bli_sgemmsup_rd_zen4_asm_1x64
 
     add( imm( 16*4 ), rbx )
 
-    dec( rsi )
-    jne( .K_LOOP_ITER32 )
-
-
-    label( .CONSIDER_K_ITER_8 )
-    mov( var( k_iter8 ), rsi )
+    label( .CONSIDER_K_ITER_16 )
+    mov( var( k_iter16 ), rsi )
     test( rsi, rsi )
-    je( .CONSIDER_K_LEFT_1 )
+    je( .CONSIDER_K_LEFT_1)
 
-
-    label( .K_LOOP_ITER8 )
+    // If the k-loop decomposition uses iterations of 64, 32, and 8 elements, which is inefficient for k values below 32.
+    // For example, when k=31, the current implementation requires three 8-element loops (processing 24 elements) followed 
+    // by seven scalar 1-element loops (processing the remaining 7 elements), totaling 10 loop iterations.
+    // By redesigning the decomposition to use 64, 32, 16, and masked operations instead, the same k=31 case would 
+    // require only one 16-element loop followed by a single masked operation to process the remaining 15 elements. 
+    // This reduces the total iterations from 10 down to 2, significantly improving efficiency for k values in the range of 16-31.
+    
     // ITER 0
-    // Load row from A using ymm registers
-    // Upper 256-bit lanes are cleared for the
-    // zmm counterpart
-    vmovups(         ( rax ), ymm0 )
-    add( imm( 8*4 ), rax )
+    vmovups(         ( rax ), zmm0 )
+    add( imm( 16*4 ), rax )
 
-    // Load column from B using ymm registers
-    // Upper 256-bit lane is cleared for the
-    // zmm counterpart
-    // Thus, we can re-use the VFMA6 macro
-    vmovups(        ( rbx ), ymm6 )
+    vmovups(        ( rbx ), zmm6 )
     VFMA1( 8 )
 
-    vmovups( ( rbx, r9, 1 ), ymm6 )
+    vmovups( ( rbx, r9, 1 ), zmm6 )
     VFMA1( 11 )
 
-    vmovups( ( rbx, r9, 2 ), ymm6 )
+    vmovups( ( rbx, r9, 2 ), zmm6 )
     VFMA1( 14 )
 
-    vmovups( ( rbx, r13, 1 ), ymm6 )
+    vmovups( ( rbx, r13, 1 ), zmm6 )
     VFMA1( 17 )
 
-    add( imm( 8*4 ), rbx )
-
-    dec( rsi )
-    jne( .K_LOOP_ITER8 )
-
+    add( imm( 16*4 ), rbx )
 
     label( .CONSIDER_K_LEFT_1 )
-    mov( var( k_left1 ), rsi )
+    mov( var(k_left1), rsi )
     test( rsi, rsi )
     je( .POST_ACCUM )
 
+    // In the case where we need to only compute on floats
+    // which fit in the ymm register, it is better to 
+    // operate on masked ymm registers in this case
+    // because on Zen4, the throughput of masked loads
+    // on zmm is 0.5 while on ymm/xmm is 1
+    cmp( imm(8), rsi )
+    jle( .K_FLOATS_LEFT_LE_8 )
 
-    label( .K_LOOP_LEFT1 )
+    label( .K_FLOATS_LEFT_GT_8 )
+    // Instead of looping over element by element and performing
+    // VFMAs on for every element which is wasteful. 
+    // Perform a masked FMA operation on the remaining elements
+    vmovups(         mem(rax), ZMM(0 MASK_KZ(1) ) )
 
-    // Load row from A using xmm registers
-    // Upper 256-bit lanes and the upper 224
-    // bits of the lower 256-bit lane are cleared
-    // for the zmm counterpart
-    vmovss(         ( rax ), xmm0 )
-    add( imm( 1*4 ), rax )                 // a += 1*cs_b = 1*4;
-
-    // Load column from B using xmm registers
-    // Upper 256-bit lanes and the upper 224
-    // bits of the lower 256-bit lane are cleared
-    // for the zmm counterpart
-    // Thus, we can re-use the VFMA6 macro
-    vmovss(        ( rbx ), xmm6 )
+    vmovups(         mem(rbx), ZMM(6 MASK_KZ(1) ) )
     VFMA1( 8 )
 
-    vmovss( ( rbx, r9, 1 ), xmm6 )
+    vmovups(  mem(rbx, r9, 1), ZMM(6 MASK_KZ(1) ) )
     VFMA1( 11 )
 
-    vmovss( ( rbx, r9, 2 ), xmm6 )
+    vmovups( mem(rbx, r9, 2),  ZMM(6 MASK_KZ(1) ) )
     VFMA1( 14 )
 
-    vmovss( ( rbx, r13, 1 ), xmm6 )
+    vmovups( mem(rbx, r13, 1), ZMM(6 MASK_KZ(1) ) )
     VFMA1( 17 )
 
-    add( imm( 1*4 ), rbx )                 // b += 1*rs_b = 1*4;
+    // unconditional branch to end of the loop after 
+    // the computation of the case processing >8 floats
+    jmp( .POST_ACCUM ) 
 
-    dec( rsi )
-    jne( .K_LOOP_LEFT1 )
+    label( .K_FLOATS_LEFT_LE_8 )
+    // When operating on elements <= 8, it is better to operate
+    // on masked YMM registers on Zen4 because vmovups on 
+    // masked YMM registers has a throughput of 1 while 
+    // the same operation on ZMM has a throughput of 0.5
+    // Instead of looping over element by element and performing
+    // VFMAs on for every element which is wasteful. 
+    // Perform a masked FMA operation on the remaining elements
+    vmovups(         mem(rax), YMM(0 MASK_KZ(1) ) )
 
+    vmovups(         mem(rbx), YMM(6 MASK_KZ(1) ) )
+    VFMA1( 8 )
+
+    vmovups(  mem(rbx, r9, 1), YMM(6 MASK_KZ(1) ) )
+    VFMA1( 11 )
+
+    vmovups( mem(rbx, r9, 2),  YMM(6 MASK_KZ(1) ) )
+    VFMA1( 14 )
+
+    vmovups( mem(rbx, r13, 1), YMM(6 MASK_KZ(1) ) )
+    VFMA1( 17 )
 
     label( .POST_ACCUM )
 
@@ -1979,7 +2027,6 @@ void bli_sgemmsup_rd_zen4_asm_1x64
     vxorps( xmm1, xmm1, xmm1 )
     vucomiss( xmm1, xmm0 )          // check if beta = 0
     je( .POST_ACCUM_STOR_BZ )
-
 
     // Accumulating & storing the results when beta != 0
     label( .POST_ACCUM_STOR )
@@ -1994,7 +2041,6 @@ void bli_sgemmsup_rd_zen4_asm_1x64
 
     jmp( .SDONE )
 
-
     // Accumulating & storing the results when beta == 0
     label( .POST_ACCUM_STOR_BZ )
 
@@ -2006,7 +2052,6 @@ void bli_sgemmsup_rd_zen4_asm_1x64
 
     C_STOR_BZ1                  // Storing result to C
 
-
     label( .SDONE )
 
     add( imm(  4 ), r15 )
@@ -2016,11 +2061,12 @@ void bli_sgemmsup_rd_zen4_asm_1x64
     end_asm(
     : // output operands (none)
     : // input operands
+      [iter_1_mask] "m" (iter_1_mask),
       [k_iter64] "m" (k_iter64),
       [k_left64] "m" (k_left64),
       [k_iter32] "m" (k_iter32),
       [k_left32] "m" (k_left32),
-      [k_iter8]  "m" (k_iter8),
+      [k_iter16] "m" (k_iter16),
       [k_left1]  "m" (k_left1),
       [a]        "m" (a),
       [rs_a]     "m" (rs_a),
@@ -2051,7 +2097,7 @@ void bli_sgemmsup_rd_zen4_asm_1x64
       "zmm16", "zmm17", "zmm18", "zmm19",
       "zmm20", "zmm21", "zmm22", "zmm23", "zmm24", "zmm25", "zmm26",
       "zmm27", "zmm28", "zmm29", "zmm30", "zmm31",
-      "memory"
+      "memory", "k1"
     )
 }
 
@@ -2075,8 +2121,9 @@ void bli_sgemmsup_rd_zen4_asm_5x48
     uint64_t k_left64 = k0 % 64;
     uint64_t k_iter32 = k_left64 / 32;
     uint64_t k_left32 = k_left64 % 32;
-    uint64_t k_iter8  = k_left32 / 8;
-    uint64_t k_left1  = k_left32 % 8;
+    uint64_t k_iter16 = k_left32 / 16;
+    uint64_t k_left1  = k_left32 % 16;
+    int32_t iter_1_mask = (1 << k_left1) - 1;
 
     uint64_t m_iter = m0 / 6;
 
@@ -2101,6 +2148,8 @@ void bli_sgemmsup_rd_zen4_asm_5x48
     lea( mem( , r10, 4 ), r10 )         // cs_a *= sizeof(dt) => cs_a *= 4
     lea( mem( r9, r9, 2 ), r13 )        // r13 = 3 * rs_b
 
+    mov( var( iter_1_mask ), esi )      // Load mask values for the last loop
+    kmovw( esi, K(1) )
 
     mov( imm( 0 ), r15 )                // jj = 0;
     label( .SLOOP3X4J )                 // LOOP OVER jj = [ 0 1 ... ]
@@ -2121,15 +2170,14 @@ void bli_sgemmsup_rd_zen4_asm_5x48
     lea( mem( r14 ), rax )              // load a to rax
     lea( mem( rdx ), rbx )              // load b to rbx
 
-    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_b
-    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_b
+    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_a
+    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_a
 
     INIT_REG
 
     mov( var( k_iter64 ), rsi )       // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_32 )
-
 
     label( .K_LOOP_ITER64 )
 
@@ -2190,7 +2238,6 @@ void bli_sgemmsup_rd_zen4_asm_5x48
 
     // load column from B
     vmovups(        ( rbx ), zmm6 )
-    vmovups(        ( rbx ), zmm6 )
     VFMA5( 8, 9, 10, 20, 21 )
 
     vmovups( ( rbx, r9, 1 ), zmm6 )
@@ -2230,15 +2277,11 @@ void bli_sgemmsup_rd_zen4_asm_5x48
     dec( rsi )
     jne( .K_LOOP_ITER64 )
 
-
     label( .CONSIDER_K_ITER_32 )
 
     mov( var( k_iter32 ), rsi )       // load k_iter
     test( rsi, rsi )
-    je( .CONSIDER_K_ITER_8 )
-
-
-    label( .K_LOOP_ITER32 )
+    je( .CONSIDER_K_ITER_16 )
 
     // ITER 0
     // load row from A
@@ -2287,91 +2330,104 @@ void bli_sgemmsup_rd_zen4_asm_5x48
 
     add( imm( 16*4 ), rbx )
 
-    dec( rsi )
-    jne( .K_LOOP_ITER32 )
-
-
-    label( .CONSIDER_K_ITER_8 )
-    mov( var( k_iter8 ), rsi )
+    label( .CONSIDER_K_ITER_16 )
+    mov( var( k_iter16 ), rsi )
     test( rsi, rsi )
-    je( .CONSIDER_K_LEFT_1 )
+    je( .CONSIDER_K_LEFT_1)
 
-
-    label( .K_LOOP_ITER8 )
+    // If the k-loop decomposition uses iterations of 64, 32, and 8 elements, which is inefficient for k values below 32.
+    // For example, when k=31, the current implementation requires three 8-element loops (processing 24 elements) followed 
+    // by seven scalar 1-element loops (processing the remaining 7 elements), totaling 10 loop iterations.
+    // By redesigning the decomposition to use 64, 32, 16, and masked operations instead, the same k=31 case would 
+    // require only one 16-element loop followed by a single masked operation to process the remaining 15 elements. 
+    // This reduces the total iterations from 10 down to 2, significantly improving efficiency for k values in the range of 16-31.
+    
     // ITER 0
-    // Load row from A using ymm registers
-    // Upper 256-bit lanes are cleared for the
-    // zmm counterpart
-    vmovups(         ( rax ), ymm0 )
-    vmovups( ( rax,  r8, 1 ), ymm1 )
-    vmovups( ( rax,  r8, 2 ), ymm2 )
-    vmovups( ( rax, r10, 1 ), ymm3 )
-    vmovups( ( rax,  r8, 4 ), ymm4 )
-    add( imm( 8*4 ), rax )
+    vmovups(         ( rax ), zmm0 )
+    vmovups( ( rax,  r8, 1 ), zmm1 )
+    vmovups( ( rax,  r8, 2 ), zmm2 )
+    vmovups( ( rax, r10, 1 ), zmm3 )
+    vmovups( ( rax,  r8, 4 ), zmm4 )
+    add( imm( 16*4 ), rax )
 
-    // Load column from B using ymm registers
-    // Upper 256-bit lane is cleared for the
-    // zmm counterpart
-    // Thus, we can re-use the VFMA6 macro
-    vmovups(        ( rbx ), ymm6 )
+    vmovups(        ( rbx ), zmm6 )
     VFMA5( 8, 9, 10, 20, 21 )
 
-    vmovups( ( rbx, r9, 1 ), ymm6 )
+    vmovups( ( rbx, r9, 1 ), zmm6 )
     VFMA5( 11, 12, 13, 23, 24 )
 
-    vmovups( ( rbx, r9, 2 ), ymm6 )
+    vmovups( ( rbx, r9, 2 ), zmm6 )
     VFMA5( 14, 15, 16, 26, 27 )
 
-    vmovups( ( rbx, r13, 1 ), ymm6 )
+    vmovups( ( rbx, r13, 1 ), zmm6 )
     VFMA5( 17, 18, 19, 29, 30 )
 
-    add( imm( 8*4 ), rbx )
-
-    dec( rsi )
-    jne( .K_LOOP_ITER8 )
-
+    add( imm( 16*4 ), rbx )
 
     label( .CONSIDER_K_LEFT_1 )
-    mov( var( k_left1 ), rsi )
+    mov( var(k_left1), rsi )
     test( rsi, rsi )
     je( .POST_ACCUM )
 
+    // In the case where we need to only compute on floats
+    // which fit in the ymm register, it is better to 
+    // operate on masked ymm registers in this case
+    // because on Zen4, the throughput of masked loads
+    // on zmm is 0.5 while on ymm/xmm is 1
+    cmp( imm(8), rsi )
+    jle( .K_FLOATS_LEFT_LE_8 )
 
-    label( .K_LOOP_LEFT1 )
+    label( .K_FLOATS_LEFT_GT_8 )
+    // Instead of looping over element by element and performing
+    // VFMAs on for every element which is wasteful. 
+    // Perform a masked FMA operation on the remaining elements
+    vmovups(         mem(rax), ZMM(0 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 1), ZMM(1 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 2), ZMM(2 MASK_KZ(1) ) )
+    vmovups( mem(rax, r10, 1), ZMM(3 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 4), ZMM(4 MASK_KZ(1) ) )
 
-    // Load row from A using xmm registers
-    // Upper 256-bit lanes and the upper 224
-    // bits of the lower 256-bit lane are cleared
-    // for the zmm counterpart
-    vmovss(         ( rax ), xmm0 )
-    vmovss( ( rax,  r8, 1 ), xmm1 )
-    vmovss( ( rax,  r8, 2 ), xmm2 )
-    vmovss( ( rax, r10, 1 ), xmm3 )
-    vmovss( ( rax,  r8, 4 ), xmm4 )
-    add( imm( 1*4 ), rax )                 // a += 1*cs_b = 1*4;
-
-    // Load column from B using xmm registers
-    // Upper 256-bit lanes and the upper 224
-    // bits of the lower 256-bit lane are cleared
-    // for the zmm counterpart
-    // Thus, we can re-use the VFMA6 macro
-    vmovss(        ( rbx ), xmm6 )
+    vmovups(         mem(rbx), ZMM(6 MASK_KZ(1) ) )
     VFMA5( 8, 9, 10, 20, 21 )
 
-    vmovss( ( rbx, r9, 1 ), xmm6 )
+    vmovups(  mem(rbx, r9, 1), ZMM(6 MASK_KZ(1) ) )
     VFMA5( 11, 12, 13, 23, 24 )
 
-    vmovss( ( rbx, r9, 2 ), xmm6 )
+    vmovups( mem(rbx, r9, 2),  ZMM(6 MASK_KZ(1) ) )
     VFMA5( 14, 15, 16, 26, 27 )
 
-    vmovss( ( rbx, r13, 1 ), xmm6 )
+    vmovups( mem(rbx, r13, 1), ZMM(6 MASK_KZ(1) ) )
     VFMA5( 17, 18, 19, 29, 30 )
 
-    add( imm( 1*4 ), rbx )                 // b += 1*rs_b = 1*4;
+    // unconditional branch to end of the loop after 
+    // the computation of the case processing >8 floats
+    jmp( .POST_ACCUM ) 
 
-    dec( rsi )
-    jne( .K_LOOP_LEFT1 )
+    label( .K_FLOATS_LEFT_LE_8 )
+    // When operating on elements <= 8, it is better to operate
+    // on masked YMM registers on Zen4 because vmovups on 
+    // masked YMM registers has a throughput of 1 while 
+    // the same operation on ZMM has a throughput of 0.5
+    // Instead of looping over element by element and performing
+    // VFMAs on for every element which is wasteful. 
+    // Perform a masked FMA operation on the remaining elements
+    vmovups(         mem(rax), YMM(0 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 1), YMM(1 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 2), YMM(2 MASK_KZ(1) ) )
+    vmovups( mem(rax, r10, 1), YMM(3 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 4), YMM(4 MASK_KZ(1) ) )
+    
+    vmovups(         mem(rbx), YMM(6 MASK_KZ(1) ) )
+    VFMA5( 8, 9, 10, 20, 21 )
 
+    vmovups(  mem(rbx, r9, 1), YMM(6 MASK_KZ(1) ) )
+    VFMA5( 11, 12, 13, 23, 24 )
+
+    vmovups( mem(rbx, r9, 2),  YMM(6 MASK_KZ(1) ) )
+    VFMA5( 14, 15, 16, 26, 27 )
+
+    vmovups( mem(rbx, r13, 1), YMM(6 MASK_KZ(1) ) )
+    VFMA5( 17, 18, 19, 29, 30 )
 
     label( .POST_ACCUM )
 
@@ -2380,7 +2436,6 @@ void bli_sgemmsup_rd_zen4_asm_5x48
     vxorps( xmm1, xmm1, xmm1 )
     vucomiss( xmm1, xmm0 )          // check if beta = 0
     je( .POST_ACCUM_STOR_BZ )
-
 
     // Accumulating & storing the results when beta != 0
     label( .POST_ACCUM_STOR )
@@ -2408,7 +2463,6 @@ void bli_sgemmsup_rd_zen4_asm_5x48
     C_STOR2                     // Storing result to C
 
     jmp( .SDONE )
-
 
     // Accumulating & storing the results when beta == 0
     label( .POST_ACCUM_STOR_BZ )
@@ -2451,11 +2505,12 @@ void bli_sgemmsup_rd_zen4_asm_5x48
     end_asm(
     : // output operands (none)
     : // input operands
+      [iter_1_mask] "m" (iter_1_mask),
       [k_iter64] "m" (k_iter64),
       [k_left64] "m" (k_left64),
       [k_iter32] "m" (k_iter32),
       [k_left32] "m" (k_left32),
-      [k_iter8]  "m" (k_iter8),
+      [k_iter16] "m" (k_iter16),
       [k_left1]  "m" (k_left1),
       [a]        "m" (a),
       [rs_a]     "m" (rs_a),
@@ -2489,7 +2544,7 @@ void bli_sgemmsup_rd_zen4_asm_5x48
       "zmm16", "zmm17", "zmm18", "zmm19",
       "zmm20", "zmm21", "zmm22", "zmm23", "zmm24", "zmm25", "zmm26",
       "zmm27", "zmm28", "zmm29", "zmm30", "zmm31",
-      "memory"
+      "memory", "k1"
     )
 }
 
@@ -2513,8 +2568,9 @@ void bli_sgemmsup_rd_zen4_asm_4x48
     uint64_t k_left64 = k0 % 64;
     uint64_t k_iter32 = k_left64 / 32;
     uint64_t k_left32 = k_left64 % 32;
-    uint64_t k_iter8  = k_left32 / 8;
-    uint64_t k_left1  = k_left32 % 8;
+    uint64_t k_iter16 = k_left32 / 16;
+    uint64_t k_left1  = k_left32 % 16;
+    int32_t iter_1_mask = (1 << k_left1) - 1;
 
     uint64_t m_iter = m0 / 6;
 
@@ -2539,6 +2595,9 @@ void bli_sgemmsup_rd_zen4_asm_4x48
     lea( mem( , r10, 4 ), r10 )         // cs_a *= sizeof(dt) => cs_a *= 4
     lea( mem( r9, r9, 2 ), r13 )        // r13 = 3 * rs_b
 
+    mov( var( iter_1_mask ), esi )      // Load mask values for the last loop
+    kmovw( esi, K(1) )
+
     mov( imm( 0 ), r15 )                // jj = 0;
     label( .SLOOP3X4J )                 // LOOP OVER jj = [ 0 1 ... ]
 
@@ -2558,8 +2617,8 @@ void bli_sgemmsup_rd_zen4_asm_4x48
     lea( mem( r14 ), rax )              // load a to rax
     lea( mem( rdx ), rbx )              // load b to rbx
 
-    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_b
-    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_b
+    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_a
+    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_a
 
     INIT_REG
 
@@ -2623,7 +2682,6 @@ void bli_sgemmsup_rd_zen4_asm_4x48
 
     // load column from B
     vmovups(        ( rbx ), zmm6 )
-    vmovups(        ( rbx ), zmm6 )
     VFMA4(  8,  9, 10, 20 )
 
     vmovups( ( rbx, r9, 1 ), zmm6 )
@@ -2662,15 +2720,11 @@ void bli_sgemmsup_rd_zen4_asm_4x48
     dec( rsi )
     jne( .K_LOOP_ITER64 )
 
-
     label( .CONSIDER_K_ITER_32 )
 
     mov( var( k_iter32 ), rsi )       // load k_iter
     test( rsi, rsi )
-    je( .CONSIDER_K_ITER_8 )
-
-
-    label( .K_LOOP_ITER32 )
+    je( .CONSIDER_K_ITER_16 )
 
     // ITER 0
     // load row from A
@@ -2717,97 +2771,109 @@ void bli_sgemmsup_rd_zen4_asm_4x48
 
     add( imm( 16*4 ), rbx )
 
-    dec( rsi )
-    jne( .K_LOOP_ITER32 )
-
-
-    label( .CONSIDER_K_ITER_8 )
-    mov( var( k_iter8 ), rsi )
+    label( .CONSIDER_K_ITER_16 )
+    mov( var( k_iter16 ), rsi )
     test( rsi, rsi )
-    je( .CONSIDER_K_LEFT_1 )
+    je( .CONSIDER_K_LEFT_1)
 
-
-    label( .K_LOOP_ITER8 )
+    // If the k-loop decomposition uses iterations of 64, 32, and 8 elements, which is inefficient for k values below 32.
+    // For example, when k=31, the current implementation requires three 8-element loops (processing 24 elements) followed 
+    // by seven scalar 1-element loops (processing the remaining 7 elements), totaling 10 loop iterations.
+    // By redesigning the decomposition to use 64, 32, 16, and masked operations instead, the same k=31 case would 
+    // require only one 16-element loop followed by a single masked operation to process the remaining 15 elements. 
+    // This reduces the total iterations from 10 down to 2, significantly improving efficiency for k values in the range of 16-31.
+    
     // ITER 0
-    // Load row from A using ymm registers
-    // Upper 256-bit lanes are cleared for the
-    // zmm counterpart
-    vmovups(         ( rax ), ymm0 )
-    vmovups( ( rax,  r8, 1 ), ymm1 )
-    vmovups( ( rax,  r8, 2 ), ymm2 )
-    vmovups( ( rax, r10, 1 ), ymm3 )
-    add( imm( 8*4 ), rax )
+    vmovups(         ( rax ), zmm0 )
+    vmovups( ( rax,  r8, 1 ), zmm1 )
+    vmovups( ( rax,  r8, 2 ), zmm2 )
+    vmovups( ( rax, r10, 1 ), zmm3 )
+    add( imm( 16*4 ), rax )
 
-    // Load column from B using ymm registers
-    // Upper 256-bit lane is cleared for the
-    // zmm counterpart
-    // Thus, we can re-use the VFMA6 macro
-    vmovups(        ( rbx ), ymm6 )
+    vmovups(        ( rbx ), zmm6 )
     VFMA4(  8,  9, 10, 20 )
 
-    vmovups( ( rbx, r9, 1 ), ymm6 )
+    vmovups( ( rbx, r9, 1 ), zmm6 )
     VFMA4( 11, 12, 13, 23 )
 
-    vmovups( ( rbx, r9, 2 ), ymm6 )
+    vmovups( ( rbx, r9, 2 ), zmm6 )
     VFMA4( 14, 15, 16, 26 )
 
-    vmovups( ( rbx, r13, 1 ), ymm6 )
+    vmovups( ( rbx, r13, 1 ), zmm6 )
     VFMA4( 17, 18, 19, 29 )
 
-    add( imm( 8*4 ), rbx )
-
-    dec( rsi )
-    jne( .K_LOOP_ITER8 )
-
+    add( imm( 16*4 ), rbx )
 
     label( .CONSIDER_K_LEFT_1 )
-    mov( var( k_left1 ), rsi )
+    mov( var(k_left1), rsi )
     test( rsi, rsi )
     je( .POST_ACCUM )
 
+    // In the case where we need to only compute on floats
+    // which fit in the ymm register, it is better to 
+    // operate on masked ymm registers in this case
+    // because on Zen4, the throughput of masked loads
+    // on zmm is 0.5 while on ymm/xmm is 1
+    cmp( imm(8), rsi )
+    jle( .K_FLOATS_LEFT_LE_8 )
 
-    label( .K_LOOP_LEFT1 )
+    label( .K_FLOATS_LEFT_GT_8 )
+    // Instead of looping over element by element and performing
+    // VFMAs on for every element which is wasteful. 
+    // Perform a masked FMA operation on the remaining elements
+    vmovups(         mem(rax), ZMM(0 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 1), ZMM(1 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 2), ZMM(2 MASK_KZ(1) ) )
+    vmovups( mem(rax, r10, 1), ZMM(3 MASK_KZ(1) ) )
 
-    // Load row from A using xmm registers
-    // Upper 256-bit lanes and the upper 224
-    // bits of the lower 256-bit lane are cleared
-    // for the zmm counterpart
-    vmovss(         ( rax ), xmm0 )
-    vmovss( ( rax,  r8, 1 ), xmm1 )
-    vmovss( ( rax,  r8, 2 ), xmm2 )
-    vmovss( ( rax, r10, 1 ), xmm3 )
-    add( imm( 1*4 ), rax )                 // a += 1*cs_b = 1*4;
-
-    // Load column from B using xmm registers
-    // Upper 256-bit lanes and the upper 224
-    // bits of the lower 256-bit lane are cleared
-    // for the zmm counterpart
-    // Thus, we can re-use the VFMA6 macro
-    vmovss(        ( rbx ), xmm6 )
+    vmovups(         mem(rbx), ZMM(6 MASK_KZ(1) ) )
     VFMA4(  8,  9, 10, 20 )
 
-    vmovss( ( rbx, r9, 1 ), xmm6 )
+    vmovups(  mem(rbx, r9, 1), ZMM(6 MASK_KZ(1) ) )
     VFMA4( 11, 12, 13, 23 )
 
-    vmovss( ( rbx, r9, 2 ), xmm6 )
+    vmovups( mem(rbx, r9, 2),  ZMM(6 MASK_KZ(1) ) )
     VFMA4( 14, 15, 16, 26 )
 
-    vmovss( ( rbx, r13, 1 ), xmm6 )
+    vmovups( mem(rbx, r13, 1), ZMM(6 MASK_KZ(1) ) )
     VFMA4( 17, 18, 19, 29 )
 
-    add( imm( 1*4 ), rbx )                 // b += 1*rs_b = 1*4;
+    // unconditional branch to end of the loop after 
+    // the computation of the case processing >8 floats
+    jmp( .POST_ACCUM ) 
 
-    dec( rsi )
-    jne( .K_LOOP_LEFT1 )
+    label( .K_FLOATS_LEFT_LE_8 )
+    // When operating on elements <= 8, it is better to operate
+    // on masked YMM registers on Zen4 because vmovups on 
+    // masked YMM registers has a throughput of 1 while 
+    // the same operation on ZMM has a throughput of 0.5
+    // Instead of looping over element by element and performing
+    // VFMAs on for every element which is wasteful. 
+    // Perform a masked FMA operation on the remaining elements
+    vmovups(         mem(rax), YMM(0 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 1), YMM(1 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 2), YMM(2 MASK_KZ(1) ) )
+    vmovups( mem(rax, r10, 1), YMM(3 MASK_KZ(1) ) )
 
+    vmovups(         mem(rbx), YMM(6 MASK_KZ(1) ) )
+    VFMA4(  8,  9, 10, 20 )
+
+    vmovups(  mem(rbx, r9, 1), YMM(6 MASK_KZ(1) ) )
+    VFMA4( 11, 12, 13, 23 )
+
+    vmovups( mem(rbx, r9, 2),  YMM(6 MASK_KZ(1) ) )
+    VFMA4( 14, 15, 16, 26 )
+
+    vmovups( mem(rbx, r13, 1), YMM(6 MASK_KZ(1) ) )
+    VFMA4( 17, 18, 19, 29 )
 
     label( .POST_ACCUM )
+
     mov( var( beta ), rax )         // load address of beta
     vbroadcastss( ( rax ), xmm0 )
     vxorps( xmm1, xmm1, xmm1 )
     vucomiss( xmm1, xmm0 )          // check if beta = 0
     je( .POST_ACCUM_STOR_BZ )
-
 
     // Accumulating & storing the results when beta != 0
     label( .POST_ACCUM_STOR )
@@ -2834,7 +2900,6 @@ void bli_sgemmsup_rd_zen4_asm_4x48
 
     jmp( .SDONE )
 
-
     // Accumulating & storing the results when beta == 0
     label( .POST_ACCUM_STOR_BZ )
 
@@ -2860,7 +2925,6 @@ void bli_sgemmsup_rd_zen4_asm_4x48
 
     C_STOR_BZ1              // Storing result to C
 
-
     label( .SDONE )
 
     mov( var( rs_c ), rdi )             // load rs_c
@@ -2878,11 +2942,12 @@ void bli_sgemmsup_rd_zen4_asm_4x48
     end_asm(
     : // output operands (none)
     : // input operands
+      [iter_1_mask] "m" (iter_1_mask),
       [k_iter64] "m" (k_iter64),
       [k_left64] "m" (k_left64),
       [k_iter32] "m" (k_iter32),
       [k_left32] "m" (k_left32),
-      [k_iter8]  "m" (k_iter8),
+      [k_iter16] "m" (k_iter16),
       [k_left1]  "m" (k_left1),
       [a]        "m" (a),
       [rs_a]     "m" (rs_a),
@@ -2915,7 +2980,7 @@ void bli_sgemmsup_rd_zen4_asm_4x48
       "zmm16", "zmm17", "zmm18", "zmm19",
       "zmm20", "zmm21", "zmm22", "zmm23", "zmm24", "zmm25", "zmm26",
       "zmm27", "zmm28", "zmm29", "zmm30", "zmm31",
-      "memory"
+      "memory", "k1"
     )
 }
 
@@ -2939,8 +3004,9 @@ void bli_sgemmsup_rd_zen4_asm_3x48
     uint64_t k_left64 = k0 % 64;
     uint64_t k_iter32 = k_left64 / 32;
     uint64_t k_left32 = k_left64 % 32;
-    uint64_t k_iter8  = k_left32 / 8;
-    uint64_t k_left1  = k_left32 % 8;
+    uint64_t k_iter16 = k_left32 / 16;
+    uint64_t k_left1  = k_left32 % 16;
+    int32_t iter_1_mask = (1 << k_left1) - 1;
 
     uint64_t m_iter = m0 / 6;
 
@@ -2965,6 +3031,8 @@ void bli_sgemmsup_rd_zen4_asm_3x48
     lea( mem( , r10, 4 ), r10 )         // cs_a *= sizeof(dt) => cs_a *= 4
     lea( mem( r9, r9, 2 ), r13 )        // r13 = 3 * rs_b
 
+    mov( var( iter_1_mask ), esi )      // Load mask values for the last loop
+    kmovw( esi, K(1) )
 
     mov( imm( 0 ), r15 )                // jj = 0;
     label( .SLOOP3X4J )                 // LOOP OVER jj = [ 0 1 ... ]
@@ -2985,15 +3053,14 @@ void bli_sgemmsup_rd_zen4_asm_3x48
     lea( mem( r14 ), rax )              // load a to rax
     lea( mem( rdx ), rbx )              // load b to rbx
 
-    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_b
-    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_b
+    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_a
+    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_a
 
     INIT_REG
 
     mov( var( k_iter64 ), rsi )         // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_32 )
-
 
     label( .K_LOOP_ITER64 )
 
@@ -3085,15 +3152,11 @@ void bli_sgemmsup_rd_zen4_asm_3x48
     dec( rsi )
     jne( .K_LOOP_ITER64 )
 
-
     label( .CONSIDER_K_ITER_32 )
 
     mov( var( k_iter32 ), rsi )       // load k_iter
     test( rsi, rsi )
-    je( .CONSIDER_K_ITER_8 )
-
-
-    label( .K_LOOP_ITER32 )
+    je( .CONSIDER_K_ITER_16 )
 
     // ITER 0
     // load row from A
@@ -3138,87 +3201,98 @@ void bli_sgemmsup_rd_zen4_asm_3x48
 
     add( imm( 16*4 ), rbx )
 
-    dec( rsi )
-    jne( .K_LOOP_ITER32 )
-
-
-    label( .CONSIDER_K_ITER_8 )
-    mov( var( k_iter8 ), rsi )
+    label( .CONSIDER_K_ITER_16 )
+    mov( var( k_iter16 ), rsi )
     test( rsi, rsi )
-    je( .CONSIDER_K_LEFT_1 )
+    je( .CONSIDER_K_LEFT_1)
 
-
-    label( .K_LOOP_ITER8 )
+    // If the k-loop decomposition uses iterations of 64, 32, and 8 elements, which is inefficient for k values below 32.
+    // For example, when k=31, the current implementation requires three 8-element loops (processing 24 elements) followed 
+    // by seven scalar 1-element loops (processing the remaining 7 elements), totaling 10 loop iterations.
+    // By redesigning the decomposition to use 64, 32, 16, and masked operations instead, the same k=31 case would 
+    // require only one 16-element loop followed by a single masked operation to process the remaining 15 elements. 
+    // This reduces the total iterations from 10 down to 2, significantly improving efficiency for k values in the range of 16-31.
+    
     // ITER 0
-    // Load row from A using ymm registers
-    // Upper 256-bit lanes are cleared for the
-    // zmm counterpart
-    vmovups(         ( rax ), ymm0 )
-    vmovups( ( rax,  r8, 1 ), ymm1 )
-    vmovups( ( rax,  r8, 2 ), ymm2 )
-    add( imm( 8*4 ), rax )
+    vmovups(         ( rax ), zmm0 )
+    vmovups( ( rax,  r8, 1 ), zmm1 )
+    vmovups( ( rax,  r8, 2 ), zmm2 )
+    add( imm( 16*4 ), rax )
 
-    // Load column from B using ymm registers
-    // Upper 256-bit lane is cleared for the
-    // zmm counterpart
-    // Thus, we can re-use the VFMA6 macro
-    vmovups(        ( rbx ), ymm6 )
+    vmovups(        ( rbx ), zmm6 )
     VFMA3(  8,  9, 10 )
 
-    vmovups( ( rbx, r9, 1 ), ymm6 )
+    vmovups( ( rbx, r9, 1 ), zmm6 )
     VFMA3( 11, 12, 13 )
 
-    vmovups( ( rbx, r9, 2 ), ymm6 )
+    vmovups( ( rbx, r9, 2 ), zmm6 )
     VFMA3( 14, 15, 16 )
 
-    vmovups( ( rbx, r13, 1 ), ymm6 )
+    vmovups( ( rbx, r13, 1 ), zmm6 )
     VFMA3( 17, 18, 19 )
 
-    add( imm( 8*4 ), rbx )
-
-    dec( rsi )
-    jne( .K_LOOP_ITER8 )
-
+    add( imm( 16*4 ), rbx )
 
     label( .CONSIDER_K_LEFT_1 )
-    mov( var( k_left1 ), rsi )
+    mov( var(k_left1), rsi )
     test( rsi, rsi )
     je( .POST_ACCUM )
 
+    // In the case where we need to only compute on floats
+    // which fit in the ymm register, it is better to 
+    // operate on masked ymm registers in this case
+    // because on Zen4, the throughput of masked loads
+    // on zmm is 0.5 while on ymm/xmm is 1
+    cmp( imm(8), rsi )
+    jle( .K_FLOATS_LEFT_LE_8 )
 
-    label( .K_LOOP_LEFT1 )
+    label( .K_FLOATS_LEFT_GT_8 )
+    // Instead of looping over element by element and performing
+    // VFMAs on for every element which is wasteful. 
+    // Perform a masked FMA operation on the remaining elements
+    vmovups(         mem(rax), ZMM(0 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 1), ZMM(1 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 2), ZMM(2 MASK_KZ(1) ) )
 
-    // Load row from A using xmm registers
-    // Upper 256-bit lanes and the upper 224
-    // bits of the lower 256-bit lane are cleared
-    // for the zmm counterpart
-    vmovss(         ( rax ), xmm0 )
-    vmovss( ( rax,  r8, 1 ), xmm1 )
-    vmovss( ( rax,  r8, 2 ), xmm2 )
-    add( imm( 1*4 ), rax )                 // a += 1*cs_b = 1*4;
-
-    // Load column from B using xmm registers
-    // Upper 256-bit lanes and the upper 224
-    // bits of the lower 256-bit lane are cleared
-    // for the zmm counterpart
-    // Thus, we can re-use the VFMA6 macro
-    vmovss(        ( rbx ), xmm6 )
+    vmovups(         mem(rbx), ZMM(6 MASK_KZ(1) ) )
     VFMA3(  8,  9, 10 )
 
-    vmovss( ( rbx, r9, 1 ), xmm6 )
+    vmovups(  mem(rbx, r9, 1), ZMM(6 MASK_KZ(1) ) )
     VFMA3( 11, 12, 13 )
 
-    vmovss( ( rbx, r9, 2 ), xmm6 )
+    vmovups( mem(rbx, r9, 2),  ZMM(6 MASK_KZ(1) ) )
     VFMA3( 14, 15, 16 )
 
-    vmovss( ( rbx, r13, 1 ), xmm6 )
+    vmovups( mem(rbx, r13, 1), ZMM(6 MASK_KZ(1) ) )
     VFMA3( 17, 18, 19 )
 
-    add( imm( 1*4 ), rbx )                 // b += 1*rs_b = 1*4;
+    // unconditional branch to end of the loop after 
+    // the computation of the case processing >8 floats
+    jmp( .POST_ACCUM ) 
 
-    dec( rsi )
-    jne( .K_LOOP_LEFT1 )
+    label( .K_FLOATS_LEFT_LE_8 )
+    // When operating on elements <= 8, it is better to operate
+    // on masked YMM registers on Zen4 because vmovups on 
+    // masked YMM registers has a throughput of 1 while 
+    // the same operation on ZMM has a throughput of 0.5
+    // Instead of looping over element by element and performing
+    // VFMAs on for every element which is wasteful. 
+    // Perform a masked FMA operation on the remaining elements
+    vmovups(         mem(rax), YMM(0 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 1), YMM(1 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 2), YMM(2 MASK_KZ(1) ) )
 
+    vmovups(         mem(rbx), YMM(6 MASK_KZ(1) ) )
+    VFMA3(  8,  9, 10 )
+
+    vmovups(  mem(rbx, r9, 1), YMM(6 MASK_KZ(1) ) )
+    VFMA3( 11, 12, 13 )
+
+    vmovups( mem(rbx, r9, 2),  YMM(6 MASK_KZ(1) ) )
+    VFMA3( 14, 15, 16 )
+
+    vmovups( mem(rbx, r13, 1), YMM(6 MASK_KZ(1) ) )
+    VFMA3( 17, 18, 19 )
 
     label( .POST_ACCUM )
 
@@ -3227,7 +3301,6 @@ void bli_sgemmsup_rd_zen4_asm_3x48
     vxorps( xmm1, xmm1, xmm1 )
     vucomiss( xmm1, xmm0 )          // check if beta = 0
     je( .POST_ACCUM_STOR_BZ )
-
 
     // Accumulating & storing the results when beta != 0
     label( .POST_ACCUM_STOR )
@@ -3245,7 +3318,6 @@ void bli_sgemmsup_rd_zen4_asm_3x48
     C_STOR                      // Storing result to C
 
     jmp( .SDONE )
-
 
     // Accumulating & storing the results when beta == 0
     label( .POST_ACCUM_STOR_BZ )
@@ -3278,11 +3350,12 @@ void bli_sgemmsup_rd_zen4_asm_3x48
     end_asm(
     : // output operands (none)
     : // input operands
+      [iter_1_mask] "m" (iter_1_mask),
       [k_iter64] "m" (k_iter64),
       [k_left64] "m" (k_left64),
       [k_iter32] "m" (k_iter32),
       [k_left32] "m" (k_left32),
-      [k_iter8]  "m" (k_iter8),
+      [k_iter16] "m" (k_iter16),
       [k_left1]  "m" (k_left1),
       [a]        "m" (a),
       [rs_a]     "m" (rs_a),
@@ -3314,7 +3387,7 @@ void bli_sgemmsup_rd_zen4_asm_3x48
       "zmm16", "zmm17", "zmm18", "zmm19",
       "zmm20", "zmm21", "zmm22", "zmm23", "zmm24", "zmm25", "zmm26",
       "zmm27", "zmm28", "zmm29", "zmm30", "zmm31",
-      "memory"
+      "memory", "k1"
     )
 }
 
@@ -3338,8 +3411,9 @@ void bli_sgemmsup_rd_zen4_asm_2x48
     uint64_t k_left64 = k0 % 64;
     uint64_t k_iter32 = k_left64 / 32;
     uint64_t k_left32 = k_left64 % 32;
-    uint64_t k_iter8  = k_left32 / 8;
-    uint64_t k_left1  = k_left32 % 8;
+    uint64_t k_iter16 = k_left32 / 16;
+    uint64_t k_left1  = k_left32 % 16;
+    int32_t iter_1_mask = (1 << k_left1) - 1;
 
     uint64_t rs_a   = rs_a0;
     uint64_t cs_a   = cs_a0;
@@ -3366,6 +3440,8 @@ void bli_sgemmsup_rd_zen4_asm_2x48
     lea( mem( , rdi, 4 ), rdi )         // rs_c *= sizeof(float) => rs_c *= 4
     lea( mem( r9, r9, 2 ), r13 )        // r13 = 3 * rs_b
 
+    mov( var( iter_1_mask ), esi )      // Load mask values for the last loop
+    kmovw( esi, K(1) )
 
     mov( imm( 0 ), r15 )                // jj = 0;
     label( .SLOOP3X4J )                 // LOOP OVER jj = [ 0 1 ... ]
@@ -3386,16 +3462,14 @@ void bli_sgemmsup_rd_zen4_asm_2x48
     lea( mem( r14 ), rax )              // load a to rax
     lea( mem( rdx ), rbx )              // load b to rbx
 
-    lea( mem(  r8, r8, 2 ), r10 )    // r10 = 3 * rs_b
-    lea( mem( r10, r8, 2 ), rdi )   // rdi = 5 * rs_b
-
+    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_a
+    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_a
 
     INIT_REG
 
     mov( var( k_iter64 ), rsi )       // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_32 )
-
 
     label( .K_LOOP_ITER64 )
 
@@ -3447,7 +3521,6 @@ void bli_sgemmsup_rd_zen4_asm_2x48
 
     // load column from B
     vmovups(        ( rbx ), zmm6 )
-    vmovups(        ( rbx ), zmm6 )
     VFMA2( 8, 9 )
 
     vmovups( ( rbx, r9, 1 ), zmm6 )
@@ -3484,15 +3557,11 @@ void bli_sgemmsup_rd_zen4_asm_2x48
     dec( rsi )
     jne( .K_LOOP_ITER64 )
 
-
     label( .CONSIDER_K_ITER_32 )
 
     mov( var( k_iter32 ), rsi )       // load k_iter
     test( rsi, rsi )
-    je( .CONSIDER_K_ITER_8 )
-
-
-    label( .K_LOOP_ITER32 )
+    je( .CONSIDER_K_ITER_16 )
 
     // ITER 0
     // load row from A
@@ -3535,85 +3604,95 @@ void bli_sgemmsup_rd_zen4_asm_2x48
 
     add( imm( 16*4 ), rbx )
 
-    dec( rsi )
-    jne( .K_LOOP_ITER32 )
-
-
-    label( .CONSIDER_K_ITER_8 )
-    mov( var( k_iter8 ), rsi )
+    label( .CONSIDER_K_ITER_16 )
+    mov( var( k_iter16 ), rsi )
     test( rsi, rsi )
-    je( .CONSIDER_K_LEFT_1 )
+    je( .CONSIDER_K_LEFT_1)
 
-
-    label( .K_LOOP_ITER8 )
+    // If the k-loop decomposition uses iterations of 64, 32, and 8 elements, which is inefficient for k values below 32.
+    // For example, when k=31, the current implementation requires three 8-element loops (processing 24 elements) followed 
+    // by seven scalar 1-element loops (processing the remaining 7 elements), totaling 10 loop iterations.
+    // By redesigning the decomposition to use 64, 32, 16, and masked operations instead, the same k=31 case would 
+    // require only one 16-element loop followed by a single masked operation to process the remaining 15 elements. 
+    // This reduces the total iterations from 10 down to 2, significantly improving efficiency for k values in the range of 16-31.
+    
     // ITER 0
-    // Load row from A using ymm registers
-    // Upper 256-bit lanes are cleared for the
-    // zmm counterpart
-    vmovups(         ( rax ), ymm0 )
-    vmovups( ( rax,  r8, 1 ), ymm1 )
-    add( imm( 8*4 ), rax )
+    vmovups(         ( rax ), zmm0 )
+    vmovups( ( rax,  r8, 1 ), zmm1 )
+    add( imm( 16*4 ), rax )
 
-    // Load column from B using ymm registers
-    // Upper 256-bit lane is cleared for the
-    // zmm counterpart
-    // Thus, we can re-use the VFMA6 macro
-    vmovups(        ( rbx ), ymm6 )
+    vmovups(        ( rbx ), zmm6 )
     VFMA2( 8, 9 )
 
-    vmovups( ( rbx, r9, 1 ), ymm6 )
+    vmovups( ( rbx, r9, 1 ), zmm6 )
     VFMA2( 11, 12 )
 
-    vmovups( ( rbx, r9, 2 ), ymm6 )
+    vmovups( ( rbx, r9, 2 ), zmm6 )
     VFMA2( 14, 15 )
 
-    vmovups( ( rbx, r13, 1 ), ymm6 )
+    vmovups( ( rbx, r13, 1 ), zmm6 )
     VFMA2( 17, 18 )
 
-    add( imm( 8*4 ), rbx )
-
-    dec( rsi )
-    jne( .K_LOOP_ITER8 )
-
+    add( imm( 16*4 ), rbx )
 
     label( .CONSIDER_K_LEFT_1 )
-    mov( var( k_left1 ), rsi )
+    mov( var(k_left1), rsi )
     test( rsi, rsi )
     je( .POST_ACCUM )
 
+    // In the case where we need to only compute on floats
+    // which fit in the ymm register, it is better to 
+    // operate on masked ymm registers in this case
+    // because on Zen4, the throughput of masked loads
+    // on zmm is 0.5 while on ymm/xmm is 1
+    cmp( imm(8), rsi )
+    jle( .K_FLOATS_LEFT_LE_8 )
 
-    label( .K_LOOP_LEFT1 )
+    label( .K_FLOATS_LEFT_GT_8 )
+    // Instead of looping over element by element and performing
+    // VFMAs on for every element which is wasteful. 
+    // Perform a masked FMA operation on the remaining elements
+    vmovups(         mem(rax), ZMM(0 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 1), ZMM(1 MASK_KZ(1) ) )
 
-    // Load row from A using xmm registers
-    // Upper 256-bit lanes and the upper 224
-    // bits of the lower 256-bit lane are cleared
-    // for the zmm counterpart
-    vmovss(         ( rax ), xmm0 )
-    vmovss( ( rax,  r8, 1 ), xmm1 )
-    add( imm( 1*4 ), rax )                 // a += 1*cs_b = 1*4;
-
-    // Load column from B using xmm registers
-    // Upper 256-bit lanes and the upper 224
-    // bits of the lower 256-bit lane are cleared
-    // for the zmm counterpart
-    // Thus, we can re-use the VFMA6 macro
-    vmovss(        ( rbx ), xmm6 )
+    vmovups(         mem(rbx), ZMM(6 MASK_KZ(1) ) )
     VFMA2( 8, 9 )
 
-    vmovss( ( rbx, r9, 1 ), xmm6 )
+    vmovups(  mem(rbx, r9, 1), ZMM(6 MASK_KZ(1) ) )
     VFMA2( 11, 12 )
 
-    vmovss( ( rbx, r9, 2 ), xmm6 )
+    vmovups( mem(rbx, r9, 2),  ZMM(6 MASK_KZ(1) ) )
     VFMA2( 14, 15 )
 
-    vmovss( ( rbx, r13, 1 ), xmm6 )
+    vmovups( mem(rbx, r13, 1), ZMM(6 MASK_KZ(1) ) )
     VFMA2( 17, 18 )
 
-    add( imm( 1*4 ), rbx )                 // b += 1*rs_b = 1*4;
+    // unconditional branch to end of the loop after 
+    // the computation of the case processing >8 floats
+    jmp( .POST_ACCUM ) 
 
-    dec( rsi )
-    jne( .K_LOOP_LEFT1 )
+    label( .K_FLOATS_LEFT_LE_8 )
+    // When operating on elements <= 8, it is better to operate
+    // on masked YMM registers on Zen4 because vmovups on 
+    // masked YMM registers has a throughput of 1 while 
+    // the same operation on ZMM has a throughput of 0.5
+    // Instead of looping over element by element and performing
+    // VFMAs on for every element which is wasteful. 
+    // Perform a masked FMA operation on the remaining elements
+    vmovups(         mem(rax), YMM(0 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 1), YMM(1 MASK_KZ(1) ) )
 
+    vmovups(         mem(rbx), YMM(6 MASK_KZ(1) ) )
+    VFMA2( 8, 9 )
+
+    vmovups(  mem(rbx, r9, 1), YMM(6 MASK_KZ(1) ) )
+    VFMA2( 11, 12 )
+
+    vmovups( mem(rbx, r9, 2),  YMM(6 MASK_KZ(1) ) )
+    VFMA2( 14, 15 )
+
+    vmovups( mem(rbx, r13, 1), YMM(6 MASK_KZ(1) ) )
+    VFMA2( 17, 18 )
 
     label( .POST_ACCUM )
 
@@ -3622,7 +3701,6 @@ void bli_sgemmsup_rd_zen4_asm_2x48
     vxorps( xmm1, xmm1, xmm1 )
     vucomiss( xmm1, xmm0 )          // check if beta = 0
     je( .POST_ACCUM_STOR_BZ )
-
 
     // Accumulating & storing the results when beta != 0
     label( .POST_ACCUM_STOR )
@@ -3639,7 +3717,6 @@ void bli_sgemmsup_rd_zen4_asm_2x48
 
     jmp( .SDONE )
 
-
     // Accumulating & storing the results when beta == 0
     label( .POST_ACCUM_STOR_BZ )
 
@@ -3653,7 +3730,6 @@ void bli_sgemmsup_rd_zen4_asm_2x48
 
     C_STOR_BZ2                  // Storing result to C
 
-
     label( .SDONE )
 
     add( imm(  4 ), r15 )
@@ -3663,11 +3739,12 @@ void bli_sgemmsup_rd_zen4_asm_2x48
     end_asm(
     : // output operands (none)
     : // input operands
+      [iter_1_mask] "m" (iter_1_mask),
       [k_iter64] "m" (k_iter64),
       [k_left64] "m" (k_left64),
       [k_iter32] "m" (k_iter32),
       [k_left32] "m" (k_left32),
-      [k_iter8]  "m" (k_iter8),
+      [k_iter16] "m" (k_iter16),
       [k_left1]  "m" (k_left1),
       [a]        "m" (a),
       [rs_a]     "m" (rs_a),
@@ -3698,7 +3775,7 @@ void bli_sgemmsup_rd_zen4_asm_2x48
       "zmm16", "zmm17", "zmm18", "zmm19",
       "zmm20", "zmm21", "zmm22", "zmm23", "zmm24", "zmm25", "zmm26",
       "zmm27", "zmm28", "zmm29", "zmm30", "zmm31",
-      "memory"
+      "memory", "k1"
     )
 }
 
@@ -3722,8 +3799,9 @@ void bli_sgemmsup_rd_zen4_asm_1x48
     uint64_t k_left64 = k0 % 64;
     uint64_t k_iter32 = k_left64 / 32;
     uint64_t k_left32 = k_left64 % 32;
-    uint64_t k_iter8  = k_left32 / 8;
-    uint64_t k_left1  = k_left32 % 8;
+    uint64_t k_iter16 = k_left32 / 16;
+    uint64_t k_left1  = k_left32 % 16;
+    int32_t iter_1_mask = (1 << k_left1) - 1;
 
     uint64_t rs_a   = rs_a0;
     uint64_t cs_a   = cs_a0;
@@ -3750,6 +3828,8 @@ void bli_sgemmsup_rd_zen4_asm_1x48
     lea( mem( , rdi, 4 ), rdi )         // rs_c *= sizeof(float) => rs_c *= 4
     lea( mem( r9, r9, 2 ), r13 )        // r13 = 3 * rs_b
 
+    mov( var( iter_1_mask ), esi )      // Load mask values for the last loop
+    kmovw( esi, K(1) )
 
     mov( imm( 0 ), r15 )                // jj = 0;
     label( .SLOOP3X4J )                 // LOOP OVER jj = [ 0 1 ... ]
@@ -3770,15 +3850,14 @@ void bli_sgemmsup_rd_zen4_asm_1x48
     lea( mem( r14 ), rax )              // load a to rax
     lea( mem( rdx ), rbx )              // load b to rbx
 
-    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_b
-    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_b
+    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_a
+    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_a
 
     INIT_REG
 
-    mov( var( k_iter64 ), rsi )       // load k_iter
+    mov( var( k_iter64 ), rsi )         // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_32 )
-
 
     label( .K_LOOP_ITER64 )
 
@@ -3862,15 +3941,11 @@ void bli_sgemmsup_rd_zen4_asm_1x48
     dec( rsi )
     jne( .K_LOOP_ITER64 )
 
-
     label( .CONSIDER_K_ITER_32 )
 
     mov( var( k_iter32 ), rsi )       // load k_iter
     test( rsi, rsi )
-    je( .CONSIDER_K_ITER_8 )
-
-
-    label( .K_LOOP_ITER32 )
+    je( .CONSIDER_K_ITER_16 )
 
     // ITER 0
     // load row from A
@@ -3911,91 +3986,100 @@ void bli_sgemmsup_rd_zen4_asm_1x48
 
     add( imm( 16*4 ), rbx )
 
-    dec( rsi )
-    jne( .K_LOOP_ITER32 )
-
-
-    label( .CONSIDER_K_ITER_8 )
-    mov( var( k_iter8 ), rsi )
+    label( .CONSIDER_K_ITER_16 )
+    mov( var( k_iter16 ), rsi )
     test( rsi, rsi )
-    je( .CONSIDER_K_LEFT_1 )
+    je( .CONSIDER_K_LEFT_1)
 
-
-    label( .K_LOOP_ITER8 )
+    // If the k-loop decomposition uses iterations of 64, 32, and 8 elements, which is inefficient for k values below 32.
+    // For example, when k=31, the current implementation requires three 8-element loops (processing 24 elements) followed 
+    // by seven scalar 1-element loops (processing the remaining 7 elements), totaling 10 loop iterations.
+    // By redesigning the decomposition to use 64, 32, 16, and masked operations instead, the same k=31 case would 
+    // require only one 16-element loop followed by a single masked operation to process the remaining 15 elements. 
+    // This reduces the total iterations from 10 down to 2, significantly improving efficiency for k values in the range of 16-31.
+    
     // ITER 0
-    // Load row from A using ymm registers
-    // Upper 256-bit lanes are cleared for the
-    // zmm counterpart
-    vmovups(         ( rax ), ymm0 )
-    add( imm( 8*4 ), rax )
+    vmovups(         ( rax ), zmm0 )
+    add( imm( 16*4 ), rax )
 
-    // Load column from B using ymm registers
-    // Upper 256-bit lane is cleared for the
-    // zmm counterpart
-    // Thus, we can re-use the VFMA6 macro
-    vmovups(        ( rbx ), ymm6 )
+    vmovups(        ( rbx ), zmm6 )
     VFMA1( 8 )
 
-    vmovups( ( rbx, r9, 1 ), ymm6 )
+    vmovups( ( rbx, r9, 1 ), zmm6 )
     VFMA1( 11 )
 
-    vmovups( ( rbx, r9, 2 ), ymm6 )
+    vmovups( ( rbx, r9, 2 ), zmm6 )
     VFMA1( 14 )
 
-    vmovups( ( rbx, r13, 1 ), ymm6 )
+    vmovups( ( rbx, r13, 1 ), zmm6 )
     VFMA1( 17 )
 
-    add( imm( 8*4 ), rbx )
-
-    dec( rsi )
-    jne( .K_LOOP_ITER8 )
-
+    add( imm( 16*4 ), rbx )
 
     label( .CONSIDER_K_LEFT_1 )
-    mov( var( k_left1 ), rsi )
+    mov( var(k_left1), rsi )
     test( rsi, rsi )
     je( .POST_ACCUM )
 
+    // In the case where we need to only compute on floats
+    // which fit in the ymm register, it is better to 
+    // operate on masked ymm registers in this case
+    // because on Zen4, the throughput of masked loads
+    // on zmm is 0.5 while on ymm/xmm is 1
+    cmp( imm(8), rsi )
+    jle( .K_FLOATS_LEFT_LE_8 )
 
-    label( .K_LOOP_LEFT1 )
+    label( .K_FLOATS_LEFT_GT_8 )
+    // Instead of looping over element by element and performing
+    // VFMAs on for every element which is wasteful. 
+    // Perform a masked FMA operation on the remaining elements
+    vmovups(         mem(rax), ZMM(0 MASK_KZ(1) ) )
 
-    // Load row from A using xmm registers
-    // Upper 256-bit lanes and the upper 224
-    // bits of the lower 256-bit lane are cleared
-    // for the zmm counterpart
-    vmovss(         ( rax ), xmm0 )
-    add( imm( 1*4 ), rax )                 // a += 1*cs_b = 1*4;
-
-    // Load column from B using xmm registers
-    // Upper 256-bit lanes and the upper 224
-    // bits of the lower 256-bit lane are cleared
-    // for the zmm counterpart
-    // Thus, we can re-use the VFMA6 macro
-    vmovss(        ( rbx ), xmm6 )
+    vmovups(         mem(rbx), ZMM(6 MASK_KZ(1) ) )
     VFMA1( 8 )
 
-    vmovss( ( rbx, r9, 1 ), xmm6 )
+    vmovups(  mem(rbx, r9, 1), ZMM(6 MASK_KZ(1) ) )
     VFMA1( 11 )
 
-    vmovss( ( rbx, r9, 2 ), xmm6 )
+    vmovups( mem(rbx, r9, 2),  ZMM(6 MASK_KZ(1) ) )
     VFMA1( 14 )
 
-    vmovss( ( rbx, r13, 1 ), xmm6 )
+    vmovups( mem(rbx, r13, 1), ZMM(6 MASK_KZ(1) ) )
     VFMA1( 17 )
 
-    add( imm( 1*4 ), rbx )                 // b += 1*rs_b = 1*4;
+    // unconditional branch to end of the loop after 
+    // the computation of the case processing >8 floats
+    jmp( .POST_ACCUM ) 
 
-    dec( rsi )
-    jne( .K_LOOP_LEFT1 )
+    label( .K_FLOATS_LEFT_LE_8 )
+    // When operating on elements <= 8, it is better to operate
+    // on masked YMM registers on Zen4 because vmovups on 
+    // masked YMM registers has a throughput of 1 while 
+    // the same operation on ZMM has a throughput of 0.5
+    // Instead of looping over element by element and performing
+    // VFMAs on for every element which is wasteful. 
+    // Perform a masked FMA operation on the remaining elements
+    vmovups(         mem(rax), YMM(0 MASK_KZ(1) ) )
 
+    vmovups(         mem(rbx), YMM(6 MASK_KZ(1) ) )
+    VFMA1( 8 )
+
+    vmovups(  mem(rbx, r9, 1), YMM(6 MASK_KZ(1) ) )
+    VFMA1( 11 )
+
+    vmovups( mem(rbx, r9, 2),  YMM(6 MASK_KZ(1) ) )
+    VFMA1( 14 )
+
+    vmovups( mem(rbx, r13, 1), YMM(6 MASK_KZ(1) ) )
+    VFMA1( 17 )
 
     label( .POST_ACCUM )
+
     mov( var( beta ), rax )         // load address of beta
     vbroadcastss( ( rax ), xmm0 )
     vxorps( xmm1, xmm1, xmm1 )
     vucomiss( xmm1, xmm0 )          // check if beta = 0
     je( .POST_ACCUM_STOR_BZ )
-
 
     // Accumulating & storing the results when beta != 0
     label( .POST_ACCUM_STOR )
@@ -4010,7 +4094,6 @@ void bli_sgemmsup_rd_zen4_asm_1x48
 
     jmp( .SDONE )
 
-
     // Accumulating & storing the results when beta == 0
     label( .POST_ACCUM_STOR_BZ )
 
@@ -4022,7 +4105,6 @@ void bli_sgemmsup_rd_zen4_asm_1x48
 
     C_STOR_BZ1                  // Storing result to C
 
-
     label( .SDONE )
 
     add( imm(  4 ), r15 )
@@ -4032,11 +4114,12 @@ void bli_sgemmsup_rd_zen4_asm_1x48
     end_asm(
     : // output operands (none)
     : // input operands
+      [iter_1_mask] "m" (iter_1_mask),
       [k_iter64] "m" (k_iter64),
       [k_left64] "m" (k_left64),
       [k_iter32] "m" (k_iter32),
       [k_left32] "m" (k_left32),
-      [k_iter8]  "m" (k_iter8),
+      [k_iter16] "m" (k_iter16),
       [k_left1]  "m" (k_left1),
       [a]        "m" (a),
       [rs_a]     "m" (rs_a),
@@ -4066,7 +4149,7 @@ void bli_sgemmsup_rd_zen4_asm_1x48
       "zmm16", "zmm17", "zmm18", "zmm19",
       "zmm20", "zmm21", "zmm22", "zmm23", "zmm24", "zmm25", "zmm26",
       "zmm27", "zmm28", "zmm29", "zmm30", "zmm31",
-      "memory"
+      "memory", "k1"
     )
 }
 
@@ -4090,8 +4173,9 @@ void bli_sgemmsup_rd_zen4_asm_5x32
     uint64_t k_left64 = k0 % 64;
     uint64_t k_iter32 = k_left64 / 32;
     uint64_t k_left32 = k_left64 % 32;
-    uint64_t k_iter8  = k_left32 / 8;
-    uint64_t k_left1  = k_left32 % 8;
+    uint64_t k_iter16 = k_left32 / 16;
+    uint64_t k_left1  = k_left32 % 16;
+    int32_t iter_1_mask = (1 << k_left1) - 1;
 
     uint64_t m_iter = m0 / 6;
 
@@ -4116,6 +4200,8 @@ void bli_sgemmsup_rd_zen4_asm_5x32
     lea( mem( , r10, 4 ), r10 )         // cs_a *= sizeof(dt) => cs_a *= 4
     lea( mem( r9, r9, 2 ), r13 )        // r13 = 3 * rs_b
 
+    mov( var( iter_1_mask ), esi )      // Load mask values for the last loop
+    kmovw( esi, K(1) )
 
     mov( imm( 0 ), r15 )                // jj = 0;
     label( .SLOOP3X4J )                 // LOOP OVER jj = [ 0 1 ... ]
@@ -4136,15 +4222,14 @@ void bli_sgemmsup_rd_zen4_asm_5x32
     lea( mem( r14 ), rax )              // load a to rax
     lea( mem( rdx ), rbx )              // load b to rbx
 
-    lea( mem(  r8, r8, 2 ), r10 )    // r10 = 3 * rs_b
-    lea( mem( r10, r8, 2 ), rdi )   // rdi = 5 * rs_b
+    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_a
+    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_a
 
     INIT_REG
 
     mov( var( k_iter64 ), rsi )       // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_32 )
-
 
     label( .K_LOOP_ITER64 )
 
@@ -4205,7 +4290,6 @@ void bli_sgemmsup_rd_zen4_asm_5x32
 
     // load column from B
     vmovups(        ( rbx ), zmm6 )
-    vmovups(        ( rbx ), zmm6 )
     VFMA5( 8, 9, 10, 20, 21 )
 
     vmovups( ( rbx, r9, 1 ), zmm6 )
@@ -4249,10 +4333,7 @@ void bli_sgemmsup_rd_zen4_asm_5x32
 
     mov( var( k_iter32 ), rsi )       // load k_iter
     test( rsi, rsi )
-    je( .CONSIDER_K_ITER_8 )
-
-
-    label( .K_LOOP_ITER32 )
+    je( .CONSIDER_K_ITER_16 )
 
     // ITER 0
     // load row from A
@@ -4301,91 +4382,104 @@ void bli_sgemmsup_rd_zen4_asm_5x32
 
     add( imm( 16*4 ), rbx )
 
-    dec( rsi )
-    jne( .K_LOOP_ITER32 )
-
-
-    label( .CONSIDER_K_ITER_8 )
-    mov( var( k_iter8 ), rsi )
+    label( .CONSIDER_K_ITER_16 )
+    mov( var( k_iter16 ), rsi )
     test( rsi, rsi )
-    je( .CONSIDER_K_LEFT_1 )
+    je( .CONSIDER_K_LEFT_1)
 
-
-    label( .K_LOOP_ITER8 )
+    // If the k-loop decomposition uses iterations of 64, 32, and 8 elements, which is inefficient for k values below 32.
+    // For example, when k=31, the current implementation requires three 8-element loops (processing 24 elements) followed 
+    // by seven scalar 1-element loops (processing the remaining 7 elements), totaling 10 loop iterations.
+    // By redesigning the decomposition to use 64, 32, 16, and masked operations instead, the same k=31 case would 
+    // require only one 16-element loop followed by a single masked operation to process the remaining 15 elements. 
+    // This reduces the total iterations from 10 down to 2, significantly improving efficiency for k values in the range of 16-31.
+    
     // ITER 0
-    // Load row from A using ymm registers
-    // Upper 256-bit lanes are cleared for the
-    // zmm counterpart
-    vmovups(         ( rax ), ymm0 )
-    vmovups( ( rax,  r8, 1 ), ymm1 )
-    vmovups( ( rax,  r8, 2 ), ymm2 )
-    vmovups( ( rax, r10, 1 ), ymm3 )
-    vmovups( ( rax,  r8, 4 ), ymm4 )
-    add( imm( 8*4 ), rax )
+    vmovups(         ( rax ), zmm0 )
+    vmovups( ( rax,  r8, 1 ), zmm1 )
+    vmovups( ( rax,  r8, 2 ), zmm2 )
+    vmovups( ( rax, r10, 1 ), zmm3 )
+    vmovups( ( rax,  r8, 4 ), zmm4 )
+    add( imm( 16*4 ), rax )
 
-    // Load column from B using ymm registers
-    // Upper 256-bit lane is cleared for the
-    // zmm counterpart
-    // Thus, we can re-use the VFMA6 macro
-    vmovups(        ( rbx ), ymm6 )
+    vmovups(        ( rbx ), zmm6 )
     VFMA5( 8, 9, 10, 20, 21 )
 
-    vmovups( ( rbx, r9, 1 ), ymm6 )
+    vmovups( ( rbx, r9, 1 ), zmm6 )
     VFMA5( 11, 12, 13, 23, 24 )
 
-    vmovups( ( rbx, r9, 2 ), ymm6 )
+    vmovups( ( rbx, r9, 2 ), zmm6 )
     VFMA5( 14, 15, 16, 26, 27 )
 
-    vmovups( ( rbx, r13, 1 ), ymm6 )
+    vmovups( ( rbx, r13, 1 ), zmm6 )
     VFMA5( 17, 18, 19, 29, 30 )
 
-    add( imm( 8*4 ), rbx )
-
-    dec( rsi )
-    jne( .K_LOOP_ITER8 )
-
+    add( imm( 16*4 ), rbx )
 
     label( .CONSIDER_K_LEFT_1 )
-    mov( var( k_left1 ), rsi )
+    mov( var(k_left1), rsi )
     test( rsi, rsi )
     je( .POST_ACCUM )
 
+    // In the case where we need to only compute on floats
+    // which fit in the ymm register, it is better to 
+    // operate on masked ymm registers in this case
+    // because on Zen4, the throughput of masked loads
+    // on zmm is 0.5 while on ymm/xmm is 1
+    cmp( imm(8), rsi )
+    jle( .K_FLOATS_LEFT_LE_8 )
 
-    label( .K_LOOP_LEFT1 )
+    label( .K_FLOATS_LEFT_GT_8 )
+    // Instead of looping over element by element and performing
+    // VFMAs on for every element which is wasteful. 
+    // Perform a masked FMA operation on the remaining elements
+    vmovups(         mem(rax), ZMM(0 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 1), ZMM(1 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 2), ZMM(2 MASK_KZ(1) ) )
+    vmovups( mem(rax, r10, 1), ZMM(3 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 4), ZMM(4 MASK_KZ(1) ) )
 
-    // Load row from A using xmm registers
-    // Upper 256-bit lanes and the upper 224
-    // bits of the lower 256-bit lane are cleared
-    // for the zmm counterpart
-    vmovss(         ( rax ), xmm0 )
-    vmovss( ( rax,  r8, 1 ), xmm1 )
-    vmovss( ( rax,  r8, 2 ), xmm2 )
-    vmovss( ( rax, r10, 1 ), xmm3 )
-    vmovss( ( rax,  r8, 4 ), xmm4 )
-    add( imm( 1*4 ), rax )                 // a += 1*cs_b = 1*4;
-
-    // Load column from B using xmm registers
-    // Upper 256-bit lanes and the upper 224
-    // bits of the lower 256-bit lane are cleared
-    // for the zmm counterpart
-    // Thus, we can re-use the VFMA6 macro
-    vmovss(        ( rbx ), xmm6 )
+    vmovups(         mem(rbx), ZMM(6 MASK_KZ(1) ) )
     VFMA5( 8, 9, 10, 20, 21 )
 
-    vmovss( ( rbx, r9, 1 ), xmm6 )
+    vmovups(  mem(rbx, r9, 1), ZMM(6 MASK_KZ(1) ) )
     VFMA5( 11, 12, 13, 23, 24 )
 
-    vmovss( ( rbx, r9, 2 ), xmm6 )
+    vmovups( mem(rbx, r9, 2),  ZMM(6 MASK_KZ(1) ) )
     VFMA5( 14, 15, 16, 26, 27 )
 
-    vmovss( ( rbx, r13, 1 ), xmm6 )
+    vmovups( mem(rbx, r13, 1), ZMM(6 MASK_KZ(1) ) )
     VFMA5( 17, 18, 19, 29, 30 )
 
-    add( imm( 1*4 ), rbx )                 // b += 1*rs_b = 1*4;
+    // unconditional branch to end of the loop after 
+    // the computation of the case processing >8 floats
+    jmp( .POST_ACCUM ) 
 
-    dec( rsi )
-    jne( .K_LOOP_LEFT1 )
+    label( .K_FLOATS_LEFT_LE_8 )
+    // When operating on elements <= 8, it is better to operate
+    // on masked YMM registers on Zen4 because vmovups on 
+    // masked YMM registers has a throughput of 1 while 
+    // the same operation on ZMM has a throughput of 0.5
+    // Instead of looping over element by element and performing
+    // VFMAs on for every element which is wasteful. 
+    // Perform a masked FMA operation on the remaining elements
+    vmovups(         mem(rax), YMM(0 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 1), YMM(1 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 2), YMM(2 MASK_KZ(1) ) )
+    vmovups( mem(rax, r10, 1), YMM(3 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 4), YMM(4 MASK_KZ(1) ) )
 
+    vmovups(         mem(rbx), YMM(6 MASK_KZ(1) ) )
+    VFMA5( 8, 9, 10, 20, 21 )
+
+    vmovups(  mem(rbx, r9, 1), YMM(6 MASK_KZ(1) ) )
+    VFMA5( 11, 12, 13, 23, 24 )
+
+    vmovups( mem(rbx, r9, 2),  YMM(6 MASK_KZ(1) ) )
+    VFMA5( 14, 15, 16, 26, 27 )
+
+    vmovups( mem(rbx, r13, 1), YMM(6 MASK_KZ(1) ) )
+    VFMA5( 17, 18, 19, 29, 30 )
 
     label( .POST_ACCUM )
 
@@ -4394,7 +4488,6 @@ void bli_sgemmsup_rd_zen4_asm_5x32
     vxorps( xmm1, xmm1, xmm1 )
     vucomiss( xmm1, xmm0 )          // check if beta = 0
     je( .POST_ACCUM_STOR_BZ )
-
 
     // Accumulating & storing the results when beta != 0
     label( .POST_ACCUM_STOR )
@@ -4422,7 +4515,6 @@ void bli_sgemmsup_rd_zen4_asm_5x32
     C_STOR2                     // Storing result to C
 
     jmp( .SDONE )
-
 
     // Accumulating & storing the results when beta == 0
     label( .POST_ACCUM_STOR_BZ )
@@ -4465,11 +4557,12 @@ void bli_sgemmsup_rd_zen4_asm_5x32
     end_asm(
     : // output operands (none)
     : // input operands
+      [iter_1_mask] "m" (iter_1_mask),
       [k_iter64] "m" (k_iter64),
       [k_left64] "m" (k_left64),
       [k_iter32] "m" (k_iter32),
       [k_left32] "m" (k_left32),
-      [k_iter8]  "m" (k_iter8),
+      [k_iter16] "m" (k_iter16),
       [k_left1]  "m" (k_left1),
       [a]        "m" (a),
       [rs_a]     "m" (rs_a),
@@ -4503,7 +4596,7 @@ void bli_sgemmsup_rd_zen4_asm_5x32
       "zmm16", "zmm17", "zmm18", "zmm19",
       "zmm20", "zmm21", "zmm22", "zmm23", "zmm24", "zmm25", "zmm26",
       "zmm27", "zmm28", "zmm29", "zmm30", "zmm31",
-      "memory"
+      "memory", "k1"
     )
 }
 
@@ -4527,8 +4620,9 @@ void bli_sgemmsup_rd_zen4_asm_4x32
     uint64_t k_left64 = k0 % 64;
     uint64_t k_iter32 = k_left64 / 32;
     uint64_t k_left32 = k_left64 % 32;
-    uint64_t k_iter8  = k_left32 / 8;
-    uint64_t k_left1  = k_left32 % 8;
+    uint64_t k_iter16 = k_left32 / 16;
+    uint64_t k_left1  = k_left32 % 16;
+    int32_t iter_1_mask = (1 << k_left1) - 1;
 
     uint64_t m_iter = m0 / 6;
 
@@ -4553,6 +4647,8 @@ void bli_sgemmsup_rd_zen4_asm_4x32
     lea( mem( , r10, 4 ), r10 )         // cs_a *= sizeof(dt) => cs_a *= 4
     lea( mem( r9, r9, 2 ), r13 )        // r13 = 3 * rs_b
 
+    mov( var( iter_1_mask ), esi )      // Load mask values for the last loop
+    kmovw( esi, K(1) )
 
     mov( imm( 0 ), r15 )                // jj = 0;
     label( .SLOOP3X4J )                 // LOOP OVER jj = [ 0 1 ... ]
@@ -4573,15 +4669,14 @@ void bli_sgemmsup_rd_zen4_asm_4x32
     lea( mem( r14 ), rax )              // load a to rax
     lea( mem( rdx ), rbx )              // load b to rbx
 
-    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_b
-    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_b
+    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_a
+    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_a
 
     INIT_REG
 
-    mov( var( k_iter64 ), rsi )       // load k_iter
+    mov( var( k_iter64 ), rsi )         // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_32 )
-
 
     label( .K_LOOP_ITER64 )
 
@@ -4639,7 +4734,6 @@ void bli_sgemmsup_rd_zen4_asm_4x32
 
     // load column from B
     vmovups(        ( rbx ), zmm6 )
-    vmovups(        ( rbx ), zmm6 )
     VFMA4(  8,  9, 10, 20 )
 
     vmovups( ( rbx, r9, 1 ), zmm6 )
@@ -4678,15 +4772,11 @@ void bli_sgemmsup_rd_zen4_asm_4x32
     dec( rsi )
     jne( .K_LOOP_ITER64 )
 
-
     label( .CONSIDER_K_ITER_32 )
 
     mov( var( k_iter32 ), rsi )       // load k_iter
     test( rsi, rsi )
-    je( .CONSIDER_K_ITER_8 )
-
-
-    label( .K_LOOP_ITER32 )
+    je( .CONSIDER_K_ITER_16 )
 
     // ITER 0
     // load row from A
@@ -4733,88 +4823,101 @@ void bli_sgemmsup_rd_zen4_asm_4x32
 
     add( imm( 16*4 ), rbx )
 
-    dec( rsi )
-    jne( .K_LOOP_ITER32 )
-
-
-    label( .CONSIDER_K_ITER_8 )
-    mov( var( k_iter8 ), rsi )
+    label( .CONSIDER_K_ITER_16 )
+    mov( var( k_iter16 ), rsi )
     test( rsi, rsi )
-    je( .CONSIDER_K_LEFT_1 )
+    je( .CONSIDER_K_LEFT_1)
 
-
-    label( .K_LOOP_ITER8 )
+    // If the k-loop decomposition uses iterations of 64, 32, and 8 elements, which is inefficient for k values below 32.
+    // For example, when k=31, the current implementation requires three 8-element loops (processing 24 elements) followed 
+    // by seven scalar 1-element loops (processing the remaining 7 elements), totaling 10 loop iterations.
+    // By redesigning the decomposition to use 64, 32, 16, and masked operations instead, the same k=31 case would 
+    // require only one 16-element loop followed by a single masked operation to process the remaining 15 elements. 
+    // This reduces the total iterations from 10 down to 2, significantly improving efficiency for k values in the range of 16-31.
+    
     // ITER 0
-    // Load row from A using ymm registers
-    // Upper 256-bit lanes are cleared for the
-    // zmm counterpart
-    vmovups(         ( rax ), ymm0 )
-    vmovups( ( rax,  r8, 1 ), ymm1 )
-    vmovups( ( rax,  r8, 2 ), ymm2 )
-    vmovups( ( rax, r10, 1 ), ymm3 )
-    add( imm( 8*4 ), rax )
+    vmovups(         ( rax ), zmm0 )
+    vmovups( ( rax,  r8, 1 ), zmm1 )
+    vmovups( ( rax,  r8, 2 ), zmm2 )
+    vmovups( ( rax, r10, 1 ), zmm3 )
+    add( imm( 16*4 ), rax )
 
-    // Load column from B using ymm registers
-    // Upper 256-bit lane is cleared for the
-    // zmm counterpart
-    // Thus, we can re-use the VFMA6 macro
-    vmovups(        ( rbx ), ymm6 )
+    vmovups(        ( rbx ), zmm6 )
     VFMA4(  8,  9, 10, 20 )
 
-    vmovups( ( rbx, r9, 1 ), ymm6 )
+    vmovups( ( rbx, r9, 1 ), zmm6 )
     VFMA4( 11, 12, 13, 23 )
 
-    vmovups( ( rbx, r9, 2 ), ymm6 )
+    vmovups( ( rbx, r9, 2 ), zmm6 )
     VFMA4( 14, 15, 16, 26 )
 
-    vmovups( ( rbx, r13, 1 ), ymm6 )
+    vmovups( ( rbx, r13, 1 ), zmm6 )
     VFMA4( 17, 18, 19, 29 )
 
-    add( imm( 8*4 ), rbx )
-
-    dec( rsi )
-    jne( .K_LOOP_ITER8 )
-
+    add( imm( 16*4 ), rbx )
 
     label( .CONSIDER_K_LEFT_1 )
-    mov( var( k_left1 ), rsi )
+    mov( var(k_left1), rsi )
     test( rsi, rsi )
     je( .POST_ACCUM )
 
-    label( .K_LOOP_LEFT1 )
+    // In the case where we need to only compute on floats
+    // which fit in the ymm register, it is better to 
+    // operate on masked ymm registers in this case
+    // because on Zen4, the throughput of masked loads
+    // on zmm is 0.5 while on ymm/xmm is 1
+    cmp( imm(8), rsi )
+    jle( .K_FLOATS_LEFT_LE_8 )
 
-    // Load row from A using xmm registers
-    // Upper 256-bit lanes and the upper 224
-    // bits of the lower 256-bit lane are cleared
-    // for the zmm counterpart
-    vmovss(         ( rax ), xmm0 )
-    vmovss( ( rax,  r8, 1 ), xmm1 )
-    vmovss( ( rax,  r8, 2 ), xmm2 )
-    vmovss( ( rax, r10, 1 ), xmm3 )
-    add( imm( 1*4 ), rax )                 // a += 1*cs_b = 1*4;
+    label( .K_FLOATS_LEFT_GT_8 )
+    // Instead of looping over element by element and performing
+    // VFMAs on for every element which is wasteful. 
+    // Perform a masked FMA operation on the remaining elements
+    vmovups(         mem(rax), ZMM(0 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 1), ZMM(1 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 2), ZMM(2 MASK_KZ(1) ) )
+    vmovups( mem(rax, r10, 1), ZMM(3 MASK_KZ(1) ) )
 
-    // Load column from B using xmm registers
-    // Upper 256-bit lanes and the upper 224
-    // bits of the lower 256-bit lane are cleared
-    // for the zmm counterpart
-    // Thus, we can re-use the VFMA6 macro
-    vmovss(        ( rbx ), xmm6 )
+    vmovups(         mem(rbx), ZMM(6 MASK_KZ(1) ) )
     VFMA4(  8,  9, 10, 20 )
 
-    vmovss( ( rbx, r9, 1 ), xmm6 )
+    vmovups(  mem(rbx, r9, 1), ZMM(6 MASK_KZ(1) ) )
     VFMA4( 11, 12, 13, 23 )
 
-    vmovss( ( rbx, r9, 2 ), xmm6 )
+    vmovups( mem(rbx, r9, 2),  ZMM(6 MASK_KZ(1) ) )
     VFMA4( 14, 15, 16, 26 )
 
-    vmovss( ( rbx, r13, 1 ), xmm6 )
+    vmovups( mem(rbx, r13, 1), ZMM(6 MASK_KZ(1) ) )
     VFMA4( 17, 18, 19, 29 )
 
-    add( imm( 1*4 ), rbx )                 // b += 1*rs_b = 1*4;
+    // unconditional branch to end of the loop after 
+    // the computation of the case processing >8 floats
+    jmp( .POST_ACCUM ) 
 
-    dec( rsi )
-    jne( .K_LOOP_LEFT1 )
+    label( .K_FLOATS_LEFT_LE_8 )
+    // When operating on elements <= 8, it is better to operate
+    // on masked YMM registers on Zen4 because vmovups on 
+    // masked YMM registers has a throughput of 1 while 
+    // the same operation on ZMM has a throughput of 0.5
+    // Instead of looping over element by element and performing
+    // VFMAs on for every element which is wasteful. 
+    // Perform a masked FMA operation on the remaining elements
+    vmovups(         mem(rax), YMM(0 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 1), YMM(1 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 2), YMM(2 MASK_KZ(1) ) )
+    vmovups( mem(rax, r10, 1), YMM(3 MASK_KZ(1) ) )
 
+    vmovups(         mem(rbx), YMM(6 MASK_KZ(1) ) )
+    VFMA4(  8,  9, 10, 20 )
+
+    vmovups(  mem(rbx, r9, 1), YMM(6 MASK_KZ(1) ) )
+    VFMA4( 11, 12, 13, 23 )
+
+    vmovups( mem(rbx, r9, 2),  YMM(6 MASK_KZ(1) ) )
+    VFMA4( 14, 15, 16, 26 )
+
+    vmovups( mem(rbx, r13, 1), YMM(6 MASK_KZ(1) ) )
+    VFMA4( 17, 18, 19, 29 )
 
     label( .POST_ACCUM )
 
@@ -4823,7 +4926,6 @@ void bli_sgemmsup_rd_zen4_asm_4x32
     vxorps( xmm1, xmm1, xmm1 )
     vucomiss( xmm1, xmm0 )          // check if beta = 0
     je( .POST_ACCUM_STOR_BZ )
-
 
     // Accumulating & storing the results when beta != 0
     label( .POST_ACCUM_STOR )
@@ -4850,7 +4952,6 @@ void bli_sgemmsup_rd_zen4_asm_4x32
 
     jmp( .SDONE )
 
-
     // Accumulating & storing the results when beta == 0
     label( .POST_ACCUM_STOR_BZ )
 
@@ -4874,7 +4975,6 @@ void bli_sgemmsup_rd_zen4_asm_4x32
 
     C_STOR_BZ1                  // Storing result to C
 
-
     label( .SDONE )
 
     mov( var( rs_c ), rdi )             // load rs_c
@@ -4891,11 +4991,12 @@ void bli_sgemmsup_rd_zen4_asm_4x32
     end_asm(
     : // output operands (none)
     : // input operands
+      [iter_1_mask] "m" (iter_1_mask),
       [k_iter64] "m" (k_iter64),
       [k_left64] "m" (k_left64),
       [k_iter32] "m" (k_iter32),
       [k_left32] "m" (k_left32),
-      [k_iter8]  "m" (k_iter8),
+      [k_iter16] "m" (k_iter16),
       [k_left1]  "m" (k_left1),
       [a]        "m" (a),
       [rs_a]     "m" (rs_a),
@@ -4928,7 +5029,7 @@ void bli_sgemmsup_rd_zen4_asm_4x32
       "zmm16", "zmm17", "zmm18", "zmm19",
       "zmm20", "zmm21", "zmm22", "zmm23", "zmm24", "zmm25", "zmm26",
       "zmm27", "zmm28", "zmm29", "zmm30", "zmm31",
-      "memory"
+      "memory", "k1"
     )
 }
 
@@ -4952,8 +5053,9 @@ void bli_sgemmsup_rd_zen4_asm_3x32
     uint64_t k_left64 = k0 % 64;
     uint64_t k_iter32 = k_left64 / 32;
     uint64_t k_left32 = k_left64 % 32;
-    uint64_t k_iter8  = k_left32 / 8;
-    uint64_t k_left1  = k_left32 % 8;
+    uint64_t k_iter16 = k_left32 / 16;
+    uint64_t k_left1  = k_left32 % 16;
+    int32_t iter_1_mask = (1 << k_left1) - 1;
 
     uint64_t m_iter = m0 / 6;
 
@@ -4978,6 +5080,8 @@ void bli_sgemmsup_rd_zen4_asm_3x32
     lea( mem( , r10, 4 ), r10 )         // cs_a *= sizeof(dt) => cs_a *= 4
     lea( mem( r9, r9, 2 ), r13 )        // r13 = 3 * rs_b
 
+    mov( var( iter_1_mask ), esi )      // Load mask values for the last loop
+    kmovw( esi, K(1) )
 
     mov( imm( 0 ), r15 )                // jj = 0;
     label( .SLOOP3X4J )                 // LOOP OVER jj = [ 0 1 ... ]
@@ -4998,15 +5102,14 @@ void bli_sgemmsup_rd_zen4_asm_3x32
     lea( mem( r14 ), rax )              // load a to rax
     lea( mem( rdx ), rbx )              // load b to rbx
 
-    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_b
-    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_b
+    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_a
+    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_a
 
     INIT_REG
 
-    mov( var( k_iter64 ), rsi )       // load k_iter
+    mov( var( k_iter64 ), rsi )         // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_32 )
-
 
     label( .K_LOOP_ITER64 )
 
@@ -5098,15 +5201,11 @@ void bli_sgemmsup_rd_zen4_asm_3x32
     dec( rsi )
     jne( .K_LOOP_ITER64 )
 
-
     label( .CONSIDER_K_ITER_32 )
 
     mov( var( k_iter32 ), rsi )       // load k_iter
     test( rsi, rsi )
-    je( .CONSIDER_K_ITER_8 )
-
-
-    label( .K_LOOP_ITER32 )
+    je( .CONSIDER_K_ITER_16 )
 
     // ITER 0
     // load row from A
@@ -5151,87 +5250,98 @@ void bli_sgemmsup_rd_zen4_asm_3x32
 
     add( imm( 16*4 ), rbx )
 
-    dec( rsi )
-    jne( .K_LOOP_ITER32 )
-
-
-    label( .CONSIDER_K_ITER_8 )
-    mov( var( k_iter8 ), rsi )
+    label( .CONSIDER_K_ITER_16 )
+    mov( var( k_iter16 ), rsi )
     test( rsi, rsi )
-    je( .CONSIDER_K_LEFT_1 )
+    je( .CONSIDER_K_LEFT_1)
 
-
-    label( .K_LOOP_ITER8 )
+    // If the k-loop decomposition uses iterations of 64, 32, and 8 elements, which is inefficient for k values below 32.
+    // For example, when k=31, the current implementation requires three 8-element loops (processing 24 elements) followed 
+    // by seven scalar 1-element loops (processing the remaining 7 elements), totaling 10 loop iterations.
+    // By redesigning the decomposition to use 64, 32, 16, and masked operations instead, the same k=31 case would 
+    // require only one 16-element loop followed by a single masked operation to process the remaining 15 elements. 
+    // This reduces the total iterations from 10 down to 2, significantly improving efficiency for k values in the range of 16-31.
+    
     // ITER 0
-    // Load row from A using ymm registers
-    // Upper 256-bit lanes are cleared for the
-    // zmm counterpart
-    vmovups(         ( rax ), ymm0 )
-    vmovups( ( rax,  r8, 1 ), ymm1 )
-    vmovups( ( rax,  r8, 2 ), ymm2 )
-    add( imm( 8*4 ), rax )
+    vmovups(         ( rax ), zmm0 )
+    vmovups( ( rax,  r8, 1 ), zmm1 )
+    vmovups( ( rax,  r8, 2 ), zmm2 )
+    add( imm( 16*4 ), rax )
 
-    // Load column from B using ymm registers
-    // Upper 256-bit lane is cleared for the
-    // zmm counterpart
-    // Thus, we can re-use the VFMA6 macro
-    vmovups(        ( rbx ), ymm6 )
+    vmovups(        ( rbx ), zmm6 )
     VFMA3(  8,  9, 10 )
 
-    vmovups( ( rbx, r9, 1 ), ymm6 )
+    vmovups( ( rbx, r9, 1 ), zmm6 )
     VFMA3( 11, 12, 13 )
 
-    vmovups( ( rbx, r9, 2 ), ymm6 )
+    vmovups( ( rbx, r9, 2 ), zmm6 )
     VFMA3( 14, 15, 16 )
 
-    vmovups( ( rbx, r13, 1 ), ymm6 )
+    vmovups( ( rbx, r13, 1 ), zmm6 )
     VFMA3( 17, 18, 19 )
 
-    add( imm( 8*4 ), rbx )
-
-    dec( rsi )
-    jne( .K_LOOP_ITER8 )
-
+    add( imm( 16*4 ), rbx )
 
     label( .CONSIDER_K_LEFT_1 )
-    mov( var( k_left1 ), rsi )
+    mov( var(k_left1), rsi )
     test( rsi, rsi )
     je( .POST_ACCUM )
 
+    // In the case where we need to only compute on floats
+    // which fit in the ymm register, it is better to 
+    // operate on masked ymm registers in this case
+    // because on Zen4, the throughput of masked loads
+    // on zmm is 0.5 while on ymm/xmm is 1
+    cmp( imm(8), rsi )
+    jle( .K_FLOATS_LEFT_LE_8 )
 
-    label( .K_LOOP_LEFT1 )
+    label( .K_FLOATS_LEFT_GT_8 )
+    // Instead of looping over element by element and performing
+    // VFMAs on for every element which is wasteful. 
+    // Perform a masked FMA operation on the remaining elements
+    vmovups(         mem(rax), ZMM(0 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 1), ZMM(1 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 2), ZMM(2 MASK_KZ(1) ) )
 
-    // Load row from A using xmm registers
-    // Upper 256-bit lanes and the upper 224
-    // bits of the lower 256-bit lane are cleared
-    // for the zmm counterpart
-    vmovss(         ( rax ), xmm0 )
-    vmovss( ( rax,  r8, 1 ), xmm1 )
-    vmovss( ( rax,  r8, 2 ), xmm2 )
-    add( imm( 1*4 ), rax )                 // a += 1*cs_b = 1*4;
-
-    // Load column from B using xmm registers
-    // Upper 256-bit lanes and the upper 224
-    // bits of the lower 256-bit lane are cleared
-    // for the zmm counterpart
-    // Thus, we can re-use the VFMA6 macro
-    vmovss(        ( rbx ), xmm6 )
+    vmovups(         mem(rbx), ZMM(6 MASK_KZ(1) ) )
     VFMA3(  8,  9, 10 )
 
-    vmovss( ( rbx, r9, 1 ), xmm6 )
+    vmovups(  mem(rbx, r9, 1), ZMM(6 MASK_KZ(1) ) )
     VFMA3( 11, 12, 13 )
 
-    vmovss( ( rbx, r9, 2 ), xmm6 )
+    vmovups( mem(rbx, r9, 2),  ZMM(6 MASK_KZ(1) ) )
     VFMA3( 14, 15, 16 )
 
-    vmovss( ( rbx, r13, 1 ), xmm6 )
+    vmovups( mem(rbx, r13, 1), ZMM(6 MASK_KZ(1) ) )
     VFMA3( 17, 18, 19 )
 
-    add( imm( 1*4 ), rbx )                 // b += 1*rs_b = 1*4;
+    // unconditional branch to end of the loop after 
+    // the computation of the case processing >8 floats
+    jmp( .POST_ACCUM ) 
 
-    dec( rsi )
-    jne( .K_LOOP_LEFT1 )
+    label( .K_FLOATS_LEFT_LE_8 )
+    // When operating on elements <= 8, it is better to operate
+    // on masked YMM registers on Zen4 because vmovups on 
+    // masked YMM registers has a throughput of 1 while 
+    // the same operation on ZMM has a throughput of 0.5
+    // Instead of looping over element by element and performing
+    // VFMAs on for every element which is wasteful. 
+    // Perform a masked FMA operation on the remaining elements
+    vmovups(         mem(rax), YMM(0 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 1), YMM(1 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 2), YMM(2 MASK_KZ(1) ) )
 
+    vmovups(         mem(rbx), YMM(6 MASK_KZ(1) ) )
+    VFMA3(  8,  9, 10 )
+
+    vmovups(  mem(rbx, r9, 1), YMM(6 MASK_KZ(1) ) )
+    VFMA3( 11, 12, 13 )
+
+    vmovups( mem(rbx, r9, 2),  YMM(6 MASK_KZ(1) ) )
+    VFMA3( 14, 15, 16 )
+
+    vmovups( mem(rbx, r13, 1), YMM(6 MASK_KZ(1) ) )
+    VFMA3( 17, 18, 19 )
 
     label( .POST_ACCUM )
 
@@ -5240,7 +5350,6 @@ void bli_sgemmsup_rd_zen4_asm_3x32
     vxorps( xmm1, xmm1, xmm1 )
     vucomiss( xmm1, xmm0 )          // check if beta = 0
     je( .POST_ACCUM_STOR_BZ )
-
 
     // Accumulating & storing the results when beta != 0
     label( .POST_ACCUM_STOR )
@@ -5259,7 +5368,6 @@ void bli_sgemmsup_rd_zen4_asm_3x32
 
     jmp( .SDONE )
 
-
     // Accumulating & storing the results when beta == 0
     label( .POST_ACCUM_STOR_BZ )
 
@@ -5274,7 +5382,6 @@ void bli_sgemmsup_rd_zen4_asm_3x32
     ALPHA_SCALE                 // Scaling the result of A*B with alpha
 
     C_STOR_BZ                   // Storing result to C
-
 
     label( .SDONE )
 
@@ -5292,11 +5399,12 @@ void bli_sgemmsup_rd_zen4_asm_3x32
     end_asm(
     : // output operands (none)
     : // input operands
+      [iter_1_mask] "m" (iter_1_mask),
       [k_iter64] "m" (k_iter64),
       [k_left64] "m" (k_left64),
       [k_iter32] "m" (k_iter32),
       [k_left32] "m" (k_left32),
-      [k_iter8]  "m" (k_iter8),
+      [k_iter16] "m" (k_iter16),
       [k_left1]  "m" (k_left1),
       [a]        "m" (a),
       [rs_a]     "m" (rs_a),
@@ -5328,7 +5436,7 @@ void bli_sgemmsup_rd_zen4_asm_3x32
       "zmm16", "zmm17", "zmm18", "zmm19",
       "zmm20", "zmm21", "zmm22", "zmm23", "zmm24", "zmm25", "zmm26",
       "zmm27", "zmm28", "zmm29", "zmm30", "zmm31",
-      "memory"
+      "memory", "k1"
     )
 }
 
@@ -5352,8 +5460,9 @@ void bli_sgemmsup_rd_zen4_asm_2x32
     uint64_t k_left64 = k0 % 64;
     uint64_t k_iter32 = k_left64 / 32;
     uint64_t k_left32 = k_left64 % 32;
-    uint64_t k_iter8  = k_left32 / 8;
-    uint64_t k_left1  = k_left32 % 8;
+    uint64_t k_iter16 = k_left32 / 16;
+    uint64_t k_left1  = k_left32 % 16;
+    int32_t iter_1_mask = (1 << k_left1) - 1;
 
     uint64_t rs_a   = rs_a0;
     uint64_t cs_a   = cs_a0;
@@ -5380,6 +5489,8 @@ void bli_sgemmsup_rd_zen4_asm_2x32
     lea( mem( , rdi, 4 ), rdi )         // rs_c *= sizeof(float) => rs_c *= 4
     lea( mem( r9, r9, 2 ), r13 )        // r13 = 3 * rs_b
 
+    mov( var( iter_1_mask ), esi )      // Load mask values for the last loop
+    kmovw( esi, K(1) )
 
     mov( imm( 0 ), r15 )                // jj = 0;
     label( .SLOOP3X4J )                 // LOOP OVER jj = [ 0 1 ... ]
@@ -5400,15 +5511,14 @@ void bli_sgemmsup_rd_zen4_asm_2x32
     lea( mem( r14 ), rax )              // load a to rax
     lea( mem( rdx ), rbx )              // load b to rbx
 
-    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_b
-    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_b
+    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_a
+    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_a
 
     INIT_REG
 
-    mov( var( k_iter64 ), rsi )       // load k_iter
+    mov( var( k_iter64 ), rsi )         // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_32 )
-
 
     label( .K_LOOP_ITER64 )
 
@@ -5460,7 +5570,6 @@ void bli_sgemmsup_rd_zen4_asm_2x32
 
     // load column from B
     vmovups(        ( rbx ), zmm6 )
-    vmovups(        ( rbx ), zmm6 )
     VFMA2( 8, 9 )
 
     vmovups( ( rbx, r9, 1 ), zmm6 )
@@ -5497,15 +5606,11 @@ void bli_sgemmsup_rd_zen4_asm_2x32
     dec( rsi )
     jne( .K_LOOP_ITER64 )
 
-
     label( .CONSIDER_K_ITER_32 )
 
     mov( var( k_iter32 ), rsi )       // load k_iter
     test( rsi, rsi )
-    je( .CONSIDER_K_ITER_8 )
-
-
-    label( .K_LOOP_ITER32 )
+    je( .CONSIDER_K_ITER_16 )
 
     // ITER 0
     // load row from A
@@ -5548,85 +5653,95 @@ void bli_sgemmsup_rd_zen4_asm_2x32
 
     add( imm( 16*4 ), rbx )
 
-    dec( rsi )
-    jne( .K_LOOP_ITER32 )
-
-
-    label( .CONSIDER_K_ITER_8 )
-    mov( var( k_iter8 ), rsi )
+    label( .CONSIDER_K_ITER_16 )
+    mov( var( k_iter16 ), rsi )
     test( rsi, rsi )
-    je( .CONSIDER_K_LEFT_1 )
+    je( .CONSIDER_K_LEFT_1)
 
-
-    label( .K_LOOP_ITER8 )
+    // If the k-loop decomposition uses iterations of 64, 32, and 8 elements, which is inefficient for k values below 32.
+    // For example, when k=31, the current implementation requires three 8-element loops (processing 24 elements) followed 
+    // by seven scalar 1-element loops (processing the remaining 7 elements), totaling 10 loop iterations.
+    // By redesigning the decomposition to use 64, 32, 16, and masked operations instead, the same k=31 case would 
+    // require only one 16-element loop followed by a single masked operation to process the remaining 15 elements. 
+    // This reduces the total iterations from 10 down to 2, significantly improving efficiency for k values in the range of 16-31.
+    
     // ITER 0
-    // Load row from A using ymm registers
-    // Upper 256-bit lanes are cleared for the
-    // zmm counterpart
-    vmovups(         ( rax ), ymm0 )
-    vmovups( ( rax,  r8, 1 ), ymm1 )
-    add( imm( 8*4 ), rax )
+    vmovups(         ( rax ), zmm0 )
+    vmovups( ( rax,  r8, 1 ), zmm1 )
+    add( imm( 16*4 ), rax )
 
-    // Load column from B using ymm registers
-    // Upper 256-bit lane is cleared for the
-    // zmm counterpart
-    // Thus, we can re-use the VFMA6 macro
-    vmovups(        ( rbx ), ymm6 )
+    vmovups(        ( rbx ), zmm6 )
     VFMA2( 8, 9 )
 
-    vmovups( ( rbx, r9, 1 ), ymm6 )
+    vmovups( ( rbx, r9, 1 ), zmm6 )
     VFMA2( 11, 12 )
 
-    vmovups( ( rbx, r9, 2 ), ymm6 )
+    vmovups( ( rbx, r9, 2 ), zmm6 )
     VFMA2( 14, 15 )
 
-    vmovups( ( rbx, r13, 1 ), ymm6 )
+    vmovups( ( rbx, r13, 1 ), zmm6 )
     VFMA2( 17, 18 )
 
-    add( imm( 8*4 ), rbx )
-
-    dec( rsi )
-    jne( .K_LOOP_ITER8 )
-
+    add( imm( 16*4 ), rbx )
 
     label( .CONSIDER_K_LEFT_1 )
-    mov( var( k_left1 ), rsi )
+    mov( var(k_left1), rsi )
     test( rsi, rsi )
     je( .POST_ACCUM )
 
+    // In the case where we need to only compute on floats
+    // which fit in the ymm register, it is better to 
+    // operate on masked ymm registers in this case
+    // because on Zen4, the throughput of masked loads
+    // on zmm is 0.5 while on ymm/xmm is 1
+    cmp( imm(8), rsi )
+    jle( .K_FLOATS_LEFT_LE_8 )
 
-    label( .K_LOOP_LEFT1 )
+    label( .K_FLOATS_LEFT_GT_8 )
+    // Instead of looping over element by element and performing
+    // VFMAs on for every element which is wasteful. 
+    // Perform a masked FMA operation on the remaining elements
+    vmovups(         mem(rax), ZMM(0 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 1), ZMM(1 MASK_KZ(1) ) )
 
-    // Load row from A using xmm registers
-    // Upper 256-bit lanes and the upper 224
-    // bits of the lower 256-bit lane are cleared
-    // for the zmm counterpart
-    vmovss(         ( rax ), xmm0 )
-    vmovss( ( rax,  r8, 1 ), xmm1 )
-    add( imm( 1*4 ), rax )                 // a += 1*cs_b = 1*4;
-
-    // Load column from B using xmm registers
-    // Upper 256-bit lanes and the upper 224
-    // bits of the lower 256-bit lane are cleared
-    // for the zmm counterpart
-    // Thus, we can re-use the VFMA6 macro
-    vmovss(        ( rbx ), xmm6 )
+    vmovups(         mem(rbx), ZMM(6 MASK_KZ(1) ) )
     VFMA2( 8, 9 )
 
-    vmovss( ( rbx, r9, 1 ), xmm6 )
+    vmovups(  mem(rbx, r9, 1), ZMM(6 MASK_KZ(1) ) )
     VFMA2( 11, 12 )
 
-    vmovss( ( rbx, r9, 2 ), xmm6 )
+    vmovups( mem(rbx, r9, 2),  ZMM(6 MASK_KZ(1) ) )
     VFMA2( 14, 15 )
 
-    vmovss( ( rbx, r13, 1 ), xmm6 )
+    vmovups( mem(rbx, r13, 1), ZMM(6 MASK_KZ(1) ) )
     VFMA2( 17, 18 )
 
-    add( imm( 1*4 ), rbx )                 // b += 1*rs_b = 1*4;
+    // unconditional branch to end of the loop after 
+    // the computation of the case processing >8 floats
+    jmp( .POST_ACCUM ) 
 
-    dec( rsi )
-    jne( .K_LOOP_LEFT1 )
+    label( .K_FLOATS_LEFT_LE_8 )
+    // When operating on elements <= 8, it is better to operate
+    // on masked YMM registers on Zen4 because vmovups on 
+    // masked YMM registers has a throughput of 1 while 
+    // the same operation on ZMM has a throughput of 0.5
+    // Instead of looping over element by element and performing
+    // VFMAs on for every element which is wasteful. 
+    // Perform a masked FMA operation on the remaining elements
+    vmovups(         mem(rax), YMM(0 MASK_KZ(1) ) )
+    vmovups(  mem(rax, r8, 1), YMM(1 MASK_KZ(1) ) )
 
+    vmovups(         mem(rbx), YMM(6 MASK_KZ(1) ) )
+    VFMA2( 8, 9 )
+
+    vmovups(  mem(rbx, r9, 1), YMM(6 MASK_KZ(1) ) )
+    VFMA2( 11, 12 )
+
+    vmovups( mem(rbx, r9, 2),  YMM(6 MASK_KZ(1) ) )
+    VFMA2( 14, 15 )
+
+    vmovups( mem(rbx, r13, 1), YMM(6 MASK_KZ(1) ) )
+    VFMA2( 17, 18 )
 
     label( .POST_ACCUM )
 
@@ -5635,7 +5750,6 @@ void bli_sgemmsup_rd_zen4_asm_2x32
     vxorps( xmm1, xmm1, xmm1 )
     vucomiss( xmm1, xmm0 )          // check if beta = 0
     je( .POST_ACCUM_STOR_BZ )
-
 
     // Accumulating & storing the results when beta != 0
     label( .POST_ACCUM_STOR )
@@ -5652,7 +5766,6 @@ void bli_sgemmsup_rd_zen4_asm_2x32
 
     jmp( .SDONE )
 
-
     // Accumulating & storing the results when beta == 0
     label( .POST_ACCUM_STOR_BZ )
 
@@ -5666,7 +5779,6 @@ void bli_sgemmsup_rd_zen4_asm_2x32
 
     C_STOR_BZ2                  // Storing result to C
 
-
     label( .SDONE )
 
     add( imm(  4 ), r15 )
@@ -5676,11 +5788,12 @@ void bli_sgemmsup_rd_zen4_asm_2x32
     end_asm(
     : // output operands (none)
     : // input operands
+      [iter_1_mask] "m" (iter_1_mask),
       [k_iter64] "m" (k_iter64),
       [k_left64] "m" (k_left64),
       [k_iter32] "m" (k_iter32),
       [k_left32] "m" (k_left32),
-      [k_iter8]  "m" (k_iter8),
+      [k_iter16] "m" (k_iter16),
       [k_left1]  "m" (k_left1),
       [a]        "m" (a),
       [rs_a]     "m" (rs_a),
@@ -5711,7 +5824,7 @@ void bli_sgemmsup_rd_zen4_asm_2x32
       "zmm16", "zmm17", "zmm18", "zmm19",
       "zmm20", "zmm21", "zmm22", "zmm23", "zmm24", "zmm25", "zmm26",
       "zmm27", "zmm28", "zmm29", "zmm30", "zmm31",
-      "memory"
+      "memory", "k1"
     )
 }
 
@@ -5735,8 +5848,9 @@ void bli_sgemmsup_rd_zen4_asm_1x32
     uint64_t k_left64 = k0 % 64;
     uint64_t k_iter32 = k_left64 / 32;
     uint64_t k_left32 = k_left64 % 32;
-    uint64_t k_iter8  = k_left32 / 8;
-    uint64_t k_left1  = k_left32 % 8;
+    uint64_t k_iter16 = k_left32 / 16;
+    uint64_t k_left1  = k_left32 % 16;
+    int32_t iter_1_mask = (1 << k_left1) - 1;
 
     uint64_t rs_a   = rs_a0;
     uint64_t cs_a   = cs_a0;
@@ -5763,6 +5877,9 @@ void bli_sgemmsup_rd_zen4_asm_1x32
     lea( mem( , rdi, 4 ), rdi )         // rs_c *= sizeof(float) => rs_c *= 4
     lea( mem( r9, r9, 2 ), r13 )        // r13 = 3 * rs_b
 
+    mov( var( iter_1_mask ), esi )      // Load mask values for the last loop
+    kmovw( esi, K(1) )
+
     mov( imm( 0 ), r15 )                // jj = 0;
     label( .SLOOP3X4J )                 // LOOP OVER jj = [ 0 1 ... ]
 
@@ -5782,16 +5899,14 @@ void bli_sgemmsup_rd_zen4_asm_1x32
     lea( mem( r14 ), rax )              // load a to rax
     lea( mem( rdx ), rbx )              // load b to rbx
 
-    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_b
-    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_b
-
+    lea( mem(  r8, r8, 2 ), r10 )       // r10 = 3 * rs_a
+    lea( mem( r10, r8, 2 ), rdi )       // rdi = 5 * rs_a
 
     INIT_REG
 
     mov( var( k_iter64 ), rsi )         // load k_iter
     test( rsi, rsi )
     je( .CONSIDER_K_ITER_32 )
-
 
     label( .K_LOOP_ITER64 )
 
@@ -5875,15 +5990,11 @@ void bli_sgemmsup_rd_zen4_asm_1x32
     dec( rsi )
     jne( .K_LOOP_ITER64 )
 
-
     label( .CONSIDER_K_ITER_32 )
 
     mov( var( k_iter32 ), rsi )       // load k_iter
     test( rsi, rsi )
-    je( .CONSIDER_K_ITER_8 )
-
-
-    label( .K_LOOP_ITER32 )
+    je( .CONSIDER_K_ITER_16 )
 
     // ITER 0
     // load row from A
@@ -5924,82 +6035,92 @@ void bli_sgemmsup_rd_zen4_asm_1x32
 
     add( imm( 16*4 ), rbx )
 
-    dec( rsi )
-    jne( .K_LOOP_ITER32 )
-
-
-    label( .CONSIDER_K_ITER_8 )
-    mov( var( k_iter8 ), rsi )
+    label( .CONSIDER_K_ITER_16 )
+    mov( var( k_iter16 ), rsi )
     test( rsi, rsi )
-    je( .CONSIDER_K_LEFT_1 )
+    je( .CONSIDER_K_LEFT_1)
 
-
-    label( .K_LOOP_ITER8 )
+    // If the k-loop decomposition uses iterations of 64, 32, and 8 elements, which is inefficient for k values below 32.
+    // For example, when k=31, the current implementation requires three 8-element loops (processing 24 elements) followed 
+    // by seven scalar 1-element loops (processing the remaining 7 elements), totaling 10 loop iterations.
+    // By redesigning the decomposition to use 64, 32, 16, and masked operations instead, the same k=31 case would 
+    // require only one 16-element loop followed by a single masked operation to process the remaining 15 elements. 
+    // This reduces the total iterations from 10 down to 2, significantly improving efficiency for k values in the range of 16-31.
+    
     // ITER 0
-    // Load row from A using ymm registers
-    // Upper 256-bit lanes are cleared for the
-    // zmm counterpart
-    vmovups(         ( rax ), ymm0 )
-    add( imm( 8*4 ), rax )
+    vmovups(         ( rax ), zmm0 )
+    add( imm( 16*4 ), rax )
 
-    // Load column from B using ymm registers
-    // Upper 256-bit lane is cleared for the
-    // zmm counterpart
-    // Thus, we can re-use the VFMA6 macro
-    vmovups(        ( rbx ), ymm6 )
+    vmovups(        ( rbx ), zmm6 )
     VFMA1( 8 )
 
-    vmovups( ( rbx, r9, 1 ), ymm6 )
+    vmovups( ( rbx, r9, 1 ), zmm6 )
     VFMA1( 11 )
 
-    vmovups( ( rbx, r9, 2 ), ymm6 )
+    vmovups( ( rbx, r9, 2 ), zmm6 )
     VFMA1( 14 )
 
-    vmovups( ( rbx, r13, 1 ), ymm6 )
+    vmovups( ( rbx, r13, 1 ), zmm6 )
     VFMA1( 17 )
 
-    add( imm( 8*4 ), rbx )
-
-    dec( rsi )
-    jne( .K_LOOP_ITER8 )
-
+    add( imm( 16*4 ), rbx )
 
     label( .CONSIDER_K_LEFT_1 )
-    mov( var( k_left1 ), rsi )
+    mov( var(k_left1), rsi )
     test( rsi, rsi )
     je( .POST_ACCUM )
 
+    // In the case where we need to only compute on floats
+    // which fit in the ymm register, it is better to 
+    // operate on masked ymm registers in this case
+    // because on Zen4, the throughput of masked loads
+    // on zmm is 0.5 while on ymm/xmm is 1
+    cmp( imm(8), rsi )
+    jle( .K_FLOATS_LEFT_LE_8 )
 
-    label( .K_LOOP_LEFT1 )
+    label( .K_FLOATS_LEFT_GT_8 )
+    // Instead of looping over element by element and performing
+    // VFMAs on for every element which is wasteful. 
+    // Perform a masked FMA operation on the remaining elements
+    vmovups(         mem(rax), ZMM(0 MASK_KZ(1) ) )
 
-    // Load row from A using xmm registers
-    // Upper 256-bit lanes and the upper 224
-    // bits of the lower 256-bit lane are cleared
-    // for the zmm counterpart
-    vmovss(         ( rax ), xmm0 )
-    add( imm( 1*4 ), rax )                 // a += 1*cs_b = 1*4;
-
-    // Load column from B using xmm registers
-    // Upper 256-bit lanes and the upper 224
-    // bits of the lower 256-bit lane are cleared
-    // for the zmm counterpart
-    // Thus, we can re-use the VFMA6 macro
-    vmovss(        ( rbx ), xmm6 )
+    vmovups(         mem(rbx), ZMM(6 MASK_KZ(1) ) )
     VFMA1( 8 )
 
-    vmovss( ( rbx, r9, 1 ), xmm6 )
+    vmovups(  mem(rbx, r9, 1), ZMM(6 MASK_KZ(1) ) )
     VFMA1( 11 )
 
-    vmovss( ( rbx, r9, 2 ), xmm6 )
+    vmovups( mem(rbx, r9, 2),  ZMM(6 MASK_KZ(1) ) )
     VFMA1( 14 )
 
-    vmovss( ( rbx, r13, 1 ), xmm6 )
+    vmovups( mem(rbx, r13, 1), ZMM(6 MASK_KZ(1) ) )
     VFMA1( 17 )
 
-    add( imm( 1*4 ), rbx )                 // b += 1*rs_b = 1*4;
+    // unconditional branch to end of the loop after 
+    // the computation of the case processing >8 floats
+    jmp( .POST_ACCUM ) 
 
-    dec( rsi )
-    jne( .K_LOOP_LEFT1 )
+    label( .K_FLOATS_LEFT_LE_8 )
+    // When operating on elements <= 8, it is better to operate
+    // on masked YMM registers on Zen4 because vmovups on 
+    // masked YMM registers has a throughput of 1 while 
+    // the same operation on ZMM has a throughput of 0.5
+    // Instead of looping over element by element and performing
+    // VFMAs on for every element which is wasteful. 
+    // Perform a masked FMA operation on the remaining elements
+    vmovups(         mem(rax), YMM(0 MASK_KZ(1) ) )
+
+    vmovups(         mem(rbx), YMM(6 MASK_KZ(1) ) )
+    VFMA1( 8 )
+
+    vmovups(  mem(rbx, r9, 1), YMM(6 MASK_KZ(1) ) )
+    VFMA1( 11 )
+
+    vmovups( mem(rbx, r9, 2),  YMM(6 MASK_KZ(1) ) )
+    VFMA1( 14 )
+
+    vmovups( mem(rbx, r13, 1), YMM(6 MASK_KZ(1) ) )
+    VFMA1( 17 )
 
     label( .POST_ACCUM )
 
@@ -6008,7 +6129,6 @@ void bli_sgemmsup_rd_zen4_asm_1x32
     vxorps( xmm1, xmm1, xmm1 )
     vucomiss( xmm1, xmm0 )          // check if beta = 0
     je( .POST_ACCUM_STOR_BZ )
-
 
     // Accumulating & storing the results when beta != 0
     label( .POST_ACCUM_STOR )
@@ -6023,7 +6143,6 @@ void bli_sgemmsup_rd_zen4_asm_1x32
 
     jmp( .SDONE )
 
-
     // Accumulating & storing the results when beta == 0
     label( .POST_ACCUM_STOR_BZ )
 
@@ -6035,7 +6154,6 @@ void bli_sgemmsup_rd_zen4_asm_1x32
 
     C_STOR_BZ1                  // Storing result to C
 
-
     label( .SDONE )
 
     add( imm(  4 ), r15 )
@@ -6045,11 +6163,12 @@ void bli_sgemmsup_rd_zen4_asm_1x32
     end_asm(
     : // output operands (none)
     : // input operands
+      [iter_1_mask] "m" (iter_1_mask),
       [k_iter64] "m" (k_iter64),
       [k_left64] "m" (k_left64),
       [k_iter32] "m" (k_iter32),
       [k_left32] "m" (k_left32),
-      [k_iter8]  "m" (k_iter8),
+      [k_iter16] "m" (k_iter16),
       [k_left1]  "m" (k_left1),
       [a]        "m" (a),
       [rs_a]     "m" (rs_a),
@@ -6080,6 +6199,6 @@ void bli_sgemmsup_rd_zen4_asm_1x32
       "zmm16", "zmm17", "zmm18", "zmm19",
       "zmm20", "zmm21", "zmm22", "zmm23", "zmm24", "zmm25", "zmm26",
       "zmm27", "zmm28", "zmm29", "zmm30", "zmm31",
-      "memory"
+      "memory", "k1"
     )
 }

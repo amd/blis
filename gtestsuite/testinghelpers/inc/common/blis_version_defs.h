@@ -37,7 +37,6 @@
    We assume for now that we only add kernels, so we can build the list for
    each release based on the previous plus new kernels added.
 */
-
 #ifdef AOCL_DEV
     #define AOCL_52
 #endif

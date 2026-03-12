@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -54,11 +54,11 @@
                          the matrix multiplication.
  * @param[in]     packa  specifies whether to reorder op( A ).
  * @param[in]     packb  specifies whether to reorder op( B ).
- * @param[in]     m      specifies  the number  of rows  of the  matrix
-                         op( A )  and of the  matrix  C.
- * @param[in]     n      specifies the number  of columns of the matrix
+ * @param[in]     m      specifies the number of rows of the matrix
+                         op( A ) and of the matrix C.
+ * @param[in]     n      specifies the number of columns of the matrix
                          op( B ) and the number of columns of the matrix C.
- * @param[in]     k      specifies  the number of columns of the matrix
+ * @param[in]     k      specifies the number of columns of the matrix
                          op( A ) and the number of rows of the matrix op( B ).
  * @param[in]     ap     specifies pointer which points to the first element of ap.
  * @param[in]     lda    specifies the leading dimension of ap.
@@ -725,10 +725,10 @@ static void gemm_compute( char storage, char transa, char transb, char packa, ch
     computediff<gtint_t>( "m", m, m_cpy );
     computediff<gtint_t>( "n", n, n_cpy );
     computediff<gtint_t>( "k", k, k_cpy );
-    if (alpha) computediff<T>( "alpha", *alpha, *alpha_cpy );
+    if (alpha) computediff<T>( "alpha", *alpha, *alpha_cpy, true );
     computediff<gtint_t>( "lda", lda, lda_cpy );
     computediff<gtint_t>( "ldb", ldb, ldb_cpy );
-    if (beta) computediff<T>( "beta", *beta, *beta_cpy );
+    if (beta) computediff<T>( "beta", *beta, *beta_cpy, true );
     computediff<gtint_t>( "ldc", ldc, ldc_cpy );
 
     //----------------------------------------------------------

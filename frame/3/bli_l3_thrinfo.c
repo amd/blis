@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018 - 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2018 - 2025, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -88,6 +88,11 @@ void bli_l3_thrinfo_create_root
 	dim_t   work_id    = gl_comm_id / ( n_threads / xx_way );
 
 	// Create the root thrinfo_t node.
+	// NOTE: We set free_comm to FALSE because the global communicator (gl_comm)
+	// is freed by the master thread after the parallel region completes, rather
+	// than by the chief thread within the parallel region. This avoids a potential
+	// data race where non-chief threads could still hold pointers to gl_comm
+	// when the chief thread would free it inside bli_thrinfo_free().
 	*thread = bli_thrinfo_create
 	(
 	  rntm,
@@ -95,7 +100,7 @@ void bli_l3_thrinfo_create_root
 	  gl_comm_id,
 	  xx_way,
 	  work_id,
-	  TRUE,
+	  FALSE,
 	  bszid,
 	  NULL
 	);
@@ -130,6 +135,18 @@ void bli_l3_sup_thrinfo_create_root
 	dim_t   work_id    = gl_comm_id / ( n_threads / xx_way );
 
 	// Create the root thrinfo_t node.
+	// - The `free_comm` boolean indicates whether `bli_thrinfo_free()` should
+    //   free the communicator embedded in this thrinfo_t node.
+    // - When `free_comm == TRUE`, the chief thread inside a parallel region
+    //   will free the communicator as part of `bli_thrinfo_free()`.
+    // - When `free_comm == FALSE`, the communicator must be freed explicitly
+    //   by the surrounding decorator (the master thread) after the parallel
+    //   region completes. This avoids data races where non-chief threads might
+    //   still reference the communicator while the chief attempts to free it.
+    //
+    // NOTE: We set free_comm to FALSE here to follow the convention that the
+    // decorator (outside the parallel region) is responsible for freeing
+    // `gl_comm`.
 	*thread = bli_thrinfo_create
 	(
 	  rntm,
@@ -137,7 +154,7 @@ void bli_l3_sup_thrinfo_create_root
 	  gl_comm_id,
 	  xx_way,
 	  work_id,
-	  TRUE,
+	  FALSE,
 	  bszid,
 	  NULL
 	);

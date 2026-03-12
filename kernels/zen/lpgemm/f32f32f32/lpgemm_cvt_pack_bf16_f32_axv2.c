@@ -699,7 +699,7 @@ void cvt_bf16_f32_col_major
             UNPACKHI8x8_AVX2
             SHUFFLE_8x8_AVX2
             PERMUTE_8x8_AVX2
-            _mm256_storeu_ps( ( cvt_buffer + ( ( ic + 0 ) * KC ) + kr ), b_reg[0] );
+            _mm256_storeu_ps( ( cvt_buffer + ( ( ic + 0 ) * rs_p ) + kr ), b_reg[0] );
         }
         for( ; ( kr + 3 ) < KC; kr += 4 )
         {

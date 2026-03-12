@@ -83,6 +83,10 @@ int main( int argc, char** argv )
 		printf( "Error opening output file %s\n", argv[2] );
 		exit( 1 );
 	}
+	if (argc > 3)
+    {
+      n_repeats = atoi(argv[3]);
+    }
 
 #ifdef DEBUG
 	fprintf( fout, "gflops\n" );
@@ -98,7 +102,7 @@ int main( int argc, char** argv )
 
 	// {function name} {S, D, C, Z} {n} 
 	// {alpha_r} {alpha_i} {incx} {beta_r} {beta_i} {incy}
-	while ( fscanf( fin, "%s %c " INT_FS " %lf %lf " INT_FS " %lf %lf " INT_FS "\n",
+	while ( fscanf( fin, "%s %c " INT_FS " %lf %lf " INT_FS " %lf %lf " INT_FS"%*[^\n]",
 			tmp, &dt_ch, &n,
 			&alpha_r, &alpha_i, &incx, &beta_r, &beta_i, &incy ) == 9 )
 	{

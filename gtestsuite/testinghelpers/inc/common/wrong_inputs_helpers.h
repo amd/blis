@@ -53,5 +53,13 @@ namespace IIT {
   static const gtint_t LDA = 4;
   static const gtint_t LDB = 4;
   static const gtint_t LDC = 4;
+
+  static const gtint_t KL = 2;
+  static const gtint_t KU = 2;
+  static const gtint_t LDA_GB = KL+KU+1;
+
+  static const gtint_t KB = 2;
+  static const gtint_t LDA_B = KB+1;
+
 }
 }

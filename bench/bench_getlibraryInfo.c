@@ -47,6 +47,53 @@ static const char* yesno(gint_t v) { return v ? "yes" : "no"; }
 
 static void print_config_sizes(void)
 {
+    printf("== Build Information ==\n");
+#if defined(__AOCC__)
+    printf("C Compiler (CC):                 AOCC %d.%d.%d (Clang %d.%d.%d based)\n", 
+           __AOCC__, __AOCC_MINOR__, __AOCC_PATCHLEVEL__,
+           __clang_major__, __clang_minor__, __clang_patchlevel__);
+#elif defined(__clang__)
+    printf("C Compiler (CC):                 Clang %d.%d.%d\n", __clang_major__, __clang_minor__, __clang_patchlevel__);
+#elif defined(__INTEL_COMPILER) || defined(__INTEL_LLVM_COMPILER)
+    #ifdef __INTEL_LLVM_COMPILER
+        printf("C Compiler (CC):                 Intel oneAPI DPC++/C++ %d\n", __INTEL_LLVM_COMPILER);
+    #else
+        printf("C Compiler (CC):                 Intel ICC %d\n", __INTEL_COMPILER);
+    #endif
+#elif defined(__GNUC__)
+    printf("C Compiler (CC):                 GCC %d.%d.%d\n", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
+#elif defined(_MSC_VER)
+    printf("C Compiler (CC):                 MSVC %d\n", _MSC_VER);
+#else
+    printf("C Compiler (CC):                 Unknown\n");
+#endif
+
+#ifdef __cplusplus
+#if defined(__AOCC__)
+    printf("C++ Compiler (CXX):              AOCC++ %d.%d.%d (Clang++ %d.%d.%d based)\n",
+           __AOCC__, __AOCC_MINOR__, __AOCC_PATCHLEVEL__,
+           __clang_major__, __clang_minor__, __clang_patchlevel__);
+#elif defined(__clang__)
+    printf("C++ Compiler (CXX):              Clang++ %d.%d.%d\n", __clang_major__, __clang_minor__, __clang_patchlevel__);
+#elif defined(__INTEL_COMPILER) || defined(__INTEL_LLVM_COMPILER)
+    #ifdef __INTEL_LLVM_COMPILER
+        printf("C++ Compiler (CXX):              Intel oneAPI DPC++/C++ %d\n", __INTEL_LLVM_COMPILER);
+    #else
+        printf("C++ Compiler (CXX):              Intel ICC++ %d\n", __INTEL_COMPILER);
+    #endif
+#elif defined(__GNUC__)
+    printf("C++ Compiler (CXX):              G++ %d.%d.%d\n", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
+#elif defined(_MSC_VER)
+    printf("C++ Compiler (CXX):              MSVC++ %d\n", _MSC_VER);
+#else
+    printf("C++ Compiler (CXX):              Unknown\n");
+#endif
+#else
+    printf("C++ Compiler (CXX):              N/A (compiled as C)\n");
+#endif
+    printf("\n");
+
+
     printf("== Configuration sizes ==\n");
     printf("version:                         %s\n",  bli_info_get_version_str());
     //printf("int type size (string):          %s\n",  bli_info_get_int_type_size_str());

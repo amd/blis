@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -63,7 +63,7 @@ void test_trmv(
     gtint_t lda = testinghelpers::get_leading_dimension( storage, transa, n, n, lda_inc );
 
     //----------------------------------------------------------
-    //        Initialize matrics with random integer numbers.
+    //        Initialize matrices with random integer numbers.
     //----------------------------------------------------------
 
     dim_t size_a = testinghelpers::matsize(storage, transa, n, n, lda) * sizeof(T);
@@ -79,22 +79,21 @@ void test_trmv(
     T* a_ptr = (T*)(a.greenzone_1);
     T* x_ptr = (T*)(x.greenzone_1);
 
-    // Make A matix diagonal dominant to make sure that algorithm doesn't diverge
+    // Make A matrix diagonally dominant to make sure that algorithm doesn't diverge
     // This makes sure that the trmv problem is solvable
     for ( dim_t a_dim = 0; a_dim < n; ++a_dim )
     {
         a_ptr[ a_dim + (a_dim* lda) ] = a_ptr[ a_dim + (a_dim* lda) ] + T{RT(n)};
     }
 
-    // add extreme values to the X vector
     if ( is_evt_test )
     {
-        x_ptr[ (rand() % n) * std::abs(incx) ] = evt_x;
-    }
+        srand(SRAND_SEED);
 
-    // add extreme values to the A matrix
-    if ( is_evt_test )
-    {
+        // add extreme values to the X vector
+        x_ptr[ (rand() % n) * std::abs(incx) ] = evt_x;
+
+        // add extreme values to the A matrix
         dim_t n_idx = rand() % n;
         dim_t m_idx = (std::max)((dim_t)0, n_idx - 1);
         a_ptr[ m_idx + (n_idx * lda) ] = evt_a;
@@ -103,7 +102,7 @@ void test_trmv(
 
     // skipped making A triangular
     // A matrix being a non triangular matrix could be a better test
-    // because we are exepcted to read only from the upper or lower triangular
+    // because we are expected to read only from the upper or lower triangular
     // part of the data, contents of the rest of the matrix should not change the
     // result.
     // testinghelpers::make_triangular<T>( storage, uploa, n, a_ptr, lda );

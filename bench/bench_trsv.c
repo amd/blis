@@ -118,11 +118,15 @@ int main( int argc, char** argv )
         printf("Error opening output file %s\n", argv[2]);
         exit(1);
     }
+    if (argc > 3)
+    {
+      n_repeats = atoi(argv[3]);
+    }
 
     fprintf(fout, "Func Dt uploa transa diaga m lda incx gflops\n");
 
     // {S,D,C,Z} {uploa transa diaga m lda, incx}
-    while (fscanf(fin, "%s %c %c %c %c " INT_FS INT_FS INT_FS "\n",
+    while (fscanf(fin, "%s %c %c %c %c " INT_FS INT_FS INT_FS"%*[^\n]",
       tmp, &dt_ch, &uploa_c, &transA, &diaga_c, &m, &lda, &incx) == 8)
     {
 

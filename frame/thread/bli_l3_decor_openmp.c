@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018 - 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2018 - 2025, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -191,9 +191,14 @@ void bli_l3_thread_decorator
 		#endif
 	}
 
-	// We shouldn't free the global communicator since it was already freed
-	// by the global communicator's chief thread in bli_l3_thrinfo_free()
-	// (called above).
+
+	// Now global communicator is not freed in bli_l3_thrinfo_free().
+	// Free the global communicator after the parallel region completes.
+	// This ensures that no thread can be using gl_comm when it is freed,
+	// avoiding a potential data race where the chief thread would free
+	// gl_comm inside bli_thrinfo_free() while non-chief threads might
+	// still hold pointers to it.
+	bli_thrcomm_free(rntm, gl_comm);
 
 	#ifdef PRINT_THRINFO
 	if ( family != BLIS_TRSM ) bli_l3_thrinfo_print_gemm_paths( threads );

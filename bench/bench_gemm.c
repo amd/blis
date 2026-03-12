@@ -95,25 +95,25 @@ int main( int argc, char** argv )
 
     if (argc < 3)
     {
-        printf("Usage: ./test_gemm_XX.x input.csv output.csv\n");
-        exit(1);
+      printf("Usage: ./test_gemm_XX.x input.csv output.csv\n");
+      exit(1);
     }
     fin = fopen(argv[1], "r");
     if (fin == NULL)
     {
-        printf("Error opening the file %s\n", argv[1]);
-        exit(1);
+      printf("Error opening the file %s\n", argv[1]);
+      exit(1);
     }
     fout = fopen(argv[2], "w");
     if (fout == NULL)
     {
-        printf("Error opening output file %s\n", argv[2]);
-        exit(1);
+      printf("Error opening output file %s\n", argv[2]);
+      exit(1);
     }
-	if (argc > 3)
-	{
-		n_repeats = atoi(argv[3]);
-	}
+    if (argc > 3)
+    {
+      n_repeats = atoi(argv[3]);
+    }
 
     fprintf(fout, "Func Dt transa transb m n k alphaR alphaI lda ldb betaR betaI ldc gflops\n");
 
@@ -134,7 +134,7 @@ int main( int argc, char** argv )
     //             beta_real, beta_imag, ldc,
     //
     //             number of threads, execution time, gflops ---> ignored by bench
-    while (fscanf(fin, "%s %c %c %c " INT_FS INT_FS INT_FS " %lf %lf " INT_FS INT_FS " %lf %lf " INT_FS"[^\n]",
+    while (fscanf(fin, "%s %c %c %c " INT_FS INT_FS INT_FS " %lf %lf " INT_FS INT_FS " %lf %lf " INT_FS"%*[^\n]",
 	          api_name, &dt_ch, &transA_c, &transB_c, &m, &n, &k, &alpha_r, &alpha_i,
             &lda, &ldb, &beta_r, &beta_i, &ldc) == 14)
     {

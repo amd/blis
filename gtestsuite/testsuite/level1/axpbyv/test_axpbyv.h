@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2025, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -37,6 +37,7 @@
 #include "axpbyv.h"
 #include "level1/ref_axpbyv.h"
 #include "inc/check_error.h"
+#include "inc/data_pool.h"
 
 /**
  * @brief Generic test body for axpby operation.
@@ -49,8 +50,10 @@ static void test_axpbyv( char conjx, gtint_t n, gtint_t incx, gtint_t incy,
     //----------------------------------------------------------
     //        Initialize vectors with random numbers.
     //----------------------------------------------------------
-    std::vector<T> x = testinghelpers::get_random_vector<T>( -10, 10, n, incx );
-    std::vector<T> y = testinghelpers::get_random_vector<T>( -10, 10, n, incy );
+    // Set index to a starting position for this test
+    get_pool<T>().set_index(n, incx, incy);
+    std::vector<T> x = get_pool<T>().get_random_vector(n, incx);
+    std::vector<T> y = get_pool<T>().get_random_vector(n, incy);
 
     //----------------------------------------------------------
     //    Call reference implementation to get ref results.
@@ -78,8 +81,10 @@ static void test_axpbyv( char conjx, gtint_t n, gtint_t incx, gtint_t incy,
     //----------------------------------------------------------
     //        Initialize vectors with random numbers.
     //----------------------------------------------------------
-    std::vector<T> x = testinghelpers::get_random_vector<T>( -10, 10, n, incx );
-    std::vector<T> y = testinghelpers::get_random_vector<T>( -10, 10, n, incy );
+    // Set index to a starting position for this test
+    get_pool<T>().set_index(n, incx, incy);
+    std::vector<T> x = get_pool<T>().get_random_vector(n, incx);
+    std::vector<T> y = get_pool<T>().get_random_vector(n, incy);
 
     // Update the value at index xi to an extreme value, x_exval.
     if ( -1 < xi && xi < n ) x[xi * abs(incx)] = xexval;

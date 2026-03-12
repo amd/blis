@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2025-26, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -1511,7 +1511,7 @@ void bli_dgemv_n_zen4_int (
 
     {
 #ifdef BLIS_ENABLE_OPENMP
-        if ( m < 1250 || size >= (700000 * 128))
+        if (( m < 1250 ) || ( size >= (700000 * 128) && ( m / n ) < 10000 ))
         {
             ker_ft = bli_dgemv_m_zen4_int_40x8_mt_Ndiv;
         }

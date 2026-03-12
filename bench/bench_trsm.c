@@ -100,13 +100,18 @@ int main( int argc, char** argv )
         printf("Error opening the file %s\n", argv[2]);
         exit(1);
     }
+    if (argc > 3)
+    {
+      n_repeats = atoi(argv[3]);
+    }
+    
     fprintf(fout,"Func dt side uploa transa diaga m n lda ldb alphaR alphaI gflops\n");
 
     dim_t lda,ldb;
     f77_char dt_type_arg, side_arg, uploa_arg, transa_arg, diaga_arg;
     f77_char logline[255];
     // input order: {S,D,C,Z} {side, uplo, transa, diag, m, n, lda, ldb, alphaR, alphaI}
-    while(fscanf(fin, "%s %c %c %c %c %c " INT_FS INT_FS INT_FS INT_FS " %lf %lf\n",
+    while(fscanf(fin, "%s %c %c %c %c %c " INT_FS INT_FS INT_FS INT_FS " %lf %lf%*[^\n]",
           logline, &dt_type_arg, &side_arg, &uploa_arg, &transa_arg, &diaga_arg, &m, &n, &lda, &ldb,
            &alphaR, &alphaI) == 12)
     {

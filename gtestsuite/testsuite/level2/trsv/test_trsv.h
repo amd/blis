@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -40,6 +40,7 @@
 #include <stdexcept>
 #include <algorithm>
 #include "common/testing_helpers.h"
+#include "inc/data_pool.h"
 
 template<typename T>
 void test_trsv(
@@ -63,38 +64,40 @@ void test_trsv(
     gtint_t lda = testinghelpers::get_leading_dimension( storage, transa, n, n, lda_inc );
 
     //----------------------------------------------------------
-    //        Initialize matrics with random integer numbers.
+    //        Initialize matrices with random integer numbers.
     //----------------------------------------------------------
 
     dim_t size_a = testinghelpers::matsize(storage, transa, n, n, lda) * sizeof(T);
 
     // Buffers for A matrix and X vector are always unaligned
     testinghelpers::ProtectedBuffer a(size_a, false, is_memory_test );
-    testinghelpers::datagenerators::randomgenerators<T>( 0, 1, storage, n, n, (T*)(a.greenzone_1), transa, lda );
+    // Set index to a starting position for this test
+    get_tiny_pool<T>().set_index(n, n, lda_inc);
+    get_tiny_pool<T>().randomgenerators( storage, n, n, (T*)(a.greenzone_1), transa, lda );
 
     dim_t size_x = testinghelpers::buff_dim(n, incx) * sizeof(T);
     testinghelpers::ProtectedBuffer x(size_x, false, is_memory_test );
-    testinghelpers::datagenerators::randomgenerators<T>( 1, 3, n, incx, (T*)(x.greenzone_1) );
+    // Index already set in previous call
+    get_tiny_pool<T>().randomgenerators( n, incx, (T*)(x.greenzone_1) );
 
     T* a_ptr = (T*)(a.greenzone_1);
     T* x_ptr = (T*)(x.greenzone_1);
 
-    // Make A matix diagonal dominant to make sure that algorithm doesn't diverge
+    // Make A matrix diagonally dominant to make sure that algorithm doesn't diverge
     // This makes sure that the TRSV problem is solvable
     for ( dim_t a_dim = 0; a_dim < n; ++a_dim )
     {
         a_ptr[ a_dim + (a_dim* lda) ] = a_ptr[ a_dim + (a_dim* lda) ] + T{RT(n)};
     }
 
-    // add extreme values to the X vector
     if ( is_evt_test )
     {
-        x_ptr[ (rand() % n) * std::abs(incx) ] = evt_x;
-    }
+        srand(SRAND_SEED);
 
-    // add extreme values to the A matrix
-    if ( is_evt_test )
-    {
+        // add extreme values to the X vector
+        x_ptr[ (rand() % n) * std::abs(incx) ] = evt_x;
+
+        // add extreme values to the A matrix
         dim_t n_idx = rand() % n;
         dim_t m_idx = (std::max)((dim_t)0, n_idx - 1);
         a_ptr[ m_idx + (n_idx * lda) ] = evt_a;
@@ -103,7 +106,7 @@ void test_trsv(
 
     // skipped making A triangular
     // A matrix being a non triangular matrix could be a better test
-    // because we are exepcted to read only from the upper or lower triangular
+    // because we are expected to read only from the upper or lower triangular
     // part of the data, contents of the rest of the matrix should not change the
     // result.
     // testinghelpers::make_triangular<T>( storage, uploa, n, a_ptr, lda );

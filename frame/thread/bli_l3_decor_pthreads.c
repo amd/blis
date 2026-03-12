@@ -126,6 +126,12 @@ void* bli_l3_thread_entry( void* data_void )
 	// Free the thread's local control tree.
 	bli_l3_cntl_free( rntm_p, cntl_use, thread );
 
+	// NOTE: The barrier here is very important as it prevents memory being
+	// released by the chief of some thread sub-group before its peers are done
+	// using it. See PR #702 for more info [1].
+	// [1] https://github.com/flame/blis/pull/702
+	bli_thread_barrier( thread );
+
 	// Free the current thread's thrinfo_t structure.
 	bli_l3_thrinfo_free( rntm_p, thread );
 
@@ -238,6 +244,14 @@ void bli_l3_thread_decorator
 	// check-out, this is done using a lock embedded within the sba to ensure
 	// mutual exclusion.
 	bli_sba_checkin_array( array );
+
+	// Now global communicator is not freed in bli_l3_thrinfo_free().
+	// Free the global communicator after the parallel region completes.
+	// This ensures that no thread can be using gl_comm when it is freed,
+	// avoiding a potential data race where the chief thread would free
+	// gl_comm inside bli_thrinfo_free() while non-chief threads might
+	// still hold pointers to it.
+	bli_thrcomm_free( rntm, gl_comm );
 
 	#ifdef BLIS_ENABLE_MEM_TRACING
 	printf( "bli_l3_thread_decorator().pth: " );

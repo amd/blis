@@ -72,8 +72,8 @@ err_t bli_l3_sup_thread_decorator
 	bli_pba_rntm_set_pba( rntm );
 
 #ifndef SKIP_THRINFO_TREE
-	// Allcoate a global communicator for the root thrinfo_t structures.
-	thrcomm_t* restrict gl_comm = bli_thrcomm_create( rntm, n_threads );
+	// Use global single threaded communicator
+	thrcomm_t* restrict gl_comm = &BLIS_SINGLE_COMM;
 #endif
 
 
@@ -125,12 +125,10 @@ err_t bli_l3_sup_thread_decorator
 #ifndef SKIP_THRINFO_TREE
 		// Free the current thread's thrinfo_t structure.
 		bli_l3_sup_thrinfo_free( rntm_p, thread );
+
+		//  "BLIS_SINGLE_THREADED" global communicator is used so no free is needed.
 #endif
 	}
-
-	// We shouldn't free the global communicator since it was already freed
-	// by the global communicator's chief thread in bli_l3_thrinfo_free()
-	// (called above).
 
 	// Check the array_t back into the small block allocator. Similar to the
 	// check-out, this is done using a lock embedded within the sba to ensure

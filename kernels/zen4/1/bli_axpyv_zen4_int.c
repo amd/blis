@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -32,8 +32,11 @@
 
 */
 
-#include "immintrin.h"
 #include "blis.h"
+#include "immintrin.h"
+
+#define BLIS_ASM_SYNTAX_ATT
+#include "bli_x86_asm_macros.h"
 
 // -----------------------------------------------------------------------------
 
@@ -86,156 +89,212 @@ void bli_saxpyv_zen4_int
        cntx_t* restrict cntx
      )
 {
-    const int n_elem_per_reg = 16;
-
-    dim_t i = 0;
+    AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_4)
 
     // Initialize local pointers.
     float *restrict x0 = x;
     float *restrict y0 = y;
+    float *restrict alpha0 = alpha;
 
-    if (incx == 1 && incy == 1)
+    // If the vector dimension is zero return early.
+    if (bli_zero_dim1(n) || bli_seq0(*alpha0))
     {
-        __m512 xv[8], yv[8], alphav;
-
-        // Broadcast the alpha scalar to all elements of a vector register.
-        alphav = _mm512_set1_ps(*alpha);
-
-        for (i = 0; (i + 127) < n; i += 128)
-        {
-            // Loading the input values
-            xv[0] = _mm512_loadu_ps(x0 + 0 * n_elem_per_reg);
-            xv[1] = _mm512_loadu_ps(x0 + 1 * n_elem_per_reg);
-            xv[2] = _mm512_loadu_ps(x0 + 2 * n_elem_per_reg);
-            xv[3] = _mm512_loadu_ps(x0 + 3 * n_elem_per_reg);
-
-            yv[0] = _mm512_loadu_ps(y0 + 0 * n_elem_per_reg);
-            yv[1] = _mm512_loadu_ps(y0 + 1 * n_elem_per_reg);
-            yv[2] = _mm512_loadu_ps(y0 + 2 * n_elem_per_reg);
-            yv[3] = _mm512_loadu_ps(y0 + 3 * n_elem_per_reg);
-
-            // Perform y += alpha * x
-            yv[0] = _mm512_fmadd_ps(xv[0], alphav, yv[0]);
-            yv[1] = _mm512_fmadd_ps(xv[1], alphav, yv[1]);
-            yv[2] = _mm512_fmadd_ps(xv[2], alphav, yv[2]);
-            yv[3] = _mm512_fmadd_ps(xv[3], alphav, yv[3]);
-
-            // Store updated y
-            _mm512_storeu_ps((y0 + 0 * n_elem_per_reg), yv[0]);
-            _mm512_storeu_ps((y0 + 1 * n_elem_per_reg), yv[1]);
-            _mm512_storeu_ps((y0 + 2 * n_elem_per_reg), yv[2]);
-            _mm512_storeu_ps((y0 + 3 * n_elem_per_reg), yv[3]);
-
-            xv[4] = _mm512_loadu_ps(x0 + 4 * n_elem_per_reg);
-            xv[5] = _mm512_loadu_ps(x0 + 5 * n_elem_per_reg);
-            xv[6] = _mm512_loadu_ps(x0 + 6 * n_elem_per_reg);
-            xv[7] = _mm512_loadu_ps(x0 + 7 * n_elem_per_reg);
-
-            yv[4] = _mm512_loadu_ps(y0 + 4 * n_elem_per_reg);
-            yv[5] = _mm512_loadu_ps(y0 + 5 * n_elem_per_reg);
-            yv[6] = _mm512_loadu_ps(y0 + 6 * n_elem_per_reg);
-            yv[7] = _mm512_loadu_ps(y0 + 7 * n_elem_per_reg);
-
-            yv[4] = _mm512_fmadd_ps(xv[4], alphav, yv[4]);
-            yv[5] = _mm512_fmadd_ps(xv[5], alphav, yv[5]);
-            yv[6] = _mm512_fmadd_ps(xv[6], alphav, yv[6]);
-            yv[7] = _mm512_fmadd_ps(xv[7], alphav, yv[7]);
-
-            _mm512_storeu_ps((y0 + 7 * n_elem_per_reg), yv[7]);
-            _mm512_storeu_ps((y0 + 6 * n_elem_per_reg), yv[6]);
-            _mm512_storeu_ps((y0 + 5 * n_elem_per_reg), yv[5]);
-            _mm512_storeu_ps((y0 + 4 * n_elem_per_reg), yv[4]);
-
-            // Increment the pointer
-            x0 += 8 * n_elem_per_reg;
-            y0 += 8 * n_elem_per_reg;
-        }
-
-        for (; (i + 63) < n; i += 64)
-        {
-            xv[0] = _mm512_loadu_ps(x0 + 0 * n_elem_per_reg);
-            xv[1] = _mm512_loadu_ps(x0 + 1 * n_elem_per_reg);
-            xv[2] = _mm512_loadu_ps(x0 + 2 * n_elem_per_reg);
-            xv[3] = _mm512_loadu_ps(x0 + 3 * n_elem_per_reg);
-
-            yv[0] = _mm512_loadu_ps(y0 + 0 * n_elem_per_reg);
-            yv[1] = _mm512_loadu_ps(y0 + 1 * n_elem_per_reg);
-            yv[2] = _mm512_loadu_ps(y0 + 2 * n_elem_per_reg);
-            yv[3] = _mm512_loadu_ps(y0 + 3 * n_elem_per_reg);
-
-            yv[0] = _mm512_fmadd_ps(xv[0], alphav, yv[0]);
-            yv[1] = _mm512_fmadd_ps(xv[1], alphav, yv[1]);
-            yv[2] = _mm512_fmadd_ps(xv[2], alphav, yv[2]);
-            yv[3] = _mm512_fmadd_ps(xv[3], alphav, yv[3]);
-
-            _mm512_storeu_ps((y0 + 0 * n_elem_per_reg), yv[0]);
-            _mm512_storeu_ps((y0 + 1 * n_elem_per_reg), yv[1]);
-            _mm512_storeu_ps((y0 + 2 * n_elem_per_reg), yv[2]);
-            _mm512_storeu_ps((y0 + 3 * n_elem_per_reg), yv[3]);
-
-            x0 += 4 * n_elem_per_reg;
-            y0 += 4 * n_elem_per_reg;
-        }
-
-        for (; (i + 31) < n; i += 32)
-        {
-            xv[0] = _mm512_loadu_ps(x0 + 0 * n_elem_per_reg);
-            xv[1] = _mm512_loadu_ps(x0 + 1 * n_elem_per_reg);
-
-            yv[0] = _mm512_loadu_ps(y0 + 0 * n_elem_per_reg);
-            yv[1] = _mm512_loadu_ps(y0 + 1 * n_elem_per_reg);
-
-            yv[0] = _mm512_fmadd_ps(xv[0], alphav, yv[0]);
-            yv[1] = _mm512_fmadd_ps(xv[1], alphav, yv[1]);
-
-            _mm512_storeu_ps((y0 + 0 * n_elem_per_reg), yv[0]);
-            _mm512_storeu_ps((y0 + 1 * n_elem_per_reg), yv[1]);
-
-            x0 += 2 * n_elem_per_reg;
-            y0 += 2 * n_elem_per_reg;
-        }
-
-        for (; (i + 15) < n; i += 16)
-        {
-            xv[0] = _mm512_loadu_ps(x0);
-
-            yv[0] = _mm512_loadu_ps(y0);
-
-            yv[0] = _mm512_fmadd_ps(xv[0], alphav, yv[0]);
-
-            _mm512_storeu_ps(y0, yv[0]);
-
-            x0 += n_elem_per_reg;
-            y0 += n_elem_per_reg;
-        }
-
-        // This loop uses AVX2 instructions
-        for (; (i + 7) < n; i += 8)
-        {
-            __m256 x_vec = _mm256_loadu_ps(x0);
-
-            __m256 y_vec = _mm256_loadu_ps(y0);
-
-            y_vec = _mm256_fmadd_ps(x_vec, _mm256_set1_ps(*alpha), y_vec);
-
-            _mm256_storeu_ps(y0, y_vec);
-
-            x0 += 8;
-            y0 += 8;
-        }
+        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_4)
+        return;
     }
 
-    /*
-        This loop has two functions:
-        1. Handles the remainder of n / 8 when incx and incy are 1.
-        2. Performs the complete compute when incx or incy != 1
-    */
-    for (; i < n; i += 1)
+    // Check for unit stride - use optimized assembly code
+    if (incx == 1 && incy == 1)
     {
-        *y0 += (*alpha) * (*x0);
+        // Typecast to 64 bit
+        uint64_t n0 = (uint64_t)n;
 
-        x0 += incx;
-        y0 += incy;
+        // Assembly Code for unit stride case
+        begin_asm()
+
+        /*
+            rsi - > n
+            rax - > alpha
+            rdx - > x
+            r8  - > y
+        */
+
+        // Loading the source memory address to the respective registers
+        mov(var(alpha0), rax)
+        mov(var(x0), rdx)
+        mov(var(y0), r8)
+
+        // Loading the value in 'n' to register
+        mov(var(n0), rsi)
+
+        // Broadcast alpha to all elements of zmm0
+        vbroadcastss(mem(rax), zmm0)
+
+        // ========================================================================================================================
+
+        // Section of code to process blocks of 128 elements
+        label(.BLOCK128)
+
+        cmp(imm(16*8), rsi)                // check if the number of remaining elements >= 128
+        jl(.BLOCK64)                       // else, goto to the section of code for block of size 64
+
+        label(.MAINLOOP)
+
+        // First 64 elements (0-63)
+        vmovups(mem(rdx, 0*64), zmm1)      // zmm1 = x[i+0] - x[i+15]
+        vmovups(mem(rdx, 1*64), zmm2)      // zmm2 = x[i+16] - x[i+31]
+        vmovups(mem(rdx, 2*64), zmm3)      // zmm3 = x[i+32] - x[i+47]
+        vmovups(mem(rdx, 3*64), zmm4)      // zmm4 = x[i+48] - x[i+63]
+
+        vfmadd213ps(mem(r8, 0*64), zmm0, zmm1)  // zmm1 = alpha*x + y[i+0]
+        vfmadd213ps(mem(r8, 1*64), zmm0, zmm2)  // zmm2 = alpha*x + y[i+16]
+        vfmadd213ps(mem(r8, 2*64), zmm0, zmm3)  // zmm3 = alpha*x + y[i+32]
+        vfmadd213ps(mem(r8, 3*64), zmm0, zmm4)  // zmm4 = alpha*x + y[i+48]
+
+        vmovups(zmm1, mem(r8, 0*64))       // y[i+0] - y[i+15] = zmm1
+        vmovups(zmm2, mem(r8, 1*64))       // y[i+16] - y[i+31] = zmm2
+        vmovups(zmm3, mem(r8, 2*64))       // y[i+32] - y[i+47] = zmm3
+        vmovups(zmm4, mem(r8, 3*64))       // y[i+48] - y[i+63] = zmm4
+
+        // Second 64 elements (64-127)
+        vmovups(mem(rdx, 4*64), zmm5)      // zmm5 = x[i+64] - x[i+79]
+        vmovups(mem(rdx, 5*64), zmm6)      // zmm6 = x[i+80] - x[i+95]
+        vmovups(mem(rdx, 6*64), zmm7)      // zmm7 = x[i+96] - x[i+111]
+        vmovups(mem(rdx, 7*64), zmm8)      // zmm8 = x[i+112] - x[i+127]
+
+        vfmadd213ps(mem(r8, 4*64), zmm0, zmm5)  // zmm5 = alpha*x + y[i+64]
+        vfmadd213ps(mem(r8, 5*64), zmm0, zmm6)  // zmm6 = alpha*x + y[i+80]
+        vfmadd213ps(mem(r8, 6*64), zmm0, zmm7)  // zmm7 = alpha*x + y[i+96]
+        vfmadd213ps(mem(r8, 7*64), zmm0, zmm8)  // zmm8 = alpha*x + y[i+112]
+
+        vmovups(zmm5, mem(r8, 4*64))       // y[i+64] - y[i+79] = zmm5
+        vmovups(zmm6, mem(r8, 5*64))       // y[i+80] - y[i+95] = zmm6
+        vmovups(zmm7, mem(r8, 6*64))       // y[i+96] - y[i+111] = zmm7
+        vmovups(zmm8, mem(r8, 7*64))       // y[i+112] - y[i+127] = zmm8
+
+        // Increment the pointers
+        add(imm(16*4*8), rdx)
+        add(imm(16*4*8), r8)
+        sub(imm(16*8), rsi)                // reduce the number of remaining elements by 128
+
+        cmp(imm(16*8), rsi)
+        jge(.MAINLOOP)
+
+        // -----------------------------------------------------------
+
+        // Section of code to process blocks of 64 elements
+        label(.BLOCK64)
+
+        cmp(imm(16*4), rsi)                // check if the number of remaining elements >= 64
+        jl(.BLOCK32)                       // else, goto to the section of code for block of size 32
+
+        vmovups(mem(rdx, 0*64), zmm1)      // zmm1 = x[i+0] - x[i+15]
+        vmovups(mem(rdx, 1*64), zmm2)      // zmm2 = x[i+16] - x[i+31]
+        vmovups(mem(rdx, 2*64), zmm3)      // zmm3 = x[i+32] - x[i+47]
+        vmovups(mem(rdx, 3*64), zmm4)      // zmm4 = x[i+48] - x[i+63]
+
+        vfmadd213ps(mem(r8, 0*64), zmm0, zmm1)  // zmm1 = alpha*x + y[i+0]
+        vfmadd213ps(mem(r8, 1*64), zmm0, zmm2)  // zmm2 = alpha*x + y[i+16]
+        vfmadd213ps(mem(r8, 2*64), zmm0, zmm3)  // zmm3 = alpha*x + y[i+32]
+        vfmadd213ps(mem(r8, 3*64), zmm0, zmm4)  // zmm4 = alpha*x + y[i+48]
+
+        vmovups(zmm1, mem(r8, 0*64))       // y[i+0] - y[i+15] = zmm1
+        vmovups(zmm2, mem(r8, 1*64))       // y[i+16] - y[i+31] = zmm2
+        vmovups(zmm3, mem(r8, 2*64))       // y[i+32] - y[i+47] = zmm3
+        vmovups(zmm4, mem(r8, 3*64))       // y[i+48] - y[i+63] = zmm4
+
+        // Increment the pointers
+        add(imm(16*4*4), rdx)
+        add(imm(16*4*4), r8)
+        sub(imm(16*4), rsi)                // reduce the number of remaining elements by 64
+
+        // -----------------------------------------------------------
+
+        // Section of code to process blocks of 32 elements
+        label(.BLOCK32)
+
+        cmp(imm(16*2), rsi)                // check if the number of remaining elements >= 32
+        jl(.BLOCK16)                       // else, goto to the section of code for block of size 16
+
+        vmovups(mem(rdx, 0*64), zmm1)      // zmm1 = x[i+0] - x[i+15]
+        vmovups(mem(rdx, 1*64), zmm2)      // zmm2 = x[i+16] - x[i+31]
+
+        vfmadd213ps(mem(r8, 0*64), zmm0, zmm1)  // zmm1 = alpha*x + y[i+0]
+        vfmadd213ps(mem(r8, 1*64), zmm0, zmm2)  // zmm2 = alpha*x + y[i+16]
+
+        vmovups(zmm1, mem(r8, 0*64))       // y[i+0] - y[i+15] = zmm1
+        vmovups(zmm2, mem(r8, 1*64))       // y[i+16] - y[i+31] = zmm2
+
+        add(imm(16*4*2), rdx)
+        add(imm(16*4*2), r8)
+        sub(imm(16*2), rsi)                // reduce the number of remaining elements by 32
+
+        // -----------------------------------------------------------
+
+        // Section of code to process blocks of 16 elements
+        label(.BLOCK16)
+
+        cmp(imm(16), rsi)                  // check if the number of remaining elements >= 16
+        jl(.FRINGE)                        // else, goto to the section of code for fringe cases
+
+        vmovups(mem(rdx, 0*64), zmm1)      // zmm1 = x[i+0] - x[i+15]
+        vfmadd213ps(mem(r8, 0*64), zmm0, zmm1)  // zmm1 = alpha*x + y[i+0]
+        vmovups(zmm1, mem(r8, 0*64))       // y[i+0] - y[i+15] = zmm1
+
+        // Increment the pointers
+        add(imm(16*4), rdx)
+        add(imm(16*4), r8)
+        sub(imm(16), rsi)                  // reduce the number of remaining elements by 16
+
+        // -----------------------------------------------------------
+
+        // Section of code to process remaining elements (up to 16) using masked operations
+        label(.FRINGE)
+
+        test(rsi, rsi)                     // check if there are any remaining elements
+        je(.END)
+
+        // Creating a 16-bit mask for remaining elements (1-16)
+        mov(imm(65535), rcx)               // (65535)BASE_10 -> (1111 1111 1111 1111)BASE_2
+        shlx(rsi, rcx, rcx)                // shifting the bits to the left depending on remaining elements
+        xor(imm(65535), rcx)               // taking complement of the register
+        kmovq(rcx, k(2))                   // copying the value to mask register
+
+        // Loading the input values using masked load
+        vmovups(mem(rdx, 0*64), zmm1 MASK_(K(2)))
+
+        // Perform FMA with masked operation
+        vfmadd213ps(mem(r8, 0*64), zmm0, zmm1 MASK_(K(2)))
+
+        // Storing the values to destination using masked store
+        vmovups(zmm1, mem(r8) MASK_(K(2)))
+
+        label(.END)
+        end_asm(
+            : // output operands
+            : // input operands
+            [n0]     "m"     (n0),
+            [alpha0] "m"     (alpha0),
+            [x0]     "m"     (x0),
+            [y0]     "m"     (y0)
+            : // register clobber list
+            "zmm0",  "zmm1",  "zmm2",  "zmm3",
+            "zmm4",  "zmm5",  "zmm6",  "zmm7",
+            "zmm8",  "ymm0",  "ymm1",  "xmm0",
+            "xmm1",  "rsi",   "rax",   "rdx",
+            "rcx",   "r8",    "k2",    "memory"
+        )
+    }
+    else
+    {
+        // Scalar code for non-unit stride
+        for (dim_t i = 0; i < n; ++i)
+        {
+            *y0 += (*alpha0) * (*x0);
+            
+            x0 += incx;
+            y0 += incy;
+        }
     }
 
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_4)

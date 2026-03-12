@@ -66,7 +66,7 @@ static void test_axpyf(
     gtint_t lda = testinghelpers::get_leading_dimension( 'c', 'n', m, b, lda_inc );
 
     //----------------------------------------------------------
-    //         Initialize matrics with random numbers
+    //         Initialize matrices with random numbers
     //----------------------------------------------------------
     std::vector<T> A = testinghelpers::get_random_matrix<T>( -2, 8, 'c', 'n', m, b, lda );
 

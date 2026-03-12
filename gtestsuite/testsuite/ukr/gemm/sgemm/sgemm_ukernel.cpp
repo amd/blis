@@ -610,7 +610,7 @@ TEST_P( sgemmGenericSmallTest, gemm_small)
     gtint_t ldc = testinghelpers::get_leading_dimension( storageC, 'n', m, n, 0 );
 
     //----------------------------------------------------------
-    //         Initialize matrics with random numbers
+    //         Initialize matrices with random numbers
     //----------------------------------------------------------
     std::vector<T> a = testinghelpers::get_random_matrix<T>( -2, 8, storageC, 'n', m, k, lda );
     std::vector<T> b = testinghelpers::get_random_matrix<T>( -5, 2, storageC, 'n', k, n, ldb );
