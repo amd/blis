@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2020 - 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2020 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -2869,17 +2869,26 @@ void bli_sgemmsup_rv_zen_asm_6x8
     vmovups(xmm1, mem(rcx)) // store ( gamma03..gamma33 )
     vmovups(xmm2, mem(rcx, rsi, 4)) // store ( gamma07..gamma37 )
 
+    // The following set of instructions operates on the remaining 2x8 submatrix of the
+    // 6x8 matrix. To avoid reading out-of-bounds memory in the last column
+    // of the matrix, vfmadd231ps(mem(rdx, rsi, 4), xmm3, xmm6) is replaced with
+    // vmovsd(mem(rdx, rsi, 4), xmm7) followed by vfmadd231ps(xmm7, xmm3, xmm6).
+    // The other instructions, while still safe, are changed for semantic consistency.
     vunpcklps(ymm14, ymm12, ymm0)
     vextractf128(imm(0x1), ymm0, xmm2)
     vpermilpd(imm(1),xmm0,xmm5)//e1f1
     vpermilpd(imm(1),xmm2,xmm6)//e5f5
-    vfmadd231ps(mem(rdx), xmm3, xmm0)
-    vfmadd231ps(mem(rdx, rsi, 4), xmm3, xmm2)
+    vmovsd(mem(rdx),xmm1)           // loads 2 floats into xmm1
+    vmovsd(mem(rdx, rsi, 4),xmm7)   // loads 2 floats into xmm7
+    vfmadd231ps(xmm1, xmm3, xmm0)
+    vfmadd231ps(xmm7, xmm3, xmm2)
     vmovlpd(xmm0, mem(rdx)) // store ( gamma40..gamma50 )
     vmovlpd(xmm2, mem(rdx, rsi, 4)) // store ( gamma44..gamma54 )
     lea(mem(rdx, rsi, 1), rdx)
-    vfmadd231ps(mem(rdx), xmm3, xmm5)
-    vfmadd231ps(mem(rdx, rsi, 4), xmm3, xmm6)
+    vmovsd(mem(rdx),xmm1)          // loads 2 floats into xmm1
+    vmovsd(mem(rdx, rsi, 4),xmm7)  // loads 2 floats into xmm7
+    vfmadd231ps(xmm1, xmm3, xmm5)
+    vfmadd231ps(xmm7, xmm3, xmm6)
     vmovlpd(xmm5, mem(rdx)) // store ( gamma41..gamma51 )    
     vmovlpd(xmm6, mem(rdx, rsi, 4)) // store ( gamma45..gamma55 )
     lea(mem(rdx, rsi, 1), rdx)
@@ -2887,14 +2896,18 @@ void bli_sgemmsup_rv_zen_asm_6x8
     vunpckhps(ymm14, ymm12, ymm0)
     vextractf128(imm(0x1), ymm0, xmm2)
     vpermilpd(imm(1),xmm0,xmm5)
-    vpermilpd(imm(1),xmm2,xmm6)    
-    vfmadd231ps(mem(rdx), xmm3, xmm0)
-    vfmadd231ps(mem(rdx, rsi, 4), xmm3, xmm2)    
+    vpermilpd(imm(1),xmm2,xmm6)   
+    vmovsd(mem(rdx),xmm1)          // loads 2 floats into xmm1
+    vmovsd(mem(rdx, rsi, 4),xmm7)  // loads 2 floats into xmm7
+    vfmadd231ps(xmm1, xmm3, xmm0)
+    vfmadd231ps(xmm7, xmm3, xmm2)    
     vmovlpd(xmm0, mem(rdx)) // store ( gamma42..gamma52 )
     vmovlpd(xmm2, mem(rdx, rsi, 4)) // store ( gamma46..gamma56 )    
     lea(mem(rdx, rsi, 1), rdx)
-    vfmadd231ps(mem(rdx), xmm3, xmm5)
-    vfmadd231ps(mem(rdx, rsi, 4), xmm3, xmm6)
+    vmovsd(mem(rdx),xmm1)          // loads 2 floats into xmm1
+    vmovsd(mem(rdx, rsi, 4),xmm7)  // loads 2 floats into xmm7
+    vfmadd231ps(xmm1, xmm3, xmm5)
+    vfmadd231ps(xmm7, xmm3, xmm6)
     vmovlpd(xmm5, mem(rdx)) // store ( gamma43..gamma53 )
     vmovlpd(xmm6, mem(rdx, rsi, 4)) // store ( gamma47..gamma57 )
         

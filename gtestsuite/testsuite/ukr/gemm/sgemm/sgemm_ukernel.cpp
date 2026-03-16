@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2024 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2024 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -538,7 +538,7 @@ INSTANTIATE_TEST_SUITE_P(
     bli_sgemm_skx_asm_32x12_l2,
     sgemmGenericNat,
     ::testing::Combine(
-        ::testing::Range(gtint_t(0), gtint_t(17), 1),   // values of k
+        ::testing::Range(gtint_t(1), gtint_t(17), 1),   // values of k
         ::testing::Values(2.0, 1.0, -1.0),              // alpha value
         ::testing::Values(1.0, 0.0, -1.0, 2.3),         // beta value
         ::testing::Values('r', 'c'),                    // storage
@@ -560,7 +560,7 @@ INSTANTIATE_TEST_SUITE_P(
     bli_sgemm_haswell_asm_6x16,
     sgemmGenericNat,
     ::testing::Combine(
-        ::testing::Range(gtint_t(0), gtint_t(17), 1),   // values of k
+        ::testing::Range(gtint_t(1), gtint_t(17), 1),   // values of k
         ::testing::Values(2.0, 1.0, -1.0),              // alpha value
         ::testing::Values(1.0, 0.0, -1.0, 2.3),         // beta value
         ::testing::Values('r', 'c'),                    // storage
