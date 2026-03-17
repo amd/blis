@@ -414,9 +414,8 @@ endif()
 #------------------------------------
 # Set the VERSION variable to the default value in the 'version' file.
 file(STRINGS ${PROJECT_SOURCE_DIR}/version VERSION)
-# Get timestamp.
-string(TIMESTAMP BUILD_DATE "%Y%m%d")
-# Update using the timestamp.
+# Use what's in the version file as-is.
+string(TIMESTAMP BUILD_DATE "%Y%m%d" UTC)
 set(VERSION_STRING "AOCL-BLAS ${VERSION} Build ${BUILD_DATE}")
 # Initial message.
 message(STATUS "Starting configuration of BLIS ${VERSION_STRING}.")

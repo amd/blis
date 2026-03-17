@@ -5,7 +5,7 @@
 #  libraries.
 #
 #  Copyright (C) 2014, The University of Texas at Austin
-#  Copyright (C) 2020 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+#  Copyright (C) 2020 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 #
 #  Redistribution and use in source and binary forms, with or without
 #  modification, are permitted provided that the following conditions are
@@ -1983,7 +1983,10 @@ set_default_version()
 	echo "${script_name}: determining default version string."
 
 	# Use what's in the version file as-is.
-	version="AOCL-BLAS $(cat "${version_file}") Build $(date +%Y%m%d)"
+	date_fmt="+%Y%m%d"
+	SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-$(date +%s)}"
+	build_date=$(date -u -d "@$SOURCE_DATE_EPOCH" "$date_fmt" 2>/dev/null || date -u -r "$SOURCE_DATE_EPOCH" "$date_fmt" 2>/dev/null || date -u "$date_fmt")
+	version="AOCL-BLAS $(cat "${version_file}") Build ${build_date}"
 }
 
 
