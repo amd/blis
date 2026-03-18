@@ -1405,26 +1405,12 @@ TEST_P( zgemmTiny, gemm_tiny )
     gtint_t ldb = testinghelpers::get_leading_dimension( storageC, transb, k, n, 0 );
     gtint_t ldc = testinghelpers::get_leading_dimension( storageC, 'n', m, n, 0 );
 
-    obj_t alphao = BLIS_OBJECT_INITIALIZER_1X1;
-    obj_t ao = BLIS_OBJECT_INITIALIZER;
-    obj_t bo = BLIS_OBJECT_INITIALIZER;
-    obj_t betao = BLIS_OBJECT_INITIALIZER_1X1;
-    obj_t co = BLIS_OBJECT_INITIALIZER;
-
-    dim_t m0_a, n0_a;
-    dim_t m0_b, n0_b;
-
     trans_t blis_transa;
     trans_t blis_transb;
 
     bli_param_map_netlib_to_blis_trans( transa, &blis_transa );
     bli_param_map_netlib_to_blis_trans( transb, &blis_transb );
 
-    bli_set_dims_with_trans( blis_transa, m, k, &m0_a, &n0_a );
-    bli_set_dims_with_trans( blis_transb, k, n, &m0_b, &n0_b );
-
-    bli_obj_init_finish_1x1( BLIS_DCOMPLEX, (dcomplex*)&alpha, &alphao );
-    bli_obj_init_finish_1x1( BLIS_DCOMPLEX, (dcomplex*)&beta, &betao );
     bli_init_auto();
     if( is_memory_test )
     {
@@ -1437,20 +1423,19 @@ TEST_P( zgemmTiny, gemm_tiny )
         std::vector<T> c = testinghelpers::get_random_matrix<T>( -3, 5, storageC, 'n', m, n, ldc );
         std::vector<T> c_ref( c );
 
-        bli_obj_init_finish( BLIS_DCOMPLEX, m0_a, n0_a, a.data(), 1, lda, &ao );
-        bli_obj_init_finish( BLIS_DCOMPLEX, m0_b, n0_b, b.data(), 1, ldb, &bo );
-        bli_obj_init_finish( BLIS_DCOMPLEX, m,    n,    c.data(),  1, ldc, &co );
-
-        bli_obj_set_conjtrans( blis_transa, &ao );
-        bli_obj_set_conjtrans( blis_transb, &bo );
-
-        bli_zgemm_tiny( blis_transa, blis_transb,
+        err_t tiny_status = bli_zgemm_tiny( blis_transa, blis_transb,
                         m, n, k, &alpha,
                         a.data(), 1, lda,
                         b.data(), 1, ldb,
                         &beta,
                         c.data(), 1, ldc,
                         false );
+
+        if ( tiny_status == BLIS_FAILURE )
+        {
+            GTEST_SKIP() << "Test parameters not suitable for zgemmTiny";
+        }
+
 
         testinghelpers::ref_gemm<T>( storageC, transa, transb, m, n, k, alpha,
                                     a.data(), lda, b.data(), ldb, beta, c_ref.data(), ldc );
@@ -1494,15 +1479,15 @@ INSTANTIATE_TEST_SUITE_P(
     ZGEMMTinyTestsAc,
     zgemmTiny,
     ::testing::Combine(
-        ::testing::Range(dim_t(1), dim_t(13), 1),                                // m
-        ::testing::Range(dim_t(1), dim_t(5), 1),                                // n
-        ::testing::Range(dim_t(1), dim_t(15), 1),                                // k
-        ::testing::Values(dcomplex{1.0, 0.0}, dcomplex{-1.0, 0.0}, dcomplex{0.0, 0.0}, dcomplex{-1.4, 1.3}),              // alpha
-        ::testing::Values(dcomplex{0.0, 0.0}, dcomplex{1.0, 0.0}, dcomplex{-1.0, 0.0}, dcomplex{1.5, 2.2}),               // beta
-        ::testing::Values('c'),                                                  // storage
-        ::testing::Values('c', 'n', 't'),                                             // transa
-        ::testing::Values('n', 't'),                                                  // transb
-        ::testing::Values(false)                                                 // no memory test
+        ::testing::Range(dim_t(1), dim_t(13), 1),                                                             // m
+        ::testing::Range(dim_t(1), dim_t(5), 1),                                                              // n
+        ::testing::Range(dim_t(1), dim_t(15), 1),                                                             // k
+        ::testing::Values(dcomplex{1.0, 0.0}, dcomplex{-1.0, 0.0}, dcomplex{0.0, 0.0}, dcomplex{-1.4, 1.3}),  // alpha
+        ::testing::Values(dcomplex{0.0, 0.0}, dcomplex{1.0, 0.0}, dcomplex{-1.0, 0.0}, dcomplex{1.5, 2.2}),   // beta
+        ::testing::Values('c'),                                                                               // storage
+        ::testing::Values('c', 'n', 't'),                                                                     // transa
+        ::testing::Values('n', 't'),                                                                          // transb
+        ::testing::Values(false)                                                                              // no memory test
     ),
     zgemmTinyPrint()
 );
@@ -1511,15 +1496,15 @@ INSTANTIATE_TEST_SUITE_P(
     ZGEMMTinyTestsBc,
     zgemmTiny,
     ::testing::Combine(
-        ::testing::Range(dim_t(1), dim_t(13), 1),                                // m
-        ::testing::Range(dim_t(1), dim_t(5), 1),                                // n
-        ::testing::Range(dim_t(1), dim_t(15), 1),                                // k
-        ::testing::Values(dcomplex{1.0, 0.0}, dcomplex{-1.0, 0.0}, dcomplex{0.0, 0.0}, dcomplex{-1.4, 1.3}),              // alpha
-        ::testing::Values(dcomplex{0.0, 0.0}, dcomplex{1.0, 0.0}, dcomplex{-1.0, 0.0}, dcomplex{1.5, 2.2}),               // beta
-        ::testing::Values('c'),                                                  // storage
-        ::testing::Values('n', 't'),                                             // transa
-        ::testing::Values('c', 'n', 't'),                                                  // transb
-        ::testing::Values(false)                                                 // no memory test
+        ::testing::Range(dim_t(1), dim_t(13), 1),                                                             // m
+        ::testing::Range(dim_t(1), dim_t(5), 1),                                                              // n
+        ::testing::Range(dim_t(1), dim_t(15), 1),                                                             // k
+        ::testing::Values(dcomplex{1.0, 0.0}, dcomplex{-1.0, 0.0}, dcomplex{0.0, 0.0}, dcomplex{-1.4, 1.3}),  // alpha
+        ::testing::Values(dcomplex{0.0, 0.0}, dcomplex{1.0, 0.0}, dcomplex{-1.0, 0.0}, dcomplex{1.5, 2.2}),   // beta
+        ::testing::Values('c'),                                                                               // storage
+        ::testing::Values('n', 't'),                                                                          // transa
+        ::testing::Values('c', 'n', 't'),                                                                     // transb
+        ::testing::Values(false)                                                                              // no memory test
     ),
     zgemmTinyPrint()
 );
