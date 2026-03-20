@@ -470,35 +470,73 @@ BLIS_EXPORT_BLIS void bli_daxpyv_zen_int_10
             y0 += 1*n_elem_per_reg;
         }
 
+        // Handle the remaining cases using masked operations
+        dim_t n_rem = n - i;
+        if ( n_rem > 0 )
+        {
+            // Masked operations can handle upto 4 doubles at a time
+            __m256i indices = _mm256_setr_epi64x( 0, 1, 2, 3 );  // indices <- [0, 1, 2, 3] 
+
+            // _mm256_set1_epi64x: broadcasts n_rem to all lanes of a 256 bit register, n_rem_YMM[:] <- n_rem
+            // _mm256_cmpgt_epi64: n_rem_YMM[i] > indices[i] ? -1 : 0
+            // This operation sets -1(0xFF..F) to all the lanes of the mask where n_rem > indices[i]
+            // For example, if n_rem == 2, mask <- [-1, -1, 0, 0], this mask is subsequently
+            // used to load 2 64 bit elements from the corresponding memory locations
+            __m256i mask    = _mm256_cmpgt_epi64( _mm256_set1_epi64x( n_rem ), indices ); // mask[i] <- n_rem > indices[i] ? -1 : 0
+            
+            // Perform the masked loads
+            __m256d xv_rem = _mm256_maskload_pd( x0, mask );
+            __m256d yv_rem = _mm256_maskload_pd( y0, mask );
+
+            // Perform the masked FMA on the masked registers
+            __m256d zv_rem = _mm256_fmadd_pd( xv_rem, alphav, yv_rem );
+
+            // Masked store to y0
+            _mm256_maskstore_pd( y0, mask, zv_rem );
+        }
+
         // Issue vzeroupper instruction to clear upper lanes of ymm registers.
         // This avoids a performance penalty caused by false dependencies when
-        // transitioning from AVX to SSE instructions (which may occur as soon
-        // as the n_left cleanup loop below if BLIS is compiled with
-        // -mfpmath=sse).
+        // transitioning from AVX to SSE instructions (which may occur later,
+        // especially if BLIS is compiled with -mfpmath=sse).
         _mm256_zeroupper();
-
-        for ( ; i < n; i += 1 )
-        {
-            *y0 += (*alpha) * (*x0);
-
-            y0 += 1;
-            x0 += 1;
-        }
     }
     else
     {
-        const double alphac = *alpha;
+        /*
+        * DAXPY implementation for non-unit strides (incx/incy != 1).
+        * While the loop remains scalar due to non-contiguous memory access, we use
+        * SSE scalar intrinsics (_mm_fmadd_sd) to leverage the hardware's Fused
+        * Multiply-Add (FMA) unit. This maintains higher precision by 
+        * performing the multiply-add in a single step.
+        */
+        __m128d alpha_s = _mm_load_sd( alpha ); // alpha_s[0] <- alpha[0]
+                                                // alpha_s[1] <- 0.0 (Unused)
 
         for ( i = 0; i < n; ++i )
         {
-            const double x0c = *x0;
+            // Load single double into low lane of __m128d
+            __m128d xv_s = _mm_load_sd( x0 );  // xv_s[0] <- x0[0]
+                                               // xv_s[1] <- 0.0 (Unused)
+            __m128d yv_s = _mm_load_sd( y0 );  // yv_s[0] <- y0[0]
+                                               // yv_s[1] <- 0.0 (Unused)
 
-            *y0 += alphac * x0c;
+            // accumulate the value in zv_s
+            // _mm_fmadd_sd performs a scalar fused multiply-add (FMA) 
+            // on the low 64-bit double-precision element of XMM registers.
+            // This operation is done in one fused instruction
+            // with one rounding (compared to two in the scalar case)
+            __m128d zv_s = _mm_fmadd_sd( alpha_s, xv_s, yv_s ); // zv_s[0] <- (alpha_s[0] * xv_s[0]) + yv_s[0]
+                                                                // zv_s[1] <- alpha_s[1] (Unused)
+
+            // store the accumulated value (lower lane) 
+            _mm_store_sd( y0, zv_s ); // y0[0] <- zv_s[0]
 
             x0 += incx;
             y0 += incy;
         }
     }
+    
     AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_4)
 }
 
