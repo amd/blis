@@ -482,7 +482,7 @@ LPGEMM_5LOOP_AVX512BF16(bfloat16,bfloat16,float,bf16bf16f32of32)
 				c_use_jc = ( float* )temp_scal_c_buffer_bf16;
 			}else
 			{
-				// When k <= KC, output is written directly as there is no need of 
+				// When k <= KC, output is written directly as there is no need of
 				// intermediate buffer to store the output
 				c_use_jc = c + jc;
 			}
@@ -902,7 +902,7 @@ LPGEMV_AVX2(bfloat16, bfloat16, float, bf16bf16f32of32)
 			// Direct call to optimized GEMV conversion (K=1, contiguous output)
 			cvt_bf16_f32_gemv_row_major
 			(
-				cvt_b_buffer_bf16_f32, 
+				cvt_b_buffer_bf16_f32,
 				b, rs_b, k
 			);
 		}
@@ -1126,6 +1126,11 @@ LPGEMV_AVX2(bfloat16, bfloat16, float, bf16bf16f32of32)
 				post_op_list,
 				&post_ops_attr
 			);
+
+			if(mtag_b == REORDERED)
+			{
+				adjust_B_panel_reordered_jc(&jc, jc_cur_loop);
+			}
 		}
 
 		if ( bli_mem_is_alloc( &mem_a ) )
@@ -1289,7 +1294,7 @@ LPGEMM_5LOOP_AVX2(bfloat16,bfloat16,float,bf16bf16f32of32)
 				c_use_jc = ( float* )temp_scal_c_buffer_bf16;
 			}else
 			{
-				// When k <= KC, output is written directly as there is no need of 
+				// When k <= KC, output is written directly as there is no need of
 				// intermediate buffer to store the output
 				c_use_jc = c + jc;
 			}
