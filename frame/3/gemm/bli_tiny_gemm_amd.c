@@ -605,17 +605,19 @@ err_t bli_zgemm_tiny
         *   - Op(A) = A^T,     Op(B) = conj(B)  (TRANSPOSE, CONJ_NO_TRANSPOSE)
         *   - Op(A) = A^T,     Op(B) = B^H      (TRANSPOSE, CONJ_TRANSPOSE)
         *   - Op(A) = conj(A), Op(B) = B^T      (CONJ_NO_TRANSPOSE, TRANSPOSE)
-        *   - Op(A) = conj(A), Op(B) = B^H      (CONJ_NO_TRANSPOSE, CONJ_TRANSPOSE)
         *   - Op(A) = A^H,     Op(B) = B^T      (CONJ_TRANSPOSE, TRANSPOSE)
-        *   - Op(A) = A^H,     Op(B) = conj(B)  (CONJ_TRANSPOSE, CONJ_NO_TRANSPOSE)
         *
         * However framework changes are needed for:
         *   - Op(A) = conj(A), Op(B) = conj(B)  (CONJ_NO_TRANSPOSE, CONJ_NO_TRANSPOSE)
         *   - Op(A) = A^H,     Op(B) = B^H      (CONJ_TRANSPOSE, CONJ_TRANSPOSE)
+        *   - Op(A) = conj(A), Op(B) = B^H      (CONJ_TRANSPOSE, CONJ_NO_TRANSPOSE)
+        *   - Op(A) = A^H,     Op(B) = conj(B)  (CONJ_NO_TRANSPOSE, CONJ_TRANSPOSE)
         * So currently these remain unsupported for zen4/zen5.
         * TODO: add framework support for these combinations.
         */
-        if( ( m < 300 ) && ( n < 300 ) && ( k < 300 ) && !(transa == BLIS_CONJ_TRANSPOSE && transb == BLIS_CONJ_TRANSPOSE) && !(transa == BLIS_CONJ_NO_TRANSPOSE && transb == BLIS_CONJ_NO_TRANSPOSE) )
+        if( ( m < 300 ) && ( n < 300 ) && ( k < 300 ) &&
+            !( bli_does_conj( transa ) && bli_does_conj( transb ) )
+          )
         {
             if(is_mt == FALSE)
             {

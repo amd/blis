@@ -91,9 +91,10 @@ err_t bli_gemmsup
     if(( arch_id == BLIS_ARCH_ZEN6 ) || ( arch_id == BLIS_ARCH_ZEN5 ) || ( arch_id == BLIS_ARCH_ZEN4 ))
     {
         //Don't use sup for currently unsupported storage types  in zgemmsup
-        if(bli_obj_is_dcomplex(c) &&
-        ( ((transa == BLIS_CONJ_NO_TRANSPOSE) && (transb == BLIS_CONJ_NO_TRANSPOSE) )  ||
-        ((transa == BLIS_CONJ_TRANSPOSE) && (transb == BLIS_CONJ_TRANSPOSE) ) ) )
+        if(
+            bli_obj_is_dcomplex(c) &&
+            bli_does_conj( transa ) && bli_does_conj( transb )
+        )
         {
         //printf(" gemmsup: Returning with for un-supported storage types and conjugate property in zgemmsup \n");
         AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_2, "SUP - Unsupported storage type for zgemm.");
