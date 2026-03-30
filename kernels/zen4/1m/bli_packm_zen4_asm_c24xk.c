@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -269,7 +269,7 @@ void bli_cpackm_zen4_asm_24xk
       jmp(.CKITERTRANSPOSE)
 
       label(.UPDATEKITERM5)
-      // Load 6x8 tile onto the registers
+      // Load 5x8 tile onto the registers
       vmovups(mem(rax,         0), zmm6)
       vmovups(mem(rax,  r8, 1, 0), zmm8)
       vmovups(mem(rax,  r8, 2, 0), zmm10)
@@ -278,7 +278,7 @@ void bli_cpackm_zen4_asm_24xk
       jmp(.CKITERTRANSPOSE)
 
       label(.UPDATEKITERM4)
-      // Load 6x8 tile onto the registers
+      // Load 4x8 tile onto the registers
       vmovups(mem(rax,         0), zmm6)
       vmovups(mem(rax,  r8, 1, 0), zmm8)
       vmovups(mem(rax,  r8, 2, 0), zmm10)
@@ -286,20 +286,20 @@ void bli_cpackm_zen4_asm_24xk
       jmp(.CKITERTRANSPOSE)
 
       label(.UPDATEKITERM3)
-      // Load 6x8 tile onto the registers
+      // Load 3x8 tile onto the registers
       vmovups(mem(rax,         0), zmm6)
       vmovups(mem(rax,  r8, 1, 0), zmm8)
       vmovups(mem(rax,  r8, 2, 0), zmm10)
       jmp(.CKITERTRANSPOSE)
 
       label(.UPDATEKITERM2)
-      // Load 6x8 tile onto the registers
+      // Load 2x8 tile onto the registers
       vmovups(mem(rax,         0), zmm6)
       vmovups(mem(rax,  r8, 1, 0), zmm8)
       jmp(.CKITERTRANSPOSE)
 
       label(.UPDATEKITERM1)
-      // Load 6x8 tile onto the registers
+      // Load 1x8 tile onto the registers
       vmovups(mem(rax,         0), zmm6)
 
       label(.CKITERTRANSPOSE)
@@ -480,7 +480,7 @@ void bli_cpackm_zen4_asm_24xk
 
       label(.CKLEFTMLEFTROWU)            // EDGE LOOP (m_left)
 
-      mov(var(m_left), rdi)              // j = m_iter;
+      mov(var(m_left), rdi)              // j = m_left;
       test(rdi, rdi)                     // check j via logical AND.
       je(.CDONE)
 
@@ -500,60 +500,65 @@ void bli_cpackm_zen4_asm_24xk
       cmp(imm(1), rdi)
       JZ(.UPDATEKLEFTM1)
 
+      // This section handles the edge case where both m and k have leftover iterations.
+      // Thus, masked loads and masked stores are used to process only valid elements.
+      // Masking loads with AVX-512 masking the CPU only reads the lanes enabled by the mask. 
+      // Lanes disabled by the mask are not read from memory at all 
+      // with {z} they are then zeroed in the destination register.
       label(.UPDATEKLEFTM7)
-      // Load 7x8 tile onto the registers
-      vmovups(mem(rax,         0), zmm6)
-      vmovups(mem(rax,  r8, 1, 0), zmm8)
-      vmovups(mem(rax,  r8, 2, 0), zmm10)
-      vmovups(mem(rax, r12, 1, 0), zmm12)
-      vmovups(mem(rax,  r8, 4, 0), zmm14)
-      vmovups(mem(rax, rcx, 1, 0), zmm16)
-      vmovups(mem(rax, r12, 2, 0), zmm18)
+      // Load 7xk_left tile onto the registers
+      vmovups(mem(rax,         0), zmm6 MASK_KZ(2))
+      vmovups(mem(rax,  r8, 1, 0), zmm8 MASK_KZ(2))
+      vmovups(mem(rax,  r8, 2, 0), zmm10 MASK_KZ(2))
+      vmovups(mem(rax, r12, 1, 0), zmm12 MASK_KZ(2))
+      vmovups(mem(rax,  r8, 4, 0), zmm14 MASK_KZ(2))
+      vmovups(mem(rax, rcx, 1, 0), zmm16 MASK_KZ(2))
+      vmovups(mem(rax, r12, 2, 0), zmm18 MASK_KZ(2))
       jmp(.CKLEFTTRANSPOSE)
 
       label(.UPDATEKLEFTM6)
-      // Load 6x8 tile onto the registers
-      vmovups(mem(rax,         0), zmm6)
-      vmovups(mem(rax,  r8, 1, 0), zmm8)
-      vmovups(mem(rax,  r8, 2, 0), zmm10)
-      vmovups(mem(rax, r12, 1, 0), zmm12)
-      vmovups(mem(rax,  r8, 4, 0), zmm14)
-      vmovups(mem(rax, rcx, 1, 0), zmm16)
+      // Load 6xk_left tile onto the registers
+      vmovups(mem(rax,         0), zmm6 MASK_KZ(2))
+      vmovups(mem(rax,  r8, 1, 0), zmm8 MASK_KZ(2))
+      vmovups(mem(rax,  r8, 2, 0), zmm10 MASK_KZ(2))
+      vmovups(mem(rax, r12, 1, 0), zmm12 MASK_KZ(2))
+      vmovups(mem(rax,  r8, 4, 0), zmm14 MASK_KZ(2))
+      vmovups(mem(rax, rcx, 1, 0), zmm16 MASK_KZ(2))
       jmp(.CKLEFTTRANSPOSE)
 
       label(.UPDATEKLEFTM5)
-      // Load 6x8 tile onto the registers
-      vmovups(mem(rax,         0), zmm6)
-      vmovups(mem(rax,  r8, 1, 0), zmm8)
-      vmovups(mem(rax,  r8, 2, 0), zmm10)
-      vmovups(mem(rax, r12, 1, 0), zmm12)
-      vmovups(mem(rax,  r8, 4, 0), zmm14)
+      // Load 5xk_left tile onto the registers
+      vmovups(mem(rax,         0), zmm6 MASK_KZ(2))
+      vmovups(mem(rax,  r8, 1, 0), zmm8 MASK_KZ(2))
+      vmovups(mem(rax,  r8, 2, 0), zmm10 MASK_KZ(2))
+      vmovups(mem(rax, r12, 1, 0), zmm12 MASK_KZ(2))
+      vmovups(mem(rax,  r8, 4, 0), zmm14 MASK_KZ(2))
       jmp(.CKLEFTTRANSPOSE)
 
       label(.UPDATEKLEFTM4)
-      // Load 6x8 tile onto the registers
-      vmovups(mem(rax,         0), zmm6)
-      vmovups(mem(rax,  r8, 1, 0), zmm8)
-      vmovups(mem(rax,  r8, 2, 0), zmm10)
-      vmovups(mem(rax, r12, 1, 0), zmm12)
+      // Load 4xk_left tile onto the registers
+      vmovups(mem(rax,         0), zmm6 MASK_KZ(2))
+      vmovups(mem(rax,  r8, 1, 0), zmm8 MASK_KZ(2))
+      vmovups(mem(rax,  r8, 2, 0), zmm10 MASK_KZ(2))
+      vmovups(mem(rax, r12, 1, 0), zmm12 MASK_KZ(2))
       jmp(.CKLEFTTRANSPOSE)
 
       label(.UPDATEKLEFTM3)
-      // Load 6x8 tile onto the registers
-      vmovups(mem(rax,         0), zmm6)
-      vmovups(mem(rax,  r8, 1, 0), zmm8)
-      vmovups(mem(rax,  r8, 2, 0), zmm10)
+      // Load 3xk_left tile onto the registers
+      vmovups(mem(rax,         0), zmm6 MASK_KZ(2))
+      vmovups(mem(rax,  r8, 1, 0), zmm8 MASK_KZ(2))
+      vmovups(mem(rax,  r8, 2, 0), zmm10 MASK_KZ(2))
       jmp(.CKLEFTTRANSPOSE)
 
       label(.UPDATEKLEFTM2)
-      // Load 6x8 tile onto the registers
-      vmovups(mem(rax,         0), zmm6)
-      vmovups(mem(rax,  r8, 1, 0), zmm8)
+      // Load 2xk_left tile onto the registers
+      vmovups(mem(rax,         0), zmm6 MASK_KZ(2))
+      vmovups(mem(rax,  r8, 1, 0), zmm8 MASK_KZ(2))
       jmp(.CKLEFTTRANSPOSE)
 
       label(.UPDATEKLEFTM1)
-      // Load 6x8 tile onto the registers
-      vmovups(mem(rax,         0), zmm6)
+      // Load 1xk_left tile onto the registers
+      vmovups(mem(rax,         0), zmm6 MASK_KZ(2))
 
       label(.CKLEFTTRANSPOSE)
 
@@ -598,9 +603,9 @@ void bli_cpackm_zen4_asm_24xk
       JZ(.UPDATEKMLEFT2)
       cmp(imm(1), rsi)
       JZ(.UPDATEKMLEFT1)
-
+      
       label(.UPDATEKMLEFT7)
-      // Update 8x7 tile to destination buffer
+      // Update m_leftx7 tile to destination buffer
       vmovups(zmm0, mem(rbx, 0*192) MASK_K(3))
       vmovups(zmm4, mem(rbx, 1*192) MASK_K(3))
       vmovups(zmm2, mem(rbx, 2*192) MASK_K(3))
@@ -611,7 +616,7 @@ void bli_cpackm_zen4_asm_24xk
       jmp(.CDONE)
 
       label(.UPDATEKMLEFT6)
-      // Update 8x6 tile to destination buffer
+      // Update m_leftx6 tile to destination buffer
       vmovups(zmm0, mem(rbx, 0*192) MASK_K(3))
       vmovups(zmm4, mem(rbx, 1*192) MASK_K(3))
       vmovups(zmm2, mem(rbx, 2*192) MASK_K(3))
@@ -621,7 +626,7 @@ void bli_cpackm_zen4_asm_24xk
       jmp(.CDONE)
 
       label(.UPDATEKMLEFT5)
-      // Update 8x5 tile to destination buffer
+      // Update m_leftx5 tile to destination buffer
       vmovups(zmm0, mem(rbx, 0*192) MASK_K(3))
       vmovups(zmm4, mem(rbx, 1*192) MASK_K(3))
       vmovups(zmm2, mem(rbx, 2*192) MASK_K(3))
@@ -630,7 +635,7 @@ void bli_cpackm_zen4_asm_24xk
       jmp(.CDONE)
 
       label(.UPDATEKMLEFT4)
-      // Update 8x4 tile to destination buffer
+      // Update m_leftx4 tile to destination buffer
       vmovups(zmm0, mem(rbx, 0*192) MASK_K(3))
       vmovups(zmm4, mem(rbx, 1*192) MASK_K(3))
       vmovups(zmm2, mem(rbx, 2*192) MASK_K(3))
@@ -638,20 +643,20 @@ void bli_cpackm_zen4_asm_24xk
       jmp(.CDONE)
 
       label(.UPDATEKMLEFT3)
-      // Update 8x3 tile to destination buffer
+      // Update m_leftx3 tile to destination buffer
       vmovups(zmm0, mem(rbx, 0*192) MASK_K(3))
       vmovups(zmm4, mem(rbx, 1*192) MASK_K(3))
       vmovups(zmm2, mem(rbx, 2*192) MASK_K(3))
       jmp(.CDONE)
 
       label(.UPDATEKMLEFT2)
-      // Update 8x2 tile to destination buffer
+      // Update m_leftx2 tile to destination buffer
       vmovups(zmm0, mem(rbx, 0*192) MASK_K(3))
       vmovups(zmm4, mem(rbx, 1*192) MASK_K(3))
       jmp(.CDONE)
 
       label(.UPDATEKMLEFT1)
-      // Update 8x1 tile to destination buffer
+      // Update m_leftx1 tile to destination buffer
       vmovups(zmm0, mem(rbx, 0*192) MASK_K(3))
       jmp(.CDONE)
 
