@@ -72,6 +72,16 @@ err_t bli_gemmsup
 
     trans_t transa = bli_obj_conjtrans_status( a );
     trans_t transb = bli_obj_conjtrans_status( b );
+    // Obtain a valid context from the gks if necessary.
+    // NOTE: This must be done before calling the _check() function, since
+    // that function assumes the context pointer is valid.
+    if ( cntx == NULL ) cntx = bli_gks_query_cntx();
+
+    // Initialize a local runtime with global settings if necessary. Note
+    // that in the case that a runtime is passed in, we make a local copy.
+    rntm_t rntm_l;
+    if ( rntm == NULL ) { bli_rntm_init_from_global( &rntm_l ); rntm = &rntm_l; }
+    else                { rntm_l = *rntm;                       rntm = &rntm_l; }
 
 
     //Don't use sup for currently unsupported storage types in cgemmsup
@@ -91,14 +101,19 @@ err_t bli_gemmsup
     if(( arch_id == BLIS_ARCH_ZEN6 ) || ( arch_id == BLIS_ARCH_ZEN5 ) || ( arch_id == BLIS_ARCH_ZEN4 ))
     {
         //Don't use sup for currently unsupported storage types  in zgemmsup
-        if(
-            bli_obj_is_dcomplex(c) &&
-            bli_does_conj( transa ) && bli_does_conj( transb )
-        )
+        if(bli_obj_is_dcomplex(c))
         {
-        //printf(" gemmsup: Returning with for un-supported storage types and conjugate property in zgemmsup \n");
-        AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_2, "SUP - Unsupported storage type for zgemm.");
-        return BLIS_FAILURE;
+            if(bli_does_conj( transa ) && bli_does_conj( transb ) )
+            {
+                //printf(" gemmsup: Returning with for un-supported storage types and conjugate property in zgemmsup \n");
+                AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_2, "SUP - Unsupported storage type for zgemm.");
+                return BLIS_FAILURE;
+            }
+            // Enforce B packing only for zgemm conjugate-transpose B input.
+            if ( bli_is_conjtrans( transb ) )
+            {
+                bli_rntm_set_pack_b(1, rntm);//packb
+            }
         }
     }
     else
@@ -123,17 +138,6 @@ err_t bli_gemmsup
 	return BLIS_FAILURE;
     }
 #endif
-
-    // Obtain a valid context from the gks if necessary.
-    // NOTE: This must be done before calling the _check() function, since
-    // that function assumes the context pointer is valid.
-    if ( cntx == NULL ) cntx = bli_gks_query_cntx();
-
-    // Initialize a local runtime with global settings if necessary. Note
-    // that in the case that a runtime is passed in, we make a local copy.
-    rntm_t rntm_l;
-    if ( rntm == NULL ) { bli_rntm_init_from_global( &rntm_l ); rntm = &rntm_l; }
-    else                { rntm_l = *rntm;                       rntm = &rntm_l; }
 
 #if defined(BLIS_FAMILY_ZEN6) || defined(BLIS_FAMILY_ZEN5) || defined(BLIS_FAMILY_ZEN4) || defined(BLIS_FAMILY_AMDZEN) || defined(BLIS_FAMILY_X86_64)
 
