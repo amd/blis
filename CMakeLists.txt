@@ -743,7 +743,6 @@ if((INT_TYPE_SIZE STREQUAL "32") AND (BLAS_INT_TYPE_SIZE STREQUAL "64"))
         Please use a different configuration of integers.")
 endif()
 
-
 cmake_print_variables(ENABLE_ADDON)
 if(ENABLE_ADDON STREQUAL "")
     message("   Configuring with no addons.")
@@ -1057,16 +1056,16 @@ set(SECURITY_FLAGS_ENABLED ${ENABLE_SECURITY_FLAGS})
 if(SECURITY_FLAGS_ENABLED)
     if(WIN32)
         # ELF-specific linker hardening flags not applicable on Windows.
-        # (Consider adding /guard:cf or /DYNAMICBASE /NXCOMPAT if using link.exe, but keep minimal here.)
-        set(LDFLAGS "")
-        message(STATUS "Security hardening flags: ENABLED (no ELF linker flags applied on Windows)")
+        # Windows-specific security flags (/GUARD:*, /cetcompat) added later.
+        set(LDFLAGS)
+        message(STATUS "Security hardening flags: ENABLED")
     else()
         set(LDFLAGS "-Wl,-z,now" "-Wl,-z,relro")
         message(STATUS "Security hardening flags: ENABLED")
     endif()
 else()
     message(STATUS "Security hardening flags: DISABLED")
-    set(LDFLAGS "")
+    set(LDFLAGS)
 endif()
 # NOTE: -lpthread is needed unconditionally because BLIS uses pthread_once()
 # to initialize itself in a thread-safe manner. The one exception to this
@@ -1147,10 +1146,29 @@ endif()
 # Macro to remove/replace absolute path within library
 list(APPEND BUILD_SYMFLAGS "-fmacro-prefix-map=${PROJECT_SOURCE_DIR}/=")
 
+set(SECURITY_LINK_FLAGS)
 if(SECURITY_FLAGS_ENABLED)
-    if(WIN32)
-        # MSVC/clang-cl: /GS is on by default in most configurations; leave explicit flags empty.
-        # Avoid -D_FORTIFY_SOURCE / -fstack-protector-strong which are GCC/Clang (ELF) specific.
+    # clang-cl only: native cl.exe also has FRONTEND_VARIANT=MSVC, so the
+    # explicit "Clang" ID check keeps it (and other MSVC-frontend toolchains)
+    # on the warning path below.
+    if(WIN32 AND
+       CMAKE_C_COMPILER_ID STREQUAL "Clang" AND
+       CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND
+       CMAKE_C_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC" AND
+       CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+        # Security hardening compiler flags:
+        #   /guard:cf        - Control Flow Guard (CFG) [compiler instrumentation]
+        #   /guard:ehcont    - EH Continuation metadata [CET support]
+        set(CLANGFLAGS /guard:cf /guard:ehcont)
+        set(CXXLANGFLAGS /guard:cf /guard:ehcont)
+
+        # Linker flags:
+        #   /GUARD:CF        - Control Flow Guard (CFG) [linker tables]
+        #   /GUARD:EHCONT    - EH Continuation Guard [CET support]
+        #   /cetcompat       - CET shadow stack compatibility metadata
+        set(SECURITY_LINK_FLAGS /GUARD:CF /GUARD:EHCONT /cetcompat)
+    elseif(WIN32)
+        message(WARNING "Security hardening flags requested, but /guard:cf, /guard:ehcont and /cetcompat require an MSVC-compatible compiler/linker. Skipping Windows security flags for this toolchain.")
         set(CLANGFLAGS "")
         set(CXXLANGFLAGS "")
     else()
@@ -1161,6 +1179,7 @@ else()
     set(CLANGFLAGS "")
     set(CXXLANGFLAGS "")
 endif()
+
 # --- C Preprocessor flags ---
 # Enable clock_gettime() in time.h.
 set(CPPROCFLAGS -D_POSIX_C_SOURCE=200112L)
@@ -1436,7 +1455,18 @@ foreach(target IN ITEMS blis_shared blis_static)
             add_dependencies(${target} flat-cblas-header)
         endif()
 
-        target_link_libraries(${target} PUBLIC ${LDFLAGS})
+        if(LDFLAGS)
+            target_link_libraries(${target} PUBLIC ${LDFLAGS})
+        endif()
+
+        # Apply to the shared lib only: static libs have no link step, and
+        # propagating /cetcompat via INTERFACE would enable hardware shadow-
+        # stack on consumer EXEs (breaks non-CET-clean paths like the
+        # testsuite's setjmp/longjmp on CET-capable HW). Downstream static
+        # consumers should add these flags to their own EXE link line.
+        if(SECURITY_LINK_FLAGS AND NOT (target STREQUAL "blis_static"))
+            target_link_options(${target} PRIVATE ${SECURITY_LINK_FLAGS})
+        endif()
 
         if(THREADING_MODEL STREQUAL "openmp")
             if((NOT ${OpenMP_libomp_LIBRARY} STREQUAL "") AND (NOT WIN32))
