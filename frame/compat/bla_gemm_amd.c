@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2019 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2019 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -42,8 +42,8 @@
 
     #define GEMM_BLIS_IMPL(ch, blasname) \
         PASTEF77S(ch,blasname) ( transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc ); \
-        arch_t arch_id = bli_arch_query_id(); \
-        if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4) \
+        arch_t arch_id = bli_arch_query_id_internal(); \
+        if (arch_id == BLIS_ARCH_ZEN6 || arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4) \
         { \
             bli_zero_zmm(); \
         } \
@@ -684,7 +684,7 @@ void dgemm_blis_impl
         err_t k1_status = BLIS_FAILURE;
 
         // Query the architecture ID
-        arch_t arch_id = bli_arch_query_id();
+        arch_t arch_id = bli_arch_query_id_internal();
 
         if ( arch_id == BLIS_ARCH_ZEN || arch_id == BLIS_ARCH_ZEN2 ||
              arch_id == BLIS_ARCH_ZEN3 )
@@ -699,8 +699,8 @@ void dgemm_blis_impl
                           c, *ldc
                         );
         }
-#if defined(BLIS_FAMILY_ZEN5) || defined(BLIS_FAMILY_ZEN4) || defined(BLIS_FAMILY_AMDZEN) || defined(BLIS_FAMILY_X86_64)
-        else if ( arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4 )
+#if defined(BLIS_FAMILY_ZEN6) || defined(BLIS_FAMILY_ZEN5) || defined(BLIS_FAMILY_ZEN4) || defined(BLIS_FAMILY_AMDZEN) || defined(BLIS_FAMILY_X86_64)
+        else if ( arch_id == BLIS_ARCH_ZEN6 || arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4 )
         {
             k1_status = bli_dgemm_zen4_int_24x8_k1_nn
                         (
@@ -821,7 +821,7 @@ void dgemm_blis_impl
     bool entry_to_small = false;
     /* AVX512 GEMM tiny path is performant enough to handle small skinny inputs on ZEN4/5 */
     /* AVX2 gemm_small path is invoked on ZEN/2/3 only */
-    arch_t arch_id = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id_internal();
 
     if( arch_id == BLIS_ARCH_ZEN3 || arch_id == BLIS_ARCH_ZEN2 || arch_id == BLIS_ARCH_ZEN )
     {
@@ -929,8 +929,8 @@ void dgemm_
 {
     dgemm_blis_impl(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
 #if defined(BLIS_KERNELS_ZEN4)
-    arch_t arch_id = bli_arch_query_id();
-    if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
+    arch_t arch_id = bli_arch_query_id_internal();
+    if (arch_id == BLIS_ARCH_ZEN6 || arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
     {
         bli_zero_zmm();
     }
@@ -1179,7 +1179,7 @@ void zgemm_blis_impl
         err_t k1_status = BLIS_FAILURE;
 
         // Query the architecture ID
-        arch_t arch_id = bli_arch_query_id();
+        arch_t arch_id = bli_arch_query_id_internal();
 
         if ( arch_id == BLIS_ARCH_ZEN || arch_id == BLIS_ARCH_ZEN2 ||
              arch_id == BLIS_ARCH_ZEN3 )
@@ -1225,7 +1225,7 @@ void zgemm_blis_impl
                             );
             }
         }
-        else if ( arch_id == BLIS_ARCH_ZEN5 )
+        else if ( arch_id == BLIS_ARCH_ZEN6 || arch_id == BLIS_ARCH_ZEN5 )
         {
             // Redirecting to AVX-2 kernel if the dimensions are < 30
             // ( i.e, small or tiny sizes ), or if the load directon( m0 ) < 10
@@ -1273,10 +1273,10 @@ void zgemm_blis_impl
     bool is_parallel = bli_thread_get_is_parallel(); // Check if parallel zgemm is invoked.
 
     // Tiny gemm dispatch
-    // NOTE : The tiny gemm interface is intended to be built for zen4/zen5 configurations
-    //        In case of fat-binary build, the optimizations will be used on zen4 and zen5
+    // NOTE : The tiny gemm interface is intended to be built for zen4/zen5/zen6 configurations
+    //        In case of fat-binary build, the optimizations will be used on zen4, zen5 and zen6
     //        machines.
-#if defined(BLIS_FAMILY_ZEN4) || defined(BLIS_FAMILY_ZEN5) || defined(BLIS_FAMILY_AMDZEN)
+#if defined(BLIS_FAMILY_ZEN6) || defined(BLIS_FAMILY_ZEN5) || defined(BLIS_FAMILY_ZEN4) || defined(BLIS_FAMILY_AMDZEN) || defined(BLIS_FAMILY_X86_64)
     err_t tiny_status = BLIS_FAILURE;
     tiny_status = bli_zgemm_tiny
                   (
@@ -1335,7 +1335,7 @@ void zgemm_blis_impl
 #endif
 
     /* Query the architecture ID */
-    arch_t arch_id = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id_internal();
 
     /* Boolean to track the entry to small path */
     bool entry_to_small = false;
@@ -1355,6 +1355,7 @@ void zgemm_blis_impl
     switch ( arch_id )
     {
     #if defined(BLIS_KERNELS_ZEN4)
+        case BLIS_ARCH_ZEN6:
         case BLIS_ARCH_ZEN5:
         {
             /* Booleans and thresholds to calculate the entry to small path(ST and MT modes)*/
@@ -1491,8 +1492,8 @@ void zgemm_
 {
     zgemm_blis_impl(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
 #if defined(BLIS_KERNELS_ZEN4)
-    arch_t arch_id = bli_arch_query_id();
-    if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
+    arch_t arch_id = bli_arch_query_id_internal();
+    if (arch_id == BLIS_ARCH_ZEN6 || arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
     {
         bli_zero_zmm();
     }
@@ -1741,9 +1742,9 @@ void cgemm_blis_impl
     if( ( k0 == 1 ) && bli_is_notrans( blis_transa ) && bli_is_notrans( blis_transb ) )
     {
         // Query the architecture ID
-        arch_t arch_id = bli_arch_query_id();
+        arch_t arch_id = bli_arch_query_id_internal();
 
-        if ( ( arch_id == BLIS_ARCH_ZEN4 ) || ( arch_id == BLIS_ARCH_ZEN5 ) )
+        if ( ( arch_id == BLIS_ARCH_ZEN6 ) || ( arch_id == BLIS_ARCH_ZEN5 ) || ( arch_id == BLIS_ARCH_ZEN4 ) )
         {
             bli_cgemm_zen4_int_32x4_k1_nn
             (
@@ -1769,10 +1770,10 @@ void cgemm_blis_impl
 #ifdef BLIS_ENABLE_TINY_MATRIX
 
     // Tiny gemm dispatch
-    // NOTE : The tiny gemm interface is intended to be built for zen4/zen5 configurations
-    //        In case of fat-binary build, the optimizations will be used on zen4 and zen5
+    // NOTE : The tiny gemm interface is intended to be built for zen4/zen5/zen6 configurations
+    //        In case of fat-binary build, the optimizations will be used on zen4, zen5 and zen6
     //        machines.
-#if defined(BLIS_FAMILY_ZEN4) || defined(BLIS_FAMILY_ZEN5) || defined(BLIS_FAMILY_AMDZEN)
+#if defined(BLIS_FAMILY_ZEN6) || defined(BLIS_FAMILY_ZEN5) || defined(BLIS_FAMILY_ZEN4) || defined(BLIS_FAMILY_AMDZEN) || defined(BLIS_FAMILY_X86_64)
     bool is_parallel = bli_thread_get_is_parallel(); // Check if parallel cgemm is invoked.
     err_t tiny_status = BLIS_FAILURE;
     tiny_status = bli_cgemm_tiny
@@ -1887,8 +1888,8 @@ void cgemm_
 {
     cgemm_blis_impl(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
 #if defined(BLIS_KERNELS_ZEN4)
-    arch_t arch_id = bli_arch_query_id();
-    if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
+    arch_t arch_id = bli_arch_query_id_internal();
+    if (arch_id == BLIS_ARCH_ZEN6 || arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
     {
         bli_zero_zmm();
     }
@@ -2076,7 +2077,7 @@ void sgemm_blis_impl
 
 #ifdef BLIS_ENABLE_TINY_MATRIX
 
-#if defined(BLIS_FAMILY_ZEN4) || defined(BLIS_FAMILY_ZEN5) || defined(BLIS_FAMILY_AMDZEN)
+#if defined(BLIS_FAMILY_ZEN6) || defined(BLIS_FAMILY_ZEN5) || defined(BLIS_FAMILY_ZEN4) || defined(BLIS_FAMILY_AMDZEN) || defined(BLIS_FAMILY_X86_64)
     /**
      *Early check for tiny sizes.
      *if inputs are in range of tiny sgemm kernel,
@@ -2170,8 +2171,8 @@ void sgemm_
 { 
         sgemm_blis_impl(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
 #if defined(BLIS_KERNELS_ZEN4)
-    arch_t arch_id = bli_arch_query_id();
-    if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
+    arch_t arch_id = bli_arch_query_id_internal();
+    if (arch_id == BLIS_ARCH_ZEN6 || arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
     {
         bli_zero_zmm();
     }
@@ -2340,8 +2341,8 @@ void dzgemm_
 {
     dzgemm_blis_impl( transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc );
 #if defined(BLIS_KERNELS_ZEN4)
-    arch_t arch_id = bli_arch_query_id();
-    if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
+    arch_t arch_id = bli_arch_query_id_internal();
+    if (arch_id == BLIS_ARCH_ZEN6 || arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4)
     {
         bli_zero_zmm();
     }

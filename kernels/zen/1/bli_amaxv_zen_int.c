@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2016 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2016 - 2026, Advanced Micro Devices, Inc. All rights reserved.
    Copyright (C) 2018, The University of Texas at Austin
 
    Redistribution and use in source and binary forms, with or without
@@ -215,10 +215,12 @@ void bli_samaxv_zen_int
 
 		// Initializing variables to keep track of the
 		// absolute maximum
-		float abs_max_val = -1.0f, temp_max_val = -1.0f;
+		float abs_max_val  = 0.0f;
+		float temp_max_val = 0.0f;
 
 		// Initializing the start and end of the search space
-		dim_t window_start = -1, window_end = -1;
+		dim_t window_start = 0;
+		dim_t window_end   = 0;
 
 		// Initializing the mask to minus zero (-0.0)
 		sign_mask = _mm256_set1_ps(-0.f);
@@ -569,10 +571,12 @@ BLIS_INLINE void bli_vec_absmax_double
 {
 	// Local variables/pointers to hold the relevant info
 	double *temp_ptr = (double *)x;
-	double temp_max_val, curr_max_val = -1;
+	double temp_max_val = 0;
+	double curr_max_val = 0;
 
-	dim_t window_start, window_end, i = 0;
-	window_start = window_end = 0;
+	dim_t window_start  = 0;
+	dim_t window_end    = 0;
+	dim_t i             = 0;
 
 	/*
 		When incx == 1 and n >= 2 the compute can be

@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2018 - 2026, Advanced Micro Devices, Inc. All rights reserved.
    Copyright (C) 2019, Dave Love, University of Manchester
 
    Redistribution and use in source and binary forms, with or without
@@ -93,9 +93,12 @@ static bool is_avx2fma3_supported = FALSE;
 static bool is_avx512_supported = FALSE;
 static bool is_avx512vnni_supported = FALSE;
 static bool is_avx512bf16_supported = FALSE;
+static bool is_avx512fp16_supported = FALSE;
 
 // Variable to represent FP/SIMD execution datapath width.
 static uint32_t bli_fp_datapath = -1;
+// Variable to indicate if downgrade of 512-bit datapath to 256-bit is supported
+static bool is_fp512_downgrade_supported = FALSE;
 
 // Variables to store the cache sizes (in KB). L3 size is shared by all
 // logical processors in the package (i.e. per socket).
@@ -120,9 +123,10 @@ arch_t bli_cpuid_query_id( void )
 		bli_cpuid_check_avx512_support( family, model, features );
 		bli_cpuid_check_avx512vnni_support( family, model, features );
 		bli_cpuid_check_avx512bf16_support( family, model, features );
+		bli_cpuid_check_avx512fp16_support( family, model, features );
 
 		// Check FP/SIMD execution datapath
-		bli_cpuid_check_datapath( vendor, features );
+		bli_cpuid_check_datapath( vendor );
 
 		// Find out cache sizes and set in static variables.
 		// Currently only enabled for VENDOR_AMD.
@@ -130,24 +134,37 @@ arch_t bli_cpuid_query_id( void )
 	}
 
 #if 0
-	printf( "vendor   = %s\n", vendor==1 ? "AMD": "INTEL" );
-	printf( "family   = %x h\n", family );
-	printf( "model    = %x h\n", model );
+	printf( "\nBLIS CPUID information\n" );
 
-	printf( "features = %x h\n", features );
-	printf( "AVX2/FMA3            = %d\n", is_avx2fma3_supported );
-	printf( "AVX512 F/DQ/CD/BW/VL = %d\n", is_avx512_supported );
-	printf( "AVX512 VNNI          = %d\n", is_avx512vnni_supported );
-	printf( "AVX512 BF16          = %d\n", is_avx512bf16_supported );
+	printf( "  vendor   = %s\n", vendor==1 ? "AMD": "INTEL" );
+	printf( "  family   = %x h\n", family );
+	printf( "  model    = %x h\n", model );
+	printf( "  features = %x h\n", features );
+
+	printf( "  Key ISA support\n" );
+
+	printf( "    AVX2/FMA3            = %d\n", is_avx2fma3_supported );
+	printf( "    AVX512 F/DQ/CD/BW/VL = %d\n", is_avx512_supported );
+	printf( "    AVX512 VNNI          = %d\n", is_avx512vnni_supported );
+	printf( "    AVX512 BF16          = %d\n", is_avx512bf16_supported );
+	printf( "    AVX512 FP16          = %d\n", is_avx512fp16_supported );
+
+	printf( "  Key hardware details\n" );
+
+	printf( "    L1I cache size   = %u KB\n",bli_l1i_cache_size );
+	printf( "    L1D cache size   = %u KB\n",bli_l1d_cache_size );
+	printf( "    L2  cache size   = %u KB\n",bli_l2_cache_size );
+	printf( "    L3  cache size   = %u KB\n",bli_l3_cache_size );
 
 	const char* datapath_names[] = {"UNSET", "FP128", "INVALID", "FP256", "FP512"};
-	printf( "FP/SIMD datapath     = %d (%s)\n", bli_fp_datapath, datapath_names[bli_fp_datapath+1] );
-
-	printf( "Cache Information:\n" );
-	printf( "L1I size = %u KB\n",bli_l1i_cache_size );
-	printf( "L1D size = %u KB\n",bli_l1d_cache_size );
-	printf( "L2  size = %u KB\n",bli_l2_cache_size );
-	printf( "L3  size = %u KB\n",bli_l3_cache_size );
+	printf( "    FP/SIMD datapath = %d (%s)\n", bli_fp_datapath, datapath_names[bli_fp_datapath+1] );
+	if ( bli_fp_datapath == DATAPATH_FP512 )
+	{
+		if ( is_fp512_downgrade_supported == TRUE )
+			printf( "    FP512->FP256 downgrade option is supported\n" );
+		else
+			printf( "    FP512->FP256 downgrade option is not supported\n" );
+	}
 #endif
 
 	if ( vendor == VENDOR_INTEL )
@@ -204,6 +221,10 @@ arch_t bli_cpuid_query_id( void )
 	{
 		// Check for each AMD configuration that is enabled, check for that
 		// microarchitecture. We check from most recent to most dated.
+#ifdef BLIS_CONFIG_ZEN6
+		if ( bli_cpuid_is_zen6( family, model, features ) )
+			return BLIS_ARCH_ZEN6;
+#endif
 #ifdef BLIS_CONFIG_ZEN5
 		if ( bli_cpuid_is_zen5( family, model, features ) )
 			return BLIS_ARCH_ZEN5;
@@ -211,6 +232,12 @@ arch_t bli_cpuid_query_id( void )
 #ifdef BLIS_CONFIG_ZEN4
 		if ( bli_cpuid_is_zen4( family, model, features ) )
 			return BLIS_ARCH_ZEN4;
+#endif
+#ifdef BLIS_CONFIG_ZEN6
+		// Fallback test for future AMD processors
+		// Assume zen6 (if available) is preferable to zen5.
+		if ( is_avx512_supported  && is_avx512fp16_supported )
+			return BLIS_ARCH_ZEN6;
 #endif
 #ifdef BLIS_CONFIG_ZEN5
 		// Fallback test for future AMD processors
@@ -284,6 +311,22 @@ model_t bli_cpuid_query_model_id( arch_t arch_id )
 	// Set default for architectures where separate models haven't been defined.
 	model_t cpuid_model = BLIS_MODEL_DEFAULT;
 
+#ifdef BLIS_CONFIG_ZEN6
+	if (arch_id == BLIS_ARCH_ZEN6)
+	{
+		// Call the CPUID instruction and parse its results into a family id,
+		// model id, and a feature bit field. The return value encodes the
+		// vendor.
+
+		uint32_t __attribute__ ((unused)) vendor;
+		uint32_t family, model, features;
+
+		vendor = bli_cpuid_query( &family, &model, &features );
+
+		// Check CPU model.
+		cpuid_model = bli_cpuid_get_zen6_cpuid_model( family, model, features );
+	}
+#endif
 #ifdef BLIS_CONFIG_ZEN5
 	if (arch_id == BLIS_ARCH_ZEN5)
 	{
@@ -446,6 +489,58 @@ bool bli_cpuid_is_penryn
 }
 
 // -----------------------------------------------------------------------------
+bool bli_cpuid_is_zen6
+     (
+       uint32_t family,
+       uint32_t model,
+       uint32_t features
+     )
+{
+	// Check for expected CPU features.
+	const uint32_t expected = FEATURE_SSE3               |
+	                          FEATURE_SSSE3              |
+	                          FEATURE_SSE41              |
+	                          FEATURE_SSE42              |
+	                          FEATURE_AVX                |
+	                          FEATURE_FMA3               |
+	                          FEATURE_AVX2               |
+	                          FEATURE_AVX512F            |
+	                          FEATURE_AVX512DQ           |
+	                          FEATURE_AVX512CD           |
+	                          FEATURE_AVX512BW           |
+	                          FEATURE_AVX512VL           |
+	                          FEATURE_AVX512VNNI         |
+	                          FEATURE_AVX512BF16         |
+	                          FEATURE_MOVDIRI            |
+	                          FEATURE_MOVDIR64B          |
+	                          FEATURE_AVX512VP2INTERSECT |
+	                          FEATURE_AVXVNNI            |
+	                          FEATURE_AVX512FP16;
+
+	if ( !bli_cpuid_has_features( features, expected ) ) return FALSE;
+
+	// For zen6 the family id is 0x1A
+	if ( family != 0x1A ) return FALSE;
+
+	// All family 0x1A CPUs that support AVX512FP16 instructions are zen6,
+	// thus no need to check model numbers here. Family 0x1A CPUs that
+	// don't support AVX512FP16 are zen5.
+
+	return TRUE;
+}
+model_t bli_cpuid_get_zen6_cpuid_model
+    (
+       uint32_t family,
+       uint32_t model,
+       uint32_t features
+    )
+{
+	// Look at model of CPU and set cpuid_model appropriately.
+	// For Zen6, the default is Venice.
+	model_t cpuid_model = BLIS_MODEL_VENICE;
+	return cpuid_model;
+}
+
 bool bli_cpuid_is_zen5
      (
        uint32_t family,
@@ -478,6 +573,7 @@ bool bli_cpuid_is_zen5
 	// For zen5 the family id is 0x1A
 	if ( family != 0x1A ) return FALSE;
 
+	// We test for zen6 first. All remaining 0x1A CPUs will be zen5.
 	return TRUE;
 }
 model_t bli_cpuid_get_zen5_cpuid_model
@@ -900,6 +996,40 @@ void bli_cpuid_check_avx512bf16_support
 	}
 }
 
+// Determine if the CPU has support for AVX512_FP16.
+void bli_cpuid_check_avx512fp16_support
+     (
+       uint32_t family,
+       uint32_t model,
+       uint32_t features
+     )
+{
+	// Check for expected CPU features.
+	const uint32_t expected = FEATURE_AVX                |
+	                          FEATURE_FMA3               |
+	                          FEATURE_AVX2               |
+	                          FEATURE_AVX512F            |
+	                          FEATURE_AVX512DQ           |
+	                          FEATURE_AVX512CD           |
+	                          FEATURE_AVX512BW           |
+	                          FEATURE_AVX512VL           |
+	                          FEATURE_AVX512VNNI         |
+	                          FEATURE_AVX512BF16         |
+	                          FEATURE_MOVDIRI            |
+	                          FEATURE_MOVDIR64B          |
+	                          FEATURE_AVX512VP2INTERSECT |
+	                          FEATURE_AVXVNNI            |
+	                          FEATURE_AVX512FP16;
+
+	if ( !bli_cpuid_has_features( features, expected ) )
+	{
+		is_avx512fp16_supported = FALSE;
+	}
+	else
+	{
+		is_avx512fp16_supported = TRUE;
+	}
+}
 
 // Ensure that actual support determination happens only once from AVX
 // support routines below.
@@ -944,6 +1074,13 @@ bool bli_cpuid_is_avx512bf16_supported( void )
 {
 	bli_cpuid_query_id_once();
 	return is_avx512bf16_supported;
+}
+
+// API to check if AVX512_fp16 is supported or not on the current platform.
+bool bli_cpuid_is_avx512fp16_supported( void )
+{
+	bli_cpuid_query_id_once();
+	return is_avx512fp16_supported;
 }
 
 uint32_t bli_cpuid_query_fp_datapath( void )
@@ -1091,7 +1228,7 @@ model_t bli_cpuid_query_model_id( arch_t arch_id )
 
    Copyright (C) 2017, The University of Texas at Austin
    Copyright (C) 2017, Devin Matthews
-   Copyright (C) 2018 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2018 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -1142,17 +1279,17 @@ enum
 	FEATURE_MASK_AVX512VNNI         = (1u<<11), // cpuid[eax=7,ecx=0]    :ecx[11]
 	FEATURE_MASK_MOVDIRI            = (1u<<27), // cpuid[eax=7,ecx=0]    :ecx[27]
 	FEATURE_MASK_MOVDIR64B          = (1u<<28), // cpuid[eax=7,ecx=0]    :ecx[28]
-	FEATURE_MASK_AVX512VP2INTERSECT = (1u<<8),  // cpuid[eax=7,ecx=0]    :edx[8]
+	FEATURE_MASK_AVX512VP2INTERSECT = (1u<< 8), // cpuid[eax=7,ecx=0]    :edx[8]
+	FEATURE_MASK_AVX512FP16         = (1u<<23), // cpuid[eax=7,ecx=0]    :edx[23]
+
 	FEATURE_MASK_AVXVNNI            = (1u<< 4), // cpuid[eax=7,ecx=1]    :eax[4]
 	FEATURE_MASK_AVX512BF16         = (1u<< 5), // cpuid[eax=7,ecx=1]    :eax[5]
+
 	FEATURE_MASK_XGETBV             = (1u<<26)|
                                           (1u<<27), // cpuid[eax=1]          :ecx[27:26]
 	XGETBV_MASK_XMM                 = 0x02u,    // xcr0[1]
 	XGETBV_MASK_YMM                 = 0x04u,    // xcr0[2]
 	XGETBV_MASK_ZMM                 = 0xe0u,    // xcr0[7:5]
-	FEATURE_MASK_DATAPATH_FP128     = (1u<<0),  // cpuid[eax=0x8000001A] :eax[0]
-	FEATURE_MASK_DATAPATH_FP256     = (1u<<2),  // cpuid[eax=0x8000001A] :eax[2]
-	FEATURE_MASK_DATAPATH_FP512     = (1u<<3)   // cpuid[eax=0x8000001A] :eax[3]
 };
 
 
@@ -1220,6 +1357,7 @@ uint32_t bli_cpuid_query
 		if ( bli_cpuid_has_features( ecx, FEATURE_MASK_MOVDIR64B ) )  *features |= FEATURE_MOVDIR64B;
 
 		if ( bli_cpuid_has_features( edx, FEATURE_MASK_AVX512VP2INTERSECT ) ) *features |= FEATURE_AVX512VP2INTERSECT;
+		if ( bli_cpuid_has_features( edx, FEATURE_MASK_AVX512FP16 ) )         *features |= FEATURE_AVX512FP16;
 
 		// This is actually a macro that modifies the last four operands,
 		// hence why they are not passed by address.
@@ -1246,17 +1384,6 @@ uint32_t bli_cpuid_query
 		//print_binary(edx);
 
 		if ( bli_cpuid_has_features( ecx, FEATURE_MASK_FMA4 ) ) *features |= FEATURE_FMA4;
-	}
-	if ( cpuid_max_ext >= 0x8000001Au )
-	{
-		// This is actually a macro that modifies the last four operands,
-		// hence why they are not passed by address.
-		// This returns extended feature flags in EAX.
-		__cpuid( 0x8000001A, eax, ebx, ecx, edx );
-
-		if ( bli_cpuid_has_features( eax, FEATURE_MASK_DATAPATH_FP128 ) ) *features |= FEATURE_DATAPATH_FP128;
-		if ( bli_cpuid_has_features( eax, FEATURE_MASK_DATAPATH_FP256 ) ) *features |= FEATURE_DATAPATH_FP256;
-		if ( bli_cpuid_has_features( eax, FEATURE_MASK_DATAPATH_FP512 ) ) *features |= FEATURE_DATAPATH_FP512;
 	}
 
 	// Unconditionally check processor info / features bits.
@@ -1428,30 +1555,44 @@ uint32_t bli_cpuid_query
 		return VENDOR_UNKNOWN;
 }
 
-void bli_cpuid_check_datapath(
-       uint32_t vendor,
-       uint32_t features )
+void bli_cpuid_check_datapath( uint32_t vendor )
 {
         if ( vendor == VENDOR_AMD )
 	{
-		uint32_t expected;
-		expected = FEATURE_DATAPATH_FP512;
-		if ( bli_cpuid_has_features( features, expected ) )
+		uint32_t cpuid_max_ext = __get_cpuid_max( 0x80000000u, 0 );
+
+		uint32_t eax, ebx, ecx, edx, temp;
+		if ( cpuid_max_ext >= 0x80000021u )
 		{
-			bli_fp_datapath = DATAPATH_FP512;
-			return;
+			__cpuid( 0x80000021u, eax, ebx, ecx, edx );
+			is_fp512_downgrade_supported = ( ( eax >> 21 ) & 0x1u );
 		}
-		expected = FEATURE_DATAPATH_FP256;
-		if ( bli_cpuid_has_features( features, expected ) )
+
+		if ( cpuid_max_ext >= 0x8000001Au )
 		{
-			bli_fp_datapath = DATAPATH_FP256;
-			return;
-		}
-		expected = FEATURE_DATAPATH_FP128;
-		if ( bli_cpuid_has_features( features, expected ) )
-		{
-			bli_fp_datapath = DATAPATH_FP128;
-			return;
+			// This is actually a macro that modifies the last four operands,
+			// hence why they are not passed by address.
+			// This returns extended feature flags in EAX.
+			__cpuid( 0x8000001Au, eax, ebx, ecx, edx );
+
+			temp = ( ( eax >> 3 ) & 0x1u );
+			if ( temp )
+			{
+				bli_fp_datapath = DATAPATH_FP512;
+				return;
+			}
+			temp = ( ( eax >> 2 ) & 0x1u );
+			if ( temp )
+			{
+				bli_fp_datapath = DATAPATH_FP256;
+				return;
+			}
+			temp = ( ( eax >> 0 ) & 0x1u );
+			if ( temp )
+			{
+				bli_fp_datapath = DATAPATH_FP128;
+				return;
+			}
 		}
 	}
 }

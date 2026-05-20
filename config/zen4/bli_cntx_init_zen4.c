@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2022 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2022 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -39,7 +39,7 @@
  * Converted it to macro as this list is used at multiple places in this file.
  */
 
-// blcksizes for double datatype are dynamic and will be modified at runtime by
+// blocksizes for double datatype are dynamic and will be modified at runtime by
 // function bli_dynamic_blkszs_zen4
 #define BLI_CNTX_DEFAULT_BLKSZ_LIST_GENOA(blkszs) \
 	/*                                           s      d      c      z */  \

@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -39,7 +39,7 @@
 # Include file containing common flags for all AMD architectures
 include(${PROJECT_SOURCE_DIR}/config/zen/amd_config.cmake)
 
-if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
     if(CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 13.0.0)
         # gcc 13.0 or later
         list(APPEND CKVECFLAGS -march=znver4)
@@ -76,7 +76,7 @@ if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
     endif()
 endif() # gcc
 
-if("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
+if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
     # AOCC clang has various formats for the version line
 
     # AOCC.LLVM.2.0.0.B191.2019_07_19 clang version 8.0.0 (CLANG: Jenkins AOCC_2_0_0-Build#191) (based on LLVM AOCC.LLVM.2.0.0.B191.2019_07_19)
@@ -86,26 +86,18 @@ if("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
     # AMD clang version 12.0.0 (CLANG: AOCC_3.0.0-Build#2 2020_11_05) (based on LLVM Mirror.Version.12.0.0)
     # AMD clang version 14.0.0 (CLANG: AOCC_4.0.0-Build#98 2022_06_15) (based on LLVM Mirror.Version.14.0.0)
 
-    # For our purpose we just want to know if it version 2x or 3x or 4x
-
-    # But also set these in case we are using upstream LLVM clang
-    execute_process(COMMAND ${CMAKE_C_COMPILER} --version OUTPUT_VARIABLE clang_full_version_string)
-    string(REGEX MATCH "^[^\n]*" CLANG_VERSION_STRING "${clang_full_version_string}")
-    string(REGEX MATCHALL "(AOCC_2|AOCC_3|AOCC_4|AOCC|LLVM|clang)" CLANG_STRING "${CLANG_VERSION_STRING}")
-    string(REGEX REPLACE ".*clang version ([0-9]+\\.[0-9]+).*" "\\1" CLANG_VERSION "${CLANG_VERSION_STRING}")
-
     if(NOT WIN32)
       set(alignloops "-falign-loops=64")
     endif()
-    if("${CLANG_STRING}" MATCHES "AOCC_4")
+    if(AOCC_VERSION_STRING VERSION_GREATER_EQUAL 4.0.0)
       # AOCC version 4x we will enable znver4
       list(APPEND CKVECFLAGS -march=znver4 ${alignloops})
       list(APPEND CRVECFLAGS -march=znver4)
-    elseif("${CLANG_STRING}" MATCHES "AOCC_3")
+    elseif(AOCC_VERSION_STRING VERSION_GREATER_EQUAL 3.0.0)
       # AOCC version 3x we will enable znver3
       list(APPEND CKVECFLAGS -march=znver3 -mavx512f -mavx512dq -mavx512bw -mavx512vl -mavx512vnni -mavx512bf16 -mavx512vbmi ${alignloops})
       list(APPEND CRVECFLAGS -march=znver3)
-    elseif("${CLANG_STRING}" MATCHES "(AOCC_2|LLVM)")
+    elseif(AOCC_VERSION_STRING VERSION_GREATER_EQUAL 2.0.0)
       # AOCC version 2x we will enable znver2
       list(APPEND CKVECFLAGS -march=znver2 -mavx512f -mavx512dq -mavx512bw -mavx512vl -mavx512vnni -mavx512vbmi)
       list(APPEND CRVECFLAGS -march=znver2)

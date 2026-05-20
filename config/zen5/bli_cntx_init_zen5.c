@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2024 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2024 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -35,12 +35,12 @@
 #include "blis.h"
 
 /*
- * List of default block sizes for zen4.
+ * List of default block sizes for zen5.
  * Converted it to macro as this list is used at multiple places in this file.
  */
 
-/* Blocksizes for double(d) datetype are tuned for Turin, rest are copied from Genoa */
-// blcksizes for double datatype are dynamic and will be modified at runtime by
+/* Blocksizes for double(d) datatype are tuned for Turin, rest are copied from Genoa */
+// blocksizes for double datatype are dynamic and will be modified at runtime by
 // function bli_dynamic_blkszs_zen5
 #define BLI_CNTX_DEFAULT_BLKSZ_LIST_TURIN(blkszs) \
 	/*                                           s      d      c      z */  \
@@ -53,7 +53,7 @@
 	bli_blksz_init_easy( &blkszs[ BLIS_AF ],     5,     5,    -1,    -1 );  \
 	bli_blksz_init_easy( &blkszs[ BLIS_DF ],     8,     8,    -1,    -1 );
 
-/* Blocksizes for double(d) datetype are tuned for Turin, rest are copied from Bergamo */
+/* Blocksizes for double(d) datatype are tuned for Turin, rest are copied from Bergamo */
 #define BLI_CNTX_DEFAULT_BLKSZ_LIST_TURIN_DENSE(blkszs) \
 	/*                                           s      d      c      z */  \
 	bli_blksz_init_easy( &blkszs[ BLIS_MR ],    32,     8,    24,    12 );  \

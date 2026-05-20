@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2018 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -35,6 +35,8 @@
 
 #ifndef BLIS_FAMILY_ZEN_H
 #define BLIS_FAMILY_ZEN_H
+
+#define BLIS_FAMILY_TO_ARCH_VALUE BLIS_ARCH_ZEN
 
 #include "bli_config_zen.h"
 

@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2019 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2019 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -310,9 +310,9 @@ void bli_dtrsv_unf_var2
 #if defined(BLIS_KERNELS_ZEN4)
 
             // Query the architecture ID
-            arch_t arch_id = bli_arch_query_id();
+            arch_t arch_id = bli_arch_query_id_internal();
 
-            if (arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4 )
+            if (arch_id == BLIS_ARCH_ZEN6 || arch_id == BLIS_ARCH_ZEN5 || arch_id == BLIS_ARCH_ZEN4 )
             {
                 if ( m < 2500 )
                 {
@@ -340,7 +340,7 @@ void bli_dtrsv_unf_var2
                 }
 #endif //BLIS_ENABLE_OPENMP
             }
-            else // (arch_id != BLIS_ARCH_ZEN5 && arch_id != BLIS_ARCH_ZEN4 )
+            else // (arch_id != BLIS_ARCH_ZEN6 && arch_id != BLIS_ARCH_ZEN5 && arch_id != BLIS_ARCH_ZEN4 )
 #endif //BLIS_KERNELS_ZEN4
             {
                 kfp_af = bli_daxpyf_zen_int_16x4;

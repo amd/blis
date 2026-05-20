@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2025 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -158,14 +158,13 @@
   IS_TINY_PARALLEL_z_ZEN5_AVX512( transa, transb, m, n, k, is_parallel )
 
 #define THRESH_GEMM_s_TINY_ZEN5_AVX2( transa, transb, m, n, k, is_parallel ) \
-  ( 0 ) 
+  ( 0 )
 
 #define THRESH_GEMM_s_TINY_ZEN5_AVX512( stor_id, transa, transb, m, n, k, is_parallel ) \
   ( !( is_parallel ) &&  \
    ( ( ( ( (m) + (k) ) *  (n)  + ( (m) * (k) ) ) < 12288 ) || \
   bli_is_sgemm_tiny_zen( (stor_id) , (transa) , (transb) , (m) , (n) , (k) , (is_parallel), 64, 16, 12288, 262144  ) ) \
-  ) \
-
+  )
 
 /* Defining the macro to be used for selecting the kernel at runtime */
 #define ZEN5_UKR_SELECTOR( ch, transa, transb, m, n, k, stor_id, ukr_support, gemmtiny_ukr_info, is_parallel ) \

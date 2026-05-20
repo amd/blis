@@ -4,7 +4,7 @@
 #  An object-based framework for developing high-performance BLAS-like
 #  libraries.
 #
-#  Copyright (C) 2022 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+#  Copyright (C) 2022 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 #
 #  Redistribution and use in source and binary forms, with or without
 #  modification, are permitted provided that the following conditions are
@@ -92,40 +92,37 @@ ifeq ($(CC_VENDOR),clang)
   # AMD clang version 11.0.0 (CLANG: AOCC_2.3.0-Build#85 2020_11_10) (based on LLVM Mirror.Version.11.0.0)
   # AMD clang version 12.0.0 (CLANG: AOCC_3.0.0-Build#2 2020_11_05) (based on LLVM Mirror.Version.12.0.0)
   # AMD clang version 14.0.0 (CLANG: AOCC_4.0.0-Build#98 2022_06_15) (based on LLVM Mirror.Version.14.0.0)
-
-  # For our purpose we just want to know if it version 2x or 3x or 4x
-
-  # But also set these in case we are using upstream LLVM clang
-  VENDOR_STRING := $(strip $(shell ${CC_VENDOR} --version | egrep -o '[0-9]+\.[0-9]+\.?[0-9]*'))
-  CC_MAJOR := $(shell (echo ${VENDOR_STRING} | cut -d. -f1))
-
-  ifeq ($(strip $(shell $(CC) -v |&head -1 |grep -c 'AOCC_4')),1)
-    # AOCC version 4x we will enable znver4
-    CKVECFLAGS += -march=znver4 -falign-loops=64
-    CRVECFLAGS += -march=znver4
-  else ifeq ($(strip $(shell $(CC) -v |&head -1 |grep -c 'AOCC_3')),1)
-    # AOCC version 3x we will enable znver3
-    CKVECFLAGS += -march=znver3 -mavx512f -mavx512dq -mavx512bw -mavx512vl -mavx512vnni -mavx512bf16 -mavx512vbmi -falign-loops=64
-    CRVECFLAGS += -march=znver3
-  else ifeq ($(strip $(shell $(CC) -v |&head -1 |grep -c 'AOCC.LLVM.2\|AOCC_2')),1)
-    # AOCC version 2x we will enable znver2
-    CKVECFLAGS += -march=znver2 -mavx512f -mavx512dq -mavx512bw -mavx512vl -mavx512vnni -mavx512vbmi
-    CRVECFLAGS += -march=znver2
-  else ifeq ($(shell test $(CC_MAJOR) -ge 16; echo $$?),0)
-    # LLVM clang 16.0 or later
-    CKVECFLAGS += -march=znver4 -falign-loops=64
-    CRVECFLAGS += -march=znver4
-  else ifeq ($(shell test $(CC_MAJOR) -ge 13; echo $$?),0)
-    # LLVM clang 13.0 or later
-    CKVECFLAGS += -march=znver3 -mavx512f -mavx512dq -mavx512bw -mavx512vl -mavx512vnni -mavx512bf16 -mavx512vbmi -falign-loops=64
-    CRVECFLAGS += -march=znver3
-  else ifeq ($(shell test $(CC_MAJOR) -ge 9; echo $$?),0)
-    # LLVM clang 9.0 or later
-    CKVECFLAGS += -march=znver2 -mavx512f -mavx512dq -mavx512bw -mavx512vl -mavx512vnni -mavx512bf16 -mavx512vbmi -falign-loops=64
-    CRVECFLAGS += -march=znver2
+  ifneq ($(IS_AOCC),)
+    ifeq ($(shell test $(AOCC_MAJOR) -ge 4; echo $$?),0)
+      # AOCC version 4x we will enable znver4
+      CKVECFLAGS += -march=znver4 -falign-loops=64
+      CRVECFLAGS += -march=znver4
+    else ifeq ($(shell test $(AOCC_MAJOR) -ge 3; echo $$?),0)
+      # AOCC version 3x we will enable znver3
+      CKVECFLAGS += -march=znver3 -mavx512f -mavx512dq -mavx512bw -mavx512vl -mavx512vnni -mavx512bf16 -mavx512vbmi -falign-loops=64
+      CRVECFLAGS += -march=znver3
+    else ifeq ($(shell test $(AOCC_MAJOR) -ge 2; echo $$?),0)
+      # AOCC version 2x we will enable znver2
+      CKVECFLAGS += -march=znver2 -mavx512f -mavx512dq -mavx512bw -mavx512vl -mavx512vnni -mavx512vbmi
+      CRVECFLAGS += -march=znver2
+    endif
   else
-    CKVECFLAGS += -march=znver1 -mavx512f -mavx512dq -mavx512bw -mavx512vl -mavx512vnni -mavx512vbmi -falign-loops=64
-    CRVECFLAGS += -march=znver1
+    ifeq ($(shell test $(CC_MAJOR) -ge 16; echo $$?),0)
+      # LLVM clang 16.0 or later
+      CKVECFLAGS += -march=znver4 -falign-loops=64
+      CRVECFLAGS += -march=znver4
+    else ifeq ($(shell test $(CC_MAJOR) -ge 13; echo $$?),0)
+      # LLVM clang 13.0 or later
+      CKVECFLAGS += -march=znver3 -mavx512f -mavx512dq -mavx512bw -mavx512vl -mavx512vnni -mavx512bf16 -mavx512vbmi -falign-loops=64
+      CRVECFLAGS += -march=znver3
+    else ifeq ($(shell test $(CC_MAJOR) -ge 9; echo $$?),0)
+      # LLVM clang 9.0 or later
+      CKVECFLAGS += -march=znver2 -mavx512f -mavx512dq -mavx512bw -mavx512vl -mavx512vnni -mavx512bf16 -mavx512vbmi -falign-loops=64
+      CRVECFLAGS += -march=znver2
+    else
+      CKVECFLAGS += -march=znver1 -mavx512f -mavx512dq -mavx512bw -mavx512vl -mavx512vnni -mavx512vbmi -falign-loops=64
+      CRVECFLAGS += -march=znver1
+    endif
   endif
 endif # clang
 

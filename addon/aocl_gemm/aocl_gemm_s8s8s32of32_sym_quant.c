@@ -180,6 +180,13 @@ AOCL_GEMM_MATMUL(int8_t,int8_t,float,int32_t,s8s8s32of32_sym_quant)
 		mtag_b = PACK;
 	}
 
+	if ( post_op_unparsed == NULL )
+	{
+		bli_print_msg(" post_op_unparsed is NULL. Exiting..",
+						__FILE__, __LINE__ );
+		goto err_hndl;
+	}
+
 	// convert group-level post-op struct to linked list format.
 	lpgemm_group_post_op grp_post_op_list[AOCL_MAX_POST_OPS];
 	err_t err = lpgemm_translate_to_group_postops_list

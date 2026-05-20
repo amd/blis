@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2016 - 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2016 - 2026, Advanced Micro Devices, Inc. All rights reserved.
    Copyright (C) 2018, The University of Texas at Austin
 
    Redistribution and use in source and binary forms, with or without
@@ -35,6 +35,53 @@
 
 #include "immintrin.h"
 #include "blis.h"
+
+/* AVX2 helper to horizontally add packed single-precision (32-bit) floats.
+    Reduce the packed single-precision (32-bit) floating-point elements in x by addition.
+    Returns the sum of all elements in x.
+
+    x = [x7 x6 x5 x4 x3 x2 x1 x0] <- LS
+    xu = __mm256_extractf128_ps( x ,1)
+    xu = [x7 x6 x5 x4]
+
+    xl = _mm256_castps256_ps128(x)
+    xl = [x3 x2 x1 x0]
+
+	x128 = xu + xl
+    [x3+x7, x2+x6, x1+x5, x0+x4]
+
+	If we index elements as a = {a0, a1, a2, a3} and b = {b0, b1, b2, b3}, then:
+    _mm_movehl_ps(a, b) → { b2, b3, a2, a3 }
+    __m128 y = _mm_movhl_ps(x128, x128)
+    y128 = [x3+x7, x2+x6, x3+x7, x2+x6]
+
+	__m128 x64 = x128 + y128
+    [., ., x1+x5+x3+x7, x0+x4+x2+x6]
+
+	x = { x0, x1, x2, x3 }
+    _mm_shuffle_ps(x, x, 0x55) → { x1, x1, x1, x1 }
+    xsh = _mm_shuffle_ps(x64, ...)
+    __m128 xsh = [x1+x5+x3+x7, x1+x5+x3+x7,x1+x5+x3+x7, x1+x5+x3+x7]
+    __m128 x32 = x64 + xsh
+
+	= [... x0+x4+x2+x6 + x1 + x5+ x3+x7]
+
+	x = { x0, x1, x2, x3 }
+    float f = _mm_cvtss_f32(x); // f = x0
+
+	only the lowest 32-bit float is used - the other three elements are ignored.
+*/
+static inline float _mm256_reduce_add_ps(__m256 x)
+{
+    /* ( x3+x7, x2+x6, x1+x5, x0+x4 ) */
+    const __m128 x128 = _mm_add_ps(_mm256_extractf128_ps(x, 1), _mm256_castps256_ps128(x));
+    /* ( -, -, x1+x3+x5+x7, x0+x2+x4+x6 ) */
+    const __m128 x64 = _mm_add_ps(x128, _mm_movehl_ps(x128, x128));
+    /* ( -, -, -, x0+x1+x2+x3+x4+x5+x6+x7 ) */
+    const __m128 x32 = _mm_add_ss(x64, _mm_shuffle_ps(x64, x64, 0x55));
+    /* Conversion to float is a no-op */
+    return _mm_cvtss_f32(x32);
+}
 
 /* Union data structure to access AVX registers
    One 128-bit AVX register holds 8 SP elements. */
@@ -94,7 +141,9 @@ void bli_sdotxv_zen_int
 	float*  restrict y0;
 	float            rho0;
 
-	v8sf_t           rhov[4], xv[4], yv[4];
+	v8sf_t           rhov[1];
+	v8sf_t           xv[4];
+	v8sf_t           yv[4];
 
 	// If beta is zero, initialize rho1 to zero instead of scaling
 	// rho by beta (in case rho contains NaN or Inf).
@@ -130,9 +179,6 @@ void bli_sdotxv_zen_int
 
 	// Initialize the unrolled iterations' rho vectors to zero.
 	rhov[0].v = _mm256_setzero_ps();
-	rhov[1].v = _mm256_setzero_ps();
-	rhov[2].v = _mm256_setzero_ps();
-	rhov[3].v = _mm256_setzero_ps();
 
 	for ( i = 0; i < n_viter; ++i )
 	{
@@ -150,34 +196,39 @@ void bli_sdotxv_zen_int
 		yv[3].v = _mm256_loadu_ps( y0 + 3*n_elem_per_reg );
 
 		// Compute the element-wise product of the x and y vectors,
-		// storing in the corresponding rho vectors.
+		// storing in the rho vector.
 		rhov[0].v = _mm256_fmadd_ps( xv[0].v, yv[0].v, rhov[0].v );
-		rhov[1].v = _mm256_fmadd_ps( xv[1].v, yv[1].v, rhov[1].v );
-		rhov[2].v = _mm256_fmadd_ps( xv[2].v, yv[2].v, rhov[2].v );
-		rhov[3].v = _mm256_fmadd_ps( xv[3].v, yv[3].v, rhov[3].v );
+		rhov[0].v = _mm256_fmadd_ps( xv[1].v, yv[1].v, rhov[0].v );
+		rhov[0].v = _mm256_fmadd_ps( xv[2].v, yv[2].v, rhov[0].v );
+		rhov[0].v = _mm256_fmadd_ps( xv[3].v, yv[3].v, rhov[0].v );
 
 		x0 += ( n_elem_per_reg * n_iter_unroll );
 		y0 += ( n_elem_per_reg * n_iter_unroll );
 	}
 
-	// Accumulate the unrolled rho vectors into a single vector.
-	rhov[0].v = _mm256_add_ps(rhov[0].v,rhov[1].v);
-	rhov[0].v = _mm256_add_ps(rhov[0].v,rhov[2].v);
-	rhov[0].v = _mm256_add_ps(rhov[0].v,rhov[3].v);
+	dim_t n_left_no_unroll = n_left / ( n_elem_per_reg );
+	if ( incx != 1 || incy != 1 )
+	{
+		n_left_no_unroll = 0;
+	}
+	n_left -= ( n_left_no_unroll * n_elem_per_reg );
 
-	v4sf_t inter0, inter1;
+	for ( i = 0; i < n_left_no_unroll; ++i )
+	{
+		// Load the x and y input vector elements.
+		xv[0].v = _mm256_loadu_ps( x0 + 0*n_elem_per_reg );
+		yv[0].v = _mm256_loadu_ps( y0 + 0*n_elem_per_reg );
 
-	inter0.v = _mm256_extractf128_ps(rhov[0].v,0);
-	inter1.v = _mm256_extractf128_ps(rhov[0].v,1);
+		// Compute the element-wise product of the x and y vectors,
+		// storing in rho vector.
+		rhov[0].v = _mm256_fmadd_ps( xv[0].v, yv[0].v, rhov[0].v );
 
-	inter0.v = _mm_add_ps(inter0.v, inter1.v);
-
-	inter1.v = _mm_permute_ps(inter0.v, 14);
-
-	inter0.v = _mm_add_ps(inter0.v,inter1.v);
+		x0     += ( n_elem_per_reg );
+		y0     += ( n_elem_per_reg );
+	}
 
 	// Accumulate the final rho vector into a single scalar result.
-	rho0 = inter0.f[0] + inter0.f[1];
+	rho0    = _mm256_reduce_add_ps(rhov[0].v);
 
 	// Issue vzeroupper instruction to clear upper lanes of ymm registers.
 	// This avoids a performance penalty caused by false dependencies when
@@ -186,17 +237,21 @@ void bli_sdotxv_zen_int
 	// -mfpmath=sse).
 	_mm256_zeroupper();
 
-	// If there are leftover iterations, perform them with scalar code.
+	__m128 v_rho0 = _mm_set_ss(rho0);
+
 	for ( i = 0; i < n_left; ++i )
 	{
-		const float x0c = *x0;
-		const float y0c = *y0;
+		__m128 v_x0c = _mm_set_ss(*x0);
+		__m128 v_y0c = _mm_set_ss(*y0);
 
-		rho0 += x0c * y0c;
+		// Computes: v_rho0 = (v_x0c * v_y0c) + v_rho0 using scalar FMA
+		v_rho0 = _mm_fmadd_ss(v_x0c, v_y0c, v_rho0);
 
 		x0 += incx;
 		y0 += incy;
 	}
+	// Extract the result back to standard float
+	rho0 = _mm_cvtss_f32(v_rho0);
 
 	// Accumulate the final result into the output variable.
 	PASTEMAC(s,axpys)( *alpha, rho0, *rho );

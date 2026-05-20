@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2022 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2022 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -72,7 +72,7 @@ if(WIN32)
 else()
     set(BLIS_CONFIG_FAMILY "" CACHE STRING "Set the configuration family for which the BLIS library will be built.")
 endif()
-set_property(CACHE BLIS_CONFIG_FAMILY PROPERTY STRINGS "auto" "generic" "zen" "zen2" "zen3" "zen4" "zen5" "amdzen")
+set_property(CACHE BLIS_CONFIG_FAMILY PROPERTY STRINGS "auto" "generic" "zen" "zen2" "zen3" "zen4" "zen5" "zen6" "amdzen")
 # Throw an error if CMake was configured with a configuration which is not enabled yet.
 if(NOT ((BLIS_CONFIG_FAMILY STREQUAL auto) OR
         (BLIS_CONFIG_FAMILY STREQUAL generic) OR
@@ -81,10 +81,11 @@ if(NOT ((BLIS_CONFIG_FAMILY STREQUAL auto) OR
         (BLIS_CONFIG_FAMILY STREQUAL zen3) OR
         (BLIS_CONFIG_FAMILY STREQUAL zen4) OR
         (BLIS_CONFIG_FAMILY STREQUAL zen5) OR
+        (BLIS_CONFIG_FAMILY STREQUAL zen6) OR
         (BLIS_CONFIG_FAMILY STREQUAL amdzen)))
     message(FATAL_ERROR "Configuration for ${BLIS_CONFIG_FAMILY} is not supported. \
         Please re-run cmake and specify one of the following configurations for BLIS_CONFIG_FAMILY: \
-        auto, zen, zen2, zen3, zen4, zen5, amdzen, generic.")
+        auto, zen, zen2, zen3, zen4, zen5, zen6, amdzen, generic.")
 endif()
 
 # automatic hardware detection
@@ -108,7 +109,7 @@ if(BLIS_CONFIG_FAMILY STREQUAL "auto")
             COMPILE_DEFINITIONS -I${frame_include} -I${base_include} -I${thread_include}
                                -DBLIS_CONFIGURETIME_CPUID -DBLIS_CONFIG_SKX -DBLIS_CONFIG_KNL
                                -DBLIS_CONFIG_HASWELL -DBLIS_CONFIG_SANDYBRIDGE -DBLIS_CONFIG_PENRYN
-                               -DBLIS_CONFIG_ZEN5 -DBLIS_CONFIG_ZEN4 -DBLIS_CONFIG_ZEN3 -DBLIS_CONFIG_ZEN2 -DBLIS_CONFIG_ZEN
+                               -DBLIS_CONFIG_ZEN6 -DBLIS_CONFIG_ZEN5 -DBLIS_CONFIG_ZEN4 -DBLIS_CONFIG_ZEN3 -DBLIS_CONFIG_ZEN2 -DBLIS_CONFIG_ZEN
                                -DBLIS_CONFIG_EXCAVATOR -DBLIS_CONFIG_STEAMROLLER -DBLIS_CONFIG_PILEDRIVER
                                -DBLIS_CONFIG_BULLDOZER -DBLIS_CONFIG_THUNDERX2 -DBLIS_CONFIG_CORTEXA57
                                -DBLIS_CONFIG_CORTEXA15 -DBLIS_CONFIG_CORTEXA9
@@ -121,7 +122,8 @@ if(BLIS_CONFIG_FAMILY STREQUAL "auto")
             ${HARDWARE_ARCH} STREQUAL zen2 OR
             ${HARDWARE_ARCH} STREQUAL zen3 OR
             ${HARDWARE_ARCH} STREQUAL zen4 OR
-            ${HARDWARE_ARCH} STREQUAL zen5) )
+            ${HARDWARE_ARCH} STREQUAL zen5 OR
+            ${HARDWARE_ARCH} STREQUAL zen6) )
            set(BLIS_CONFIG_FAMILY "generic")
            message(WARNING "Only AMD zen architectures are supported. \
            Detected ${HARDWARE_ARCH} hardware. Defaulting to generic configuration.")
@@ -412,9 +414,8 @@ endif()
 #------------------------------------
 # Set the VERSION variable to the default value in the 'version' file.
 file(STRINGS ${PROJECT_SOURCE_DIR}/version VERSION)
-# Get timestamp.
-string(TIMESTAMP BUILD_DATE "%Y%m%d")
-# Update using the timestamp.
+# Use what's in the version file as-is.
+string(TIMESTAMP BUILD_DATE "%Y%m%d" UTC)
 set(VERSION_STRING "AOCL-BLAS ${VERSION} Build ${BUILD_DATE}")
 # Initial message.
 message(STATUS "Starting configuration of BLIS ${VERSION_STRING}.")

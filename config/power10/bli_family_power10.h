@@ -5,6 +5,7 @@
    libraries.
 
    Copyright (C) 2019, The University of Texas at Austin
+   Copyright (C) 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -31,6 +32,8 @@
    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
+
+#define BLIS_FAMILY_TO_ARCH_VALUE BLIS_ARCH_POWER10
 
 #define BLIS_POOL_ADDR_ALIGN_SIZE_A 4096
 #define BLIS_POOL_ADDR_ALIGN_SIZE_B 4096

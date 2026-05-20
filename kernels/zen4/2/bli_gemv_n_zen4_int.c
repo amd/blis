@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2025-26, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2025 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -35,6 +35,9 @@
 #include "immintrin.h"
 #include "blis.h"
 
+#ifdef BLIS_ENABLE_OPENMP
+#include <omp.h>
+#endif
 
 // #define INTERLEAVE_LOAD_FMA // enable interleave load and FMA for A matrix
 
@@ -567,7 +570,7 @@ GENT_GEMV_CALLER(double, d, 40, 2, n, st);
         BLIS_GEMV_KER,                                                    \
         PASTEMAC(ch,type),                                                \
         BLIS_NO_TRANSPOSE,                                                \
-        bli_arch_query_id(),                                              \
+        bli_arch_query_id_internal(),                                              \
         m,                                                                \
         n,                                                                \
         &nt                                                               \
@@ -1034,7 +1037,7 @@ GENT_GEMV_CALLER(double, d, 40, 8, m);
         BLIS_GEMV_KER,
         BLIS_DOUBLE,   //PASTEMAC(d,type),
         BLIS_NO_TRANSPOSE,
-        bli_arch_query_id(),
+        bli_arch_query_id_internal(),
         m,
         n,
         &nt
@@ -1190,7 +1193,7 @@ void bli_dgemv_m_zen4_int_40x8_mt_Mdiv
         BLIS_GEMV_KER,
         PASTEMAC(d,type),
         BLIS_NO_TRANSPOSE,
-        bli_arch_query_id(),
+        bli_arch_query_id_internal(),
         m,
         n,
         &nt
@@ -1313,7 +1316,7 @@ void bli_dgemv_m_zen4_int_40x8_mt_Ndiv
         BLIS_GEMV_KER,
         PASTEMAC(d,type),
         BLIS_NO_TRANSPOSE,
-        bli_arch_query_id(),
+        bli_arch_query_id_internal(),
         m,
         n,
         &nt

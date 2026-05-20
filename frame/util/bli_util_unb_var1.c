@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2018 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -35,6 +35,10 @@
 
 #include "blis.h"
 #include <fenv.h>
+
+#ifdef BLIS_ENABLE_OPENMP
+#include <omp.h>
+#endif
 
 //
 // Define BLAS-like interfaces with typed operands.
@@ -322,9 +326,10 @@ void bli_cnormfv_unb_var1
     inc_t incx_buf = incx;
 
     // Querying the architecture ID to deploy the appropriate kernel
-    arch_t arch_id = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id_internal();
     switch ( arch_id )
     {
+        case BLIS_ARCH_ZEN6:
         case BLIS_ARCH_ZEN5:
         case BLIS_ARCH_ZEN4:
         case BLIS_ARCH_ZEN3:
@@ -460,9 +465,10 @@ void bli_znormfv_unb_var1
     dim_t simd_factor = 1;
 #endif
 
-    arch_t arch_id = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id_internal();
     switch ( arch_id )
     {
+        case BLIS_ARCH_ZEN6:
         case BLIS_ARCH_ZEN5:
         case BLIS_ARCH_ZEN4:
         case BLIS_ARCH_ZEN3:
@@ -939,9 +945,10 @@ void bli_snormfv_unb_var1
     inc_t incx_buf = incx;
 
     // Querying the architecture ID to deploy the appropriate kernel
-    arch_t arch_id = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id_internal();
     switch ( arch_id )
     {
+        case BLIS_ARCH_ZEN6:
         case BLIS_ARCH_ZEN5:
         case BLIS_ARCH_ZEN4:
         case BLIS_ARCH_ZEN3:
@@ -1084,9 +1091,10 @@ void bli_dnormfv_unb_var1
     dim_t nt_ideal = -1;
 #endif
 
-    arch_t arch_id = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id_internal();
     switch ( arch_id )
     {
+        case BLIS_ARCH_ZEN6:
         case BLIS_ARCH_ZEN5:
 #if defined(BLIS_KERNELS_ZEN4)
 

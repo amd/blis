@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2022 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2022 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -102,7 +102,7 @@ static bli_pthread_once_t once_check_lpgemm_func_map_init = BLIS_PTHREAD_ONCE_IN
 
 static void _lpgemm_init_enable_arch()
 {
-	arch_t arch_id = bli_arch_query_id();
+	arch_t arch_id = bli_arch_query_id_internal();
 	bool enbl_instr = bli_aocl_enable_instruction_query();
 
 	if ( ( enbl_instr == TRUE ) &&

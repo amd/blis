@@ -48,6 +48,10 @@
   #ifndef BLIS_FAMILY_ZEN5
     #define ZEN5_UKR_SELECTOR( ch, transa, transb, m, n, k, stor_id, ukr_support, gemmtiny_ukr_info, is_parallel )
   #endif
+
+  #ifndef BLIS_FAMILY_ZEN6
+    #define ZEN6_UKR_SELECTOR( ch, transa, transb, m, n, k, stor_id, ukr_support, gemmtiny_ukr_info, is_parallel )
+  #endif
 #endif
 
 /* Defining the bli_?gemm_tiny interfaces */
@@ -74,7 +78,7 @@ err_t PASTEMAC( ch, tfuncname ) \
         return BLIS_FAILURE; \
 \
     /* Query the architecture ID */ \
-    arch_t arch_id = bli_arch_query_id(); \
+    arch_t arch_id = bli_arch_query_id_internal(); \
     /* Declaring the object to hold the kernel information */ \
     gemmtiny_ukr_info_t gemmtiny_ukr_info; \
     /* Variable to flag success/failure of obtaining the kernel */ \
@@ -127,6 +131,8 @@ err_t PASTEMAC( ch, tfuncname ) \
     /* Runtime acquisition of kernel based on the metadata and arch_ID */ \
     switch ( arch_id ) \
     { \
+      case BLIS_ARCH_ZEN6: \
+        ZEN6_UKR_SELECTOR( ch, transa, transb, m, n, k, stor_id, ukr_support, gemmtiny_ukr_info, is_parallel ) \
       case BLIS_ARCH_ZEN5: \
         ZEN5_UKR_SELECTOR( ch, transa, transb, m, n, k, stor_id, ukr_support, gemmtiny_ukr_info, is_parallel ) \
       case BLIS_ARCH_ZEN4: \
@@ -483,15 +489,16 @@ err_t bli_dgemm_tiny
 )
 {
     // Query the architecture ID
-    arch_t arch_id = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id_internal();
     bool is_mt = bli_thread_get_is_parallel();
     {
         // Pick the kernel based on the architecture ID
         switch ( arch_id )
         {
+          case BLIS_ARCH_ZEN6:
           case BLIS_ARCH_ZEN5:
           case BLIS_ARCH_ZEN4:
-#if defined(BLIS_FAMILY_ZEN5) || defined(BLIS_FAMILY_ZEN4) || defined(BLIS_FAMILY_AMDZEN) || defined(BLIS_FAMILY_X86_64)
+#if defined(BLIS_FAMILY_ZEN6) || defined(BLIS_FAMILY_ZEN5) || defined(BLIS_FAMILY_ZEN4) || defined(BLIS_FAMILY_AMDZEN) || defined(BLIS_FAMILY_X86_64)
               if(((m == n) && (m < 400) && (k < 1000)) ||
               ( (m != n) && (( ((m + n -k) < 1500) &&
               ((m + k-n) < 1500) && ((n + k-m) < 1500) ) ||

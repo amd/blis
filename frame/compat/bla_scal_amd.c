@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2020 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2020 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -34,6 +34,10 @@
 */
 
 #include "blis.h"
+
+#ifdef BLIS_ENABLE_OPENMP
+#include <omp.h>
+#endif
 
 /*
   Early return conditions
@@ -157,7 +161,7 @@ void sscal_blis_impl
     cntx_t *cntx = NULL;
 
     // Query the architecture ID
-    arch_t arch_id = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id_internal();
 
     // Function pointer declaration for the function
     // that will be used by this API
@@ -166,6 +170,7 @@ void sscal_blis_impl
     // Pick the kernel based on the architecture ID
     switch ( arch_id )
     {
+        case BLIS_ARCH_ZEN6:
         case BLIS_ARCH_ZEN5:
         case BLIS_ARCH_ZEN4:
 #if defined(BLIS_KERNELS_ZEN4)
@@ -252,7 +257,7 @@ void dscal_blis_impl
     cntx_t *cntx = NULL;
 
     // Query the architecture ID
-    arch_t arch_id = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id_internal();
 
     // Function pointer declaration for the function
     // that will be used by this API
@@ -261,6 +266,7 @@ void dscal_blis_impl
     // Pick the kernel based on the architecture ID
     switch ( arch_id )
     {
+        case BLIS_ARCH_ZEN6:
         case BLIS_ARCH_ZEN5:
 #if defined(BLIS_KERNELS_ZEN5)
           // AVX512 Kernel
@@ -455,7 +461,7 @@ void zdscal_blis_impl
     cntx_t *cntx = NULL;
 
     // Query the architecture ID
-    arch_t arch_id = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id_internal();
 
     // Function pointer declaration for the function
     // that will be used by this API
@@ -464,6 +470,7 @@ void zdscal_blis_impl
     // Pick the kernel based on the architecture ID
     switch ( arch_id )
     {
+        case BLIS_ARCH_ZEN6:
         case BLIS_ARCH_ZEN5:
         case BLIS_ARCH_ZEN4:
 #if defined(BLIS_KERNELS_ZEN4)
@@ -626,7 +633,7 @@ void cscal_blis_impl
     cntx_t* cntx = NULL;
 
     // Query the architecture ID
-    arch_t arch_id = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id_internal();
 
     // Function pointer declaration for the function
     // that will be used by this API
@@ -635,6 +642,7 @@ void cscal_blis_impl
     // Pick the kernel based on the architecture ID
     switch ( arch_id )
     {
+        case BLIS_ARCH_ZEN6:
         case BLIS_ARCH_ZEN5:
         case BLIS_ARCH_ZEN4:
 #if defined(BLIS_KERNELS_ZEN4)
@@ -721,7 +729,7 @@ void zscal_blis_impl
     cntx_t* cntx = NULL;
 
     // Query the architecture ID
-    arch_t arch_id = bli_arch_query_id();
+    arch_t arch_id = bli_arch_query_id_internal();
 
     // Function pointer declaration for the function
     // that will be used by this API
@@ -730,6 +738,7 @@ void zscal_blis_impl
     // Pick the kernel based on the architecture ID
     switch ( arch_id )
     {
+        case BLIS_ARCH_ZEN6:
         case BLIS_ARCH_ZEN5:
         case BLIS_ARCH_ZEN4:
 #if defined(BLIS_KERNELS_ZEN4)

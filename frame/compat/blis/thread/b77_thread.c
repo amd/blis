@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2018, The University of Texas at Austin
-   Copyright (C) 2023 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -87,6 +87,26 @@ void PASTEF770(bli_thread_set_num_threads)
 
 	// Call the BLIS function.
 	bli_thread_set_num_threads( nt0 );
+
+	// Finalize BLIS.
+	//bli_finalize_auto();
+}
+
+void PASTEF770(bli_thread_set_num_threads_local)
+     (
+       const f77_int* nt
+     )
+{
+	dim_t nt0 = *nt;
+
+	// Initialize BLIS.
+	//bli_init_auto();
+
+	// Convert/typecast negative values to zero.
+	//bli_convert_blas_dim1( *nt, nt0 );
+
+	// Call the BLIS function.
+	bli_thread_set_num_threads_local( nt0 );
 
 	// Finalize BLIS.
 	//bli_finalize_auto();
