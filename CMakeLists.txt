@@ -1412,6 +1412,22 @@ if(BUILD_STATIC_LIBS OR NOT BUILD_SHARED_LIBS)
                     )
 endif()
 
+# AOCL Build-It-Yourself unified build: contribute BLIS' object files to the
+# single libaocl. OBJECT_LIBRARIES is a list of $<TARGET_OBJECTS:...> genexes.
+# This runs independently of the static/shared selection so that a shared-only
+# build (BUILD_SHARED_LIBS=ON, BUILD_STATIC_LIBS=OFF) still folds BLIS' objects
+# into the unified library.
+if(AOCL_TB_UNIFIED_BUILD)
+    if(NOT COMMAND aocl_tb_add_objects)
+        message(FATAL_ERROR
+            "AOCL_TB_UNIFIED_BUILD is ON but aocl_tb_add_objects() is not defined. "
+            "The unified build must be driven by the AOCL Build-It-Yourself "
+            "toolchain that provides aocl_tb_add_objects(); do not set "
+            "AOCL_TB_UNIFIED_BUILD when building BLIS standalone.")
+    endif()
+    aocl_tb_add_objects(${OBJECT_LIBRARIES})
+endif()
+
 # Create the main blis target that points to the preferred library type
 # Priority: shared if available, otherwise static
 if(BUILD_SHARED_LIBS AND TARGET blis_shared)
