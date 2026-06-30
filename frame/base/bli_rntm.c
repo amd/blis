@@ -45,8 +45,6 @@ BLIS_THREAD_LOCAL rntm_t tl_rntm = BLIS_RNTM_INITIALIZER;
 // A mutex to allow synchronous access to global_rntm.
 bli_pthread_mutex_t global_rntm_mutex = BLIS_PTHREAD_MUTEX_INITIALIZER;
 
-// ----------------------------------------------------------------------------
-
 void bli_rntm_init_from_global( rntm_t* rntm )
 {
     // We must ensure that global_rntm and tl_rntm have been initialized
@@ -1645,7 +1643,17 @@ void bli_nthreads_optimum(
 		// Query the architecture ID
 		arch_t arch_id = bli_arch_query_id_internal();
 
-		if( arch_id == BLIS_ARCH_ZEN6 || arch_id == BLIS_ARCH_ZEN5 )
+		// Conjugate ZGEMM bypass: do not reduce thread count when either
+		// operand is conjugated.  The conjugate-via-pack path is sensitive
+		// to OpenMP team-size changes between back-to-back calls (LAPACK
+		// drivers like ZGGEVX issue many of these), and the per-shape
+		// thread-count thrash from the AOCL_DYNAMIC heuristic was found to
+		// regress those drivers vs. AOCL-BLAS 5.3.  Leave n_threads_ideal
+		// at the user-requested value so the OpenMP team is reused as-is.
+		const bool dcomplex_conj_bypass = bli_obj_has_conj( a ) || bli_obj_has_conj( b );
+
+		if ( dcomplex_conj_bypass == false &&
+		     ( arch_id == BLIS_ARCH_ZEN6 || arch_id == BLIS_ARCH_ZEN5 ) )
 		{
 			/*
 				The logic for ideal thread selection is as follows:
@@ -1888,7 +1896,7 @@ void bli_nthreads_optimum(
 					n_threads_ideal = 256;
 			}
 		}
-		else if( arch_id == BLIS_ARCH_ZEN4 )
+		else if ( dcomplex_conj_bypass == false && arch_id == BLIS_ARCH_ZEN4 )
 		{
 			// Set the kernel dimensions
 			dim_t MR = 12, NR = 4;
@@ -2207,7 +2215,8 @@ void bli_nthreads_optimum(
 					n_threads_ideal = 192;
 			}
 		}
-		else // Not BLIS_ARCH_ZEN6 or BLIS_ARCH_ZEN5 or BLIS_ARCH_ZEN4
+		// Not BLIS_ARCH_ZEN6 or BLIS_ARCH_ZEN5 or BLIS_ARCH_ZEN4
+		else if ( dcomplex_conj_bypass == false )
 		{
 			if((m<=128 || n<=128 || k<=128) && ((m+n+k) <= 400))
 			{
@@ -2486,8 +2495,7 @@ void bli_nthreads_optimum(
         }
     }
 
-    dim_t n_threads_opt = bli_min(n_threads, n_threads_ideal);
-
+    dim_t n_threads_opt = bli_min( n_threads, n_threads_ideal );
     // This modifies only local rntm - therefore doesn't require mutex locks
     // for updating rntm
     bli_rntm_set_num_threads_only( n_threads_opt, rntm );
