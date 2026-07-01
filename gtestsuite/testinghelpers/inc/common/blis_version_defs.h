@@ -125,6 +125,8 @@
     #define K_bli_dnorm2fv_zen_int_unb_var1 bli_dnorm2fv_zen_int_unb_var1
     #define K_bli_sgemmsup_rd_zen4_asm_6x64n bli_sgemmsup_rd_zen4_asm_6x64n
     #define K_bli_sgemmsup_rd_zen4_asm_6x64m bli_sgemmsup_rd_zen4_asm_6x64m
+    #define K_bli_sgemmsup_rd_zen5_asm_6x64n bli_sgemmsup_rd_zen5_asm_6x64n
+    #define K_bli_sgemmsup_rd_zen5_asm_6x64m bli_sgemmsup_rd_zen5_asm_6x64m
     #define K_bli_sgemmsup_rv_zen4_asm_6x64n bli_sgemmsup_rv_zen4_asm_6x64n
     #define K_bli_sgemmsup_rv_zen4_asm_6x64m bli_sgemmsup_rv_zen4_asm_6x64m
     #define K_bli_sgemmsup_rv_zen4_asm_6x64n bli_sgemmsup_rv_zen4_asm_6x64n

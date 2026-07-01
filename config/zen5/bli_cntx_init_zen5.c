@@ -314,11 +314,11 @@ void bli_cntx_init_zen5( cntx_t* cntx )
 	  BLIS_CCC, BLIS_DOUBLE, bli_dgemmsup_cv_zen5_asm_24x8m, FALSE,
 
 	  BLIS_RRR, BLIS_FLOAT, bli_sgemmsup_rv_zen4_asm_6x64m, TRUE,
-	  BLIS_RRC, BLIS_FLOAT, bli_sgemmsup_rd_zen4_asm_6x64m, TRUE,
+	  BLIS_RRC, BLIS_FLOAT, bli_sgemmsup_rd_zen5_asm_6x64m, TRUE,
 	  BLIS_RCR, BLIS_FLOAT, bli_sgemmsup_rv_zen4_asm_6x64m, TRUE,
 	  BLIS_RCC, BLIS_FLOAT, bli_sgemmsup_rv_zen4_asm_6x64n, TRUE,
 	  BLIS_CRR, BLIS_FLOAT, bli_sgemmsup_rv_zen4_asm_6x64m, TRUE,
-	  BLIS_CRC, BLIS_FLOAT, bli_sgemmsup_rd_zen4_asm_6x64n, TRUE,
+	  BLIS_CRC, BLIS_FLOAT, bli_sgemmsup_rd_zen5_asm_6x64n, TRUE,
 	  BLIS_CCR, BLIS_FLOAT, bli_sgemmsup_rv_zen4_asm_6x64n, TRUE,
 	  BLIS_CCC, BLIS_FLOAT, bli_sgemmsup_rv_zen4_asm_6x64n, TRUE,
 
