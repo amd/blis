@@ -756,6 +756,36 @@ void AOCL_DTL_log_gemv_sizes(int8 loglevel,
     DTL_Trace(loglevel, TRACE_TYPE_LOG, function_name, function_name, line, buffer);
 }
 
+void AOCL_DTL_log_ger_stats(int8 loglevel,
+                            char dt_type,
+                            const f77_int m,
+                            const f77_int n)
+{
+    char buffer[256];
+
+    // Execution time is in micro seconds.
+    Double execution_time = AOCL_DTL_get_time_spent();
+
+    double flops = 2.0 * m * n;
+    if (dt_type == 'c' || dt_type == 'C' || dt_type == 'z' || dt_type == 'Z')
+    {
+        flops = 4.0 * flops;
+    }
+
+    if (execution_time != 0.0)
+        sprintf(buffer, " nt=%ld %.3f ms %0.3f GFLOPS",
+                AOCL_get_requested_threads_count(),
+                execution_time/1000.0,
+                flops/(execution_time * 1e3));
+    else
+        sprintf(buffer, " nt=%ld %.3f ms",
+                AOCL_get_requested_threads_count(),
+                execution_time/1000.0);
+
+    DTL_Trace(loglevel, TRACE_TYPE_RAW, NULL, NULL, 0, buffer);
+
+}
+
 void AOCL_DTL_log_ger_sizes(int8 loglevel,
                             char dt_type,
                             const f77_int m,
@@ -774,9 +804,10 @@ void AOCL_DTL_log_ger_sizes(int8 loglevel,
 
     DTL_get_complex_parts(dt_type, alpha, &alpha_real, &alpha_imag);
 
-    sprintf(buffer, "%c %ld %ld %lf %lf %ld %ld %ld\n", tolower(dt_type),
+    sprintf(buffer, "%c %ld %ld %lf %lf %ld %ld %ld", tolower(dt_type),
             (dim_t)m, (dim_t)n, alpha_real, alpha_imag, (dim_t)incx, (dim_t)incy, (dim_t)lda);
 
+    AOCL_DTL_START_PERF_TIMER();
     DTL_Trace(loglevel, TRACE_TYPE_LOG, function_name, function_name, line, buffer);
 }
 

@@ -323,6 +323,11 @@ void AOCL_DTL_log_ger_sizes(int8 loglevel,
                             int line
                            );
 
+void AOCL_DTL_log_ger_stats(int8 loglevel,
+                            char dt_type,
+                            const f77_int m,
+                            const f77_int n);
+
 void AOCL_DTL_log_hemv_sizes(int8 loglevel,
                              char dt_type,
                              const f77_char uploa,
@@ -875,6 +880,10 @@ void AOCL_DTL_log_matcopy2_sizes(int8 loglevel,
     if (tlIsLoggingEnabled) \
         AOCL_DTL_log_gemv_stats(loglevel, dt_type, m, n);
 
+#define AOCL_DTL_LOG_GER_STATS(loglevel, dt_type, m, n)    \
+    if (tlIsLoggingEnabled) \
+        AOCL_DTL_log_ger_stats(loglevel, dt_type, m, n);
+
 #define AOCL_DTL_LOG_GEMV_INPUTS(loglevel, dt_type, transa, m, n, alp, lda, incx, beta, incy) \
     if (tlIsLoggingEnabled) \
         AOCL_DTL_log_gemv_sizes(loglevel, dt_type, transa, m, n, alp, lda, incx, beta, incy, __FILE__,\
@@ -1126,6 +1135,8 @@ void AOCL_DTL_log_matcopy2_sizes(int8 loglevel,
 #define AOCL_DTL_LOG_GEMV_STATS(loglevel, dt_type, m, n)
 
 #define AOCL_DTL_LOG_GEMV_INPUTS(loglevel, dt_type, transa, m, n, alp, lda, incx, beta, incy)
+
+#define AOCL_DTL_LOG_GER_STATS(loglevel, dt_type, m, n)
 
 #define AOCL_DTL_LOG_GER_INPUTS(loglevel, dt_type, m, n, alpha, incx, incy, lda)
 
