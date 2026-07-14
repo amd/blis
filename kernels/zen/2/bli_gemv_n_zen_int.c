@@ -32,43 +32,20 @@
 
 */
 
-/*
- * zen4 GEMV-N kernel instantiation file.
- *
- * Tile parameters chosen for AVX-512 (ZMM registers, 512-bit wide):
- *   double : MR=40  (40 doubles  = 5 ZMM registers), NR=8
- *   float  : MR=80  (80 floats   = 5 ZMM registers), NR=2 (N-kernel) / NR=8 (M-kernel)
- *   dcomplex: MR=4  (4 dcomplex  = 1 ZMM register),  NR=2
- *   scomplex: MR=40 (40 scomplex = 5 ZMM registers), NR=10
- *
- */
 #include "immintrin.h"
 #include "blis.h"
 
-#define ARCH_SIMD_BITS  512
-#define GEMV_ARCH_SUFFIX zen4_int
-#define GEMV_BLK_SUFFIX_N(ch, MR, NR)  PASTEMAC5(ch, gemv_n_block_, MR, _, NR, _avx512)
-
-#include "../../zen/2/bli_pp_common.h"
+#define ARCH_SIMD_BITS  256
+#define GEMV_ARCH_SUFFIX zen_int
+#define GEMV_BLK_SUFFIX_N(ch, MR, NR)  PASTEMAC5(ch, gemv_n_block_, MR, _, NR, _avx2)
+#include "bli_pp_common.h"
 
 #ifdef BLIS_ENABLE_OPENMP
 #include <omp.h>
 #endif
 
-#include "../../zen/2/bli_gemv_n_impl.h"
+#include "bli_gemv_n_impl.h"
 
-/*
- * Complex types: use GENERATE_KERNEL(ctype, ch, MR_N, NR_N, MR_M, NR_M).
- * Complex uses N-kernel only (no M-direction fallback). Expands to:
- *   1. GENERATE_<ch>_KERNELS_<MR_N>_N  — N-direction micro-kernels + dispatch table
- *   2. GENT_GEMV_CALLER(n)             — N-direction ST tiled dispatcher
- *   3. MT_KERNEL_SIGNATURE             — MT wrapper (OpenMP M-dim split)
- *   4. GENERATE_ROOT_KERNEL            — public entry-point (packs x/y, dispatches ST/MT)
- *
- * MR_M and NR_M are carried in the signature for future M-direction support.
- */
-// GENERATE_KERNEL(float, s, 48, 16, 48, 16)
-// GENERATE_KERNEL(double, d, 24, 16, 24, 16)
 /*
  * ─── Complex types (c/z): macro-generated kernels + inlined interface ────────
  *
@@ -84,16 +61,16 @@
  * kernel always sees unit-stride, non-conjugated inputs.
  */
 
-// ═══ scomplex (c): MR_N=40, NR_N=10 ══════════════════════════════════════════
-// expands to: the N-direction micro-kernel family bli_cgemv_n_block_*_avx512 (one
-//             per row sub-tile) + the static dispatch table bli_cgemv_n_ker_fp_40_10
-GENERATE_c_KERNELS_40_N(scomplex, c, 40, 10);
-// expands to: bli_cgemv_n_zen4_int_40x10 (single-thread N-direction tiled caller)
-GENT_GEMV_CALLER(scomplex, c, 40, 10, n)
+// ═══ scomplex (c): MR_N=20, NR_N=5 ═══════════════════════════════════════════
+// expands to: the N-direction micro-kernel family bli_cgemv_n_block_*_avx2 (one
+//             per row sub-tile) + the static dispatch table bli_cgemv_n_ker_fp_20_5
+GENERATE_c_KERNELS_20_N(scomplex, c, 20, 5);
+// expands to: bli_cgemv_n_zen_int_20x5 (single-thread N-direction tiled caller)
+GENT_GEMV_CALLER(scomplex, c, 20, 5, n)
 
 #ifdef BLIS_ENABLE_OPENMP
 // MT wrapper: split M (output rows) across threads; disjoint y rows, no reduction.
-void bli_cgemv_n_zen4_int_40x10_mt
+void bli_cgemv_n_zen_int_20x5_mt
      (
        trans_t transa, conj_t conjx, dim_t m, dim_t n,
        scomplex* alpha, scomplex* a, inc_t rs_a, inc_t cs_a,
@@ -113,8 +90,8 @@ void bli_cgemv_n_zen4_int_40x10_mt
 
     if ( nt == 1 )
     {
-        bli_cgemv_n_zen4_int_40x10( transa, conjx, m, n, alpha, a, rs_a, cs_a,
-                                    x, incx, beta, y, incy, cntx );
+        bli_cgemv_n_zen_int_20x5( transa, conjx, m, n, alpha, a, rs_a, cs_a,
+                                  x, incx, beta, y, incy, cntx );
         return;
     }
 
@@ -124,17 +101,17 @@ void bli_cgemv_n_zen4_int_40x10_mt
         const dim_t tid     = omp_get_thread_num();
         const dim_t nt_real = omp_get_num_threads();
         bli_thread_vector_partition( m, nt_real, &thread_start, &job_per_thread, tid );
-        bli_cgemv_n_zen4_int_40x10( transa, conjx, job_per_thread, n, alpha,
-                                    a + thread_start * rs_a, rs_a, cs_a,
-                                    x, incx, beta,
-                                    y + thread_start * incy, incy, cntx );
+        bli_cgemv_n_zen_int_20x5( transa, conjx, job_per_thread, n, alpha,
+                                  a + thread_start * rs_a, rs_a, cs_a,
+                                  x, incx, beta,
+                                  y + thread_start * incy, incy, cntx );
     }
 }
 #endif
 
 // Public entry-point: alpha==0 scale-only, conj-x buffering, incy!=1 y buffering,
 // then ST vs MT dispatch by problem size.
-void bli_cgemv_n_zen4_int
+void bli_cgemv_n_zen_int
      (
        trans_t transa, conj_t conjx, dim_t m, dim_t n,
        scomplex* alpha, scomplex* a, inc_t rs_a, inc_t cs_a,
@@ -230,10 +207,10 @@ void bli_cgemv_n_zen4_int
     }
 
 #if defined(BLIS_ENABLE_OPENMP)
-    ker_ft = ( m * n < 1800 ) ? bli_cgemv_n_zen4_int_40x10
-                              : bli_cgemv_n_zen4_int_40x10_mt;
+    ker_ft = ( m * n < 1800 ) ? bli_cgemv_n_zen_int_20x5
+                              : bli_cgemv_n_zen_int_20x5_mt;
 #else
-    ker_ft = bli_cgemv_n_zen4_int_40x10;
+    ker_ft = bli_cgemv_n_zen_int_20x5;
 #endif
 
     ker_ft( transa, BLIS_NO_CONJUGATE, m, n, alpha, a, rs_a, cs_a,
@@ -248,16 +225,16 @@ void bli_cgemv_n_zen4_int
         bli_pba_release( &rntm, &mem_bufX );
 }
 
-// ═══ dcomplex (z): MR_N=20, NR_N=10 ══════════════════════════════════════════
-// expands to: the N-direction micro-kernel family bli_zgemv_n_block_*_avx512 (one
-//             per row sub-tile) + the static dispatch table bli_zgemv_n_ker_fp_20_10
-GENERATE_z_KERNELS_20_N(dcomplex, z, 20, 10);
-// expands to: bli_zgemv_n_zen4_int_20x10 (single-thread N-direction tiled caller)
-GENT_GEMV_CALLER(dcomplex, z, 20, 10, n)
+// ═══ dcomplex (z): MR_N=10, NR_N=5 ═══════════════════════════════════════════
+// expands to: the N-direction micro-kernel family bli_zgemv_n_block_*_avx2 (one
+//             per row sub-tile) + the static dispatch table bli_zgemv_n_ker_fp_10_5
+GENERATE_z_KERNELS_10_N(dcomplex, z, 10, 5);
+// expands to: bli_zgemv_n_zen_int_10x5 (single-thread N-direction tiled caller)
+GENT_GEMV_CALLER(dcomplex, z, 10, 5, n)
 
 #ifdef BLIS_ENABLE_OPENMP
 // MT wrapper: split M (output rows) across threads; disjoint y rows, no reduction.
-void bli_zgemv_n_zen4_int_20x10_mt
+void bli_zgemv_n_zen_int_10x5_mt
      (
        trans_t transa, conj_t conjx, dim_t m, dim_t n,
        dcomplex* alpha, dcomplex* a, inc_t rs_a, inc_t cs_a,
@@ -277,8 +254,8 @@ void bli_zgemv_n_zen4_int_20x10_mt
 
     if ( nt == 1 )
     {
-        bli_zgemv_n_zen4_int_20x10( transa, conjx, m, n, alpha, a, rs_a, cs_a,
-                                    x, incx, beta, y, incy, cntx );
+        bli_zgemv_n_zen_int_10x5( transa, conjx, m, n, alpha, a, rs_a, cs_a,
+                                  x, incx, beta, y, incy, cntx );
         return;
     }
 
@@ -288,17 +265,17 @@ void bli_zgemv_n_zen4_int_20x10_mt
         const dim_t tid     = omp_get_thread_num();
         const dim_t nt_real = omp_get_num_threads();
         bli_thread_vector_partition( m, nt_real, &thread_start, &job_per_thread, tid );
-        bli_zgemv_n_zen4_int_20x10( transa, conjx, job_per_thread, n, alpha,
-                                    a + thread_start * rs_a, rs_a, cs_a,
-                                    x, incx, beta,
-                                    y + thread_start * incy, incy, cntx );
+        bli_zgemv_n_zen_int_10x5( transa, conjx, job_per_thread, n, alpha,
+                                  a + thread_start * rs_a, rs_a, cs_a,
+                                  x, incx, beta,
+                                  y + thread_start * incy, incy, cntx );
     }
 }
 #endif
 
 // Public entry-point: alpha==0 scale-only, conj-x buffering, incy!=1 y buffering,
 // then ST vs MT dispatch by problem size.
-void bli_zgemv_n_zen4_int
+void bli_zgemv_n_zen_int
      (
        trans_t transa, conj_t conjx, dim_t m, dim_t n,
        dcomplex* alpha, dcomplex* a, inc_t rs_a, inc_t cs_a,
@@ -394,10 +371,10 @@ void bli_zgemv_n_zen4_int
     }
 
 #if defined(BLIS_ENABLE_OPENMP)
-    ker_ft = ( m * n < 1800 ) ? bli_zgemv_n_zen4_int_20x10
-                              : bli_zgemv_n_zen4_int_20x10_mt;
+    ker_ft = ( m * n < 1800 ) ? bli_zgemv_n_zen_int_10x5
+                              : bli_zgemv_n_zen_int_10x5_mt;
 #else
-    ker_ft = bli_zgemv_n_zen4_int_20x10;
+    ker_ft = bli_zgemv_n_zen_int_10x5;
 #endif
 
     ker_ft( transa, BLIS_NO_CONJUGATE, m, n, alpha, a, rs_a, cs_a,
@@ -412,55 +389,30 @@ void bli_zgemv_n_zen4_int
         bli_pba_release( &rntm, &mem_bufX );
 }
 
+// expands to: N micro-kernel family bli_dgemv_n_block_*_avx2 + table bli_dgemv_n_ker_fp_20_4
+GENERATE_d_KERNELS_20_N(double, d, 20, 4);
+// expands to: bli_dgemv_n_zen_int_20x4 (single-thread N-direction tiled caller)
+GENT_GEMV_CALLER(double, d, 20, 4, n)
+// expands to: bli_dgemv_n_zen_int_20x4_mt (M-split OpenMP wrapper; empty if !OpenMP)
+MT_KERNEL_SIGNATURE(double, d, 20, 4)
 
-/*
- * Real types (float/double): GENERATE_KERNEL is expanded manually because
- * the N-kernel and M-kernel use DIFFERENT NR values:
- *   double: NR=8 for N-kernel, NR=8 for M-kernel (same here, but path differs)
- *   float:  NR=2 for N-kernel, NR=8 for M-kernel
- *
- * The N-kernel NR governs how many x-elements are broadcast simultaneously
- * (wider = more x reuse per A load).  The M-kernel NR governs how many
- * accumulator registers are maintained per row tile.  Tuning them separately
- * lets us optimize for different loop structures.
- *
- * Expansion steps:
- *   GENERATE_<ch>_KERNELS_<MR>_N  — instantiate N micro-kernels and their dispatch table
- *   GENT_GEMV_CALLER(ch, MR, NR, n) — N-direction ST tiled caller
- *   MT_KERNEL_SIGNATURE            — N-direction MT wrapper (OpenMP N-dim split)
- *   GENERATE_<ch>_KERNELS_<MR>_NM — instantiate M micro-kernels and their dispatch table
- *   GENT_GEMV_CALLER(ch, MR, NR, m) — M-direction ST tiled caller
- */
+// expands to: M micro-kernel family bli_dgemv_m_block_*_avx2 + table bli_dgemv_m_ker_fp_20_4
+GENERATE_d_KERNELS_20_NM(double, d, 20, 4)
+// expands to: bli_dgemv_m_zen_int_20x4 (single-thread M-direction tiled caller)
+GENT_GEMV_CALLER(double, d, 20, 4, m)
 
-/* double: MR=40, NR=8 */
-// PASTECH4(GENERATE_,d,_KERNELS_,40,_N) == GENERATE_d_KERNELS_40_N
-// expands to: N micro-kernel family bli_dgemv_n_block_*_avx512 + table bli_dgemv_n_ker_fp_40_8
-PASTECH4(GENERATE_,d,_KERNELS_,40,_N)(double, d, 40, 8);
-// expands to: bli_dgemv_n_zen4_int_40x8 (single-thread N-direction tiled caller)
-GENT_GEMV_CALLER(double, d, 40, 8, n)
-// expands to: bli_dgemv_n_zen4_int_40x8_mt (M-split OpenMP wrapper; empty if !OpenMP)
-MT_KERNEL_SIGNATURE(double, d, 40, 8)
+// expands to: N micro-kernel family bli_sgemv_n_block_*_avx2 + table bli_sgemv_n_ker_fp_40_4
+GENERATE_s_KERNELS_40_N(float, s, 40, 4);
+// expands to: bli_sgemv_n_zen_int_40x4 (single-thread N-direction tiled caller)
+GENT_GEMV_CALLER(float, s, 40, 4, n)
+// expands to: bli_sgemv_n_zen_int_40x4_mt (M-split OpenMP wrapper; empty if !OpenMP)
+MT_KERNEL_SIGNATURE(float, s, 40, 4)
 
-// PASTECH4(GENERATE_,d,_KERNELS_,40,_NM) == GENERATE_d_KERNELS_40_NM
-// expands to: M micro-kernel family bli_dgemv_m_block_*_avx512 + table bli_dgemv_m_ker_fp_40_8
-PASTECH4(GENERATE_,d,_KERNELS_,40,_NM)(double, d, 40, 8)
-// expands to: bli_dgemv_m_zen4_int_40x8 (single-thread M-direction tiled caller)
-GENT_GEMV_CALLER(double, d, 40, 8, m)
+// expands to: M micro-kernel family bli_sgemv_m_block_*_avx2 + table bli_sgemv_m_ker_fp_40_4
+GENERATE_s_KERNELS_40_NM(float, s, 40, 4)
+// expands to: bli_sgemv_m_zen_int_40x4 (single-thread M-direction tiled caller)
+GENT_GEMV_CALLER(float, s, 40, 4, m)
 
-/* float: NR=2 for N-kernel, NR=8 for M-kernel */
-// PASTECH4(GENERATE_,s,_KERNELS_,80,_N) == GENERATE_s_KERNELS_80_N
-// expands to: N micro-kernel family bli_sgemv_n_block_*_avx512 + table bli_sgemv_n_ker_fp_80_8
-PASTECH4(GENERATE_,s,_KERNELS_,80,_N)(float, s, 80, 8);
-// expands to: bli_sgemv_n_zen4_int_80x8 (single-thread N-direction tiled caller)
-GENT_GEMV_CALLER(float, s, 80, 8, n)
-// expands to: bli_sgemv_n_zen4_int_80x8_mt (M-split OpenMP wrapper; empty if !OpenMP)
-MT_KERNEL_SIGNATURE(float, s, 80, 8)
-
-// PASTECH4(GENERATE_,s,_KERNELS_,80,_NM) == GENERATE_s_KERNELS_80_NM
-// expands to: M micro-kernel family bli_sgemv_m_block_*_avx512 + table bli_sgemv_m_ker_fp_80_8
-PASTECH4(GENERATE_,s,_KERNELS_,80,_NM)(float, s, 80, 8)
-// expands to: bli_sgemv_m_zen4_int_80x8 (single-thread M-direction tiled caller)
-GENT_GEMV_CALLER(float, s, 80, 8, m)
 
 /*
  * ─── Real-type (s/d) control layer: fully inlined, self-contained per type ────
@@ -468,18 +420,18 @@ GENT_GEMV_CALLER(float, s, 80, 8, m)
  * The single-thread size dispatch (_st), the multi-threaded row/column split
  * wrappers (_mt_Mdiv / _mt_Ndiv), and the public entry-point are written out
  * directly here as type-specific C — no vtable, no shared void* core. Each calls
- * the concrete AVX-512 tiled callers / addv / ref generated above.
+ * the concrete AVX2 tiled callers / addv / ref generated above.
  *
  * Definition order (_st → _mt_Mdiv → _mt_Ndiv → entry) is chosen so every
  * intra-file callee is defined above its caller; no forward declarations needed.
- * (Complex types c/z remain on the GENERATE_KERNEL macro path above.)
+ * (Complex types c/z stay on the GENERATE_KERNEL macro path above.)
  */
 
 // ── double ───────────────────────────────────────────────────────────────────
 
 // Single-thread size dispatch: M-direction caller for small problems (byte
 // threshold auto-scales with the datatype), N-direction caller otherwise.
-void bli_dgemv_n_zen4_int_st
+void bli_dgemv_n_zen_int_st
      (
        trans_t transa, conj_t conjx, dim_t m, dim_t n,
        double* alpha, double* a, inc_t rs_a, inc_t cs_a,
@@ -488,29 +440,16 @@ void bli_dgemv_n_zen4_int_st
      )
 {
     if ( (dim_t)( m * n ) * (dim_t)sizeof( double ) < GEMV_N_CTRL_THRESH_BYTES )
-        bli_dgemv_m_zen4_int_40x8( transa, conjx, m, n, alpha, a, rs_a, cs_a,
-                                   x, incx, beta, y, incy, cntx );
+        bli_dgemv_m_zen_int_20x4( transa, conjx, m, n, alpha, a, rs_a, cs_a,
+                                  x, incx, beta, y, incy, cntx );
     else
-        bli_dgemv_n_zen4_int_40x8( transa, conjx, m, n, alpha, a, rs_a, cs_a,
-                                   x, incx, beta, y, incy, cntx );
-}
-
-// Compatibility aliases retained for external callers (for example libflame)
-void bli_dgemv_n_zen4_int_40x2_st
-     (
-       trans_t transa, conj_t conjx, dim_t m, dim_t n,
-       double* alpha, double* a, inc_t rs_a, inc_t cs_a,
-       double* x, inc_t incx, double* beta,
-       double* y, inc_t incy, cntx_t* cntx
-     )
-{
-    bli_dgemv_n_zen4_int_st( transa, conjx, m, n, alpha, a, rs_a, cs_a,
-                             x, incx, beta, y, incy, cntx );
+        bli_dgemv_n_zen_int_20x4( transa, conjx, m, n, alpha, a, rs_a, cs_a,
+                                  x, incx, beta, y, incy, cntx );
 }
 
 // Multi-thread, row (M) split: each thread owns a disjoint block of y rows and
 // runs the ST dispatcher on it (disjoint writes, no reduction).
-void bli_dgemv_m_zen4_int_40x8_mt_Mdiv
+void bli_dgemv_m_zen_int_20x4_mt_Mdiv
      (
        trans_t transa, conj_t conjx, dim_t m, dim_t n,
        double* alpha, double* a, inc_t rs_a, inc_t cs_a,
@@ -530,8 +469,8 @@ void bli_dgemv_m_zen4_int_40x8_mt_Mdiv
 
     if ( nt == 1 )
     {
-        bli_dgemv_n_zen4_int_st( transa, conjx, m, n, alpha, a, rs_a, cs_a,
-                                 x, incx, beta, y, incy, cntx );
+        bli_dgemv_n_zen_int_st( transa, conjx, m, n, alpha, a, rs_a, cs_a,
+                                x, incx, beta, y, incy, cntx );
         return;
     }
 
@@ -542,14 +481,14 @@ void bli_dgemv_m_zen4_int_40x8_mt_Mdiv
         const dim_t tid     = omp_get_thread_num();
         const dim_t nt_real = omp_get_num_threads();
         bli_thread_vector_partition( m, nt_real, &thread_start, &job_per_thread, tid );
-        bli_dgemv_n_zen4_int_st( transa, conjx, job_per_thread, n, alpha,
-                                 a + thread_start * rs_a, rs_a, cs_a,
-                                 x, incx, beta,
-                                 y + thread_start * incy, incy, cntx );
+        bli_dgemv_n_zen_int_st( transa, conjx, job_per_thread, n, alpha,
+                                a + thread_start * rs_a, rs_a, cs_a,
+                                x, incx, beta,
+                                y + thread_start * incy, incy, cntx );
     }
 #else
-    bli_dgemv_n_zen4_int_st( transa, conjx, m, n, alpha, a, rs_a, cs_a,
-                             x, incx, beta, y, incy, cntx );
+    bli_dgemv_n_zen_int_st( transa, conjx, m, n, alpha, a, rs_a, cs_a,
+                            x, incx, beta, y, incy, cntx );
 #endif
 }
 
@@ -557,7 +496,7 @@ void bli_dgemv_m_zen4_int_40x8_mt_Mdiv
 // over a column slice; thread 0 writes into y, threads 1..nt-1 into per-thread
 // scratch (beta=0). A serial addv loop then sums the partials into y. Scratch is
 // one allocation: [ dim_t jobs[nt] ][ (nt-1) partial-y buffers of m*incy ].
-void bli_dgemv_m_zen4_int_40x8_mt_Ndiv
+void bli_dgemv_m_zen_int_20x4_mt_Ndiv
      (
        trans_t transa, conj_t conjx, dim_t m, dim_t n,
        double* alpha, double* a, inc_t rs_a, inc_t cs_a,
@@ -577,8 +516,8 @@ void bli_dgemv_m_zen4_int_40x8_mt_Ndiv
 
     if ( nt == 1 )
     {
-        bli_dgemv_n_zen4_int_st( transa, conjx, m, n, alpha, a, rs_a, cs_a,
-                                 x, incx, beta, y, incy, cntx );
+        bli_dgemv_n_zen_int_st( transa, conjx, m, n, alpha, a, rs_a, cs_a,
+                                x, incx, beta, y, incy, cntx );
         return;
     }
 
@@ -606,8 +545,8 @@ void bli_dgemv_m_zen4_int_40x8_mt_Ndiv
     if ( local_mem_buf.size < jobs_bytes + part_bytes || !temp_mem )
     {
         if ( bli_mem_is_alloc( &local_mem_buf ) ) bli_pba_release( &rntm, &local_mem_buf );
-        bli_dgemv_m_zen4_int_40x8_mt_Mdiv( transa, conjx, m, n, alpha, a, rs_a, cs_a,
-                                           x, incx, beta, y, incy, cntx );
+        bli_dgemv_m_zen_int_20x4_mt_Mdiv( transa, conjx, m, n, alpha, a, rs_a, cs_a,
+                                          x, incx, beta, y, incy, cntx );
         return;
     }
 
@@ -633,27 +572,27 @@ void bli_dgemv_m_zen4_int_40x8_mt_Ndiv
         }
         jobs[ tid ] = job_per_thread;
 
-        bli_dgemv_n_zen4_int_st( transa, conjx, m, job_per_thread, alpha,
-                                 a + thread_start * cs_a, rs_a, cs_a,
-                                 x + thread_start * incx, incx,
-                                 beta_, mem, incy, cntx );
+        bli_dgemv_n_zen_int_st( transa, conjx, m, job_per_thread, alpha,
+                                a + thread_start * cs_a, rs_a, cs_a,
+                                x + thread_start * incx, incx,
+                                beta_, mem, incy, cntx );
     }
 
     for ( dim_t i = 1; i < nt; ++i )
     {
         if ( jobs[ i ] == 0 ) continue;
         double* partial = partials + (size_t)( i - 1 ) * (size_t)m * (size_t)incy;
-        bli_daddv_zen4_int( BLIS_NO_CONJUGATE, m, partial, incy, y, incy, cntx );
+        bli_daddv_zen_int( BLIS_NO_CONJUGATE, m, partial, incy, y, incy, cntx );
     }
 
     if ( bli_mem_is_alloc( &local_mem_buf ) ) bli_pba_release( &rntm, &local_mem_buf );
 #else
-    bli_dgemv_n_zen4_int_st( transa, conjx, m, n, alpha, a, rs_a, cs_a,
-                             x, incx, beta, y, incy, cntx );
+    bli_dgemv_n_zen_int_st( transa, conjx, m, n, alpha, a, rs_a, cs_a,
+                            x, incx, beta, y, incy, cntx );
 #endif
 }
 
-void bli_dgemv_n_zen4_int
+void bli_dgemv_n_zen_int
      (
        trans_t transa, conj_t conjx, dim_t m, dim_t n,
        double* alpha, double* a, inc_t rs_a, inc_t cs_a,
@@ -677,8 +616,8 @@ void bli_dgemv_n_zen4_int
     // Small problem: skip the MT decision and dispatch straight to ST.
     if ( (dim_t)( m * n ) * (dim_t)sizeof( double ) < GEMV_N_CTRL_THRESH_BYTES )
     {
-        bli_dgemv_n_zen4_int_st( transa, conjx, m, n, alpha, a, rs_a, cs_a,
-                                 x, incx, beta, y, incy, cntx );
+        bli_dgemv_n_zen_int_st( transa, conjx, m, n, alpha, a, rs_a, cs_a,
+                                x, incx, beta, y, incy, cntx );
         return;
     }
 #endif
@@ -686,24 +625,24 @@ void bli_dgemv_n_zen4_int
 #if defined(BLIS_ENABLE_OPENMP)
     if ( ( m < GEMV_N_CTRL_MT_THRESH_M ) ||
          ( (dim_t)( m * n ) >= GEMV_N_CTRL_MT_THRESH_SIZE && ( m / n ) < 10000 ) )
-        ker_ft = bli_dgemv_m_zen4_int_40x8_mt_Ndiv;
+        ker_ft = bli_dgemv_m_zen_int_20x4_mt_Ndiv;
     else
-        ker_ft = bli_dgemv_m_zen4_int_40x8_mt_Mdiv;
+        ker_ft = bli_dgemv_m_zen_int_20x4_mt_Mdiv;
 #else
-    bli_dgemv_n_zen4_int_st( transa, conjx, m, n, alpha, a, rs_a, cs_a,
-                             x, incx, beta, y, incy, cntx );
+    bli_dgemv_n_zen_int_st( transa, conjx, m, n, alpha, a, rs_a, cs_a,
+                            x, incx, beta, y, incy, cntx );
     return;
 #endif
 
     // Strided y or transpose: hand off to the M-direction tiled caller.
     if ( incy != 1 || transa != BLIS_NO_TRANSPOSE )
-        ker_ft = bli_dgemv_m_zen4_int_40x8;
+        ker_ft = bli_dgemv_m_zen_int_20x4;
 
     ker_ft( transa, conjx, m, n, alpha, a, rs_a, cs_a, x, incx, beta, y, incy, cntx );
 }
 
 // ── float ────────────────────────────────────────────────────────────────────
-void bli_sgemv_n_zen4_int_st
+void bli_sgemv_n_zen_int_st
      (
        trans_t transa, conj_t conjx, dim_t m, dim_t n,
        float* alpha, float* a, inc_t rs_a, inc_t cs_a,
@@ -712,14 +651,14 @@ void bli_sgemv_n_zen4_int_st
      )
 {
     if ( (dim_t)( m * n ) * (dim_t)sizeof( float ) < GEMV_N_CTRL_THRESH_BYTES )
-        bli_sgemv_m_zen4_int_80x8( transa, conjx, m, n, alpha, a, rs_a, cs_a,
-                                   x, incx, beta, y, incy, cntx );
+        bli_sgemv_m_zen_int_40x4( transa, conjx, m, n, alpha, a, rs_a, cs_a,
+                                  x, incx, beta, y, incy, cntx );
     else
-        bli_sgemv_n_zen4_int_80x8( transa, conjx, m, n, alpha, a, rs_a, cs_a,
-                                   x, incx, beta, y, incy, cntx );
+        bli_sgemv_n_zen_int_40x4( transa, conjx, m, n, alpha, a, rs_a, cs_a,
+                                  x, incx, beta, y, incy, cntx );
 }
 
-void bli_sgemv_m_zen4_int_80x8_mt_Mdiv
+void bli_sgemv_m_zen_int_40x4_mt_Mdiv
      (
        trans_t transa, conj_t conjx, dim_t m, dim_t n,
        float* alpha, float* a, inc_t rs_a, inc_t cs_a,
@@ -739,8 +678,8 @@ void bli_sgemv_m_zen4_int_80x8_mt_Mdiv
 
     if ( nt == 1 )
     {
-        bli_sgemv_n_zen4_int_st( transa, conjx, m, n, alpha, a, rs_a, cs_a,
-                                 x, incx, beta, y, incy, cntx );
+        bli_sgemv_n_zen_int_st( transa, conjx, m, n, alpha, a, rs_a, cs_a,
+                                x, incx, beta, y, incy, cntx );
         return;
     }
 
@@ -751,18 +690,18 @@ void bli_sgemv_m_zen4_int_80x8_mt_Mdiv
         const dim_t tid     = omp_get_thread_num();
         const dim_t nt_real = omp_get_num_threads();
         bli_thread_vector_partition( m, nt_real, &thread_start, &job_per_thread, tid );
-        bli_sgemv_n_zen4_int_st( transa, conjx, job_per_thread, n, alpha,
-                                 a + thread_start * rs_a, rs_a, cs_a,
-                                 x, incx, beta,
-                                 y + thread_start * incy, incy, cntx );
+        bli_sgemv_n_zen_int_st( transa, conjx, job_per_thread, n, alpha,
+                                a + thread_start * rs_a, rs_a, cs_a,
+                                x, incx, beta,
+                                y + thread_start * incy, incy, cntx );
     }
 #else
-    bli_sgemv_n_zen4_int_st( transa, conjx, m, n, alpha, a, rs_a, cs_a,
-                             x, incx, beta, y, incy, cntx );
+    bli_sgemv_n_zen_int_st( transa, conjx, m, n, alpha, a, rs_a, cs_a,
+                            x, incx, beta, y, incy, cntx );
 #endif
 }
 
-void bli_sgemv_m_zen4_int_80x8_mt_Ndiv
+void bli_sgemv_m_zen_int_40x4_mt_Ndiv
      (
        trans_t transa, conj_t conjx, dim_t m, dim_t n,
        float* alpha, float* a, inc_t rs_a, inc_t cs_a,
@@ -782,8 +721,8 @@ void bli_sgemv_m_zen4_int_80x8_mt_Ndiv
 
     if ( nt == 1 )
     {
-        bli_sgemv_n_zen4_int_st( transa, conjx, m, n, alpha, a, rs_a, cs_a,
-                                 x, incx, beta, y, incy, cntx );
+        bli_sgemv_n_zen_int_st( transa, conjx, m, n, alpha, a, rs_a, cs_a,
+                                x, incx, beta, y, incy, cntx );
         return;
     }
 
@@ -809,8 +748,8 @@ void bli_sgemv_m_zen4_int_80x8_mt_Ndiv
     if ( local_mem_buf.size < jobs_bytes + part_bytes || !temp_mem )
     {
         if ( bli_mem_is_alloc( &local_mem_buf ) ) bli_pba_release( &rntm, &local_mem_buf );
-        bli_sgemv_m_zen4_int_80x8_mt_Mdiv( transa, conjx, m, n, alpha, a, rs_a, cs_a,
-                                           x, incx, beta, y, incy, cntx );
+        bli_sgemv_m_zen_int_40x4_mt_Mdiv( transa, conjx, m, n, alpha, a, rs_a, cs_a,
+                                          x, incx, beta, y, incy, cntx );
         return;
     }
 
@@ -836,10 +775,10 @@ void bli_sgemv_m_zen4_int_80x8_mt_Ndiv
         }
         jobs[ tid ] = job_per_thread;
 
-        bli_sgemv_n_zen4_int_st( transa, conjx, m, job_per_thread, alpha,
-                                 a + thread_start * cs_a, rs_a, cs_a,
-                                 x + thread_start * incx, incx,
-                                 beta_, mem, incy, cntx );
+        bli_sgemv_n_zen_int_st( transa, conjx, m, job_per_thread, alpha,
+                                a + thread_start * cs_a, rs_a, cs_a,
+                                x + thread_start * incx, incx,
+                                beta_, mem, incy, cntx );
     }
 
     for ( dim_t i = 1; i < nt; ++i )
@@ -851,12 +790,12 @@ void bli_sgemv_m_zen4_int_80x8_mt_Ndiv
 
     if ( bli_mem_is_alloc( &local_mem_buf ) ) bli_pba_release( &rntm, &local_mem_buf );
 #else
-    bli_sgemv_n_zen4_int_st( transa, conjx, m, n, alpha, a, rs_a, cs_a,
-                             x, incx, beta, y, incy, cntx );
+    bli_sgemv_n_zen_int_st( transa, conjx, m, n, alpha, a, rs_a, cs_a,
+                            x, incx, beta, y, incy, cntx );
 #endif
 }
 
-void bli_sgemv_n_zen4_int
+void bli_sgemv_n_zen_int
      (
        trans_t transa, conj_t conjx, dim_t m, dim_t n,
        float* alpha, float* a, inc_t rs_a, inc_t cs_a,
@@ -880,8 +819,8 @@ void bli_sgemv_n_zen4_int
     // Small problem: skip the MT decision and dispatch straight to ST.
     if ( (dim_t)( m * n ) * (dim_t)sizeof( float ) < GEMV_N_CTRL_THRESH_BYTES )
     {
-        bli_sgemv_n_zen4_int_st( transa, conjx, m, n, alpha, a, rs_a, cs_a,
-                                 x, incx, beta, y, incy, cntx );
+        bli_sgemv_n_zen_int_st( transa, conjx, m, n, alpha, a, rs_a, cs_a,
+                                x, incx, beta, y, incy, cntx );
         return;
     }
 #endif
@@ -889,18 +828,18 @@ void bli_sgemv_n_zen4_int
 #if defined(BLIS_ENABLE_OPENMP)
     if ( ( m < GEMV_N_CTRL_MT_THRESH_M ) ||
          ( (dim_t)( m * n ) >= GEMV_N_CTRL_MT_THRESH_SIZE && ( m / n ) < 10000 ) )
-        ker_ft = bli_sgemv_m_zen4_int_80x8_mt_Ndiv;
+        ker_ft = bli_sgemv_m_zen_int_40x4_mt_Ndiv;
     else
-        ker_ft = bli_sgemv_m_zen4_int_80x8_mt_Mdiv;
+        ker_ft = bli_sgemv_m_zen_int_40x4_mt_Mdiv;
 #else
-    bli_sgemv_n_zen4_int_st( transa, conjx, m, n, alpha, a, rs_a, cs_a,
-                             x, incx, beta, y, incy, cntx );
+    bli_sgemv_n_zen_int_st( transa, conjx, m, n, alpha, a, rs_a, cs_a,
+                            x, incx, beta, y, incy, cntx );
     return;
 #endif
 
     // Strided y or transpose: hand off to the M-direction tiled caller.
     if ( incy != 1 || transa != BLIS_NO_TRANSPOSE )
-        ker_ft = bli_sgemv_m_zen4_int_80x8;
+        ker_ft = bli_sgemv_m_zen_int_40x4;
 
     ker_ft( transa, conjx, m, n, alpha, a, rs_a, cs_a, x, incx, beta, y, incy, cntx );
 }
