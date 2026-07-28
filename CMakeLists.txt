@@ -289,6 +289,7 @@ option(ENABLE_SMALL_MATRIX "Small matrix handling" ON)
 option(ENABLE_SUP_HANDLING "SUP matrix handling" ON)
 option(ENABLE_SMALL_MATRIX_TRSM "TRSM Small matrix handling" ON)
 option(ENABLE_TRSM_PREINVERSION "Enable TRSM preinversion" ON)
+option(ENABLE_AOCL_ALLOC "Enable aocl_alloc" OFF)
 
 set(ENABLE_AOCL_DTL "OFF" CACHE STRING "Enable DTL Usage. Use with option ALL to enable both Tracing and Logging, TRACE to enable Tracing, and LOG to enable only logging")
 set_property(CACHE ENABLE_AOCL_DTL PROPERTY STRINGS ALL TRACE LOG OFF )
@@ -568,6 +569,33 @@ else()
     message("   Internal memory pools for small blocks are disabled.")
     set(ENABLE_SBA_POOLS_01 0)
 endif()
+cmake_print_variables(ENABLE_AOCL_ALLOC)
+if(ENABLE_AOCL_ALLOC AND NOT ENABLE_SYSTEM)
+    message(WARNING "   aocl allocator requires operating system support (pthreads + mmap); disabling because ENABLE_SYSTEM=OFF.")
+    set(ENABLE_AOCL_ALLOC OFF)
+endif()
+if(ENABLE_AOCL_ALLOC AND NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64|AMD64)$")
+    message(WARNING "   aocl allocator is only supported on x86_64; disabling on ${CMAKE_SYSTEM_PROCESSOR}.")
+    set(ENABLE_AOCL_ALLOC OFF)
+endif()
+if(ENABLE_AOCL_ALLOC AND NOT CMAKE_C_COMPILER_ID MATCHES "GNU|Clang|IntelLLVM")
+    message(WARNING "   aocl allocator requires gcc or clang; disabling for compiler '${CMAKE_C_COMPILER_ID}'.")
+    set(ENABLE_AOCL_ALLOC OFF)
+endif()
+if(ENABLE_AOCL_ALLOC)
+    message("   aocl allocator is enabled.")
+    set(ENABLE_AOCL_ALLOC_01 1)
+	# ---------------------------------------------------------
+	# Enable GNU extensions
+	# ---------------------------------------------------------
+	if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+			add_compile_definitions(_GNU_SOURCE)
+	endif()
+	# ---------------------------------------------------------
+else()
+    message("   aocl allocator is disabled.")
+    set(ENABLE_AOCL_ALLOC_01 0)
+endif()
 cmake_print_variables(ENABLE_MEM_TRACING)
 if(ENABLE_MEM_TRACING)
     message("   Memory tracing output is enabled.")
@@ -576,6 +604,10 @@ else()
     message("   Memory tracing output is disabled.")
     set(ENABLE_MEM_TRACING_01 0)
 endif()
+# Capture whether libmemkind was explicitly requested ("yes") vs auto before the
+# resolution below overwrites ENABLE_MEMKIND; the aocl-allocator cross-check needs
+# to tell an explicit request from an auto-enable.
+set(MEMKIND_REQ "${ENABLE_MEMKIND}")
 cmake_print_variables(ENABLE_MEMKIND)
 if(HAS_MEMKIND)
     if(ENABLE_MEMKIND STREQUAL "auto")
@@ -607,6 +639,20 @@ else()
     set(ENABLE_MEMKIND "no")
     set(ENABLE_MEMKIND_01 0)
 endif()
+# The aocl allocator and libmemkind both redefine the BLIS_MALLOC_* backends, so
+# enabling both would split allocations across two allocators. Mirror the other
+# allocator gates (warn and auto-disable, never fail) instead of leaving the clash
+# to a hard #error in bli_kernel_macro_defs.h: an enabled aocl allocator takes
+# precedence and libmemkind is disabled.
+if(ENABLE_AOCL_ALLOC AND (ENABLE_MEMKIND STREQUAL "yes"))
+    message(WARNING "   aocl allocator is enabled; disabling libmemkind (both cannot drive BLIS_MALLOC_* at once).")
+    if(MEMKIND_REQ STREQUAL "yes")
+        message(WARNING "   Cannot honor explicit request to enable libmemkind alongside ENABLE_AOCL_ALLOC.")
+    endif()
+    set(ENABLE_MEMKIND "no")
+    set(ENABLE_MEMKIND_01 0)
+endif()
+
 cmake_print_variables(PRAGMA_OMP_SIMD)
 if(PRAGMA_OMP_SIMD)
     message("   Compiler appears to support #pragma omp simd.")
@@ -1403,6 +1449,7 @@ if(BUILD_SHARED_LIBS)
                         SOVERSION ${SO_VERSION_MAJOR}
                         OUTPUT_NAME ${LIBBLIS_SHARED}
                     )
+
 endif()
 if(BUILD_STATIC_LIBS OR NOT BUILD_SHARED_LIBS)
     # Build static library with proper target name.
@@ -1410,6 +1457,7 @@ if(BUILD_STATIC_LIBS OR NOT BUILD_SHARED_LIBS)
     set_target_properties(blis_static PROPERTIES
                         OUTPUT_NAME ${LIBBLIS_STATIC}
                     )
+
 endif()
 
 # AOCL Build-It-Yourself unified build: contribute BLIS' object files to the
