@@ -586,13 +586,15 @@ void GENTFUNC_GEMVTS(ctype, ch, MR, NR)                                         
     ctype *restrict xbuf = x;                                                                       \
     ctype *restrict ybuf = y;                                                                       \
                                                                                                     \
-    const dim_t mloop_full = m / MR;                                                                \
-    const dim_t mloop_epr  = (m % MR) / EPR;                                                        \
-    const dim_t MR_left    = m % EPR;                                                               \
+    /* The asm block reads these with 64-bit MOV/TEST, so they must be 64-bit    \
+       even when dim_t is 32-bit (BLIS_INT_TYPE_SIZE=32). */                     \
+    const int64_t mloop_full = m / MR;                                                              \
+    const int64_t mloop_epr  = (m % MR) / EPR;                                                      \
+    const int64_t MR_left    = m % EPR;                                                             \
                                                                                                     \
-    const dim_t rs_a_bytes     = (dim_t)rs_a * ELEM_SIZE;                                           \
-    const dim_t cs_a_epr_bytes = (dim_t)cs_a * EPR * ELEM_SIZE;                                     \
-    const dim_t epr_bytes      = (dim_t)EPR  * ELEM_SIZE;                                           \
+    const int64_t rs_a_bytes     = (int64_t)rs_a * ELEM_SIZE;                                       \
+    const int64_t cs_a_epr_bytes = (int64_t)cs_a * EPR * ELEM_SIZE;                                 \
+    const int64_t epr_bytes      = (int64_t)EPR  * ELEM_SIZE;                                       \
                                                                                                     \
     PASTECH(SIMD_VEC_, ch) yv[NR];                                                                  \
                                                                                                     \
