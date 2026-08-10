@@ -6,6 +6,8 @@
  * 
  * Keita Teranishi  5/20/98
  *
+ * Copyright (C) 2026, Advanced Micro Devices, Inc. All rights reserved.
+ *
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,7 +27,7 @@ void cblas_cgerc(enum CBLAS_ORDER order, f77_int M, f77_int N,
    #define F77_lda lda   
 #endif
 
-   int n, i, tincy;
+   f77_int n, i, tincy;
    float *y=(float *)Y, *yy=(float *)Y, *ty, *st;
 
    extern int CBLAS_CallFromC;

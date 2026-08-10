@@ -6,6 +6,8 @@
  * 
  * Keita Teranishi  5/20/98
  *
+ * Copyright (C) 2026, Advanced Micro Devices, Inc. All rights reserved.
+ *
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,10 +36,10 @@ void cblas_cgemv(enum CBLAS_ORDER order,
    #define F77_incY incY
 #endif
 
-   int n=0, i=0;
+   f77_int n=0, i=0;
    const float *xx= (const float *)X;
    float ALPHA[2],BETA[2];
-   int tincY, tincx;
+   f77_int tincY, tincx;
    float *x=(float *)X, *y=(float *)Y, *st=0, *tx=0;
    const float *stx = x;
    extern int CBLAS_CallFromC;

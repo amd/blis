@@ -6,6 +6,8 @@
  * 
  * Keita Teranishi  5/20/98
  *
+ * Copyright (C) 2026, Advanced Micro Devices, Inc. All rights reserved.
+ *
  */
 #include "cblas.h"
 #include "cblas_f77.h"
@@ -29,7 +31,7 @@ void cblas_ctpmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
    #define F77_N N
    #define F77_incX incX
 #endif
-   int n, i=0, tincX; 
+   f77_int n, i=0, tincX;
    float *st=0,*x=(float *)X;
    extern int CBLAS_CallFromC;
    extern int RowMajorStrg;

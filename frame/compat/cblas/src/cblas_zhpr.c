@@ -6,6 +6,8 @@
  * 
  * Keita Teranishi  3/23/98
  *
+ * Copyright (C) 2026, Advanced Micro Devices, Inc. All rights reserved.
+ *
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,7 +30,7 @@ void cblas_zhpr(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
    #define F77_N N
    #define F77_incX incX
 #endif
-   int n, i, tincx;
+   f77_int n, i, tincx;
    double *x=(double *)X, *xx=(double *)X, *tx, *st;
 
    extern int CBLAS_CallFromC;
