@@ -6,7 +6,7 @@
  * 
  * Keita Teranishi  5/20/98
  *
- * Copyright (C) 2026, Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (C) 2020 - 2026, Advanced Micro Devices, Inc. All rights reserved.
  *
  */
 #include <stdio.h>
@@ -54,10 +54,10 @@ void cblas_zgemv(enum CBLAS_ORDER order,
       else if (TransA == CblasConjTrans) TA = 'C';
       else 
       {
+         AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal TransA setting.");
          cblas_xerbla(2, "cblas_zgemv","Illegal TransA setting, %d\n", TransA);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
-         AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal TransA setting, %d\n");
          return;
       }
       #ifdef F77_CHAR
@@ -65,6 +65,7 @@ void cblas_zgemv(enum CBLAS_ORDER order,
       #endif
       F77_zgemv(F77_TA, &F77_M, &F77_N, (dcomplex*)alpha, (dcomplex*)A, &F77_lda, (dcomplex*)X, &F77_incX,
                 (dcomplex*)beta, (dcomplex*)Y, &F77_incY);
+      AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
    }
    else if (order == CblasRowMajor)
    {
@@ -134,10 +135,10 @@ void cblas_zgemv(enum CBLAS_ORDER order,
       }
       else 
       {
+         AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal TransA setting.");
          cblas_xerbla(2, "cblas_zgemv","Illegal TransA setting, %d\n", TransA);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
-         AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal TransA setting, %d\n");
          return;
       }
       #ifdef F77_CHAR
@@ -167,11 +168,15 @@ void cblas_zgemv(enum CBLAS_ORDER order,
             while (y != st);
          }
       }
+      AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
    }
-   else cblas_xerbla(1, "cblas_zgemv", "Illegal Order setting, %d\n", order);
+   else
+   {
+      AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
+      cblas_xerbla(1, "cblas_zgemv", "Illegal Order setting, %d\n", order);
+   }
    CBLAS_CallFromC = 0;
    RowMajorStrg = 0;
-   AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
    return;
 }
 #endif

@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -66,9 +66,9 @@ f77_int cblas_dgemm_pack_get_size( enum  CBLAS_IDENTIFIER Identifier,
     else if (Identifier == CblasBMatrix ) ID = 'B';
     else
     {
+        AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
         cblas_xerbla( 1, "cblas_dgemm_pack_get_size",
                          "Illegal CBLAS_IDENTIFIER setting, %d\n", Identifier );
-        AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
         return 0;
     }
 

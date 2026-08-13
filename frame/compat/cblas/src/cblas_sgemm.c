@@ -7,7 +7,7 @@
  * Written by Keita Teranishi
  * 4/8/1998
  *
- * Copyright (C) 2020, Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (C) 2020 - 2026, Advanced Micro Devices, Inc. All rights reserved.
  *
  */
 
@@ -19,6 +19,7 @@ void cblas_sgemm(enum CBLAS_ORDER Order, enum CBLAS_TRANSPOSE TransA,
                  f77_int lda, const float  *B, f77_int ldb,
                  float beta, float  *C, f77_int ldc)
 {
+   AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
    char TA, TB;
 #ifdef F77_CHAR
    F77_CHAR F77_TA, F77_TB;
@@ -43,6 +44,7 @@ void cblas_sgemm(enum CBLAS_ORDER Order, enum CBLAS_TRANSPOSE TransA,
    extern int RowMajorStrg;
    RowMajorStrg = 0;
    CBLAS_CallFromC = 1;
+
    if( Order == CblasColMajor )
    {
       if(TransA == CblasTrans) TA='T';
@@ -50,8 +52,8 @@ void cblas_sgemm(enum CBLAS_ORDER Order, enum CBLAS_TRANSPOSE TransA,
       else if ( TransA == CblasNoTrans )   TA='N';
       else
       {
-         cblas_xerbla(2, "cblas_sgemm",
-                       "Illegal TransA setting, %d\n", TransA);
+         AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal TransA setting.");
+         cblas_xerbla(2, "cblas_sgemm","Illegal TransA setting, %d\n", TransA);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
          return;
@@ -62,8 +64,8 @@ void cblas_sgemm(enum CBLAS_ORDER Order, enum CBLAS_TRANSPOSE TransA,
       else if ( TransB == CblasNoTrans )   TB='N';
       else
       {
-         cblas_xerbla(3, "cblas_sgemm",
-                       "Illegal TransB setting, %d\n", TransB);
+         AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal TransB setting.");
+         cblas_xerbla(3, "cblas_sgemm","Illegal TransB setting, %d\n", TransB);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
          return;
@@ -74,7 +76,9 @@ void cblas_sgemm(enum CBLAS_ORDER Order, enum CBLAS_TRANSPOSE TransA,
          F77_TB = C2F_CHAR(&TB);
       #endif
 
-      F77_sgemm(F77_TA, F77_TB, &F77_M, &F77_N, &F77_K, &alpha, A, &F77_lda, B, &F77_ldb, &beta, C, &F77_ldc);
+      F77_sgemm(F77_TA, F77_TB, &F77_M, &F77_N, &F77_K, &alpha, A,
+                &F77_lda, B, &F77_ldb, &beta, C, &F77_ldc);
+      AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
    } else if (Order == CblasRowMajor)
    {
       RowMajorStrg = 1;
@@ -83,8 +87,8 @@ void cblas_sgemm(enum CBLAS_ORDER Order, enum CBLAS_TRANSPOSE TransA,
       else if ( TransA == CblasNoTrans )   TB='N';
       else
       {
-         cblas_xerbla(2, "cblas_sgemm",
-                       "Illegal TransA setting, %d\n", TransA);
+         AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal TransA setting.");
+         cblas_xerbla(2, "cblas_sgemm","Illegal TransA setting, %d\n", TransA);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
          return;
@@ -94,8 +98,8 @@ void cblas_sgemm(enum CBLAS_ORDER Order, enum CBLAS_TRANSPOSE TransA,
       else if ( TransB == CblasNoTrans )   TA='N';
       else
       {
-         cblas_xerbla(2, "cblas_sgemm",
-                       "Illegal TransB setting, %d\n", TransB);
+         AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal TransB setting.");
+         cblas_xerbla(2, "cblas_sgemm","Illegal TransB setting, %d\n", TransB);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
          return;
@@ -105,11 +109,17 @@ void cblas_sgemm(enum CBLAS_ORDER Order, enum CBLAS_TRANSPOSE TransA,
          F77_TB = C2F_CHAR(&TB);
       #endif
 
-      F77_sgemm(F77_TA, F77_TB, &F77_N, &F77_M, &F77_K, &alpha, B, &F77_ldb, A, &F77_lda, &beta, C, &F77_ldc);
-   } else
-     cblas_xerbla(1, "cblas_sgemm",
-                     "Illegal Order setting, %d\n", Order);
+      F77_sgemm(F77_TA, F77_TB, &F77_N, &F77_M, &F77_K, &alpha, B,
+                &F77_ldb, A, &F77_lda, &beta, C, &F77_ldc);
+      AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
+   }
+   else
+   {
+      AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
+      cblas_xerbla(1, "cblas_sgemm", "Illegal Order setting, %d\n", Order);
+   }
    CBLAS_CallFromC = 0;
    RowMajorStrg = 0;
+   return;
 }
 #endif

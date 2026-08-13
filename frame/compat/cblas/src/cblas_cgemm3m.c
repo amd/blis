@@ -6,7 +6,7 @@
  *
  * This program is a C interface to cgemm3m.
  *
- * Copyright (C) 2020, Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (C) 2020 - 2026, Advanced Micro Devices, Inc. All rights reserved.
  *
  */
 
@@ -52,10 +52,10 @@ void cblas_cgemm3m(enum CBLAS_ORDER Order, enum CBLAS_TRANSPOSE TransA,
       else if ( TransA == CblasNoTrans )   TA='N';
       else 
       {
+         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
          cblas_xerbla(2, "cblas_cgemm3m", "Illegal TransA setting, %d\n", TransA);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
-         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
          return;
       }
 
@@ -64,10 +64,10 @@ void cblas_cgemm3m(enum CBLAS_ORDER Order, enum CBLAS_TRANSPOSE TransA,
       else if ( TransB == CblasNoTrans )   TB='N';
       else 
       {
+         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
          cblas_xerbla(3, "cblas_cgemm3m", "Illegal TransB setting, %d\n", TransB);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
-         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
          return;
       }
 
@@ -78,6 +78,7 @@ void cblas_cgemm3m(enum CBLAS_ORDER Order, enum CBLAS_TRANSPOSE TransA,
 
       F77_cgemm3m(F77_TA, F77_TB, &F77_M, &F77_N, &F77_K, (scomplex*)alpha, (scomplex*)A,
                      &F77_lda, (scomplex*)B, &F77_ldb, (scomplex*)beta, (scomplex*)C, &F77_ldc);
+      AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
    } else if (Order == CblasRowMajor)
    {
       RowMajorStrg = 1;
@@ -86,10 +87,10 @@ void cblas_cgemm3m(enum CBLAS_ORDER Order, enum CBLAS_TRANSPOSE TransA,
       else if ( TransA == CblasNoTrans )   TB='N';
       else 
       {
+         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
          cblas_xerbla(2, "cblas_cgemm3m", "Illegal TransA setting, %d\n", TransA);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
-         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
          return;
       }
       if(TransB == CblasTrans) TA='T';
@@ -97,10 +98,10 @@ void cblas_cgemm3m(enum CBLAS_ORDER Order, enum CBLAS_TRANSPOSE TransA,
       else if ( TransB == CblasNoTrans )   TA='N';
       else 
       {
+         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
          cblas_xerbla(2, "cblas_cgemm3m", "Illegal TransB setting, %d\n", TransB);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
-         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
          return;
       }
       #ifdef F77_CHAR
@@ -111,11 +112,15 @@ void cblas_cgemm3m(enum CBLAS_ORDER Order, enum CBLAS_TRANSPOSE TransA,
 
       F77_cgemm3m(F77_TA, F77_TB, &F77_N, &F77_M, &F77_K, (scomplex*)alpha, (scomplex*)B,
                   &F77_ldb, (scomplex*)A, &F77_lda, (scomplex*)beta, (scomplex*)C, &F77_ldc);
-   } 
-   else cblas_xerbla(1, "cblas_cgemm3m", "Illegal Order setting, %d\n", Order);
+      AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
+   }
+   else
+   {
+      AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
+      cblas_xerbla(1, "cblas_cgemm3m", "Illegal Order setting, %d\n", Order);
+   }
    CBLAS_CallFromC = 0;
    RowMajorStrg = 0;
-   AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
    return;
 }
 #endif

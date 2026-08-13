@@ -7,6 +7,8 @@
  * Written by Keita Teranishi
  * 4/8/1998
  *
+ * Copyright (C) 2026, Advanced Micro Devices, Inc. All rights reserved.
+ *
  */
 
 #include "cblas.h"
@@ -17,6 +19,7 @@ void cblas_ctrsm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
                  const void *alpha, const void  *A, f77_int lda,
                  void  *B, f77_int ldb)
 {
+   AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
    char UL, TA, SD, DI;
 #ifdef F77_CHAR
    F77_CHAR F77_TA, F77_UL, F77_SD, F77_DI;
@@ -46,9 +49,10 @@ void cblas_ctrsm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
 
       if( Side == CblasRight) SD='R';
       else if ( Side == CblasLeft ) SD='L';
-      else 
+      else
       {
-         cblas_xerbla(2, "cblas_ctrsm", "Illegal Side setting, %d\n", Side);
+         AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal Side setting.");
+         cblas_xerbla(2, "cblas_ctrsm","Illegal Side setting, %d\n", Side);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
          return;
@@ -56,9 +60,10 @@ void cblas_ctrsm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
 
       if( Uplo == CblasUpper) UL='U';
       else if ( Uplo == CblasLower ) UL='L';
-      else 
+      else
       {
-         cblas_xerbla(3, "cblas_ctrsm", "Illegal Uplo setting, %d\n", Uplo);
+         AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal Uplo setting.");
+         cblas_xerbla(3, "cblas_ctrsm","Illegal Uplo setting, %d\n", Uplo);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
          return;
@@ -67,9 +72,10 @@ void cblas_ctrsm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
       if( TransA == CblasTrans) TA ='T';
       else if ( TransA == CblasConjTrans ) TA='C';
       else if ( TransA == CblasNoTrans )   TA='N';
-      else 
+      else
       {
-         cblas_xerbla(4, "cblas_ctrsm", "Illegal Trans setting, %d\n", TransA);
+         AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal Trans setting.");
+         cblas_xerbla(4, "cblas_ctrsm","Illegal Trans setting, %d\n", TransA);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
          return;
@@ -77,9 +83,10 @@ void cblas_ctrsm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
 
       if( Diag == CblasUnit ) DI='U';
       else if ( Diag == CblasNonUnit ) DI='N';
-      else 
+      else
       {
-         cblas_xerbla(5, "cblas_ctrsm", "Illegal Diag setting, %d\n", Diag);
+         AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal Diag setting.");
+         cblas_xerbla(5, "cblas_ctrsm","Illegal Diag setting, %d\n", Diag);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
          return;
@@ -94,15 +101,17 @@ void cblas_ctrsm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
 
       F77_ctrsm(F77_SD, F77_UL, F77_TA, F77_DI, &F77_M, &F77_N, alpha, A,
                 &F77_lda, B, &F77_ldb);
+      AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
    } else if (Order == CblasRowMajor)
    {
       RowMajorStrg = 1;
 
       if( Side == CblasRight) SD='L';
       else if ( Side == CblasLeft ) SD='R';
-      else 
+      else
       {
-         cblas_xerbla(2, "cblas_ctrsm", "Illegal Side setting, %d\n", Side);
+         AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal Side setting.");
+         cblas_xerbla(2, "cblas_ctrsm","Illegal Side setting, %d\n", Side);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
          return;
@@ -110,9 +119,10 @@ void cblas_ctrsm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
 
       if( Uplo == CblasUpper) UL='L';
       else if ( Uplo == CblasLower ) UL='U';
-      else 
+      else
       {
-         cblas_xerbla(3, "cblas_ctrsm", "Illegal Uplo setting, %d\n", Uplo);
+         AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal Uplo setting.");
+         cblas_xerbla(3, "cblas_ctrsm","Illegal Uplo setting, %d\n", Uplo);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
          return;
@@ -121,9 +131,10 @@ void cblas_ctrsm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
       if( TransA == CblasTrans) TA ='T';
       else if ( TransA == CblasConjTrans ) TA='C';
       else if ( TransA == CblasNoTrans )   TA='N';
-      else 
+      else
       {
-         cblas_xerbla(4, "cblas_ctrsm", "Illegal Trans setting, %d\n", TransA);
+         AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal Trans setting.");
+         cblas_xerbla(4, "cblas_ctrsm","Illegal Trans setting, %d\n", TransA);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
          return;
@@ -131,9 +142,10 @@ void cblas_ctrsm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
 
       if( Diag == CblasUnit ) DI='U';
       else if ( Diag == CblasNonUnit ) DI='N';
-      else 
+      else
       {
-         cblas_xerbla(5, "cblas_ctrsm", "Illegal Diag setting, %d\n", Diag);
+         AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal Diag setting.");
+         cblas_xerbla(5, "cblas_ctrsm","Illegal Diag setting, %d\n", Diag);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
          return;
@@ -149,8 +161,13 @@ void cblas_ctrsm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
 
       F77_ctrsm(F77_SD, F77_UL, F77_TA, F77_DI, &F77_N, &F77_M, (scomplex*)alpha, (scomplex*)A,
                 &F77_lda, (scomplex*)B, &F77_ldb);
-   } 
-   else cblas_xerbla(1, "cblas_ctrsm", "Illegal Order setting, %d\n", Order);
+      AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
+   }
+   else
+   {
+      AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal order setting.");
+      cblas_xerbla(1, "cblas_ctrsm", "Illegal Order setting, %d\n", Order);
+   }
    CBLAS_CallFromC = 0;
    RowMajorStrg = 0;
    return;

@@ -7,6 +7,8 @@
  * Written by Keita Teranishi
  * 4/8/1998
  *
+ * Copyright (C) 2026, Advanced Micro Devices, Inc. All rights reserved.
+ *
  */
 
 #include "cblas.h"
@@ -17,12 +19,13 @@ void cblas_zgemm(enum CBLAS_ORDER Order, enum CBLAS_TRANSPOSE TransA,
                  f77_int lda, const void  *B, f77_int ldb,
                  const void *beta, void  *C, f77_int ldc)
 {
-   char TA, TB;   
+   AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
+   char TA, TB;
 #ifdef F77_CHAR
    F77_CHAR F77_TA, F77_TB;
 #else
-   #define F77_TA &TA  
-   #define F77_TB &TB  
+   #define F77_TA &TA
+   #define F77_TB &TB
 #endif
 
 #ifdef F77_INT
@@ -47,8 +50,9 @@ void cblas_zgemm(enum CBLAS_ORDER Order, enum CBLAS_TRANSPOSE TransA,
       if(TransA == CblasTrans) TA='T';
       else if ( TransA == CblasConjTrans ) TA='C';
       else if ( TransA == CblasNoTrans )   TA='N';
-      else 
+      else
       {
+         AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal TransA setting.");
          cblas_xerbla(2, "cblas_zgemm","Illegal TransA setting, %d\n", TransA);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
@@ -58,8 +62,9 @@ void cblas_zgemm(enum CBLAS_ORDER Order, enum CBLAS_TRANSPOSE TransA,
       if(TransB == CblasTrans) TB='T';
       else if ( TransB == CblasConjTrans ) TB='C';
       else if ( TransB == CblasNoTrans )   TB='N';
-      else 
+      else
       {
+         AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal TransB setting.");
          cblas_xerbla(3, "cblas_zgemm","Illegal TransB setting, %d\n", TransB);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
@@ -73,14 +78,16 @@ void cblas_zgemm(enum CBLAS_ORDER Order, enum CBLAS_TRANSPOSE TransA,
 
       F77_zgemm(F77_TA, F77_TB, &F77_M, &F77_N, &F77_K, (dcomplex*)alpha, (dcomplex*)A,
                      &F77_lda, (dcomplex*)B, &F77_ldb, (dcomplex*)beta, (dcomplex*)C, &F77_ldc);
+      AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
    } else if (Order == CblasRowMajor)
    {
       RowMajorStrg = 1;
       if(TransA == CblasTrans) TB='T';
       else if ( TransA == CblasConjTrans ) TB='C';
       else if ( TransA == CblasNoTrans )   TB='N';
-      else 
+      else
       {
+         AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal TransA setting.");
          cblas_xerbla(2, "cblas_zgemm","Illegal TransA setting, %d\n", TransA);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
@@ -89,8 +96,9 @@ void cblas_zgemm(enum CBLAS_ORDER Order, enum CBLAS_TRANSPOSE TransA,
       if(TransB == CblasTrans) TA='T';
       else if ( TransB == CblasConjTrans ) TA='C';
       else if ( TransB == CblasNoTrans )   TA='N';
-      else 
+      else
       {
+         AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal TransB setting.");
          cblas_xerbla(2, "cblas_zgemm","Illegal TransB setting, %d\n", TransB);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
@@ -103,8 +111,13 @@ void cblas_zgemm(enum CBLAS_ORDER Order, enum CBLAS_TRANSPOSE TransA,
 
       F77_zgemm(F77_TA, F77_TB, &F77_N, &F77_M, &F77_K, (dcomplex*)alpha, (dcomplex*)B,
                   &F77_ldb, (dcomplex*)A, &F77_lda, (dcomplex*)beta, (dcomplex*)C, &F77_ldc);
-   } 
-   else  cblas_xerbla(1, "cblas_zgemm", "Illegal Order setting, %d\n", Order);
+      AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
+   }
+   else
+   {
+      AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
+      cblas_xerbla(1, "cblas_zgemm", "Illegal Order setting, %d\n", Order);
+   }
    CBLAS_CallFromC = 0;
    RowMajorStrg = 0;
    return;

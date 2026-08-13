@@ -7,7 +7,8 @@
  * Written by Keita Teranishi
  * 4/8/1998
  *
- * Copyright (C) 2020, Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (C) 2020 - 2026, Advanced Micro Devices, Inc. All rights reserved.
+ *
  */
 
 #include "cblas.h"
@@ -18,13 +19,13 @@ void cblas_dgemm(enum CBLAS_ORDER Order, enum CBLAS_TRANSPOSE TransA,
                  f77_int lda, const double  *B, f77_int ldb,
                  double beta, double  *C, f77_int ldc)
 {
-	AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
-   char TA, TB;   
+   AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
+   char TA, TB;
 #ifdef F77_CHAR
    F77_CHAR F77_TA, F77_TB;
 #else
-   #define F77_TA &TA  
-   #define F77_TB &TB  
+   #define F77_TA &TA
+   #define F77_TB &TB
 #endif
 
 #ifdef F77_INT
@@ -49,24 +50,24 @@ void cblas_dgemm(enum CBLAS_ORDER Order, enum CBLAS_TRANSPOSE TransA,
       if(TransA == CblasTrans) TA='T';
       else if ( TransA == CblasConjTrans ) TA='C';
       else if ( TransA == CblasNoTrans )   TA='N';
-      else 
+      else
       {
+         AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal TransA setting.");
          cblas_xerbla(2, "cblas_dgemm","Illegal TransA setting, %d\n", TransA);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
-	 AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal transA setting.");
-	 return;
+         return;
       }
 
       if(TransB == CblasTrans) TB='T';
       else if ( TransB == CblasConjTrans ) TB='C';
       else if ( TransB == CblasNoTrans )   TB='N';
-      else 
+      else
       {
+         AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal TransB setting.");
          cblas_xerbla(3, "cblas_dgemm","Illegal TransB setting, %d\n", TransB);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
-	 AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal transB setting.");
          return;
       }
 
@@ -76,31 +77,31 @@ void cblas_dgemm(enum CBLAS_ORDER Order, enum CBLAS_TRANSPOSE TransA,
       #endif
 
       F77_dgemm(F77_TA, F77_TB, &F77_M, &F77_N, &F77_K, &alpha, A,
-       &F77_lda, B, &F77_ldb, &beta, C, &F77_ldc);
+                &F77_lda, B, &F77_ldb, &beta, C, &F77_ldc);
+      AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
    } else if (Order == CblasRowMajor)
    {
       RowMajorStrg = 1;
       if(TransA == CblasTrans) TB='T';
       else if ( TransA == CblasConjTrans ) TB='C';
       else if ( TransA == CblasNoTrans )   TB='N';
-      else 
+      else
       {
+         AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal TransA setting.");
          cblas_xerbla(2, "cblas_dgemm","Illegal TransA setting, %d\n", TransA);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
-	 AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal transA setting.");
          return;
       }
       if(TransB == CblasTrans) TA='T';
       else if ( TransB == CblasConjTrans ) TA='C';
       else if ( TransB == CblasNoTrans )   TA='N';
-      else 
+      else
       {
+         AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal TransB setting.");
          cblas_xerbla(2, "cblas_dgemm","Illegal TransB setting, %d\n", TransB);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
-	 AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal transB setting.");
-
          return;
       }
       #ifdef F77_CHAR
@@ -109,17 +110,16 @@ void cblas_dgemm(enum CBLAS_ORDER Order, enum CBLAS_TRANSPOSE TransA,
       #endif
 
       F77_dgemm(F77_TA, F77_TB, &F77_N, &F77_M, &F77_K, &alpha, B,
-                  &F77_ldb, A, &F77_lda, &beta, C, &F77_ldc);
-   } 
+                &F77_ldb, A, &F77_lda, &beta, C, &F77_ldc);
+      AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
+   }
    else
    {
-        cblas_xerbla(1, "cblas_dgemm", "Illegal Order setting, %d\n", Order);
-        CBLAS_CallFromC = 0;
-        RowMajorStrg = 0;
-        AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal Order setting.");
-        return;
+      AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
+      cblas_xerbla(1, "cblas_dgemm", "Illegal Order setting, %d\n", Order);
    }
-   AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+   CBLAS_CallFromC = 0;
+   RowMajorStrg = 0;
    return;
 }
 #endif

@@ -8,6 +8,8 @@
  *
  * Written by Keita Teranishi.  2/11/1998
  *
+ * Copyright (C) 2020 - 2026, Advanced Micro Devices, Inc. All rights reserved.
+ *
  */
 #include "cblas.h"
 #include "cblas_f77.h"

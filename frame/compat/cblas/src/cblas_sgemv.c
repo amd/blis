@@ -7,6 +7,8 @@
  * Written by Keita Teranishi
  * 4/6/1998
  * 
+ * Copyright (C) 2020 - 2026, Advanced Micro Devices, Inc. All rights reserved.
+ *
  */
 #include "cblas.h"
 #include "cblas_f77.h"
@@ -50,13 +52,14 @@ void cblas_sgemv(enum CBLAS_ORDER order,
          cblas_xerbla(2, "cblas_sgemv","Illegal TransA setting, %d\n", TransA);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
-		 return;
+         return;
       }
       #ifdef F77_CHAR
          F77_TA = C2F_CHAR(&TA);
       #endif
       F77_sgemv(F77_TA, &F77_M, &F77_N, &alpha, A, &F77_lda, X, &F77_incX, 
                 &beta, Y, &F77_incY);
+      AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
    }
    else if (order == CblasRowMajor)
    {
@@ -77,11 +80,15 @@ void cblas_sgemv(enum CBLAS_ORDER order,
       #endif
       F77_sgemv(F77_TA, &F77_N, &F77_M, &alpha, A, &F77_lda, X,
                 &F77_incX, &beta, Y, &F77_incY);
+      AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
    }
-   else cblas_xerbla(1, "cblas_sgemv", "Illegal Order setting, %d\n", order);
+   else
+   {
+      AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
+      cblas_xerbla(1, "cblas_sgemv", "Illegal Order setting, %d\n", order);
+   }
    CBLAS_CallFromC = 0;
    RowMajorStrg = 0;
-   AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
    return;
 }
 #endif

@@ -8,6 +8,8 @@
  *
  * Written by Keita Teranishi.  2/11/1998
  *
+ * Copyright (C) 2020 - 2026, Advanced Micro Devices, Inc. All rights reserved.
+ *
  */
 #include "cblas.h"
 #include "cblas_f77.h"
@@ -22,7 +24,6 @@ void cblas_zdotc_sub( f77_int N, const void *X, f77_int incX,
    #define F77_incX incX
    #define F77_incY incY
 #endif
-
    F77_zdotc_sub( &F77_N, (dcomplex*)X, &F77_incX, (dcomplex*)Y, &F77_incY, (dcomplex*)dotc);
    AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
    return;
