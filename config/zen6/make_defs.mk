@@ -53,9 +53,9 @@ ifeq ($(CC_VENDOR),gcc)
     CRVECFLAGS += -march=znver6
     # Update CKLPOPTFLAGS for gcc to use O3 optimization without
     # -ftree-pre and -ftree-partial-pre flag. These flag results
-    # in suboptimal code generation for instrinsic based kernels.
+    # in suboptimal code generation for intrinsic based kernels.
     # The -ftree-loop-vectorize results in inefficient code gen
-    # for amd optimized l1 kernels based on instrinsics.
+    # for amd optimized l1 kernels based on intrinsics.
     CKLPOPTFLAGS += -fno-tree-partial-pre -fno-tree-pre -fno-tree-loop-vectorize
   else ifeq ($(shell test $(CC_MAJOR) -ge 14; echo $$?),0)
     # gcc 14.0 or later
@@ -63,9 +63,9 @@ ifeq ($(CC_VENDOR),gcc)
     CRVECFLAGS += -march=znver5
     # Update CKLPOPTFLAGS for gcc to use O3 optimization without
     # -ftree-pre and -ftree-partial-pre flag. These flag results
-    # in suboptimal code generation for instrinsic based kernels.
+    # in suboptimal code generation for intrinsic based kernels.
     # The -ftree-loop-vectorize results in inefficient code gen
-    # for amd optimized l1 kernels based on instrinsics.
+    # for amd optimized l1 kernels based on intrinsics.
     CKLPOPTFLAGS += -fno-tree-partial-pre -fno-tree-pre -fno-tree-loop-vectorize
   else ifeq ($(shell test $(CC_MAJOR) -ge 13; echo $$?),0)
     # gcc 13.0 or later
@@ -73,9 +73,9 @@ ifeq ($(CC_VENDOR),gcc)
     CRVECFLAGS += -march=znver4
     # Update CKLPOPTFLAGS for gcc to use O3 optimization without
     # -ftree-pre and -ftree-partial-pre flag. These flag results
-    # in suboptimal code generation for instrinsic based kernels.
+    # in suboptimal code generation for intrinsic based kernels.
     # The -ftree-loop-vectorize results in inefficient code gen
-    # for amd optimized l1 kernels based on instrinsics.
+    # for amd optimized l1 kernels based on intrinsics.
     CKLPOPTFLAGS += -fno-tree-partial-pre -fno-tree-pre -fno-tree-loop-vectorize
   else ifeq ($(shell test $(CC_MAJOR) -ge 12; echo $$?),0)
     # gcc 12.0 or later

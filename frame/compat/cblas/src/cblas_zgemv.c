@@ -57,7 +57,7 @@ void cblas_zgemv(enum CBLAS_ORDER order,
          cblas_xerbla(2, "cblas_zgemv","Illegal TransA setting, %d\n", TransA);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
-		 AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal TransA setting, %d\n");
+         AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal TransA setting, %d\n");
          return;
       }
       #ifdef F77_CHAR
@@ -137,7 +137,7 @@ void cblas_zgemv(enum CBLAS_ORDER order,
          cblas_xerbla(2, "cblas_zgemv","Illegal TransA setting, %d\n", TransA);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
-		 AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal TransA setting, %d\n");
+         AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal TransA setting, %d\n");
          return;
       }
       #ifdef F77_CHAR

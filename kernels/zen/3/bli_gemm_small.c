@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2017 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2017 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -3647,7 +3647,7 @@ static err_t bli_sgemm_small_atbn
 
                 }
 
-                // if K is not a multiple of 8, padding is done before load using temproary array.
+                // if K is not a multiple of 8, padding is done before load using temporary array.
                 if (k < K)
                 {
                     int iter;
@@ -3870,7 +3870,7 @@ static err_t bli_sgemm_small_atbn
                         tB += 8;
                     }
 
-                    // if K is not a multiple of 8, padding is done before load using temproary array.
+                    // if K is not a multiple of 8, padding is done before load using temporary array.
                     if (k < K)
                     {
                         int iter;
@@ -3970,7 +3970,7 @@ static err_t bli_sgemm_small_atbn
                         tB += 8;
                     }
 
-                    // if K is not a multiple of 8, padding is done before load using temproary array.
+                    // if K is not a multiple of 8, padding is done before load using temporary array.
                     if (k < K)
                     {
                         int iter;
@@ -4123,7 +4123,7 @@ static err_t bli_dgemm_small_atbn
 
                 }
 
-                // if K is not a multiple of 4, padding is done before load using temproary array.
+                // if K is not a multiple of 4, padding is done before load using temporary array.
                 if (k < K)
                 {
                     int iter;
@@ -4321,7 +4321,7 @@ static err_t bli_dgemm_small_atbn
                         tA += 4;
                         tB += 4;
                     }
-                    // if K is not a multiple of 4, padding is done before load using temproary array.
+                    // if K is not a multiple of 4, padding is done before load using temporary array.
                     if (k < K)
                     {
                         int iter;
@@ -4413,7 +4413,7 @@ static err_t bli_dgemm_small_atbn
                         tB += 4;
                     }
 
-                    // if K is not a multiple of 4, padding is done before load using temproary array.
+                    // if K is not a multiple of 4, padding is done before load using temporary array.
                     if (k < K)
                     {
                         int iter;
@@ -5829,7 +5829,7 @@ err_t bli_dgemm_small_At
                         tB += 4;
                     }
 
-                    // if K is not a multiple of 4, padding is done before load using temproary array.
+                    // if K is not a multiple of 4, padding is done before load using temporary array.
                     if (k < K)
                     {
                         int iter;
@@ -5988,7 +5988,7 @@ err_t bli_zgemm_small
         __m256d ymm16, ymm17, ymm18, ymm19, ymm20, ymm21;
         __m256d ymm0, ymm1, ymm2, ymm3;
 
-        //gcc12 throws a unitialized warning,
+        //gcc12 throws a uninitialized warning,
         //To avoid that these variable are se to zero.
         ymm0 = _mm256_setzero_pd();
 
@@ -9964,7 +9964,7 @@ err_t bli_zgemm_small_At
         __m256d ymm16, ymm17, ymm18, ymm19, ymm20, ymm21;
         __m256d ymm0, ymm1, ymm2, ymm3;
 
-        //gcc12 throws a unitialized warning,
+        //gcc12 throws a uninitialized warning,
         //To avoid that these variable are set to zero.
         ymm0 = _mm256_setzero_pd();
 

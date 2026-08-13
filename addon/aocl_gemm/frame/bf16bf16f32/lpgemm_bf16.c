@@ -549,7 +549,7 @@ LPGEMM_5LOOP_AVX512BF16(bfloat16,bfloat16,float,bf16bf16f32of32)
 						( bfloat16* ) thread->comm[jc_work_id].sent_object;
 
 				// Compute the B panel per thread loop range for parallel
-				// packing using ic_ways number of threads. Since atmost only
+				// packing using ic_ways number of threads. Since at most only
 				// ic_ways threads can be used, the thread_ic attributes are
 				// used to split the loop range.
 				dim_t jc_packb_start, jc_packb_end;
@@ -891,7 +891,7 @@ LPGEMV_AVX2(bfloat16, bfloat16, float, bf16bf16f32of32)
 		if( mtag_b == REORDERED )
 		{
 			/* For n = 1 case, a re-ordered matrix would be stored contigously
-			 in memeory and hence need to be accessed likewise for conversion.*/
+			 in memory and hence need to be accessed likewise for conversion.*/
 			unpackb_nr64_bf16_f32_gemv
 			(
 				b, cvt_b_buffer_bf16_f32, k
@@ -1271,7 +1271,7 @@ LPGEMM_5LOOP_AVX2(bfloat16,bfloat16,float,bf16bf16f32of32)
 		{
 			c_use_jc = c + jc;
 		}
-		// Temp accumulaton buffer for C allocation.
+		// Temp accumulation buffer for C allocation.
 		else if ( c_downscale < F32 )
 		{
 			// Buffer memory is only required if output needs to be
@@ -1359,7 +1359,7 @@ LPGEMM_5LOOP_AVX2(bfloat16,bfloat16,float,bf16bf16f32of32)
 						( float* ) thread->comm[jc_work_id].sent_object;
 
 				// Compute the B panel per thread loop range for parallel
-				// packing using ic_ways number of threads. Since atmost only
+				// packing using ic_ways number of threads. Since at most only
 				// ic_ways threads can be used, the thread_ic attributes are
 				// used to split the loop range.
 				dim_t jc_packb_start, jc_packb_end;
@@ -1410,7 +1410,7 @@ LPGEMM_5LOOP_AVX2(bfloat16,bfloat16,float,bf16bf16f32of32)
 				// result in per thread start offset inside the panel, instead
 				// of panel boundaries.
 				// If B is re-ordered, for F32 input, the BF16 data has to be
-				// unreordered and coverted to F32.
+				// unreordered and converted to F32.
 
 				float *b_unreorder = ( float* ) thread->comm[jc_work_id].sent_object;
 				dim_t jc_packb_start, jc_packb_end;
@@ -1488,7 +1488,7 @@ LPGEMM_5LOOP_AVX2(bfloat16,bfloat16,float,bf16bf16f32of32)
 				a_use = cvt_a_buffer_bf16_f32;
 				a_block_stride =  f32_MR * kc0;
 
-				/*The NR loop should use the F32 kernel dimesnions*/
+				/*The NR loop should use the F32 kernel dimensions*/
 				for ( dim_t jr = 0; jr < nc0; jr += f32_NR )
 				{
 					dim_t nr0 = bli_min( ( nc0 - jr ), f32_NR );

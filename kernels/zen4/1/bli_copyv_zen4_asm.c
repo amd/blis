@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2024 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2024 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -124,7 +124,7 @@ void bli_scopyv_zen4_asm
     mov(var(incx0), rcx)
     mov(var(incy0), r9)
 
-    // Checking if incx == 1 and incy == 1, incase the condition fails then SCALAR code section is executed
+    // Checking if incx == 1 and incy == 1, in case the condition fails then SCALAR code section is executed
     cmp(imm(1),rcx)
     jne(.SCALAR)
     cmp(imm(1),r9)
@@ -317,7 +317,7 @@ void bli_scopyv_zen4_asm
     // Code section used to deal with situations where incx or incy is not 1
     label(.SCALAR)
 
-    // incx and incy are multipled by 8 (shift left by 2 bits) and stored back into their respective registers
+    // incx and incy are multiplied by 8 (shift left by 2 bits) and stored back into their respective registers
     mov(imm(2), r11)
     shlx(r11, rcx, rcx)
     shlx(r11, r9, r9)
@@ -809,7 +809,7 @@ void bli_dcopyv_zen4_asm_biway
         // Reduce the number of remaining elements by 128 (8 double precision elements * 16 register)
         sub(imm(8*16),   rcx)
 
-        // Jump back to the Main loop if the number of remaning elements are still greater than 128
+        // Jump back to the Main loop if the number of remaining elements are still greater than 128
         cmp(imm(8*16), rcx)
         jge(.MAINLOOP)
 

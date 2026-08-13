@@ -99,7 +99,7 @@ BLIS_INLINE err_t bli_dtrsm_small_zen_int_XAutB_XAlB
 );
 
 // XA = B; A is upper triangular; No transpose;
-//double presicion; non-unit diagonal
+//double precision; non-unit diagonal
 //XA = B; A is lower-triangular; A is transposed;
 // double precision; non-unit-diagonal
 
@@ -1095,7 +1095,7 @@ BLIS_INLINE err_t dtrsm_XAltB_ref
         ymm0 = _mm256_loadu_pd((double const *)(a10)); \
         ymm1 = _mm256_loadu_pd((double const *)(a10 + 4)); \
         _mm_prefetch((char*)( a10 + 64), _MM_HINT_T0); \
-        /*Calculate the next micro pannel address to prefetch*/ \
+        /*Calculate the next micro panel address to prefetch*/ \
         if(k & 0x7) b01_prefetch += cs_b; \
         else b01_prefetch = b01+ 8; \
         ymm2 = _mm256_broadcast_sd((double const *)(b01)); \
@@ -3278,7 +3278,7 @@ BLIS_INLINE err_t dtrsm_XAltB_ref
         ymm0 = _mm256_loadu_ps((float const *)(a10)); \
         ymm1 = _mm256_loadu_ps((float const *)(a10 + 8)); \
         _mm_prefetch((char*)( a10 + 64), _MM_HINT_T0); \
-        /*Calculate the next micro pannel address to prefetch*/ \
+        /*Calculate the next micro panel address to prefetch*/ \
         if(k & 0x7) b01_prefetch += cs_b; \
         else b01_prefetch = b01+ 8; \
         ymm2 = _mm256_broadcast_ss((float const *)(b01)); \
@@ -5445,7 +5445,7 @@ err_t bli_trsm_small_zen
     }
 
     // Return if inputs are row major as currently
-    // we are supporing col major only
+    // we are supporting col major only
     if ((bli_obj_row_stride(a) != 1) ||
         (bli_obj_row_stride(b) != 1)) {
         return BLIS_INVALID_ROW_STRIDE;
@@ -8630,7 +8630,7 @@ BLIS_INLINE err_t bli_dtrsm_small_zen_int_XAltB_XAuB
 
     xmm5 = _mm_setzero_pd();
 
-    //gcc12 throws a unitialized warning,
+    //gcc12 throws a uninitialized warning,
     //To avoid that these variable are set to zero.
     ymm5 = _mm256_setzero_pd();
     ymm0 = _mm256_setzero_pd();
@@ -11040,7 +11040,7 @@ BLIS_INLINE err_t bli_dtrsm_small_zen_int_XAutB_XAlB
 
     xmm5 = _mm_setzero_pd();
 
-    //gcc12 throws a unitialized warning,
+    //gcc12 throws a uninitialized warning,
     //To avoid that these variable are set to zero.
     ymm0 = _mm256_setzero_pd();
     ymm6 = _mm256_setzero_pd();
@@ -13339,7 +13339,7 @@ BLIS_INLINE err_t bli_dtrsm_small_zen_int_AltXB_AuXB
 
     __m128d xmm5;
 
-    //gcc12 throws a unitialized warning,
+    //gcc12 throws a uninitialized warning,
     //To avoid that these variable are set to zero.
     ymm0 = _mm256_setzero_pd();
     ymm1 = _mm256_setzero_pd();
@@ -13384,7 +13384,7 @@ BLIS_INLINE err_t bli_dtrsm_small_zen_int_AltXB_AuXB
         a. Load, transpose, Pack A (a10 block), the size of packing 8x6 to 8x (m-d_mr)
            First there will be no GEMM and no packing of a10 because it is only TRSM
         b. Using packed a10 block and b01 block perform GEMM operation
-        c. Use GEMM outputs, perform TRSM operaton using a11, b11 and update B
+        c. Use GEMM outputs, perform TRSM operation using a11, b11 and update B
         d. Repeat b,c for n rows of B in steps of d_nr
     */
     for(i = (m - d_mr); (i + 1) > 0; i -= d_mr)
@@ -13461,7 +13461,7 @@ BLIS_INLINE err_t bli_dtrsm_small_zen_int_AltXB_AuXB
                     5. ymm11, ymm7 6. ymm10, ymm6, 7.ymm9, ymm5   8. ymm8, ymm4
                     where ymm15-ymm8 holds 8x4 data and reaming 8x2 will be hold by
                     other registers
-                b. Towards the end do in regiser transpose of TRSM output and store in b11
+                b. Towards the end do in register transpose of TRSM output and store in b11
             */
             ymm1 = _mm256_broadcast_sd((double const *)(d11_pack + 7));
 
@@ -13851,7 +13851,7 @@ BLIS_INLINE err_t bli_dtrsm_small_zen_int_AltXB_AuXB
             n_remainder -=4;
         }
 
-        if(n_remainder)   //implementation fo remaining columns(when 'N' is not a multiple of d_nr)() n = 3
+        if(n_remainder)   //implementation of remaining columns(when 'N' is not a multiple of d_nr)() n = 3
         {
             a10 = D_A_pack;
             a11 = L + (i*cs_a) + (i*rs_a);
@@ -14140,7 +14140,7 @@ BLIS_INLINE err_t bli_dtrsm_small_zen_int_AltXB_AuXB
         }
     }// End of multiples of d_mr blocks in m-dimension
 
-    // Repetative A blocks will be 4*4
+    // Repetitive A blocks will be 4*4
     dim_t m_remainder = i + d_mr;
     if(m_remainder >= 4)
     {
@@ -14491,7 +14491,7 @@ BLIS_INLINE err_t bli_dtrsm_small_zen_int_AltXB_AuXB
             n_remainder = n_remainder - 4;
         }
 
-        if(n_remainder)   //implementation fo remaining columns(when 'N' is not a multiple of d_nr)() n = 3
+        if(n_remainder)   //implementation of remaining columns(when 'N' is not a multiple of d_nr)() n = 3
         {
             a10 = D_A_pack;
             a11 = L + (i*cs_a) + (i*rs_a);
@@ -14650,7 +14650,7 @@ BLIS_INLINE err_t bli_dtrsm_small_zen_int_AltXB_AuXB
 
         // Do transpose for a10 & store in D_A_pack
         double *ptr_a10_dup = D_A_pack;
-        if(3 == m_remainder) // Repetative A blocks will be 3*3
+        if(3 == m_remainder) // Repetitive A blocks will be 3*3
         {
             dim_t p_lda = 4; // packed leading dimension
             if(transa)
@@ -14873,7 +14873,7 @@ BLIS_INLINE err_t bli_dtrsm_small_zen_int_AltXB_AuXB
                 }
             }
         }
-        else if(2 == m_remainder) // Repetative A blocks will be 2*2
+        else if(2 == m_remainder) // Repetitive A blocks will be 2*2
         {
             dim_t p_lda = 4; // packed leading dimension
             if(transa)
@@ -15070,7 +15070,7 @@ BLIS_INLINE err_t bli_dtrsm_small_zen_int_AltXB_AuXB
             }
 
         }
-        else if(1 == m_remainder) // Repetative A blocks will be 1*1
+        else if(1 == m_remainder) // Repetitive A blocks will be 1*1
         {
             dim_t p_lda = 4; // packed leading dimension
             if(transa)
@@ -15351,7 +15351,7 @@ BLIS_INLINE err_t bli_dtrsm_small_zen_int_AutXB_AlXB
 
     __m128d xmm5;
 
-    //gcc12 throws a unitialized warning,
+    //gcc12 throws a uninitialized warning,
     //To avoid that these variable are set to zero.
     ymm0 = _mm256_setzero_pd();
     ymm1 = _mm256_setzero_pd();
@@ -15396,7 +15396,7 @@ BLIS_INLINE err_t bli_dtrsm_small_zen_int_AutXB_AlXB
         a. Load, transpose, Pack A (a10 block), the size of packing 8x6 to 8x (m-8)
            First there will be no GEMM and no packing of a10 because it is only TRSM
         b. Using packed a10 block and b01 block perform GEMM operation
-        c. Use GEMM outputs, perform TRSM operaton using a11, b11 and update B
+        c. Use GEMM outputs, perform TRSM operation using a11, b11 and update B
         d. Repeat b,c for n rows of B in steps of d_nr
     */
     for(i = 0;(i+d_mr-1) < m; i += d_mr)  //loop along 'M' dimension
@@ -15471,7 +15471,7 @@ BLIS_INLINE err_t bli_dtrsm_small_zen_int_AutXB_AlXB
                     5. ymm12, ymm17 6. ymm13,ymm18, 7. ymm14,ymm19 8. ymm15, ymm20
                     where ymm8-ymm15 holds 8x4 data and reaming 8x2 will be hold by
                     other registers
-                b. Towards the end do in regiser transpose of TRSM output and store in b11
+                b. Towards the end do in register transpose of TRSM output and store in b11
             */
             ////extract a00
             ymm1 = _mm256_broadcast_sd((double const *)(d11_pack));
@@ -16742,7 +16742,7 @@ BLIS_INLINE err_t bli_dtrsm_small_zen_int_AutXB_AlXB
         a10 = L + (i*cs_a);               //pointer to block of A to be used for GEMM
         // Do transpose for a10 & store in D_A_pack
         double *ptr_a10_dup = D_A_pack;
-        if(3 == m_rem) // Repetative A blocks will be 3*3
+        if(3 == m_rem) // Repetitive A blocks will be 3*3
         {
             dim_t p_lda = 4; // packed leading dimension
             if(transa)
@@ -16966,7 +16966,7 @@ BLIS_INLINE err_t bli_dtrsm_small_zen_int_AutXB_AlXB
                 }
             }
         }
-        else if(2 == m_rem) // Repetative A blocks will be 2*2
+        else if(2 == m_rem) // Repetitive A blocks will be 2*2
         {
             dim_t p_lda = 4; // packed leading dimension
             if(transa)
@@ -17167,7 +17167,7 @@ BLIS_INLINE err_t bli_dtrsm_small_zen_int_AutXB_AlXB
             m_rem -=2;
             i+=2;
         }
-        else if(1 == m_rem) // Repetative A blocks will be 1*1
+        else if(1 == m_rem) // Repetitive A blocks will be 1*1
         {
             dim_t p_lda = 4; // packed leading dimension
             if(transa)
@@ -17989,7 +17989,7 @@ BLIS_INLINE err_t bli_strsm_small_zen_int_XAutB_XAlB
 
     xmm5 = _mm_setzero_ps();
 
-    //gcc12 throws a unitialized warning,
+    //gcc12 throws a uninitialized warning,
     //To avoid that these variable are set to zero.
     ymm0 = _mm256_setzero_ps();
 
@@ -21657,7 +21657,7 @@ BLIS_INLINE err_t bli_strsm_small_zen_int_XAltB_XAuB
     __m128 xmm5;
 
     xmm5 = _mm_setzero_ps();
-    //gcc12 throws a unitialized warning,
+    //gcc12 throws a uninitialized warning,
     //To avoid that these variable are set to zero.
     ymm0 = _mm256_setzero_ps();
 
@@ -25474,7 +25474,7 @@ BLIS_INLINE err_t bli_strsm_small_zen_int_AutXB_AlXB
     __m256 ymm16, ymm17, ymm18, ymm19;
     __m256 ymm20,ymm21,ymm22;
 
-    //gcc12 throws a unitialized warning,
+    //gcc12 throws a uninitialized warning,
     //To avoid that these variable are set to zero.
     ymm0 = _mm256_setzero_ps();
     ymm1 = _mm256_setzero_ps();
@@ -25523,7 +25523,7 @@ BLIS_INLINE err_t bli_strsm_small_zen_int_AutXB_AlXB
         a. Load, transpose, Pack A (a10 block), the size of packing 16x6 to 16x (m-16)
            First there will be no GEMM and no packing of a10 because it is only TRSM
         b. Using packed a10 block and b01 block perform GEMM operation
-        c. Use GEMM outputs, perform TRSM operaton using a11, b11 and update B
+        c. Use GEMM outputs, perform TRSM operation using a11, b11 and update B
         d. Repeat b,c for n rows of B in steps of d_nr
     */
     for(i = 0;(i+d_mr-1) < m; i += d_mr)  //loop along 'M' dimension
@@ -29212,7 +29212,7 @@ BLIS_INLINE err_t bli_strsm_small_zen_int_AutXB_AlXB
         // Do transpose for a10 & store in D_A_pack
         float *ptr_a10_dup = D_A_pack;
 
-        if(3 == m_rem) // Repetative A blocks will be 3*3
+        if(3 == m_rem) // Repetitive A blocks will be 3*3
         {
             __m128 xmm0,xmm1,xmm2,xmm3;
             __m128 xmm4,xmm5,xmm6,xmm7;
@@ -29423,7 +29423,7 @@ BLIS_INLINE err_t bli_strsm_small_zen_int_AutXB_AlXB
                 }
             }
         }
-        else if(2 == m_rem) // Repetative A blocks will be 2*2
+        else if(2 == m_rem) // Repetitive A blocks will be 2*2
         {
             __m128 xmm0,xmm1,xmm2,xmm3;
             __m128 xmm4,xmm5,xmm6,xmm7;
@@ -29608,7 +29608,7 @@ BLIS_INLINE err_t bli_strsm_small_zen_int_AutXB_AlXB
             m_rem -=2;
             i+=2;
         }
-        else if(1 == m_rem) // Repetative A blocks will be 1*1
+        else if(1 == m_rem) // Repetitive A blocks will be 1*1
         {
             __m128 xmm0,xmm1,xmm2,xmm3;
             __m128 xmm4,xmm5,xmm6,xmm7;
@@ -29854,7 +29854,7 @@ BLIS_INLINE err_t bli_strsm_small_zen_int_AltXB_AuXB
     __m256 ymm16, ymm17, ymm18, ymm19;
     __m256 ymm20, ymm21, ymm22;
 
-    //gcc12 throws a unitialized warning,
+    //gcc12 throws a uninitialized warning,
     //To avoid that these variable are set to zero.
     ymm0 = _mm256_setzero_ps();
     ymm1 = _mm256_setzero_ps();
@@ -29903,7 +29903,7 @@ BLIS_INLINE err_t bli_strsm_small_zen_int_AltXB_AuXB
         a. Load, transpose, Pack A (a10 block), the size of packing 16x6 to 16 x (m-d_mr)
            First there will be no GEMM and no packing of a10 because it is only TRSM
         b. Using packed a10 block and b01 block perform GEMM operation
-        c. Use GEMM outputs, perform TRSM operaton using a11, b11 and update B
+        c. Use GEMM outputs, perform TRSM operation using a11, b11 and update B
         d. Repeat b,c for n rows of B in steps of d_nr
     */
     for(i = (m - d_mr); (i + 1) > 0; i -= d_mr)
@@ -31087,7 +31087,7 @@ BLIS_INLINE err_t bli_strsm_small_zen_int_AltXB_AuXB
             n_remainder -=4;
         }
 
-        if(n_remainder)   //implementation fo remaining columns(when 'N' is not a multiple of d_nr)() n = 3
+        if(n_remainder)   //implementation of remaining columns(when 'N' is not a multiple of d_nr)() n = 3
         {
             a10 = D_A_pack;
             a11 = L + (i*cs_a) + (i*rs_a);
@@ -31933,7 +31933,7 @@ BLIS_INLINE err_t bli_strsm_small_zen_int_AltXB_AuXB
 
     }// End of multiples of d_mr blocks in m-dimension
 
-    // Repetative A blocks will be 8*8
+    // Repetitive A blocks will be 8*8
     dim_t m_remainder = i + d_mr;
     if(m_remainder >= 8)
     {
@@ -32551,7 +32551,7 @@ BLIS_INLINE err_t bli_strsm_small_zen_int_AltXB_AuXB
             n_remainder = n_remainder - 4;
         }
 
-        if(n_remainder)   //implementation fo remaining columns(when 'N' is not a multiple of d_nr)() n = 3
+        if(n_remainder)   //implementation of remaining columns(when 'N' is not a multiple of d_nr)() n = 3
         {
             a10 = D_A_pack;
             a11 = L + (i*cs_a) + (i*rs_a);
@@ -33200,7 +33200,7 @@ BLIS_INLINE err_t bli_strsm_small_zen_int_AltXB_AuXB
             n_remainder = n_remainder - 4;
         }
 
-        if(n_remainder)   //implementation fo remaining columns(when 'N' is not a multiple of d_nr)() n = 3
+        if(n_remainder)   //implementation of remaining columns(when 'N' is not a multiple of d_nr)() n = 3
         {
             a10 = D_A_pack;
             a11 = L + (i*cs_a) + (i*rs_a);
@@ -33383,7 +33383,7 @@ BLIS_INLINE err_t bli_strsm_small_zen_int_AltXB_AuXB
 
         // Do transpose for a10 & store in D_A_pack
         float *ptr_a10_dup = D_A_pack;
-        if(3 == m_remainder) // Repetative A blocks will be 3*3
+        if(3 == m_remainder) // Repetitive A blocks will be 3*3
         {
             __m128 xmm0,xmm1,xmm2,xmm3;
             __m128 xmm4,xmm5;
@@ -33592,7 +33592,7 @@ BLIS_INLINE err_t bli_strsm_small_zen_int_AltXB_AuXB
                 }
             }
         }
-        else if(2 == m_remainder) // Repetative A blocks will be 2*2
+        else if(2 == m_remainder) // Repetitive A blocks will be 2*2
         {
             __m128 xmm0,xmm1,xmm2,xmm3;
             __m128 xmm4,xmm5;
@@ -33770,7 +33770,7 @@ BLIS_INLINE err_t bli_strsm_small_zen_int_AltXB_AuXB
                 }
             }
         }
-        else if(1 == m_remainder) // Repetative A blocks will be 1*1
+        else if(1 == m_remainder) // Repetitive A blocks will be 1*1
         {
             __m128 xmm0,xmm1,xmm2,xmm3;
             __m128 xmm4,xmm5;
@@ -34011,7 +34011,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_AutXB_AlXB
     xmm4 = _mm_setzero_pd();
     xmm5 = _mm_setzero_pd();
 
-    //gcc12 throws a unitialized warning,
+    //gcc12 throws a uninitialized warning,
     //To avoid that these variable are set to zero.
     ymm0 = _mm256_setzero_pd();
     ymm1 = _mm256_setzero_pd();
@@ -34055,7 +34055,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_AutXB_AlXB
         a. Load, transpose, Pack A (a10 block), the size of packing 4x3 to 4x (m-4)
            First there will be no GEMM and no packing of a10 because it is only TRSM
         b. Using packed a10 block and b01 block perform GEMM operation
-        c. Use GEMM outputs, perform TRSM operaton using a11, b11 and update B
+        c. Use GEMM outputs, perform TRSM operation using a11, b11 and update B
         d. Repeat b,c for n rows of B in steps of d_nr
     */
     for(i = 0;(i+d_mr-1) < m; i += d_mr)  //loop along 'M' dimension
@@ -34130,7 +34130,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_AutXB_AlXB
                 1. ymm8, ymm4 2. ymm9, ymm5 3. ymm10, ymm6, 4. ymm11, ymm7
                 where ymm8-ymm11 holds 4x2 data and reaming 4x1 will be hold by
                 other registers
-                b. Towards the end do in regiser transpose of TRSM output and store in
+                b. Towards the end do in register transpose of TRSM output and store in
         b11
             */
             ////extract a00
@@ -35254,7 +35254,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_AltXB_AuXB
     xmm4 = _mm_setzero_pd();
     xmm5 = _mm_setzero_pd();
 
-    //gcc12 throws a unitialized warning,
+    //gcc12 throws a uninitialized warning,
     //To avoid that these variable are set to zero.
     ymm0 = _mm256_setzero_pd();
     ymm1 = _mm256_setzero_pd();
@@ -35297,7 +35297,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_AltXB_AuXB
         a. Load, transpose, Pack A (a10 block), the size of packing 8x6 to 8x (m-d_mr)
            First there will be no GEMM and no packing of a10 because it is only TRSM
         b. Using packed a10 block and b01 block perform GEMM operation
-        c. Use GEMM outputs, perform TRSM operaton using a11, b11 and update B
+        c. Use GEMM outputs, perform TRSM operation using a11, b11 and update B
         d. Repeat b,c for n rows of B in steps of d_nr
     */
     for(i = (m - d_mr); (i + 1) > 0; i -= d_mr)
@@ -35376,7 +35376,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_AltXB_AuXB
                 1. ymm8, ymm4 2. ymm9, ymm5 3. ymm10, ymm6, 4. ymm11, ymm7
                 where ymm8-ymm11 holds 4x2 data and reaming 4x1 will be hold by
                 other registers
-                b. Towards the end do in regiser transpose of TRSM output and store in
+                b. Towards the end do in register transpose of TRSM output and store in
         b11
             */
             ////extract a00
@@ -36514,7 +36514,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAutB_XAlB
     __m128d xmm5;
 
     xmm5 = _mm_setzero_pd();
-    //gcc12 throws a unitialized warning,
+    //gcc12 throws a uninitialized warning,
     //To avoid that these variable are set to zero.
     ymm1= _mm256_setzero_pd();
 
@@ -36599,7 +36599,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAutB_XAlB
                a. The 4x3 input (gemm outputs) are stored in combinations of
                ymm registers
                1. ymm7, ymm8 2. ymm5, ymm6 3. ymm3, ymm4
-               b. Towards the end do in regiser transpose of TRSM output and
+               b. Towards the end do in register transpose of TRSM output and
                store in b11
                */
             ////extract a00
@@ -36783,7 +36783,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAutB_XAlB
                    a. The 4x3 input (gemm outputs) are stored in
                    combinations of ymm registers
                    1. ymm7, ymm8 2. ymm5, ymm6 3. ymm3, ymm4
-                   b. Towards the end do in regiser transpose of TRSM
+                   b. Towards the end do in register transpose of TRSM
                    output and store in b11
                    */
                 ////extract a00
@@ -36976,7 +36976,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAutB_XAlB
                    a. The 4x3 input (gemm outputs) are stored in
                    combinations of ymm registers
                    1. ymm8, ymm11 2. ymm9, ymm12 3. ymm10, ymm13
-                   b. Towards the end do in regiser transpose of TRSM
+                   b. Towards the end do in register transpose of TRSM
                    output and store in b11
                    */
                 ////extract a00
@@ -37124,7 +37124,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAutB_XAlB
                    a. The 4x3 input (gemm outputs) are stored in
                    combinations of ymm registers
                    1. ymm7, ymm8 2. ymm5, ymm6 3. ymm3, ymm4
-                   b. Towards the end do in regiser transpose of TRSM
+                   b. Towards the end do in register transpose of TRSM
                    output and store in
                    b11
                    */
@@ -37982,7 +37982,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAltB_XAuB
 
     xmm5 = _mm_setzero_pd();
 
-    //gcc12 throws a unitialized warning,
+    //gcc12 throws a uninitialized warning,
     //To avoid that these variable are set to zero.
     ymm1 = _mm256_setzero_pd();
     for(j = 0; (j+d_nr-1) < n; j += d_nr)     //loop along 'N' direction
@@ -38063,7 +38063,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAltB_XAuB
                a. The 3x4 input (gemm outputs) are stored in combinations of
                ymm registers
                1. ymm3, ymm4 2. ymm5, ymm6 3. ymm7, ymm8
-               b. Towards the end do in regiser transpose of TRSM output
+               b. Towards the end do in register transpose of TRSM output
                and store in b11
                */
             ////extract a00
@@ -42558,7 +42558,7 @@ BLIS_INLINE err_t bli_ctrsm_small_zen_int_AutXB_AlXB
 	xmm3 = _mm_setzero_ps();
 	xmm4 = _mm_setzero_ps();
 	xmm5 = _mm_setzero_ps();
-	//gcc12 throws a unitialized warning,
+	//gcc12 throws a uninitialized warning,
 	//To avoid that these variable are set to zero.
 	ymm0= _mm256_setzero_ps();
 	ymm1= _mm256_setzero_ps();
@@ -42599,7 +42599,7 @@ BLIS_INLINE err_t bli_ctrsm_small_zen_int_AutXB_AlXB
 	   a. Load, transpose, Pack A (a10 block), the size of packing 4x3 to 4x (m-4)
 	   First there will be no GEMM and no packing of a10 because it is only TRSM
 	   b. Using packed a10 block and b01 block perform GEMM operation
-	   c. Use GEMM outputs, perform TRSM operaton using a11, b11 and update B
+	   c. Use GEMM outputs, perform TRSM operation using a11, b11 and update B
 	   d. Repeat b,c for n rows of B in steps of d_nr
 	   */
 	for(i = 0;(i+d_mr-1) < m; i += d_mr)  //loop along 'M' dimension
@@ -42674,7 +42674,7 @@ BLIS_INLINE err_t bli_ctrsm_small_zen_int_AutXB_AlXB
 			   1. ymm8, ymm4 2. ymm9, ymm5 3. ymm10, ymm6, 4. ymm11, ymm7
 			   where ymm8-ymm11 holds 4x2 data and reaming 4x1 will be hold by
 			   other registers
-			   b. Towards the end do in regiser transpose of TRSM output and store in
+			   b. Towards the end do in register transpose of TRSM output and store in
 			   b11
 			   */
 			////extract a00
@@ -45096,7 +45096,7 @@ BLIS_INLINE err_t bli_ctrsm_small_zen_int_AltXB_AuXB
 	xmm4 = _mm_setzero_ps();
 	xmm5 = _mm_setzero_ps();
 
-	//gcc12 throws a unitialized warning,
+	//gcc12 throws a uninitialized warning,
 	//To avoid that these variable are set to zero.
 	ymm0 = _mm256_setzero_ps();
 	ymm1 = _mm256_setzero_ps();
@@ -45137,7 +45137,7 @@ BLIS_INLINE err_t bli_ctrsm_small_zen_int_AltXB_AuXB
 	   a. Load, transpose, Pack A (a10 block), the size of packing 4x3 to 4x (m-4)
 	   First there will be no GEMM and no packing of a10 because it is only TRSM
 	   b. Using packed a10 block and b01 block perform GEMM operation
-	   c. Use GEMM outputs, perform TRSM operaton using a11, b11 and update B
+	   c. Use GEMM outputs, perform TRSM operation using a11, b11 and update B
 	   d. Repeat b,c for n rows of B in steps of d_nr
 	   */
 	for(i = (m - d_mr); (i + 1) > 0; i -= d_mr)  //loop along 'M' dimension
@@ -45214,7 +45214,7 @@ BLIS_INLINE err_t bli_ctrsm_small_zen_int_AltXB_AuXB
 			   1. ymm8, ymm4 2. ymm9, ymm5 3. ymm10, ymm6, 4. ymm11, ymm7
 			   where ymm8-ymm11 holds 4x2 data and reaming 4x1 will be hold by
 			   other registers
-			   b. Towards the end do in regiser transpose of TRSM output and store in
+			   b. Towards the end do in register transpose of TRSM output and store in
 			   b11
 			   */
 			////extract a00
@@ -47879,7 +47879,7 @@ BLIS_INLINE err_t bli_ctrsm_small_zen_int_XAutB_XAlB
 	xmm1 = _mm_setzero_ps();
 	xmm2 = _mm_setzero_ps();
 	xmm5 = _mm_setzero_ps();
-	//gcc12 throws a unitialized warning,
+	//gcc12 throws a uninitialized warning,
 	//To avoid that these variable are set to zero.
 	ymm0 = _mm256_setzero_ps();
 
@@ -47918,7 +47918,7 @@ BLIS_INLINE err_t bli_ctrsm_small_zen_int_XAutB_XAlB
 	   a. Load, transpose, Pack A (a10 block), the size of packing 4x3 to 4x (m-4)
 	   First there will be no GEMM and no packing of a10 because it is only TRSM
 	   b. Using packed a10 block and b01 block perform GEMM operation
-	   c. Use GEMM outputs, perform TRSM operaton using a11, b11 and update B
+	   c. Use GEMM outputs, perform TRSM operation using a11, b11 and update B
 	   d. Repeat b,c for n rows of B in steps of d_nr
 	   */
 	for(j = (n-d_nr); (j+1) > 0; j -= d_nr)     //loop along 'N' direction
@@ -47993,7 +47993,7 @@ BLIS_INLINE err_t bli_ctrsm_small_zen_int_XAutB_XAlB
 			   1. ymm8, ymm4 2. ymm9, ymm5 3. ymm10, ymm6, 4. ymm11, ymm7
 			   where ymm8-ymm11 holds 4x2 data and reaming 4x1 will be hold by
 			   other registers
-			   b. Towards the end do in regiser transpose of TRSM output and store in
+			   b. Towards the end do in register transpose of TRSM output and store in
 			   b11
 			   */
 			////extract a00
@@ -49502,7 +49502,7 @@ BLIS_INLINE err_t bli_ctrsm_small_zen_int_XAltB_XAuB
 	xmm2 = _mm_setzero_ps();
 	xmm5 = _mm_setzero_ps();
 
-	//gcc12 throws a unitialized warning,
+	//gcc12 throws a uninitialized warning,
 	//To avoid that these variable are set to zero.
 	ymm0 = _mm256_setzero_ps();
 
@@ -49541,7 +49541,7 @@ BLIS_INLINE err_t bli_ctrsm_small_zen_int_XAltB_XAuB
 	   a. Load, transpose, Pack A (a10 block), the size of packing 4x3 to 4x (m-4)
 	   First there will be no GEMM and no packing of a10 because it is only TRSM
 	   b. Using packed a10 block and b01 block perform GEMM operation
-	   c. Use GEMM outputs, perform TRSM operaton using a11, b11 and update B
+	   c. Use GEMM outputs, perform TRSM operation using a11, b11 and update B
 	   d. Repeat b,c for n rows of B in steps of d_nr
 	   */
 	for(j = 0; (j+d_nr-1) < n; j += d_nr)     //loop along 'N' direction
@@ -49617,7 +49617,7 @@ BLIS_INLINE err_t bli_ctrsm_small_zen_int_XAltB_XAuB
 			   1. ymm8, ymm4 2. ymm9, ymm5 3. ymm10, ymm6, 4. ymm11, ymm7
 			   where ymm8-ymm11 holds 4x2 data and reaming 4x1 will be hold by
 			   other registers
-			   b. Towards the end do in regiser transpose of TRSM output and store in
+			   b. Towards the end do in register transpose of TRSM output and store in
 			   b11
 			   */
 			////extract a00

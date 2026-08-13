@@ -5,7 +5,7 @@
 #  libraries.
 #
 #  Copyright (C) 2014, The University of Texas at Austin
-#  Copyright (C) 2022 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+#  Copyright (C) 2022 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 #
 #  Redistribution and use in source and binary forms, with or without
 #  modification, are permitted provided that the following conditions are
@@ -201,7 +201,7 @@ endif
 # Generate object file paths for architecture-specific kernel source code.
 # We target only .c, .s, and .S files. Note that MK_KERNELS_SRC is already
 # limited to the kernel source corresponding to the kernel sets in
-# KERNEL_LIST. This is because the configure script only propogated makefile
+# KERNEL_LIST. This is because the configure script only propagated makefile
 # fragments into those specific kernel subdirectories.
 MK_KERNELS_OBJS     := $(call gen-obj-paths-from-src,$(KERNELS_SRC_SUFS),$(MK_KERNELS_SRC),$(KERNELS_PATH),$(BASE_OBJ_KERNELS_PATH))
 
@@ -260,7 +260,7 @@ MK_ADDON_OBJS       := $(MK_ADDON_KERS_OBJS) $(MK_ADDON_OTHER_OBJS)
 # AMD has duplicated the files and updated them for example
 # frame/compact/bla_gemm.c : generic framework file
 # frame/compact/bla_gemm_amd.c : AMD optimized framework file
-# Based on the archiecture we choose correct files
+# Based on the architecture we choose correct files
 
 ifeq ($(MK_IS_ARCH_ZEN),yes)
 # Build is being done for AMD platforms, remove the objects which
@@ -274,7 +274,7 @@ MK_FRAME_AMD_OBJS  := $(filter $(BASE_OBJ_FRAME_PATH)/%amd.o, $(MK_FRAME_OBJS))
 MK_FRAME_OBJS := $(filter-out $(MK_FRAME_AMD_OBJS), $(MK_FRAME_OBJS))
 endif
 
-# Generate object file paths for all of the debgu and trace logger.
+# Generate object file paths for all of the debug and trace logger.
 MK_AOCLDTL_OBJS       := $(call gen-obj-paths-from-src,$(AOCLDTL_SRC_SUFS),$(MK_AOCLDTL_SRC),$(AOCLDTL_PATH),$(BASE_OBJ_AOCLDTL_PATH))
 
 # Generate object file paths for the sandbox source code. If a sandbox was not

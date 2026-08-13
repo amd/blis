@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2025 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -160,7 +160,7 @@
   VSUBPS(ZMM(R2), ZMM(S2), ZMM(R2)) /* ZMM(R2) = 0.0f - ZMM(R2) */ \
   VSUBPS(ZMM(R3), ZMM(S3), ZMM(R3)) /* ZMM(R3) = 0.0f - ZMM(R3) */ \
 
-/* Macro to hadnle alpha scaling in generic case */
+/* Macro to handle alpha scaling in generic case */
 /* Macro assumes that ZMM(1) and ZMM(2) have real and imag components
    of alpha already broadcasted */
 #define ALPHA_DEFAULT(R1, I1, R2, I2, R3, I3) \
@@ -374,7 +374,7 @@
 /* Macro to scale a register with beta, with general strides */
 /* Macro gets alpha*A*B in R1, R2, R3 for a column */
 /* Macro uses ZMM(15) - ZMM(17) to gather C */
-/* Macro uses ZMM(18) - ZMM(20) as temmporary registers */
+/* Macro uses ZMM(18) - ZMM(20) as temporary registers */
 /* Macro assumes that ZMM(28) - ZMM(30) have the addresses of C for
    gather/scatter(one column at a time) */
 /* Macro assumes that ZMM(1) and ZMM(2) have real and imag components

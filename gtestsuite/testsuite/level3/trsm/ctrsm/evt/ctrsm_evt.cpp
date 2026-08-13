@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2024 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -87,7 +87,7 @@ TEST_P( ctrsmEVT, API )
     // Set the threshold for the errors:
     // Check gtestsuite trsm.h or netlib source code for reminder of the
     // functionality from which we estimate operation count per element
-    // of output, and hence the multipler for epsilon.
+    // of output, and hence the multiplier for epsilon.
     // No adjustment applied yet for complex data.
     double thresh;
     if (m == 0 || n == 0 || alpha == testinghelpers::ZERO<T>())
@@ -140,7 +140,7 @@ INSTANTIATE_TEST_SUITE_P(
     );
 
 /**
- * @brief Test CTRSM with differnt values of alpha
+ * @brief Test CTRSM with different values of alpha
  *      code paths covered:
  *          TRSV              -> 1
  *          TRSM_AVX2_small   -> 3

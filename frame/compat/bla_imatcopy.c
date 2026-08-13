@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2020 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2020 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -552,7 +552,7 @@ static dim_t bli_siMatCopy_cn(dim_t rows,dim_t cols,const float alpha,float* a,d
     }
     else
     {
-        // Acquring memory for auxiliary buffer(in case lda < ldb). This is
+        // Acquiring memory for auxiliary buffer(in case lda < ldb). This is
         // needed in order to avoid overwriting subsequent reads from the input.
         // This extra buffer is allocated exactly the amount of memory that
         // is needed to store the required elements from input(rows x cols)
@@ -635,7 +635,7 @@ static dim_t bli_diMatCopy_cn(dim_t rows,dim_t cols,const double alpha,double* a
     }
     else
     {
-        // Acquring memory for auxiliary buffer(in case lda < ldb). This is
+        // Acquiring memory for auxiliary buffer(in case lda < ldb). This is
         // needed in order to avoid overwriting subsequent reads from the input.
         // This extra buffer is allocated exactly the amount of memory that
         // is needed to store the required elements from input(rows x cols)
@@ -720,7 +720,7 @@ static dim_t bli_ciMatCopy_cn(dim_t rows,dim_t cols,const scomplex alpha,scomple
     }
     else
     {
-        // Acquring memory for auxiliary buffer(in case lda < ldb). This is
+        // Acquiring memory for auxiliary buffer(in case lda < ldb). This is
         // needed in order to avoid overwriting subsequent reads from the input.
         // This extra buffer is allocated exactly the amount of memory that
         // is needed to store the required elements from input(rows x cols)
@@ -807,7 +807,7 @@ static dim_t bli_ziMatCopy_cn(dim_t rows,dim_t cols,const dcomplex alpha,dcomple
     }
     else
     {
-        // Acquring memory for auxiliary buffer(in case lda < ldb). This is
+        // Acquiring memory for auxiliary buffer(in case lda < ldb). This is
         // needed in order to avoid overwriting subsequent reads from the input.
         // This extra buffer is allocated exactly the amount of memory that
         // is needed to store the required elements from input(rows x cols)
@@ -890,7 +890,7 @@ static dim_t bli_siMatCopy_ct(dim_t rows,dim_t cols,const float alpha,float* a,d
         return ( 0 );
     }
 
-    // Acquring memory for auxiliary buffer(in case lda < ldb). This is
+    // Acquiring memory for auxiliary buffer(in case lda < ldb). This is
     // needed in order to avoid overwriting subsequent reads from the input.
     // This extra buffer is allocated exactly the amount of memory that
     // is needed to store the required elements from input(cols x rows)
@@ -970,7 +970,7 @@ static dim_t bli_diMatCopy_ct(dim_t rows,dim_t cols,const double alpha,double* a
         return ( 0 );
     }
 
-    // Acquring memory for auxiliary buffer(in case lda < ldb). This is
+    // Acquiring memory for auxiliary buffer(in case lda < ldb). This is
     // needed in order to avoid overwriting subsequent reads from the input.
     // This extra buffer is allocated exactly the amount of memory that
     // is needed to store the required elements from input(cols x rows)
@@ -1050,7 +1050,7 @@ static dim_t bli_ciMatCopy_ct(dim_t rows,dim_t cols,const scomplex alpha,scomple
         return ( 0 );
     }
 
-    // Acquring memory for auxiliary buffer(in case lda < ldb). This is
+    // Acquiring memory for auxiliary buffer(in case lda < ldb). This is
     // needed in order to avoid overwriting subsequent reads from the input.
     // This extra buffer is allocated exactly the amount of memory that
     // is needed to store the required elements from input(cols x rows)
@@ -1132,7 +1132,7 @@ static dim_t bli_ziMatCopy_ct(dim_t rows,dim_t cols,const dcomplex alpha,dcomple
         return ( 0 );
     }
 
-    // Acquring memory for auxiliary buffer(in case lda < ldb). This is
+    // Acquiring memory for auxiliary buffer(in case lda < ldb). This is
     // needed in order to avoid overwriting subsequent reads from the input.
     // This extra buffer is allocated exactly the amount of memory that
     // is needed to store the required elements from input(cols x rows)
@@ -1215,7 +1215,7 @@ static dim_t bli_ciMatCopy_cr(dim_t rows,dim_t cols,const scomplex alpha,scomple
     }
     else
     {
-        // Acquring memory for auxiliary buffer(in case lda < ldb). This is
+        // Acquiring memory for auxiliary buffer(in case lda < ldb). This is
         // needed in order to avoid overwriting subsequent reads from the input.
         // This extra buffer is allocated exactly the amount of memory that
         // is needed to store the required elements from input(cols x rows)
@@ -1299,7 +1299,7 @@ static dim_t bli_ziMatCopy_cr(dim_t rows,dim_t cols,const dcomplex alpha,dcomple
     }
     else
     {
-        // Acquring memory for auxiliary buffer(in case lda < ldb). This is
+        // Acquiring memory for auxiliary buffer(in case lda < ldb). This is
         // needed in order to avoid overwriting subsequent reads from the input.
         // This extra buffer is allocated exactly the amount of memory that
         // is needed to store the required elements from input(cols x rows)
@@ -1368,7 +1368,7 @@ static dim_t bli_ciMatCopy_cc(dim_t rows,dim_t cols,const scomplex alpha,scomple
     s_aptr = a;
     d_aptr = a;
 
-    // Acquring memory for auxiliary buffer(in case lda < ldb). This is
+    // Acquiring memory for auxiliary buffer(in case lda < ldb). This is
     // needed in order to avoid overwriting subsequent reads from the input.
     // This extra buffer is allocated exactly the amount of memory that
     // is needed to store the required elements from input(cols x rows)
@@ -1436,7 +1436,7 @@ static dim_t bli_ziMatCopy_cc(dim_t rows,dim_t cols,const dcomplex alpha,dcomple
     s_aptr = a;
     d_aptr = a;
 
-    // Acquring memory for auxiliary buffer(in case lda < ldb). This is
+    // Acquiring memory for auxiliary buffer(in case lda < ldb). This is
     // needed in order to avoid overwriting subsequent reads from the input.
     // This extra buffer is allocated exactly the amount of memory that
     // is needed to store the required elements from input(cols x rows)

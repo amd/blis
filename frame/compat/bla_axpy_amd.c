@@ -50,7 +50,7 @@
   NaN propagation expectation
   --------------------------
 
-  1. When alpha == NaN - Propogate the NaN to the vector
+  1. When alpha == NaN - Propagate the NaN to the vector
 */
 
 //

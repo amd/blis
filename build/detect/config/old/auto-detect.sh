@@ -5,6 +5,7 @@
 #  libraries.
 #
 #  Copyright (C) 2015, The University of Texas at Austin
+#  Copyright (C) 2026, Advanced Micro Devices, Inc. All rights reserved.
 #
 #  Redistribution and use in source and binary forms, with or without
 #  modification, are permitted provided that the following conditions are
@@ -50,7 +51,7 @@ main()
 	CPUID_BIN=blis_cpu_detect
 	ARCH=generic
 
-	# The name of the script, stripped of any preceeding path.
+	# The name of the script, stripped of any preceding path.
 	script_name=${0##*/}
 
 	# The path to the script. We need this to find the top-level directory

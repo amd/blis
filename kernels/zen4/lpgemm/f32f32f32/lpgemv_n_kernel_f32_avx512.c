@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-  Copyright (C) 2024 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+  Copyright (C) 2024 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -553,7 +553,7 @@ LPGEMV_N_EQ1_KERN( float, float, float, f32f32f32of32 )
     if ( ( *( char* )post_ops_list_temp->op_args2 == 'r' ) ||
         ( *( char* )post_ops_list_temp->op_args2 == 'R' ) )
     {
-      // Scale/zp len cannot be > 1, since orignal n = 1.
+      // Scale/zp len cannot be > 1, since original n = 1.
       F32_SCL_MULRND(zmm8, selector1, zero_point0);
     }
     else

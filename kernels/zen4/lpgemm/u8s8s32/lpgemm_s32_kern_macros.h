@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2022 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2022 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -520,7 +520,7 @@ flt_reg_pfx ## m_ind ## n_ind = _mm512_add_ps \
 
 /* ReLU scale (Parametric ReLU):  f(x) = x, when x > 0 and f(x) = a*x when x <= 0 */
 #define RELU_SCALE_OP_F32_AVX512(reg) \
-	/* Generate indenx of elements <= 0.*/ \
+	/* Generate index of elements <= 0.*/ \
 	relu_cmp_mask = _mm512_cmple_ps_mask( reg, zero ); \
  \
 	/* Apply scaling on for <= 0 elements.*/ \
@@ -528,7 +528,7 @@ flt_reg_pfx ## m_ind ## n_ind = _mm512_add_ps \
 
 // ReLU scale (Parametric ReLU):  f(x) = x, when x > 0 and f(x) = a*x when x <= 0
 #define RELU_SCALE_OP_S32_AVX512(reg) \
-	/* Generate indenx of elements <= 0.*/ \
+	/* Generate index of elements <= 0.*/ \
 	relu_cmp_mask = _mm512_cmple_epi32_mask( reg, selector1 ); \
  \
 	/* Apply scaling on for <= 0 elements.*/ \

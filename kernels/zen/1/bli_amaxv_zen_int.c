@@ -193,7 +193,7 @@ void bli_samaxv_zen_int
 			/* If the absolute value of the current element exceeds that of
 			   the previous largest, save it and its index. If NaN is
 			   encountered, then treat it the same as if it were a valid
-			   value that was smaller than any previously seen. The comparision
+			   value that was smaller than any previously seen. The comparison
 			   operation does this, since with NaN it always fails. This
 			   behavior mimics that of LAPACK's i?amax(). */
 			if ( abs_chi1_max < abs_chi1 )
@@ -545,7 +545,7 @@ void bli_samaxv_zen_int
 	-------------------
 
 	This function takes a void pointer as input (internally casted to a double pointer)
-	which points to an array of type double, the correspending array's stride and length.
+	which points to an array of type double, the corresponding array's stride and length.
 	It uses the function parameters to return the output.
 
 	* 'x' - Void pointer pointing to an array of type double
@@ -955,7 +955,7 @@ BLIS_INLINE void bli_vec_absmax_double
 	-------------------
 
 	This function takes a void pointer as input (internally casted to a double pointer)
-	which points to an array of type double, the correspending array's stride and length.
+	which points to an array of type double, the corresponding array's stride and length.
 	It uses the function parameters to return the output.
 
 	* 'x' - Void pointer pointing to an array of type double
@@ -1122,7 +1122,7 @@ BLIS_INLINE void bli_vec_search_double
 	Function Signature
 	-------------------
 
-	This function takes a double pointer as input, the correspending vector's stride
+	This function takes a double pointer as input, the corresponding vector's stride
 	and length. It uses the function parameters to return the output.
 
 	* 'x' - Double pointer pointing to an array
@@ -1171,7 +1171,7 @@ BLIS_EXPORT_BLIS void bli_damaxv_zen_int
 	dim_t search_len;
 
 	/*
-		This function find the first occurrence of the absolute largest element in a double
+		This function finds the first occurrence of the absolute largest element in a double
 		array and the range (start and end index) in which that element can be found.
 	*/
 	bli_vec_absmax_double

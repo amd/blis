@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -82,7 +82,7 @@ TEST_P( dtrsmGeneric, API )
     // Set the threshold for the errors:
     // Check gtestsuite trsm.h or netlib source code for reminder of the
     // functionality from which we estimate operation count per element
-    // of output, and hence the multipler for epsilon.
+    // of output, and hence the multiplier for epsilon.
     double thresh;
     if (m == 0 || n == 0 || alpha == testinghelpers::ZERO<T>())
         thresh = 0.0;
@@ -153,7 +153,7 @@ INSTANTIATE_TEST_SUITE_P(
 /**
  * @brief Test DTRSM small avx2 path all fringe cases
  *        Kernel size for avx2 small path is 6x8, testing in range of
- *        1 to 8 ensures all finge cases are being tested.
+ *        1 to 8 ensures all fringe cases are being tested.
  */
 INSTANTIATE_TEST_SUITE_P(
         Small_AVX2_fringe,
@@ -242,7 +242,7 @@ INSTANTIATE_TEST_SUITE_P(
     );
 
 /**
- * @brief Test DTRSM with differnt values of alpha
+ * @brief Test DTRSM with different values of alpha
  *      code paths covered:
  *          TRSV              -> 1
  *          TRSM_AVX2_small   -> 2

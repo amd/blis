@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2024 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2024 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -75,7 +75,7 @@ TEST_P( zgemmGenericSUP, UKR )
     // Set the threshold for the errors:
     // Check gtestsuite gemm.h or netlib source code for reminder of the
     // functionality from which we estimate operation count per element
-    // of output, and hence the multipler for epsilon.
+    // of output, and hence the multiplier for epsilon.
     double thresh;
     if (m == 0 || n == 0)
         thresh = 0.0;
@@ -1068,7 +1068,7 @@ TEST_P( zgemmGenericNat, MicroKernelTest)
     // Set the threshold for the errors:
     // Check gtestsuite gemm.h or netlib source code for reminder of the
     // functionality from which we estimate operation count per element
-    // of output, and hence the multipler for epsilon.
+    // of output, and hence the multiplier for epsilon.
     double thresh;
     if (m == 0 || n == 0)
         thresh = 0.0;
@@ -1151,7 +1151,7 @@ INSTANTIATE_TEST_SUITE_P(
 );
 #endif
 
-/*Kernel reqired for trsm computation*/
+/*Kernel required for trsm computation*/
 #ifdef K_bli_zgemm_zen4_asm_4x12
 INSTANTIATE_TEST_SUITE_P(
     bli_zgemm_zen4_asm_4x12,
@@ -1232,7 +1232,7 @@ INSTANTIATE_TEST_SUITE_P(
 
 #if defined(BLIS_KERNELS_ZEN) && defined(GTEST_AVX2FMA3)
 
-/*Kernel reqired for trsm computation*/
+/*Kernel required for trsm computation*/
 #ifdef K_bli_zgemm_zen_asm_2x6
 INSTANTIATE_TEST_SUITE_P(
     bli_zgemm_zen_asm_2x6,

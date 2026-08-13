@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -82,7 +82,7 @@ TEST_P( ztrsmGeneric, API )
     // Set the threshold for the errors:
     // Check gtestsuite trsm.h or netlib source code for reminder of the
     // functionality from which we estimate operation count per element
-    // of output, and hence the multipler for epsilon.
+    // of output, and hence the multiplier for epsilon.
     // No adjustment applied yet for complex data.
     double thresh;
     if (m == 0 || n == 0 || alpha == testinghelpers::ZERO<T>())
@@ -154,7 +154,7 @@ INSTANTIATE_TEST_SUITE_P(
 /**
  * @brief Test ZTRSM small avx2 path all fringe cases
  *        Kernel size for avx2 small path is 4x3, testing in range of
- *        1 to 4 ensures all finge cases are being tested.
+ *        1 to 4 ensures all fringe cases are being tested.
  */
 INSTANTIATE_TEST_SUITE_P(
         Small_AVX2_fringe,
@@ -199,7 +199,7 @@ INSTANTIATE_TEST_SUITE_P(
 /**
  * @brief Test ZTRSM small avx512 path all fringe cases
  *        Kernel size for avx512 small path is 4x4 and 12x4, testing in range of
- *        1 to 24 ensures all finge cases are being tested (1 to 12 for trsm and 12 to 24 for gemm subproblem).
+ *        1 to 24 ensures all fringe cases are being tested (1 to 12 for trsm and 12 to 24 for gemm subproblem).
  */
 INSTANTIATE_TEST_SUITE_P(
         Small_AVX512_fringe,
@@ -242,7 +242,7 @@ INSTANTIATE_TEST_SUITE_P(
     );
 
 /**
- * @brief Test ZTRSM with differnt values of alpha
+ * @brief Test ZTRSM with different values of alpha
  *      code paths covered:
  *          TRSV              -> 1
  *          TRSM_AVX2_small   -> 3

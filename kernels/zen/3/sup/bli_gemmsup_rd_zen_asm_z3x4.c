@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2022 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2022 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -267,7 +267,7 @@ void bli_zgemmsup_rd_zen_asm_2x4
     label(.ZLOOPKLEFT4)
     mov(var(k_left4), rsi)      // i = k_left4;
     test(rsi, rsi)               // Check i via logical AND
-    je(.ZPOSTACCUM)             // If i=0 jmp to accumalation
+    je(.ZPOSTACCUM)             // If i=0 jmp to accumulation
     label(.ZLOOPKLEFT)
 
     vmovupd(mem(rax), xmm0)
@@ -593,7 +593,7 @@ void bli_zgemmsup_rd_zen_asm_1x4
     label(.ZLOOPKLEFT4)
     mov(var(k_left4), rsi)      // i = k_left4;
     test(rsi, rsi)               // Check i via logical AND
-    je(.ZPOSTACCUM)             // If i=0 jmp to accumalation
+    je(.ZPOSTACCUM)             // If i=0 jmp to accumulation
     label(.ZLOOPKLEFT)
 
     vmovupd(mem(rax), xmm0)
@@ -906,7 +906,7 @@ void bli_zgemmsup_rd_zen_asm_2x2
     label(.ZLOOPKLEFT4)
     mov(var(k_left4), rsi)      // i = k_left4;
     test(rsi, rsi)               // Check i via logical AND
-    je(.ZPOSTACCUM)             // If i=0 jmp to accumalation
+    je(.ZPOSTACCUM)             // If i=0 jmp to accumulation
     label(.ZLOOPKLEFT)
 
     vmovupd(mem(rax), xmm0)
@@ -1218,7 +1218,7 @@ void bli_zgemmsup_rd_zen_asm_1x2
     label(.ZLOOPKLEFT4)
     mov(var(k_left4), rsi)      // i = k_left4;
     test(rsi, rsi)               // Check i via logical AND
-    je(.ZPOSTACCUM)             // If i=0 jmp to accumalation
+    je(.ZPOSTACCUM)             // If i=0 jmp to accumulation
     label(.ZLOOPKLEFT)
 
     vmovupd(mem(rax), xmm0)

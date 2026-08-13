@@ -99,7 +99,7 @@
 // #region N-kernel instantiation and dispatch-table helpers
 // =============================================================================
 
-// Each ST/MT caller requires a 2D table of function pointer of micro kenrels
+// Each ST/MT caller requires a 2D table of function pointer of micro kernels
 
 /* DO_GENTFUNC_NGEMV: instantiates one N-direction micro-kernel. */
 #define DO_GENTFUNC_NGEMV(ctype, ch, M, i)   PASTECH(GENTFUNC_NGEMV_,ch)(ctype, ch, PASTECH(CH_S_,ch), M, i);

@@ -123,8 +123,8 @@ void reorderb_nr64_bf16bf16f32of32_reference
 				// The panel boundaries (KCxNC) remain as it is accessed in
 				// single thread, and as a consequence a thread with jc_start
 				// inside the panel cannot consider NC range for reorder. It
-				// has to work with NC' < NC, and the offset is calulated using
-				// prev NC panels spanning k dim + cur NC panel spaning pc loop
+				// has to work with NC' < NC, and the offset is calculated using
+				// prev NC panels spanning k dim + cur NC panel spanning pc loop
 				// cur iteration + (NC - NC') spanning current kc0 (<= KC).
 				//
 				//Eg: Consider the following reordered buffer diagram:
@@ -145,8 +145,8 @@ void reorderb_nr64_bf16bf16f32of32_reference
 				// The numbers 1,2..6,7 denotes the order in which reordered
 				// KCxNC blocks are stored in memory, ie: block 1 followed by 2
 				// followed by 3, etc. Given two threads t1 and t2, and t2 needs
-				// to acces point st in the reorder buffer to write the data:
-				// The offset calulation logic will be:
+				// to access point st in the reorder buffer to write the data:
+				// The offset calculation logic will be:
 				// jc_cur_loop = 2NC, jc_cur_loop_rem = NC', pc = KC,
 				// n_sub_updated = NC, k = 2KC, kc0_updated = KC
 				//
@@ -339,8 +339,8 @@ void reorderb_nr64_bf16bf16f32of32
 				// The panel boundaries (KCxNC) remain as it is accessed in
 				// single thread, and as a consequence a thread with jc_start
 				// inside the panel cannot consider NC range for reorder. It
-				// has to work with NC' < NC, and the offset is calulated using
-				// prev NC panels spanning k dim + cur NC panel spaning pc loop
+				// has to work with NC' < NC, and the offset is calculated using
+				// prev NC panels spanning k dim + cur NC panel spanning pc loop
 				// cur iteration + (NC - NC') spanning current kc0 (<= KC).
 				//
 				//Eg: Consider the following reordered buffer diagram:
@@ -361,8 +361,8 @@ void reorderb_nr64_bf16bf16f32of32
 				// The numbers 1,2..6,7 denotes the order in which reordered
 				// KCxNC blocks are stored in memory, ie: block 1 followed by 2
 				// followed by 3, etc. Given two threads t1 and t2, and t2 needs
-				// to acces point st in the reorder buffer to write the data:
-				// The offset calulation logic will be:
+				// to access point st in the reorder buffer to write the data:
+				// The offset calculation logic will be:
 				// jc_cur_loop = 2NC, jc_cur_loop_rem = NC', pc = KC,
 				// n_sub_updated = NC, k = 2KC, kc0_updated = KC
 				//
@@ -554,8 +554,8 @@ void reorderb_nr64_bf16s4f32of32
 				// The panel boundaries (KCxNC) remain as it is accessed in
 				// single thread, and as a consequence a thread with jc_start
 				// inside the panel cannot consider NC range for reorder. It
-				// has to work with NC' < NC, and the offset is calulated using
-				// prev NC panels spanning k dim + cur NC panel spaning pc loop
+				// has to work with NC' < NC, and the offset is calculated using
+				// prev NC panels spanning k dim + cur NC panel spanning pc loop
 				// cur iteration + (NC - NC') spanning current kc0 (<= KC).
 				//
 				// Eg: Consider the following reordered buffer diagram:
@@ -576,8 +576,8 @@ void reorderb_nr64_bf16s4f32of32
 				// The numbers 1,2..6,7 denotes the order in which reordered
 				// KCxNC blocks are stored in memory, ie: block 1 followed by 2
 				// followed by 3, etc. Given two threads t1 and t2, and t2 needs
-				// to acces point st in the reorder buffer to write the data:
-				// The offset calulation logic will be:
+				// to access point st in the reorder buffer to write the data:
+				// The offset calculation logic will be:
 				// jc_cur_loop = 2NC, jc_cur_loop_rem = NC', pc = KC,
 				// n_sub_updated = NC, k = 2KC, kc0_updated = KC
 				//
@@ -683,8 +683,8 @@ void reorderb_mxp_nr64_f32obf16
 				// The panel boundaries (KCxNC) remain as it is accessed in
 				// single thread, and as a consequence a thread with jc_start
 				// inside the panel cannot consider NC range for reorder. It
-				// has to work with NC' < NC, and the offset is calulated using
-				// prev NC panels spanning k dim + cur NC panel spaning pc loop
+				// has to work with NC' < NC, and the offset is calculated using
+				// prev NC panels spanning k dim + cur NC panel spanning pc loop
 				// cur iteration + (NC - NC') spanning current kc0 (<= KC).
 				//
 				// Eg: Consider the following reordered buffer diagram:
@@ -705,8 +705,8 @@ void reorderb_mxp_nr64_f32obf16
 				// The numbers 1,2..6,7 denotes the order in which reordered
 				// KCxNC blocks are stored in memory, ie: block 1 followed by 2
 				// followed by 3, etc. Given two threads t1 and t2, and t2 needs
-				// to acces point st in the reorder buffer to write the data:
-				// The offset calulation logic will be:
+				// to access point st in the reorder buffer to write the data:
+				// The offset calculation logic will be:
 				// jc_cur_loop = 2NC, jc_cur_loop_rem = NC', pc = KC,
 				// n_sub_updated = NC, k = 2KC, kc0_updated = KC
 				//

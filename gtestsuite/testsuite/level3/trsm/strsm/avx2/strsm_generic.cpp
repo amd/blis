@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -40,7 +40,7 @@ GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(strsmGeneric);
 /**
  * @brief Test STRSM small avx2 path all fringe cases
  *        Kernel size for avx2 small path is 16x6, testing in range of
- *        1 to 16 ensures all finge cases are being tested.
+ *        1 to 16 ensures all fringe cases are being tested.
  */
 INSTANTIATE_TEST_SUITE_P(
         Small_AVX2_fringe,

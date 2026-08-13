@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -2390,7 +2390,7 @@ LPGEMM_M_FRINGE_KERN2(int8_t,int8_t,int32_t,s8s8s32os32_4x64_sym_quant)
     	uint8_t cvt_uint8 = 128;
 	__m512i vec_uint8 = _mm512_set1_epi8 (cvt_uint8);
 
-	// gcc compiler (atleast 11.2 to 13.1) avoid loading B into
+	// gcc compiler (at least 11.2 to 13.1) avoid loading B into
 	//  registers while generating the code. A dummy shuffle instruction
 	//  is used on b data to explicitly specify to gcc compiler
 	//  b data needs to be kept in registers to reuse across FMA's
@@ -4386,7 +4386,7 @@ LPGEMM_M_FRINGE_KERN2(int8_t,int8_t,int32_t,s8s8s32os32_3x64_sym_quant)
     	uint8_t cvt_uint8 = 128;
 	__m512i vec_uint8 = _mm512_set1_epi8 (cvt_uint8);
 
-	// gcc compiler (atleast 11.2 to 13.1) avoid loading B into
+	// gcc compiler (at least 11.2 to 13.1) avoid loading B into
 	//  registers while generating the code. A dummy shuffle instruction
 	//  is used on b data to explicitly specify to gcc compiler
 	//  b data needs to be kept in registers to reuse across FMA's
@@ -6066,7 +6066,7 @@ LPGEMM_M_FRINGE_KERN2(int8_t,int8_t,int32_t,s8s8s32os32_2x64_sym_quant)
     	uint8_t cvt_uint8 = 128;
 	__m512i vec_uint8 = _mm512_set1_epi8 (cvt_uint8);
 
-	// gcc compiler (atleast 11.2 to 13.1) avoid loading B into
+	// gcc compiler (at least 11.2 to 13.1) avoid loading B into
 	//  registers while generating the code. A dummy shuffle instruction
 	//  is used on b data to explicitly specify to gcc compiler
 	//  b data needs to be kept in registers to reuse across FMA's

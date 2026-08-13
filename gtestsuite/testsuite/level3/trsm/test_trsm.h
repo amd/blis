@@ -63,11 +63,11 @@ typedef enum
  *
  * @tparam T
  * @param mat     input matrix where NAN/Inf needs to be inserted
- * @param uploa   specify if input matrix in uppper or lower triangular
+ * @param uploa   specify if input matrix in upper or lower triangular
  * @param m       size of the input matrix
  * @param ld      leading dimension of input matrix
  * @param type    type of extreme value to be inserted ( EVT_TYPE )
- * @param is_a    is the input matrix traingular( matrix A in TRSM )
+ * @param is_a    is the input matrix triangular( matrix A in TRSM )
  * @param is_diag insert extreme value in diagonal element
  */
 template<typename T>
@@ -418,7 +418,7 @@ TEST_P( strsmGeneric, API )
     // Set the threshold for the errors:
     // Check gtestsuite trsm.h or netlib source code for reminder of the
     // functionality from which we estimate operation count per element
-    // of output, and hence the multipler for epsilon.
+    // of output, and hence the multiplier for epsilon.
     double thresh;
     if (m == 0 || n == 0 || alpha == testinghelpers::ZERO<T>())
         thresh = 0.0;

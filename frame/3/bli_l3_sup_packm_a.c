@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2022 - 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2022 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -127,7 +127,7 @@ void PASTEMAC(ch,opname) \
 				{ \
 					/* The chief thread releases the existing block associated
 					   with the mem_t, and then re-acquires a new block, saving
-					   the associated mem_t to its passed-in mem_t. (See coment
+					   the associated mem_t to its passed-in mem_t. (See comment
 					   above for why the acquisition needs to be directly to
 					   the chief thread's passed-in mem_t and not a local
 					   (temporary) mem_t. */ \

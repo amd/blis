@@ -64,7 +64,7 @@ BLIS_INLINE void calculate_n_threads_per_gemm
 	{
 		( *n_gemms_in_parallel ) = bli_min( ( *n_threads ), group_size );
 	}
-	/* ToDo: All the leftover thrads might go under-utilized. Could be optimized further. */
+	/* ToDo: All the leftover threads might go under-utilized. Could be optimized further. */
 	( *n_threads_per_gemm ) = ( *n_threads ) / ( *n_gemms_in_parallel );
 }
 

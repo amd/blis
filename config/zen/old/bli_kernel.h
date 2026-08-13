@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2017 - 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2017 - 2026, Advanced Micro Devices, Inc. All rights reserved.
    Copyright (C) 2018, The University of Texas at Austin
 
    Redistribution and use in source and binary forms, with or without
@@ -51,9 +51,9 @@
 //
 
 // threading related
-// By default it is effective to paralleize the 
+// By default it is effective to parallelize the
 // outerloops. Setting these macros to 1 will force
-// JR and NR inner loops to be not paralleized.
+// JR and NR inner loops to be not parallelized.
 #define BLIS_DEFAULT_MR_THREAD_MAX 1 
 #define BLIS_DEFAULT_NR_THREAD_MAX 1 
 

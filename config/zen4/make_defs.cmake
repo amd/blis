@@ -46,9 +46,9 @@ if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
         list(APPEND CRVECFLAGS -march=znver4)
         # Update CKLPOPTFLAGS for gcc to use O3 optimization without
         # -ftree-pre and -ftree-partial-pre flag. These flag results
-        # in suboptimal code generation for instrinsic based kernels.
+        # in suboptimal code generation for intrinsic based kernels.
         # The -ftree-loop-vectorize results in inefficient code gen
-        # for amd optimized l1 kernels based on instrinsics.
+        # for amd optimized l1 kernels based on intrinsics.
         list(APPEND CKLPOPTFLAGS -fno-tree-partial-pre -fno-tree-pre -fno-tree-loop-vectorize)
     elseif(CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 11.0.0)
         # gcc 11.0 or later

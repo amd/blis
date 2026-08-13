@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2024 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -184,7 +184,7 @@
 /* 4. Transpose and store results in    */
 /*    in col major order                */
 /* 5. Output update is done only for    */
-/*    lower traingular matrix           */
+/*    lower triangular matrix           */
 /* NOTE:                                */
 /* Mask value is set to 1 if the        */
 /* element exist else it is set to 0    */
@@ -225,7 +225,7 @@
 /* number of elements based on the mask */
 /* in col major order where Beta = 0    */
 /* Output update is done only for       */
-/* lower traingular matrix              */
+/* lower triangular matrix              */
 /* Elements:                            */
 /* Nx4 elements at a time               */
 /* Input:                               */
@@ -252,7 +252,7 @@
 /* 4. Transpose and store results in    */
 /*    in col major order                */
 /* 5. Output update is done only for    */
-/*    upper traingular matrix           */
+/*    upper triangular matrix           */
 /* NOTE:                                */
 /* Mask value is set to 1 if the        */
 /* element exist else it is set to 0    */
@@ -293,7 +293,7 @@
 /* number of elements based on the mask */
 /* in col major order where Beta = 0    */
 /* Output update is done only for       */
-/* upper traingular matrix              */
+/* upper triangular matrix              */
 /* Elements:                            */
 /* Nx4 elements at a time               */
 /* Inputs:                              */
@@ -418,7 +418,7 @@
 /* 4. Transpose and store results in    */
 /*    in row major order                */
 /* 5. Output update is done only for    */
-/*    lower traingular matrix           */
+/*    lower triangular matrix           */
 /* NOTE:                                */
 /* Mask value is set to 1 if the        */
 /* element exist else it is set to 0    */
@@ -453,7 +453,7 @@
 /* number of elements based on the mask */
 /* in row major order where Beta = 0    */
 /* Output update is done only for       */
-/* lower traingular matrix              */
+/* lower triangular matrix              */
 /* Elements:                            */
 /* Nx4 elements at a time               */
 /* Input:                               */
@@ -477,7 +477,7 @@
 /* number of elements based on the mask */
 /* in row major order where Beta = 0    */
 /* Output update is done only for       */
-/* upper traingular matrix              */
+/* upper triangular matrix              */
 /* Elements:                            */
 /* Nx4 elements at a time               */
 /* Inputs:                              */
@@ -506,7 +506,7 @@
 /* number of elements based on the mask */
 /* in row major order where Beta = 0    */
 /* Output update is done only for       */
-/* upper traingular matrix              */
+/* upper triangular matrix              */
 /* Elements:                            */
 /* Nx4 elements at a time               */
 /* Inputs:                              */
@@ -540,7 +540,7 @@
 /*    if n_rem=2, mask_n = 1111b, since */
 /*    2real and 2complex elements to be */
 /*    accessed/stored                   */
-/* 5. Perfom A*B                        */
+/* 5. Perform A*B                        */
 /* 6. Store Beta*C + Alpha*A*B in to C  */
 /****************************************/
 #define MAIN_LOOP_ROW(M) \

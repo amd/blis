@@ -1236,7 +1236,7 @@ void bli_nthreads_optimum(
 				Ex : theoretical_threads = 70 will be subjected to inspection inside the condition
 				     "theoretical_threads <= 96".
 				
-				Inside this condition, the optimal numer of threads is decided among all the thread
+				Inside this condition, the optimal number of threads is decided among all the thread
 				values <= 96 in the list, based on patterns seen in 'k', 'm' and 'n'.
 
 				P.S : This logic can further be experimented on, by considering a continuous list of
@@ -1680,7 +1680,7 @@ void bli_nthreads_optimum(
 				Ex : theoretical_threads = 70 will be subjected to inspection inside the condition
 				     "theoretical_threads <= 128".
 				
-				Inside this condition, the optimal numer of threads is decided among all the thread
+				Inside this condition, the optimal number of threads is decided among all the thread
 				values <= 128 in the list, based on patterns seen in 'k', 'm' and 'n'.
 
 				P.S : This logic is built over the assumption that the thread factorization is optimal.
@@ -2577,7 +2577,7 @@ err_t bli_smart_threading_sup
         // Take default path if transpose is enabled for A matrix.
         if ( trans_A_for_kernel == FALSE )
         {
-            // A successfull call to smart threading api implies smart
+            // A successful call to smart threading api implies smart
             // factorization and possibly native -> SUP path conversion.
             // Optimal thread selection is not supported yet.
             ret_val = bli_gemm_smart_threading_sup( bli_obj_dt( c ),

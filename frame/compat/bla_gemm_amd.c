@@ -729,7 +729,7 @@ void dgemm_blis_impl
     /**
      *Early check for tiny sizes.
      *if inputs are in range of tiny gemm kernel,
-     *we avoid creating and initalizing objects and directly
+     *we avoid creating and initializing objects and directly
      *operate on memory buffers.
      *Function return failure in case of input matrix sizes are
      *beyond threshold(larger inputs).
@@ -1228,7 +1228,7 @@ void zgemm_blis_impl
         else if ( arch_id == BLIS_ARCH_ZEN6 || arch_id == BLIS_ARCH_ZEN5 )
         {
             // Redirecting to AVX-2 kernel if the dimensions are < 30
-            // ( i.e, small or tiny sizes ), or if the load directon( m0 ) < 10
+            // ( i.e, small or tiny sizes ), or if the load direction( m0 ) < 10
             if( ( m0 < 30 && n0 < 30 ) || m0 < 10 )
             {
                 k1_status = bli_zgemm_zen_int_4x4_k1_nn

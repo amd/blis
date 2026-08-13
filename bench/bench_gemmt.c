@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2020 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2020 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -193,7 +193,7 @@ int main( int argc, char** argv )
         else if (stor_scheme == 'r' || stor_scheme == 'R')
         {
           // row storage
-          // leading dimension shold be greater than number of columns
+          // leading dimension should be greater than number of columns
           if( n > ldc ) continue;
 
           bli_set_dims_with_trans( transa, n, k, &m_trans, &n_trans);

@@ -78,7 +78,7 @@ $(eval $(call store-var-for,CRVECFLAGS, $(1)))
 CONFIGS_INCL += $(1)
 endef
 
-# Define a function that retreives the value of a variable for a
+# Define a function that retrieves the value of a variable for a
 # given configuration.
 define load-var-for
 $($(strip $(1)).$(strip $(2)))
@@ -752,7 +752,7 @@ ifneq ($(CC_VENDOR),ibm)
 CWARNFLAGS += -Wall -Wno-unused-function -Wfatal-errors
 endif
 
-# Disable tautological comparision warnings in clang.
+# Disable tautological comparison warnings in clang.
 ifeq ($(CC_VENDOR),clang)
 CWARNFLAGS += -Wno-tautological-compare -Wno-pass-failed
 endif

@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2024 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2024 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -80,8 +80,8 @@
 /*
  * Two different subiters(SUBITER_0 and SUBITER_1) are used
  * so that latency of mov can be hidden
- * SUBITER_0 laods B into ZMM0-2
- * SUBITER_0 laods B into ZMM3-5
+ * SUBITER_0 loads B into ZMM0-2
+ * SUBITER_0 loads B into ZMM3-5
  * SUBITER_0 and SUBITER_1 called alternatively
  *
  * ----------------------------------------------------------------
@@ -522,7 +522,7 @@ void bli_dgemm_zen4_asm_8x24(
     LEA(RDX, MEM(R10, R10, 4)) // (RDX)rs_c*5 -> rs_c + rs_c*4
     LEA(R14, MEM(R10, R13, 2)) // (R14)rs_c*7 -> rs_c + rs_c*3*2
 
-    VXORPD(ZMM(2), ZMM(2), ZMM(2)) // set zmm2 to 0, used for comparision with beta
+    VXORPD(ZMM(2), ZMM(2), ZMM(2)) // set zmm2 to 0, used for comparison with beta
 #ifdef ENABLE_COL_GEN_STORE
     MOV(R12, VAR(cs_c)) // load cs_c
     CMP(R10, IMM(8))
@@ -855,7 +855,7 @@ void bli_dgemm_zen4_asm_8x24(
             // beta != 0
 
             /*
-            * // registers pre tranpose
+            * // registers pre transpose
             *  _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
             * |    zmm8      |      zmm9      |     zmm10     |
             * |    zmm11     |      zmm12     |     zmm13     |
@@ -1322,9 +1322,9 @@ void bli_dgemm_zen4_asm_8x24_macro_kernel_fringe
     if ( m_left )
     {
         // loop along N dimension
-        // initial m_main rows of 'C' are aready computed,
+        // initial m_main rows of 'C' are already computed,
         // to compute remaining m_left rows, pointer 'C'
-        // matrix shoule be moved forward by m_main rows,
+        // matrix should be moved forward by m_main rows,
         // and pointer 'A' should point to  (m_main / MR)th
         // micropanel.
         // To move 'A' pointer to (m_main / MR)th micropanel.
@@ -1373,9 +1373,9 @@ void bli_dgemm_zen4_asm_8x24_macro_kernel_fringe
     if ( (n % 24) )
     {
         // loop along M dimension
-        // initial n_main rows of 'C' are aready computed,
+        // initial n_main rows of 'C' are already computed,
         // to compute remaining n_left rows, pointer 'C'
-        // matrix shoule be moved forward by n_main columns,
+        // matrix should be moved forward by n_main columns,
         // and pointer 'B' should point to  (n_main / NR)th
         // micropanel.
         // To move 'B' pointer to (n_main / NR)th micropanel.
@@ -1406,7 +1406,7 @@ void bli_dgemm_zen4_asm_8x24_macro_kernel_fringe
                 NULL,
                 NULL
             );
-            // remaning compute along M dimension = m - i
+            // remaining compute along M dimension = m - i
             dim_t m_curr = m - i;
             // if M remainder compute > 8, then only MR is
             // is solved in current iteration.

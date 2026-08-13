@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -521,7 +521,7 @@ LPGEMV_N_EQ1_KERN(int8_t, int8_t, int32_t, s8s8s32os32)
 		__m512i selector1 = _mm512_set1_epi32( alpha );
 		__m512i selector2 = _mm512_set1_epi32( beta );
 
-		//Mulitply A*B output with alpha
+		//Multiply A*B output with alpha
 		zmm8 = _mm512_mullo_epi32( selector1, zmm8 );
 
 		if( beta != 0 )

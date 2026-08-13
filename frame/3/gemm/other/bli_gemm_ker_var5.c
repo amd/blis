@@ -5,6 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
+   Copyright (C) 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -229,7 +230,7 @@ void PASTEMAC(ch,varname)( \
 	b1 = b_cast; \
 	c1 = c_cast; \
 \
-	/* Since we pack micro-panels of B incrementaly, one at a time, the
+	/* Since we pack micro-panels of B incrementally, one at a time, the
 	   address of the next micro-panel of B remains constant. */ \
 	b2 = bp; \
 \

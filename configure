@@ -523,9 +523,9 @@ assign_key_value()
 #
 # FGVZ: This commented-out function is being kept as an example how how
 # to effectively "pass by reference" in bash. That is, pass the name of
-# a variable, instead of its conents, and then let the function use the
+# a variable, instead of its contents, and then let the function use the
 # variable by prepending a $, at which time it can evaluate the string
-# as if it were a literal variable occurance.
+# as if it were a literal variable occurrence.
 #
 #filteradd_to_list()
 #{
@@ -775,12 +775,12 @@ read_registry_file()
 	# config and kernel registry data structures.
 	pass_config_kernel_registries "${filename}" "1"
 
-	# Now we must go back through the config_registry and subsitute any
+	# Now we must go back through the config_registry and substitute any
 	# configuration families with their constituents' members. Each time
 	# one of these substitutions occurs, we set a flag that causes us to
-	# make one more pass. (Subsituting a singleton definition does not
+	# make one more pass. (Substituting a singleton definition does not
 	# prompt additional iterations.) This process stops when a full pass
-	# does not result in any subsitution.
+	# does not result in any substitution.
 
 	iterate_again="1"
 	while [ "${iterate_again}" == "1" ]; do
@@ -894,7 +894,7 @@ read_registry_file()
 				# in the kernel registry. While not common, this can happen
 				# when ker identifies a kernel set that does not correspond to
 				# any configuration. (Example: armv7a and armv8a kernel sets are
-				# used by cortexa* configurations, but do not corresond to their
+				# used by cortexa* configurations, but do not correspond to their
 				# own configurations.)
 				if [ "${kers_ker}" == "" ]; then
 					#echo "debug: ${ker} not found in kernel registry."
@@ -1460,7 +1460,7 @@ get_binutils_version()
 	if [ "$(uname -s)" == "Darwin" ]; then
 		# The default OS X assembler uses a trifecta of brain-dead
 		# conventions: responding only to '-v', hanging indefinitely if
-		# not given an argument, and outputing the result to stderr.
+		# not given an argument, and outputting the result to stderr.
 		# (And if you still weren't convinced, it creates an 'a.out'
 		# by default. So yeah.)
 		bu_string=$(${binutil} -v /dev/null -o /dev/null 2>&1)
@@ -1819,7 +1819,7 @@ check_compiler_version_ranges()
 	#   or '-march=bdver4' (if gcc_older_than_6_1_0) [3]. If gcc is 6.1 or
 	#   newer, '-march=znver1' may be used (since the instruction sets it
 	#   enables are a subset of those enabled by '-march=znver2'); otherwise,
-	#   '-march=bdver4' must be used in conjuction with disabling the
+	#   '-march=bdver4' must be used in conjunction with disabling the
 	#   instruction sets that were removed in the transition from Excavator to
 	#   Zen, as described in the section above for gcc_older_than_6_1_0.
 	#   Newer versions of gcc support Zen2 via the '-march=znver2' option [6].
@@ -2022,7 +2022,7 @@ main()
 
 	# -- Basic names and paths --
 
-	# The name of the script, stripped of any preceeding path.
+	# The name of the script, stripped of any preceding path.
 	script_name=${0##*/}
 
 	# The path to the script. We need this to find the top-level directory
@@ -2896,7 +2896,7 @@ main()
 	# 2. If the list contains a sub-configuration name that matches the
 	#    kernel name, use that name.
 	# 3. Otherwise, use the first name in the list.
-	# We use the chosen singleton to ceate a "kernel:subconfig" pair, which
+	# We use the chosen singleton to create a "kernel:subconfig" pair, which
 	# we accumulate into a list. This list is the kernel-to-config map, or
 	# kconfig_map.
 
@@ -3084,7 +3084,7 @@ main()
 	pragma_omp_simd=$(has_pragma_omp_simd)
 
 
-	# -- Prepare variables for subsitution into template files -----------------
+	# -- Prepare variables for substitution into template files -----------------
 
 	# Parse the status of the prefix option and echo feedback.
 	if [ -n "${prefix_flag}" ]; then
@@ -4053,7 +4053,7 @@ main()
 	fi
 
 
-	# -- Generate makefile fragements ------------------------------------------
+	# -- Generate makefile fragments ------------------------------------------
 
 	clist_contains_cname=$(is_in_list "${config_name}" "${config_list}")
 

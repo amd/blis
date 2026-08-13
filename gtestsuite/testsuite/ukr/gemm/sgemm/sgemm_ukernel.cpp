@@ -77,7 +77,7 @@ TEST_P( sgemmGenericSUP, functionality_testing)
     // Set the threshold for the errors:
     // Check gtestsuite gemm.h or netlib source code for reminder of the
     // functionality from which we estimate operation count per element
-    // of output, and hence the multipler for epsilon.
+    // of output, and hence the multiplier for epsilon.
     double thresh;
     if (m == 0 || n == 0)
         thresh = 0.0;
@@ -439,7 +439,7 @@ INSTANTIATE_TEST_SUITE_P(
 #endif
 
 // Checking with col storage of C
-// NOTE : Since we are inducing transpose at opertaion level, for code coverage, we
+// NOTE : Since we are inducing transpose at operation level, for code coverage, we
 //        have to interchange m and n instantiations
 #ifdef K_bli_sgemmsup_rd_zen4_asm_6x64m
 INSTANTIATE_TEST_SUITE_P(
@@ -684,7 +684,7 @@ TEST_P( sgemmGenericNat, functionality_testing)
     // Set the threshold for the errors:
     // Check gtestsuite gemm.h or netlib source code for reminder of the
     // functionality from which we estimate operation count per element
-    // of output, and hence the multipler for epsilon.
+    // of output, and hence the multiplier for epsilon.
     double thresh;
     if (m == 0 || n == 0)
         thresh = 0.0;
@@ -982,7 +982,7 @@ TEST_P( sgemmGenericSmallTest, gemm_small)
     // Set the threshold for the errors:
     // Check gtestsuite gemm.h or netlib source code for reminder of the
     // functionality from which we estimate operation count per element
-    // of output, and hence the multipler for epsilon.
+    // of output, and hence the multiplier for epsilon.
     double thresh;
     if (m == 0 || n == 0)
         thresh = 0.0;

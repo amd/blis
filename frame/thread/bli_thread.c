@@ -360,7 +360,7 @@ dim_t bli_thread_range_width_l
 	// If n_j is sufficiently small that we can only allocate bf columns
 	// to each of the remaining threads, then we set the width to bf. We
 	// do not allow the subpartition width to be less than bf, so, under
-	// some conditions, if n_j is small enough, some of the reamining
+	// some conditions, if n_j is small enough, some of the remaining
 	// threads may not get any work. For the purposes of this lower bound
 	// on work (ie: width >= bf), we allow the edge case to count as a
 	// "full" set of bf columns.
@@ -1606,9 +1606,9 @@ dim_t bli_thread_get_num_threads( void )
 	{
 		dim_t jc = bli_rntm_jc_ways( &rntm_l );
 		dim_t pc = bli_rntm_pc_ways( &rntm_l );
-	    dim_t ic = bli_rntm_ic_ways( &rntm_l );
-	    dim_t jr = bli_rntm_jr_ways( &rntm_l );
-	    dim_t ir = bli_rntm_ir_ways( &rntm_l );
+		dim_t ic = bli_rntm_ic_ways( &rntm_l );
+		dim_t jr = bli_rntm_jr_ways( &rntm_l );
+		dim_t ir = bli_rntm_ir_ways( &rntm_l );
 		// Mirror the normalization logic used when deriving ways from rntm:
 		// if any way is set to a positive value, treat non-positive ways as 1
 		// and return the product as the total number of threads. If no way is
@@ -1829,7 +1829,7 @@ void bli_thread_init_rntm_from_env
 	// omp_set_num_threads(nt) API or OMP_NUM_THREADS environment variable.
 	//
 	// 3. If Application wants to allocate separate number of threads for BLIS API execution
-	// and application, Application can choose either BLIS_NUM_THREADS environement variable
+	// and application, Application can choose either BLIS_NUM_THREADS environment variable
 	// or bli_thread_set_num_threads(nt) API, to set the desired number of threads
 	// in BLIS API Execution. Application can use OpenMP APIs or environment variables for
 	// itself.
@@ -1903,9 +1903,9 @@ void bli_thread_init_rntm_from_env
 		if ( active_level < max_levels )
 #endif
 		{
-		      nt = omp_get_max_threads();
+			nt = omp_get_max_threads();
 		} else {
-		      nt = 1;
+			nt = 1;
 		}
 #else
 		nt = 1;
@@ -2053,7 +2053,7 @@ void bli_thread_update_rntm_from_env
 	// omp_set_num_threads(nt) API or OMP_NUM_THREADS environment variable.
 	//
 	// 3. If Application wants to allocate separate number of threads for BLIS API execution
-	// and application, Application can choose either BLIS_NUM_THREADS environement variable
+	// and application, Application can choose either BLIS_NUM_THREADS environment variable
 	// or bli_thread_set_num_threads(nt) API, to set the desired number of threads
 	// in BLIS API Execution. Application can use OpenMP APIs or environment variables for
 	// itself.
@@ -2156,9 +2156,9 @@ void bli_thread_update_rntm_from_env
 		if ( active_level < max_levels )
 #endif
 		{
-		      nt = omp_get_max_threads();
+			nt = omp_get_max_threads();
 		} else {
-		      nt = 1;
+			nt = 1;
 		}
 #else
 		nt = 1;
@@ -2319,7 +2319,7 @@ void bli_normfv_thread_partition
 	dim_t job_rem_per_thread = job_per_thread % block_size;
 	dim_t thread_lim_excess = 0;
 
-	// Code-section to make job_per_thread as its nearset multiple of block_size
+	// Code-section to make job_per_thread as its nearest multiple of block_size
 	if( job_rem_per_thread )
 	{
 		job_rem += t_count * job_rem_per_thread;

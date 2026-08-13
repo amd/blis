@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2020 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2020 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -121,7 +121,7 @@ void bli_sgemmsup_rv_zen_asm_6x16m
         /*n0=8    : -----------ymm---------------   -----------Not used---------  */
         /*n0=7    : -1  -1  -1  -1  -1  -1  -1  0   -----------Not used---------  */
         /*n0=3    : -1  -1  -1   0   0   0   0  0   -----------Not used---------  */
-        /*Same code can be resued for multiple n_left by just varing mask register*/
+        /*Same code can be reused for multiple n_left by just varying mask register*/
         /*We will be able to perform complete operation of tile with this approach*/
         /**************************************************************************/
         switch(n_left)

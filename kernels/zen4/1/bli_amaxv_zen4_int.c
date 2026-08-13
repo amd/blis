@@ -165,7 +165,7 @@ void bli_samaxv_zen4_int(
         */
         v16sf_t sign_mask, iter_max_vec[4];
         /*
-          base_max_scalar - To store the absoulte maximum value from elements
+          base_max_scalar - To store the absolute maximum value from elements
                             across all iterations.
           iter_max_scalar - To store the absolute maximum value from elements
                             in the current iteration.
@@ -471,7 +471,7 @@ BLIS_EXPORT_BLIS void bli_damaxv_zen4_int
         */
         v8df_t sign_mask, iter_max_vec[4];
         /*
-          base_max_scalar - To store the absoulte maximum value from elements
+          base_max_scalar - To store the absolute maximum value from elements
                             across all iterations.
           iter_max_scalar - To store the absolute maximum value from elements
                             in the current iteration.

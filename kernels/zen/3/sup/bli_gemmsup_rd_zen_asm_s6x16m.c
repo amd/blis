@@ -431,29 +431,29 @@ void bli_sgemmsup_rd_zen_asm_6x16m
 
     // In this block, ymm3 is the mask vector the MSB of each
     // 32-bit element indicates whether to load the element or not
-    vmaskmovps( mem( rax        ), ymm3, ymm0 )   // ymm0 <- mem( rax ) & MSB of correponding element in ymm3  
-    vmaskmovps( mem( rax, r8, 1 ), ymm3, ymm1 )   // ymm1 <- mem( rax, r8, 1 ) & MSB of correponding element in ymm3
-    vmaskmovps( mem( rax, r8, 2 ), ymm3, ymm2 )   // ymm2 <- mem( rax, r8, 2 ) & MSB of correponding element in ymm3
+    vmaskmovps( mem( rax        ), ymm3, ymm0 )   // ymm0 <- mem( rax ) & MSB of corresponding element in ymm3  
+    vmaskmovps( mem( rax, r8, 1 ), ymm3, ymm1 )   // ymm1 <- mem( rax, r8, 1 ) & MSB of corresponding element in ymm3
+    vmaskmovps( mem( rax, r8, 2 ), ymm3, ymm2 )   // ymm2 <- mem( rax, r8, 2 ) & MSB of corresponding element in ymm3
 
-    vmaskmovps( mem( rbx        ), ymm3, ymm3 )   // ymm3 <- mem( rbx ) & MSB of correponding element in ymm3
+    vmaskmovps( mem( rbx        ), ymm3, ymm3 )   // ymm3 <- mem( rbx ) & MSB of corresponding element in ymm3
     vfmadd231ps( ymm0, ymm3, ymm4 )               // ymm4 += ymm0 * ymm3
     vfmadd231ps( ymm1, ymm3, ymm5 )               // ymm5 += ymm1 * ymm3
     vfmadd231ps( ymm2, ymm3, ymm6 )               // ymm6 += ymm2 * ymm3   
 
     vmovdqu( mem( rdi ), ymm3 )                   // reload mask values since ymm3 is overridden in previous operations
-    vmaskmovps( mem( rbx, r11, 1 ), ymm3, ymm3 )  // ymm3 <- mem( rbx, r11, 1 ) & MSB of correponding element in ymm3
+    vmaskmovps( mem( rbx, r11, 1 ), ymm3, ymm3 )  // ymm3 <- mem( rbx, r11, 1 ) & MSB of corresponding element in ymm3
     vfmadd231ps( ymm0, ymm3, ymm7 )               // ymm7 += ymm0 * ymm3
     vfmadd231ps( ymm1, ymm3, ymm8 )               // ymm8 += ymm1 * ymm3
     vfmadd231ps( ymm2, ymm3, ymm9 )               // ymm9 += ymm2 * ymm3
 
     vmovdqu( mem( rdi ), ymm3 )                   // reload mask values since ymm3 is overridden in previous operations
-    vmaskmovps( mem( rbx, r11, 2 ), ymm3, ymm3 )  // ymm3 <- mem( rbx, r11, 2 ) & MSB of correponding element in ymm3
+    vmaskmovps( mem( rbx, r11, 2 ), ymm3, ymm3 )  // ymm3 <- mem( rbx, r11, 2 ) & MSB of corresponding element in ymm3
     vfmadd231ps( ymm0, ymm3, ymm10 )              // ymm10 += ymm0 * ymm3
     vfmadd231ps( ymm1, ymm3, ymm11 )              // ymm11 += ymm1 * ymm3
     vfmadd231ps( ymm2, ymm3, ymm12 )              // ymm12 += ymm2 * ymm3
 
     vmovdqu( mem( rdi ), ymm3 )                   // reload mask values since ymm3 is overridden in previous operations
-    vmaskmovps( mem( rbx, r13, 1 ), ymm3, ymm3 )  // ymm3 <- mem( rbx, r13, 1 ) & MSB of correponding element in ymm3
+    vmaskmovps( mem( rbx, r13, 1 ), ymm3, ymm3 )  // ymm3 <- mem( rbx, r13, 1 ) & MSB of corresponding element in ymm3
     vfmadd231ps( ymm0, ymm3, ymm13 )              // ymm13 += ymm0 * ymm3
     vfmadd231ps( ymm1, ymm3, ymm14 )              // ymm14 += ymm1 * ymm3
     vfmadd231ps( ymm2, ymm3, ymm15 )              // ymm15 += ymm2 * ymm3
@@ -953,29 +953,29 @@ void bli_sgemmsup_rd_zen_asm_6x8m
 
     // In this block, ymm3 is the mask vector the MSB of each
     // 32-bit element indicates whether to load the element or not
-    vmaskmovps( mem( rax        ), ymm3, ymm0 )   // ymm0 <- mem( rax ) & MSB of correponding element in ymm3 
-    vmaskmovps( mem( rax, r8, 1 ), ymm3, ymm1 )   // ymm1 <- mem( rax, r8,1 ) & MSB of correponding element in ymm3
-    vmaskmovps( mem( rax, r8, 2 ), ymm3, ymm2 )   // ymm2 <- mem( rax, r8,2 ) & MSB of correponding element in ymm3
+    vmaskmovps( mem( rax        ), ymm3, ymm0 )   // ymm0 <- mem( rax ) & MSB of corresponding element in ymm3 
+    vmaskmovps( mem( rax, r8, 1 ), ymm3, ymm1 )   // ymm1 <- mem( rax, r8,1 ) & MSB of corresponding element in ymm3
+    vmaskmovps( mem( rax, r8, 2 ), ymm3, ymm2 )   // ymm2 <- mem( rax, r8,2 ) & MSB of corresponding element in ymm3
                     
-    vmaskmovps( mem( rbx        ), ymm3, ymm3 )   // ymm3 <- mem( rbx ) & MSB of correponding element in ymm3
+    vmaskmovps( mem( rbx        ), ymm3, ymm3 )   // ymm3 <- mem( rbx ) & MSB of corresponding element in ymm3
     vfmadd231ps( ymm0, ymm3, ymm4 )               // ymm4 += ymm3 * ymm0
     vfmadd231ps( ymm1, ymm3, ymm5 )               // ymm5 += ymm3 * ymm1
     vfmadd231ps( ymm2, ymm3, ymm6 )               // ymm6 += ymm3 * ymm2
 
     vmovdqu( mem( rdi ), ymm3 )                   // reload mask values since ymm3 is overridden in previous operations
-    vmaskmovps( mem( rbx, r11, 1 ), ymm3, ymm3 )  // ymm3 <- mem( rbx, r11,1 ) & MSB of correponding element in ymm3
+    vmaskmovps( mem( rbx, r11, 1 ), ymm3, ymm3 )  // ymm3 <- mem( rbx, r11,1 ) & MSB of corresponding element in ymm3
     vfmadd231ps( ymm0, ymm3, ymm7 )               // ymm7 += ymm3 * ymm0
     vfmadd231ps( ymm1, ymm3, ymm8 )               // ymm8 += ymm3 * ymm1     
     vfmadd231ps( ymm2, ymm3, ymm9 )               // ymm9 += ymm3 * ymm2
 
     vmovdqu( mem( rdi ), ymm3 )                   // reload mask values since ymm3 is overridden in previous operations
-    vmaskmovps( mem( rbx, r11, 2 ), ymm3, ymm3 )  // ymm3 <- mem( rbx, r11,2 ) & MSB of correponding element in ymm3
+    vmaskmovps( mem( rbx, r11, 2 ), ymm3, ymm3 )  // ymm3 <- mem( rbx, r11,2 ) & MSB of corresponding element in ymm3
     vfmadd231ps( ymm0, ymm3, ymm10 )              // ymm10 += ymm3 * ymm0
     vfmadd231ps( ymm1, ymm3, ymm11 )              // ymm11 += ymm3 * ymm1
     vfmadd231ps( ymm2, ymm3, ymm12 )              // ymm12 += ymm3 * ymm2
 
     vmovdqu( mem( rdi ), ymm3 )                   // reload mask values since ymm3 is overridden in previous operations
-    vmaskmovps( mem( rbx, r13, 1 ), ymm3, ymm3 )  // ymm3 <- mem( rbx, r13,1 ) & MSB of correponding element in ymm3
+    vmaskmovps( mem( rbx, r13, 1 ), ymm3, ymm3 )  // ymm3 <- mem( rbx, r13,1 ) & MSB of corresponding element in ymm3
     vfmadd231ps( ymm0, ymm3, ymm13 )              // ymm13 += ymm3 * ymm0  
     vfmadd231ps( ymm1, ymm3, ymm14 )              // ymm14 += ymm3 * ymm1
     vfmadd231ps( ymm2, ymm3, ymm15 )              // ymm15 += ymm3 * ymm2
@@ -1479,29 +1479,29 @@ void bli_sgemmsup_rd_zen_asm_6x4m
 
     // In this block, ymm3 is the mask vector the MSB of each
     // 32-bit element indicates whether to load the element or not
-    vmaskmovps( mem( rax        ), ymm3, ymm0 )   // ymm0 <- mem( rax ) & MSB of correponding element in ymm3
-    vmaskmovps( mem( rax, r8, 1 ), ymm3, ymm1 )   // ymm1 <- mem( rax, r8, 1 ) & MSB of correponding element in ymm3
-    vmaskmovps( mem( rax, r8, 2 ), ymm3, ymm2 )   // ymm2 <- mem( rax, r8, 2 ) & MSB of correponding element in ymm3
+    vmaskmovps( mem( rax        ), ymm3, ymm0 )   // ymm0 <- mem( rax ) & MSB of corresponding element in ymm3
+    vmaskmovps( mem( rax, r8, 1 ), ymm3, ymm1 )   // ymm1 <- mem( rax, r8, 1 ) & MSB of corresponding element in ymm3
+    vmaskmovps( mem( rax, r8, 2 ), ymm3, ymm2 )   // ymm2 <- mem( rax, r8, 2 ) & MSB of corresponding element in ymm3
 
-    vmaskmovps( mem( rbx        ), ymm3, ymm3 )   // ymm3 <- mem( rbx ) & MSB of correponding element in ymm3
+    vmaskmovps( mem( rbx        ), ymm3, ymm3 )   // ymm3 <- mem( rbx ) & MSB of corresponding element in ymm3
     vfmadd231ps( ymm0, ymm3, ymm4 )               // ymm4 += ymm3 * ymm0
     vfmadd231ps( ymm1, ymm3, ymm5 )               // ymm5 += ymm3 * ymm1
     vfmadd231ps( ymm2, ymm3, ymm6 )               // ymm6 += ymm3 * ymm2
 
     vmovdqu( mem( rdi ), ymm3 )                   // reload mask values since ymm3 is overridden in previous operations    
-    vmaskmovps( mem( rbx, r11, 1 ), ymm3, ymm3 )  // ymm3 <- mem( rbx, r11, 1 ) & MSB of correponding element in ymm3
+    vmaskmovps( mem( rbx, r11, 1 ), ymm3, ymm3 )  // ymm3 <- mem( rbx, r11, 1 ) & MSB of corresponding element in ymm3
     vfmadd231ps( ymm0, ymm3, ymm7 )               // ymm7 += ymm3 * ymm0
     vfmadd231ps( ymm1, ymm3, ymm8 )               // ymm8 += ymm3 * ymm1
     vfmadd231ps( ymm2, ymm3, ymm9 )               // ymm9 += ymm3 * ymm2
 
     vmovdqu( mem( rdi ), ymm3 )                   // reload mask values since ymm3 is overridden in previous operations
-    vmaskmovps( mem( rbx, r11, 2 ), ymm3, ymm3 )  // ymm3 <- mem( rbx, r11, 2 ) & MSB of correponding element in ymm3
+    vmaskmovps( mem( rbx, r11, 2 ), ymm3, ymm3 )  // ymm3 <- mem( rbx, r11, 2 ) & MSB of corresponding element in ymm3
     vfmadd231ps( ymm0, ymm3, ymm10 )              // ymm10 += ymm3 * ymm0
     vfmadd231ps( ymm1, ymm3, ymm11 )              // ymm11 += ymm3 * ymm1
     vfmadd231ps( ymm2, ymm3, ymm12 )              // ymm12 += ymm3 * ymm2
 
     vmovdqu( mem( rdi ), ymm3 )                   // reload mask values since ymm3 is overridden in previous operations
-    vmaskmovps( mem( rbx, r13, 1 ), ymm3, ymm3 )  // ymm3 <- mem( rbx, r13, 1 ) & MSB of correponding element in ymm3
+    vmaskmovps( mem( rbx, r13, 1 ), ymm3, ymm3 )  // ymm3 <- mem( rbx, r13, 1 ) & MSB of corresponding element in ymm3
     vfmadd231ps( ymm0, ymm3, ymm13 )              // ymm13 += ymm3 * ymm0
     vfmadd231ps( ymm1, ymm3, ymm14 )              // ymm14 += ymm3 * ymm1    
     vfmadd231ps( ymm2, ymm3, ymm15 )              // ymm15 += ymm3 * ymm2
@@ -1951,17 +1951,17 @@ void bli_sgemmsup_rd_zen_asm_6x2m
 
     // In this block, ymm3 is the mask vector the MSB of each
     // 32-bit element indicates whether to load the element or not
-    vmaskmovps( mem( rax        ), ymm3, ymm0 )   // ymm0 <- mem( rax ) & MSB of correponding element in ymm3
-    vmaskmovps( mem( rax, r8, 1 ), ymm3, ymm1 )   // ymm1 <- mem( rax, r8, 1 ) & MSB of correponding element in ymm3
-    vmaskmovps( mem( rax, r8, 2 ), ymm3, ymm2 )   // ymm2 <- mem( rax, r8, 2 ) & MSB of correponding element in ymm3
+    vmaskmovps( mem( rax        ), ymm3, ymm0 )   // ymm0 <- mem( rax ) & MSB of corresponding element in ymm3
+    vmaskmovps( mem( rax, r8, 1 ), ymm3, ymm1 )   // ymm1 <- mem( rax, r8, 1 ) & MSB of corresponding element in ymm3
+    vmaskmovps( mem( rax, r8, 2 ), ymm3, ymm2 )   // ymm2 <- mem( rax, r8, 2 ) & MSB of corresponding element in ymm3
 
-    vmaskmovps( mem( rbx        ), ymm3, ymm3 )   // ymm3 <- mem( rbx ) & MSB of correponding element in ymm3
+    vmaskmovps( mem( rbx        ), ymm3, ymm3 )   // ymm3 <- mem( rbx ) & MSB of corresponding element in ymm3
     vfmadd231ps( ymm0, ymm3, ymm4 )               // ymm4 += ymm3 * ymm0
     vfmadd231ps( ymm1, ymm3, ymm5 )               // ymm5 += ymm3 * ymm1  
     vfmadd231ps( ymm2, ymm3, ymm6 )               // ymm6 += ymm3 * ymm2
 
     vmovdqu( mem( rdi ), ymm3 )                    // reload mask values since ymm3 is overridden in previous operations
-    vmaskmovps( mem( rbx, r11, 1 ), ymm3, ymm3 )   // ymm3 <- mem( rbx, r11, 1 ) & MSB of correponding element in ymm3
+    vmaskmovps( mem( rbx, r11, 1 ), ymm3, ymm3 )   // ymm3 <- mem( rbx, r11, 1 ) & MSB of corresponding element in ymm3
     vfmadd231ps( ymm0, ymm3, ymm7 )                // ymm7 += ymm3 * ymm0  
     vfmadd231ps( ymm1, ymm3, ymm8 )                // ymm8 += ymm3 * ymm1
     vfmadd231ps( ymm2, ymm3, ymm9 )                // ymm9 += ymm3 * ymm2

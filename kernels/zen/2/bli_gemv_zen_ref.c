@@ -123,7 +123,7 @@ void bli_dgemv_zen_ref_c
 
 /**
  * bli_dgemv_zen_ref( ... )
- * This reference kernel for DGEMV supports row/colum storage schemes for both
+ * This reference kernel for DGEMV supports row/column storage schemes for both
  * transpose and no-transpose cases.
  */
 void bli_dgemv_zen_ref
@@ -240,7 +240,7 @@ void bli_dgemv_zen_ref
 
 /**
  * bli_sgemv_zen_ref( ... )
- * This reference kernel for SGEMV supports row/colum storage schemes for both
+ * This reference kernel for SGEMV supports row/column storage schemes for both
  * transpose and no-transpose cases.
  */
 void bli_sgemv_zen_ref
@@ -489,7 +489,7 @@ void bli_cgemv_zen_ref
 
 /**
  * bli_zgemv_zen_ref( ... )
- * This reference kernel for ZGEMV supports row/colum storage schemes for both
+ * This reference kernel for ZGEMV supports row/column storage schemes for both
  * transpose and no-transpose cases.
  */
 void bli_zgemv_zen_ref

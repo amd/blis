@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2024 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2024 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -75,7 +75,7 @@ TEST_P( cgemmGenericSUP, UKR )
     // Set the threshold for the errors:
     // Check gtestsuite gemm.h or netlib source code for reminder of the
     // functionality from which we estimate operation count per element
-    // of output, and hence the multipler for epsilon.
+    // of output, and hence the multiplier for epsilon.
     double thresh;
     if (m == 0 || n == 0)
         thresh = 0.0;
@@ -129,7 +129,7 @@ public:
 };
 
 /*********************************************************/
-/* Stroage Formats For SUP Kernels                       */
+/* Storage Formats For SUP Kernels                       */
 /* A Matrix: Broadcast instruction is applied on Matrix  */
 /*           hence it can be row or col stored           */
 /*           trana = 'n' or 't'                          */
@@ -246,7 +246,7 @@ INSTANTIATE_TEST_SUITE_P(
 
 #if 0
 //Memtest fails
-//Memtest diabled free(): invalid next size (fast)
+//Memtest disabled free(): invalid next size (fast)
 #ifdef K_bli_cgemmsup_rv_zen_asm_2x8n
 INSTANTIATE_TEST_SUITE_P(
         bli_cgemmsup_rv_zen_asm_2x8n_row_stored,
@@ -547,7 +547,7 @@ INSTANTIATE_TEST_SUITE_P(
 
 #if 0
 //Memtest fails
-//Memtest diabled free(): invalid next size (fast)
+//Memtest disabled free(): invalid next size (fast)
 #ifdef K_bli_cgemmsup_rv_zen_asm_2x8n
 INSTANTIATE_TEST_SUITE_P(
         bli_cgemmsup_rv_zen_asm_2x8n_col_stored,
@@ -774,13 +774,13 @@ INSTANTIATE_TEST_SUITE_P(
    Every other storage scheme is converted to one of these at the
    framework layer(through packing and/or operation transpose).
 
-   Every kernel is tested with B/C being in row/colum storage, and A
+   Every kernel is tested with B/C being in row/column storage, and A
    strictly being in column storage(this is controlled through the transpose
    values).
 */
 // NOTE : The values for k in 24x4m kernel tests are such that they test for
 //        loops taken before/during/after prefetch of C. For the other kernels,
-//        we test for the main(unrolled) adn the fringe loops of k.
+//        we test for the main(unrolled) and the fringe loops of k.
 #ifdef K_bli_cgemmsup_cv_zen4_asm_24x4m
 INSTANTIATE_TEST_SUITE_P(
         bli_cgemmsup_cv_zen4_asm_24x4m_col_stored,
@@ -1471,7 +1471,7 @@ TEST_P( cgemmGenericNat, UKR )
     // Set the threshold for the errors:
     // Check gtestsuite gemm.h or netlib source code for reminder of the
     // functionality from which we estimate operation count per element
-    // of output, and hence the multipler for epsilon.
+    // of output, and hence the multiplier for epsilon.
     double thresh;
     if (m == 0 || n == 0)
         thresh = 0.0;

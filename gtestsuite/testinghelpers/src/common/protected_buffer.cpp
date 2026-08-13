@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2024 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -83,12 +83,12 @@ testinghelpers::ProtectedBuffer::ProtectedBuffer(dim_t size, bool is_aligned, bo
         // that greenzone_1 and greenzone_2 do not overlap
         size_t buffer_size = ((( size * 2 ) / page_size) + 1) * page_size;
 
-        // allocate memory (buffer_size + 1 page to ensure 1st redzone can be started at page bounday
+        // allocate memory (buffer_size + 1 page to ensure 1st redzone can be started at page boundary
         // + 2 * REDZONE_SIZE pages for 1 redzone on each end of buffer)
         mem = (char*)get_mem(buffer_size + ((1 + (REDZONE_SIZE * 2)) * page_size), is_aligned);
 
         // set redzone_1 to mem+page_size to make sure that
-        // atleast one page boundary exist between mem and redzone_1
+        // at least one page boundary exist between mem and redzone_1
         redzone_1 = (void*)((char*)mem + page_size);
 
         // find page boundary ( address which is multiple of pagesize and less than redzone_1 )

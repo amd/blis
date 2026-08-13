@@ -2222,7 +2222,7 @@ void bli_cdotxf_zen_int_6
 				/**
 				 * Since complex datatype multiplication is
 				 * being held in two sets of rho vectors.
-				 * Where first set holds the computaion with
+				 * Where first set holds the computation with
 				 * real part of vector x and other holds
 				 * imaginary part of vector x.
 				 * For final computation, based on conj sign
@@ -2393,7 +2393,7 @@ void bli_cdotxf_zen_int_6
 				/**
 				 * Since complex datatype multiplication is
 				 * being held in two sets of rho vectors.
-				 * Where first set holds the computaion with
+				 * Where first set holds the computation with
 				 * real part of vector x and other holds
 				 * imaginary part of vector x.
 				 * For final computation, based on conj sign

@@ -101,7 +101,7 @@ TEST_P( sgerEVT, API )
     // Set the threshold for the errors:
     // Check gtestsuite ger.h or netlib source code for reminder of the
     // functionality from which we estimate operation count per element
-    // of output, and hence the multipler for epsilon.
+    // of output, and hence the multiplier for epsilon.
     double thresh;
     if (m == 0 || n == 0 || alpha == testinghelpers::ZERO<T>())
         thresh = 0.0;

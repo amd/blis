@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2024 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2024 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -792,7 +792,7 @@ void bli_lpgemm_jit:: downscale_col_major( dim_t m_dim, dim_t n_dim )
     je( "DOWNSCALE_COL_MAJOR_SF_EQ1" );
     // If scale_factor_length > 1, broadcast each element in the register.
     // In order to save on the registers the scale factor values are
-    // broadcast in all m_dim registers and caluculate the scale values first.
+    // broadcast in all m_dim registers and calculate the scale values first.
     mov( rbx, ptr[ rsp + stack_off_postop +
                    offsetof( lpgemm_post_op_attr, post_op_c_i ) ] );
     // post_op_c_i *= sizeof( float )
@@ -1549,7 +1549,7 @@ void bli_lpgemm_jit::generate_kernel( lpgemm_jit_inputs_t* params )
     preamble();
     // add some spack in stack to store params
     sub( rsp, 512 );
-    // Initialize all the paramters required for execution of kernel.
+    // Initialize all the parameters required for execution of kernel.
     // load some values to registers and push the rest of them to stack.
     initialize_params( params );
 

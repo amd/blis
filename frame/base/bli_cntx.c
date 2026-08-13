@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2020 - 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2020 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -388,7 +388,7 @@ void bli_cntx_set_ind_blkszs( ind_t method, num_t dt, dim_t n_bs, ... )
 
 			//blksz_t* cntx_blksz = &cntx_blkszs[ bs_id ];
 
-			// Query the context for the blksz_t object assoicated with the
+			// Query the context for the blksz_t object associated with the
 			// current blocksize id, and also query the object corresponding
 			// to the blocksize multiple.
 			blksz_t* cntx_blksz = bli_cntx_get_blksz( bs_id, cntx );
@@ -1797,7 +1797,7 @@ void bli_cntx_set_l3_thresh_funcs( dim_t n_funcs, ... )
 	// a particular architecture if the kernel developer wishes to use
 	// non-default level-3 threshold functions. It should be called after
 	// bli_cntx_init_defaults() so that the context begins with default
-	// functionss across all operations.
+	// functions across all operations.
 
 	/* Example prototypes:
 

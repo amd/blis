@@ -5,6 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
+   Copyright (C) 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -234,7 +235,7 @@ void PASTEMAC(ch,varname) \
 		   NOTE: This is actually only necessary when packing for trsm, as
 		   it helps prevent NaNs and Infs from creeping into the computation.
 		   However, we set the region to identity for trmm as well. Those
-		   1.0's end up getting muliplied by the 0.0's in the zero-padded
+		   1.0's end up getting multiplied by the 0.0's in the zero-padded
 		   region of the other matrix, so there is no harm in this. */ \
 		if ( m_panel != m_panel_max && \
 		     n_panel != n_panel_max ) \

@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2021 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2021 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -135,7 +135,7 @@ void bli_pre_hemv_8x8(double *a, double *x, double *y, double *alpha,
 	ymm12 = _mm256_broadcast_sd(alpha_chi + 3);
 	/**
 	 * pack the data in following manner into ymm register
-	 * Since it is computing 4rd column, packing to be done
+	 * Since it is computing 4th column, packing to be done
 	 * as shown below for ymm0:
 	 * col-0 col-1 col-2 col-3
 	 *  ---  ---  ---  ---
@@ -175,7 +175,7 @@ void bli_pre_hemv_8x8(double *a, double *x, double *y, double *alpha,
 	ymm12 = _mm256_broadcast_sd(alpha_chi + 4);
 	/**
 	 * pack the data in following manner into ymm register
-	 * Since it is computing 4rd column, packing to be done
+	 * Since it is computing 4th column, packing to be done
 	 * as shown below for ymm0:
 	 * col-0 col-1 col-2 col-3 col-4
 	 *  ---  ---  ---  ---  ---
@@ -253,7 +253,7 @@ void bli_pre_hemv_8x8(double *a, double *x, double *y, double *alpha,
 	/**
 	 * Computed result of vector y is available in ymm10, ymm11.
 	 * Storing the result back from ymm register into y vector for
-	 * further computaion.
+	 * further computation.
 	 */
 	_mm256_storeu_pd(y, ymm10);
 	_mm256_storeu_pd(y + 4, ymm11);
@@ -306,7 +306,7 @@ void bli_post_hemv_8x8(double *a, double *x, double *y, double *alpha,
 	//Col 0 computation
 	/**
 	 * pack the data in following manner into ymm register
-	 * Since it is computing 4rd column, packing to be done
+	 * Since it is computing 4th column, packing to be done
 	 * as shown below for ymm0:
 	 * col-0 col-1 col-2 col-3
 	 *   x    x    x   x
@@ -328,7 +328,7 @@ void bli_post_hemv_8x8(double *a, double *x, double *y, double *alpha,
 	//Col 1 computation
 	/**
 	 * pack the data in following manner into ymm register
-	 * Since it is computing 4rd column, packing to be done
+	 * Since it is computing 4th column, packing to be done
 	 * as shown below for ymm0:
 	 * col-1 col-2 col-3
 	 *   x    x    x
@@ -348,7 +348,7 @@ void bli_post_hemv_8x8(double *a, double *x, double *y, double *alpha,
 	//Col 2 computation
 	/**
 	 * pack the data in following manner into ymm register
-	 * Since it is computing 4rd column, packing to be done
+	 * Since it is computing 4th column, packing to be done
 	 * as shown below for ymm0:
 	 * col-2 col-3
 	 *   x    x
@@ -366,7 +366,7 @@ void bli_post_hemv_8x8(double *a, double *x, double *y, double *alpha,
 	//Col 3 computation
 	/**
 	 * pack the data in following manner into ymm register
-	 * Since it is computing 4rd column, packing to be done
+	 * Since it is computing 4th column, packing to be done
 	 * as shown below for ymm0:
 	 * col-3
 	 *   x
@@ -422,7 +422,7 @@ void bli_post_hemv_8x8(double *a, double *x, double *y, double *alpha,
 	/**
 	 * Computed result of vector y is available in ymm10, ymm11.
 	 * Storing the result back from ymm register into y vector for
-	 * further computaion.
+	 * further computation.
 	 */
 	_mm256_storeu_pd(y, ymm10);
 	_mm256_storeu_pd(y + 4, ymm11);
@@ -430,7 +430,7 @@ void bli_post_hemv_8x8(double *a, double *x, double *y, double *alpha,
 
 
 /**
- * ddotxaxpyf kernel performs dot and apxy function all togather
+ * ddotxaxpyf kernel performs dot and apxy function all together
  * on a tile of 4x8 size.
  * x_trsv holds 4 elements of vector x, a_tile[0-7] holds
  * 4x8 tile of A matrix.
@@ -537,7 +537,7 @@ void bli_ddotxaxpyf_zen_int_8
 			 * fmadds for dotxf operation.
 			 * Once micro tile is computed, horizontal addition
 			 * of all rho's will provide us with the result of
-			 * dotxf opereation.
+			 * dotxf operation.
 			 */
 			rho0.v = _mm256_setzero_pd();
 			rho1.v = _mm256_setzero_pd();
@@ -883,7 +883,7 @@ void bli_zdotxaxpyf_zen_int_8
 			// Clear rho registers
 			// Once micro tile is computed, horizontal addition
 			// of all rho's will provide us with the result of
-			// dotxf opereation
+			// dotxf operation
 			rho0.v = _mm256_setzero_pd();
 			rho1.v = _mm256_setzero_pd();
 			rho2.v = _mm256_setzero_pd();
@@ -1286,7 +1286,7 @@ void bli_cdotxaxpyf_zen_int_8
 			// Clear rho registers
 			// Once micro tile is computed, horizontal addition
 			// of all rho's will provide us with the result of
-			// dotxf opereation
+			// dotxf operation
 			__m256 rho0v; rho0v = _mm256_setzero_ps();
 			__m256 rho1v; rho1v = _mm256_setzero_ps();
 			__m256 rho2v; rho2v = _mm256_setzero_ps();

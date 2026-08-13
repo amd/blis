@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2022 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2022 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -47,7 +47,7 @@
         having the real and imaginary parts of beta broadcasted
         onto them. reg_0 and reg_1 are the intermediate registers
         containing the result of alpha*A*B on them. The beta scaling
-        and final accumalation is done on these registers for
+        and final accumulation is done on these registers for
         storing the corresponding column of C.  */ \
 \
     a_vec_0 = _mm256_loadu_pd((double const*)(loc)); \
@@ -72,7 +72,7 @@
         from C, with bdcst_0 and bdcst_1 already having the real
         and imaginary parts of beta broadcasted onto them. reg_0
         is the intermediate register containing the result of
-        alpha*A*B on it. The beta scaling and final accumalation
+        alpha*A*B on it. The beta scaling and final accumulation
         is done on these registers for storing the corresponding
         column of C.  */ \
 \

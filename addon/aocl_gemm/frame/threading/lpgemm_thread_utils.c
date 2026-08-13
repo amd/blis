@@ -104,7 +104,7 @@ static void lpgemm_detect_thread_topo()
 	// OpenMP for close distribution need not pin threads to sequential cores
 	// in the presence of CCD architecture. Like tid 0-7 will be on core 0-7
 	// but tid 8-15 could be on core 96-103. So just checking for increasing
-	// core id for corresponding tid wont get accurate core group load.
+	// core id for corresponding tid won't get accurate core group load.
 	// GOMP_CPU_AFFINITY however assigns cores sequentially.
 	for ( int ii = 0; ii < nt_max; ++ii )
 	{

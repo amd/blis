@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2025 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -523,7 +523,7 @@ LPGEMM_5LOOP2(int8_t,int8_t,int32_t,s8s8s32o32_sym_quant)
 		{
 			c_use_jc = c + jc;
 		}
-		// Temp accumulaton buffer for C allocation.
+		// Temp accumulation buffer for C allocation.
 		else if ( c_downscale < F32 )
 		{
 			// Buffer memory is only required if output needs to be
@@ -621,7 +621,7 @@ LPGEMM_5LOOP2(int8_t,int8_t,int32_t,s8s8s32o32_sym_quant)
 						( int8_t* ) thread->comm[jc_work_id].sent_object;
 
 				// Compute the B panel per thread loop range for parallel
-				// packing using ic_ways number of threads. Since atmost only
+				// packing using ic_ways number of threads. Since at most only
 				// ic_ways threads can be used, the thread_ic attributes are
 				// used to split the loop range.
 				dim_t jc_packb_start, jc_packb_end;
@@ -801,7 +801,7 @@ LPGEMM_5LOOP2(int8_t,int8_t,int32_t,s8s8s32o32_sym_quant)
 					c_use_ic = c_use_jc + ( rs_c_use * ic );
 				}
 
-				// Matrix A packed and reordered code path is not triggerred
+				// Matrix A packed and reordered code path is not triggered
 				// currently since we do not support it yet.
 				if ( mtag_a == PACK )
 				{

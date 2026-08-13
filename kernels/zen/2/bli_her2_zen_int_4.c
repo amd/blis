@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2022, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2022 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -88,7 +88,7 @@ void bli_dher2_trans_zen_int_4
 	_mm256_storeu_pd(a_diag, gamma);
 
 	/* Broadcasting 4 alpha_psis and alpha_chis which
-	 * are to be used througout the computation of 4x4 tile
+	 * are to be used throughout the computation of 4x4 tile
 	 * upto m rows.
 	 */
 	x0 = _mm256_broadcast_sd(&alpha_chi[0]);
@@ -269,7 +269,7 @@ void bli_dher2_zen_int_4
 	_mm256_storeu_pd(a_diag, gamma);
 
 	/* Broadcasting 4 alpha_psis and alpha_chis which
-         * are to be used througout the computation of 4x4 tile
+         * are to be used throughout the computation of 4x4 tile
          * upto m rows.
          */
 	x0 = _mm256_broadcast_sd(&alpha_chi[0]);

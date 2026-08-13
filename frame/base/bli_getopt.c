@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018 - 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2018 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -109,7 +109,7 @@ int bli_getopt( int argc, char** const argv, const char* optstring, getopt_t* st
 		return '?';
 	}
 
-	// We can now safely assume that an option characer was found in the
+	// We can now safely assume that an option character was found in the
 	// option string. Now we need to check if the option takes an argument.
 	if ( optstr_char[1] == ':' )
 	{
@@ -141,7 +141,7 @@ int bli_getopt( int argc, char** const argv, const char* optstring, getopt_t* st
 				return '?';
 			}
 
-			// If no error was deteced above, we can safely assign optarg
+			// If no error was detected above, we can safely assign optarg
 			// to be the next element in argv and increment optind by two.
 			state->optarg = argv[ state->optind + 1 ];
 			state->optind += 2;

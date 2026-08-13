@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2025 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -120,18 +120,18 @@
     GET_FMA(__VA_ARGS__, \
     FMA_24C, FMA_16C, FMA_8C)(__VA_ARGS__) \
 
-/* Macro for accumalation in case of 3 loads(24x? cases) */
+/* Macro for accumulation in case of 3 loads(24x? cases) */
 #define ACC_COL_24C(R1, I1, R2, I2, R3, I3) \
     VFMADDSUB231PS(ZMM(R1), ZMM(29), ZMM(I1)) \
     VFMADDSUB231PS(ZMM(R2), ZMM(29), ZMM(I2)) \
     VFMADDSUB231PS(ZMM(R3), ZMM(29), ZMM(I3)) \
 
-/* Macro for accumalation in case of 2 loads(16x? cases) */
+/* Macro for accumulation in case of 2 loads(16x? cases) */
 #define ACC_COL_16C(R1, I1, R2, I2) \
     VFMADDSUB231PS(ZMM(R1), ZMM(29), ZMM(I1)) \
     VFMADDSUB231PS(ZMM(R2), ZMM(29), ZMM(I2)) \
 
-/* Macro for accumalation in case of 1 load(8x? cases) */
+/* Macro for accumulation in case of 1 load(8x? cases) */
 #define ACC_COL_8C(R1, I1) \
     VFMADDSUB231PS(ZMM(R1), ZMM(29), ZMM(I1)) \
 
@@ -4753,7 +4753,7 @@ void bli_cgemmsup_cv_zen4_asm_24x3m
     uint64_t m_left = m0 % MR; // To be used to dispatch ?x3 kernels
 
     /*
-      The mask bits below are set for ensuring ?x3 compatability
+      The mask bits below are set for ensuring ?x3 compatibility
       while transposing, and loading/storing C in case of row-storage(k(3) opmask register).
     */
     uint16_t trans_load_mask = 0x3F;
@@ -9194,7 +9194,7 @@ void bli_cgemmsup_cv_zen4_asm_fx4
     const float *v = &value;
 
     /*
-      The mask bits below are set for ensuring fx4 compatability
+      The mask bits below are set for ensuring fx4 compatibility
       while transposing, and loading/storing C(k(2) mask register).
       This mask is set based on the m-value(m0) that the kernel receives.
       m0 is guaranteed to be less than 8.

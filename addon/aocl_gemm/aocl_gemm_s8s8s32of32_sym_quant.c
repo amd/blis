@@ -154,7 +154,7 @@ AOCL_GEMM_MATMUL(int8_t,int8_t,float,int32_t,s8s8s32of32_sym_quant)
 
 	// From 5-loop function point of view
 	// B matrix needs to be packed in a certain format in order to be loaded
-	// and used in bf16 instrution. As such the mtag_b always needs to be either
+	// and used in bf16 instruction. As such the mtag_b always needs to be either
 	// packed or reordered. B matrix as it is (unpacked) cannot be used, and
 	// the mtag_b is set to packed to enable runtime packing.
 	if ((is_row_major == TRUE) && (mtag_b == UNPACKED))

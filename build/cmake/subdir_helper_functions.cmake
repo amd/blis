@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -140,7 +140,7 @@ macro(get_filepaths_with_suffixes result curdir sufflist)
 endmacro()
 
 # Choose correct sub-configurarion name for the given kernel set. 
-# Behaves similary to get-config-for-kset.
+# Behaves similarly to get-config-for-kset.
 macro(get_config_for_kernel_from_kconfig_map config kernel kconfig_map)
     set(conf ${kconfig_map})
     # Since kconfig_map has as elements pairs of the form kernel:config,

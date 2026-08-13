@@ -184,7 +184,7 @@ err_t PASTEMAC( ch, tfuncname ) \
       m = n0; \
       n = m0; \
     } \
-    /* Declaring the pointers and auxillary kernel info */ \
+    /* Declaring the pointers and auxiliary kernel info */ \
     /* Since we are primarily using the m-var SUP kernels, we need
        to set the panel stride for A matrix */ \
     /* The panel stride for A matrix would depend on whether we pack A or not */ \

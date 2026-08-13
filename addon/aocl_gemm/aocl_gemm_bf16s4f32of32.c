@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2024 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2024 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -143,7 +143,7 @@ AOCL_GEMM_MATMUL(bfloat16, int8_t, float, float, bf16s4f32of32)
 
 	// From 5-loop function point of view
 	// B matrix needs to be packed in a certain format in order to be loaded
-	// and used in bf16 instrution. As such the mtag_b always needs to be either
+	// and used in bf16 instruction. As such the mtag_b always needs to be either
 	// packed or reordered. B matrix as it is (unpacked) cannot be used, and
 	// the mtag_b is set to packed to enable runtime packing.
 	if ((is_row_major == TRUE) && (mtag_b == UNPACKED))
@@ -353,7 +353,7 @@ AOCL_GEMM_MATMUL(bfloat16, int8_t, bfloat16, float, bf16s4f32obf16)
 
 	// From 5-loop function point of view
 	// B matrix needs to be packed in a certain format in order to be loaded
-	// and used in bf16 instrution. As such the mtag_b always needs to be either
+	// and used in bf16 instruction. As such the mtag_b always needs to be either
 	// packed or reordered. B matrix as it is (unpacked) cannot be used, and
 	// the mtag_b is set to packed to enable runtime packing.
 	if ((is_row_major == TRUE) && (mtag_b == UNPACKED))

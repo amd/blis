@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2024 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2024 - 2026, Advanced Micro Devices, Inc. All rights reserved.
    Portions of this file consist of AI-generated content.
 
    Redistribution and use in source and binary forms, with or without
@@ -89,7 +89,7 @@ TEST_P( zaxpyfGeneric, UKR )
     // Set the threshold for the errors:
     // Check gtestsuite axpyf.h (no netlib version) for reminder of the
     // functionality from which we estimate operation count per element
-    // of output, and hence the multipler for epsilon.
+    // of output, and hence the multiplier for epsilon.
 
     // NOTE : Each multiplication of dcomplex elements results in three
     //        ops(two muls and 1 add) for real and imag part of the result.

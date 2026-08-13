@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -281,7 +281,7 @@ multiply with Beta, and add to alpha*A*B*/
 	xmm2 = _mm_fmadd_ps(xmm0, beta, xmm2); \
 
 /*Load C from buf_downscale and convert to F32,
-multiply with Beta, and add to alpha*A*B and strore*/
+multiply with Beta, and add to alpha*A*B and store*/
 #define BF16_F32_C_BNZ_2(m_ind,n_ind,xmm0,beta,xmm2) \
 	xmm0 =	(__m128)_mm_sllv_epi32  \
 			( \

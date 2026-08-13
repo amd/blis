@@ -52,7 +52,7 @@
   NaN propagation expectation
   --------------------------
 
-  1. When alpha == NaN - Propogate the NaN to the vector
+  1. When alpha == NaN - Propagate the NaN to the vector
   2. When alpha == 0 - Perform the SCALV operation completely and don't use setv.
      As SCALV kernels are used in many other BLAS APIs where we want setv to be
      used in this scenario, here we call the kernels with n=-n to signify that

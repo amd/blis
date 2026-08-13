@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2022 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2022 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -506,7 +506,7 @@ LPGEMM_5LOOP(float, float, float, f32f32f32of32)
     auxinfo_t aux;
 
     // Check if packing of A is required.
-	// TODO: mtag_a for tranpose needs to be honored.
+	// TODO: mtag_a for transpose needs to be honored.
     bool should_pack_A = bli_rntm_pack_a( rntm );
 
     // Pack buffer for A.
@@ -661,7 +661,7 @@ LPGEMM_5LOOP(float, float, float, f32f32f32of32)
                 ps_b_use = kc0;
 
                 // Compute the B panel per thread loop range for parallel
-                // packing using ic_ways number of threads. Since atmost only
+                // packing using ic_ways number of threads. Since at most only
                 // ic_ways threads can be used, the thread_ic attributes are
                 // used to split the loop range.
                 dim_t jc_packb_start, jc_packb_end;

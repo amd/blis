@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2024 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -846,7 +846,7 @@ void packb_nrlt16_bf16s4f32of32_row_major
 	__m128i sign_comp_16 = _mm_set1_epi8( 0x08 );
 	// 16 int4 elems in 8 bytes, so adjusting the mask for nr < 16 by
 	// a factor of 2. In case of odd remainder, the last int4 element
-	// within the last byte (hi 4 bits) will be ingnored similar to
+	// within the last byte (hi 4 bits) will be ignored similar to
 	// padding bits.
 	__mmask16 hmask_16;
 	if ( is_odd_stride == FALSE )
@@ -1731,7 +1731,7 @@ void packb_nrlt16_bf16s4f32of32_col_major
 			( ( ( kr + 30 ) * NR ) ) /2 ) ), msk0, a_reg[15] );
 
 			/*The 16 value decrement is to correct the masked
-			store starting postion with respect to the msk1.*/
+			store starting position with respect to the msk1.*/
 			_mm256_mask_storeu_epi32( ( ( pack_b_buffer +
 			( ( ( kr + 32  ) * NR ) ) /2 - 16 ) ), msk1, a_reg[0]  );
 			_mm256_mask_storeu_epi32( ( ( pack_b_buffer +

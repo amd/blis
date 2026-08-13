@@ -822,7 +822,7 @@ void PASTEMAC(ch,varname) \
     /* An optimization: first try to use dotv to compute the sum of
        the squares of the vector. If no floating-point exceptions
        (specifically, overflow and invalid exceptions) were produced,
-       then we accept the computed value and returne early. The cost
+       then we accept the computed value and return early. The cost
        of this optimization is the "sunk" cost of the initial dotv
        when sumsqv must be used instead. However, we expect that the
        vast majority of use cases will not produce exceptions, and
@@ -1950,7 +1950,7 @@ void PASTEMAC(ch,varname) \
         max_m_n = bli_max( m, n ); \
 \
         PASTEMAC2(d,ch,sets)( max_m_n, 0.0, omega ); \
-        PASTEMAC(ch,copys)( *one, beta ); \
+        PASTEMAC(ch,copies)( *one, beta ); \
         PASTEMAC(ch,invscals)( omega, beta ); \
 */ \
 \

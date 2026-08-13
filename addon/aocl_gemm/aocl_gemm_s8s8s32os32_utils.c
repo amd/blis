@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -69,8 +69,8 @@ AOCL_GEMM_GET_REORDER_BUF_SIZE(s8s8s32os32)
 	}
 
 	// Extra space since packing does width in multiples of 16. The vnni
-	// instruction can be used as long as atleast one zmm register can be fully
-	// loaded; and since k_dim needs to be atleast 4, having n_dim atleast 16
+	// instruction can be used as long as at least one zmm register can be fully
+	// loaded; and since k_dim needs to be at least 4, having n_dim at least 16
 	// should give 4x16=64 elements, enough for 1 zmm register.The padding is
 	// not rounded to NR (=64), since that would result in memory wastage.
 #ifdef BLIS_KERNELS_ZEN4
@@ -136,8 +136,8 @@ AOCL_GEMM_GET_REORDER_BUF_SIZE_SYM_QUANT(s8s8s32os32_sym_quant)
 	}
 
 	// Extra space since packing does width in multiples of 16. The vnni
-	// instruction can be used as long as atleast one zmm register can be fully
-	// loaded; and since k_dim needs to be atleast 4, having n_dim atleast 16
+	// instruction can be used as long as at least one zmm register can be fully
+	// loaded; and since k_dim needs to be at least 4, having n_dim at least 16
 	// should give 4x16=64 elements, enough for 1 zmm register.The padding is
 	// not rounded to NR (=64), since that would result in memory wastage.
 #ifdef BLIS_KERNELS_ZEN4

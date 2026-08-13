@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -138,7 +138,7 @@ void bli_zgemmtrsm_u_zen_asm_2x6
     MOV(RAX, VAR(a10)) //load address of a
     MOV(RBX, VAR(b01)) //load address of b
     MOV(RCX, VAR(b11)) //load address of c
-    MOV(R9, VAR(c11))  // laod C for prefetch
+    MOV(R9, VAR(c11))  // load C for prefetch
     MOV(R11, VAR(negPtr))
 
     // MOV(R9, RCX)

@@ -108,7 +108,7 @@ err_t bli_dgemm_tiny_zen_6x8
 
    /**
     * typecast storage into stor_idd,
-    * stores default storage scheme before we optimze
+    * stores default storage scheme before we optimize
     * for respective gemm kernel.    */
     stor3_t stor_idd = (stor3_t) storage;
     stor3_t stor_id = 0;
@@ -358,7 +358,7 @@ err_t bli_zgemm_tiny_zen_3x4
 
    /**
     * typecast storage into stor_idd,
-    * stores default storage scheme before we optimze
+    * stores default storage scheme before we optimize
     * for respective gemm kernel.    */
     stor3_t stor_idd = (stor3_t) storage;
     stor3_t stor_id = 0;

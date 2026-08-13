@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -64,7 +64,7 @@ INSTANTIATE_TEST_SUITE_P(
     );
 
 /**
- * @brief Test STRSM with differnt values of alpha
+ * @brief Test STRSM with different values of alpha
  *      code paths covered:
  *          TRSV              -> 1
  *          TRSM_AVX2_small   -> 3

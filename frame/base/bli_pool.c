@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018 - 2022, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2018 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -440,7 +440,7 @@ void bli_pool_grow
 	// in the block_ptrs array to accommodate an additional num_blocks_add
 	// blocks.
 
-	// Query the current block_ptrs array (which was mabye just resized).
+	// Query the current block_ptrs array (which was maybe just resized).
 	pblk_t* restrict block_ptrs = bli_pool_block_ptrs( pool );
 
 	// Query the block size and alignment size of the pool.

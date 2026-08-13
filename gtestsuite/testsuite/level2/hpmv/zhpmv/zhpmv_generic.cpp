@@ -69,7 +69,7 @@ TEST_P( zhpmvGeneric, API )
     // Set the threshold for the errors:
     // Check gtestsuite hpmv.h or netlib source code for reminder of the
     // functionality from which we estimate operation count per element
-    // of output, and hence the multipler for epsilon.
+    // of output, and hence the multiplier for epsilon.
     // With adjustment applied for complex data.
     double thresh;
     if (n == 0)
