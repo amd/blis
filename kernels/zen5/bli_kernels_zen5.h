@@ -73,6 +73,26 @@ GEMMSUP_KER_PROT( float, s, gemmsup_rd_zen5_asm_4x64n )
 GEMMSUP_KER_PROT( float, s, gemmsup_rd_zen5_asm_3x64n )
 GEMMSUP_KER_PROT( float, s, gemmsup_rd_zen5_asm_2x64n )
 
+//packing kernels
+PACKM_KER_PROT( float,    s, packm_zen5_asm_8xk )
+PACKM_KER_PROT( float,    s, packm_zen5_asm_48xk )
+
+// native sgemm kernel
+GEMM_UKR_PROT( float,   s, gemm_zen5_asm_8x48 )
+
+// sgemm native macro kernel
+void bli_sgemm_zen5_asm_8x48_macro_kernel
+(
+    dim_t   n,
+    dim_t   m,
+    dim_t   k,
+    float*  c,
+    float*  a,
+    float*  b,
+    dim_t   ldc,
+    float*  beta
+);
+
 // threshold functions
 bool bli_cntx_gemmsup_thresh_is_met_zen5
 (
@@ -85,6 +105,8 @@ bool bli_cntx_gemmsup_thresh_is_met_zen5
 // dynamic blocksizes function
 void bli_dynamic_blkszs_zen5
     (
+      dim_t m,
+      dim_t n,
       dim_t n_threads,
       cntx_t* cntx,
       num_t dt

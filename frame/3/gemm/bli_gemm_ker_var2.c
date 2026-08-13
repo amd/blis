@@ -171,14 +171,14 @@ void bli_gemm_ker_var2
 	// function pointer.
 	f = ftypes[dt_exec];
 
-#ifdef BLIS_KERNELS_ZEN4
-
-	// Optimized macro kernel is avaible for DGEMM
-	// for AVX512. Only row major stored C is supported.
-	// TODO: Add macro kernel function pointer in cntx
-
 	// Query the architecture ID
 	arch_t arch_id = bli_arch_query_id_internal();
+
+#ifdef BLIS_KERNELS_ZEN4
+
+	// Optimized macro kernel is available for DGEMM and SGEMM
+	// for AVX512. Only row major stored C is supported.
+	// TODO: Add macro kernel function pointer in cntx
 
 	if
 	(
@@ -198,8 +198,27 @@ void bli_gemm_ker_var2
 		(
 			n, m, k, buf_c, buf_a, buf_b, rs_c, buf_beta
 		);
-	}
-	else
+	} else
+#endif
+#ifdef BLIS_KERNELS_ZEN5
+	if
+	(
+		 ( bli_obj_dt( c ) == BLIS_FLOAT ) &&
+		 ( ( arch_id == BLIS_ARCH_ZEN6 ) ||
+		   ( arch_id == BLIS_ARCH_ZEN5 ) ) &&
+		 ( cs_c == 1 ) && // use this kernel only for row major C
+		 // use generic macro kernel for mixed precision
+		 ( bli_obj_elem_size( a ) == 4 ) && // check if elem_sizeof(a) == sizeof(float)
+		 ( bli_obj_is_real( a ) )        && // check if A is real
+		 ( bli_obj_elem_size( b ) == 4 ) && // check if elem_sizeof(b) == sizeof(float)
+		 ( bli_obj_is_real( b ) )           // check if B is real
+	)
+	{
+		bli_sgemm_zen5_asm_8x48_macro_kernel
+		(
+			n, m, k, buf_c, buf_a, buf_b, rs_c, buf_beta
+		);
+	} else
 #endif
 	{
 	  f( schema_a,

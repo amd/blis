@@ -325,7 +325,7 @@ void bli_gemm_front
 			cntx_copy = *cntx; // create a copy of cntx.
 			cntx_dynamic = &cntx_copy; // use local copy of cntx for GEMM
 			// dynamically set blocksizes according to num threads
-			bli_dynamic_blkszs_zen6(n_threads, cntx_dynamic, bli_obj_dt(c));
+			bli_dynamic_blkszs_zen6(bli_obj_length(c), bli_obj_width(c), n_threads, cntx_dynamic, bli_obj_dt(c));
 			break;
 		#endif //BLIS_KERNELS_ZEN6
 
@@ -334,7 +334,7 @@ void bli_gemm_front
 			cntx_copy = *cntx; // create a copy of cntx.
 			cntx_dynamic = &cntx_copy; // use local copy of cntx for GEMM
 			// dynamically set blocksizes according to num threads
-			bli_dynamic_blkszs_zen5(n_threads, cntx_dynamic, bli_obj_dt(c));
+			bli_dynamic_blkszs_zen5(bli_obj_length(c), bli_obj_width(c), n_threads, cntx_dynamic, bli_obj_dt(c));
 			break;
 		#endif //BLIS_KERNELS_ZEN5
 

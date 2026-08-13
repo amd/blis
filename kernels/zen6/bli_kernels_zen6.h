@@ -35,6 +35,8 @@
 // dynamic blocksizes function
 void bli_dynamic_blkszs_zen6
     (
+      dim_t m,
+      dim_t n,
       dim_t n_threads,
       cntx_t* cntx,
       num_t dt

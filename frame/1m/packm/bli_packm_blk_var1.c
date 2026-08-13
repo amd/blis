@@ -184,17 +184,16 @@ void bli_packm_blk_var1
 	}
 	
 #ifdef BLIS_KERNELS_ZEN4
-	// For DGEMM in AVX512, scale by alpha during packing
+	// For DGEMM/SGEMM in AVX512, scale by alpha during packing
 
 	// Query the architecture ID
 	arch_t arch_id = bli_arch_query_id_internal();
 
 	if
 	( 
-		( bli_obj_dt( p ) == BLIS_DOUBLE ) &&
-		( ( arch_id == BLIS_ARCH_ZEN6 ) ||
-		  ( arch_id == BLIS_ARCH_ZEN5 ) ||
-		  ( arch_id == BLIS_ARCH_ZEN4 ) )
+		( ( bli_obj_dt( p ) == BLIS_DOUBLE ) ||
+		  ( bli_obj_dt( p ) == BLIS_FLOAT ) ) &&
+		( bli_arch_isa_tier(arch_id) == BLIS_ISA_TIER_AVX512 )
 	)
 	{
 		bli_obj_scalar_detach( p, &kappa );

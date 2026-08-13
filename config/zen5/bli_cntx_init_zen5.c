@@ -44,8 +44,8 @@
 // function bli_dynamic_blkszs_zen5
 #define BLI_CNTX_DEFAULT_BLKSZ_LIST_TURIN(blkszs) \
 	/*                                           s      d      c      z */  \
-	bli_blksz_init_easy( &blkszs[ BLIS_MR ],    32,     8,    24,    12 );  \
-	bli_blksz_init_easy( &blkszs[ BLIS_NR ],    12,    24,     4,     4 );  \
+	bli_blksz_init_easy( &blkszs[ BLIS_MR ],     8,     8,    24,    12 );  \
+	bli_blksz_init_easy( &blkszs[ BLIS_NR ],    48,    24,     4,     4 );  \
 	bli_blksz_init_easy( &blkszs[ BLIS_MC ],   512,    80,   144,    60 );  \
 	bli_blksz_init_easy( &blkszs[ BLIS_KC ],   480,   384,   512,   512 );  \
 	bli_blksz_init_easy( &blkszs[ BLIS_NC ],  6144,  4032,  4080,  2004 );  \
@@ -56,8 +56,8 @@
 /* Blocksizes for double(d) datatype are tuned for Turin, rest are copied from Bergamo */
 #define BLI_CNTX_DEFAULT_BLKSZ_LIST_TURIN_DENSE(blkszs) \
 	/*                                           s      d      c      z */  \
-	bli_blksz_init_easy( &blkszs[ BLIS_MR ],    32,     8,    24,    12 );  \
-	bli_blksz_init_easy( &blkszs[ BLIS_NR ],    12,    24,     4,     4 );  \
+	bli_blksz_init_easy( &blkszs[ BLIS_MR ],     8,     8,    24,    12 );  \
+	bli_blksz_init_easy( &blkszs[ BLIS_NR ],    48,    24,     4,     4 );  \
 	bli_blksz_init_easy( &blkszs[ BLIS_MC ],   512,    88,   144,    60 );  \
 	bli_blksz_init_easy( &blkszs[ BLIS_KC ],   480,   384,   512,   512 );  \
 	bli_blksz_init_easy( &blkszs[ BLIS_NC ],  6144,  4032,  4080,  2004 );  \
@@ -81,7 +81,7 @@ void bli_cntx_init_zen5( cntx_t* cntx )
 	(
 	  14,
 	  // gemm
-	  BLIS_GEMM_UKR,       BLIS_FLOAT,    bli_sgemm_skx_asm_32x12_l2,   FALSE,
+	  BLIS_GEMM_UKR,       BLIS_FLOAT,    bli_sgemm_zen5_asm_8x48,      TRUE,
 	  BLIS_GEMM_UKR,       BLIS_DOUBLE,   bli_dgemm_zen4_asm_8x24,      TRUE,
 	  BLIS_GEMM_UKR,       BLIS_SCOMPLEX, bli_cgemm_zen4_asm_24x4,      FALSE,
 	  /*bli_zgemm_zen4_asm_12x4 is a column preferred kernel*/
@@ -120,9 +120,11 @@ void bli_cntx_init_zen5( cntx_t* cntx )
 	// Update the context with optimized packm kernels.
 	bli_cntx_set_packm_kers
 	(
-	  13,
+	  15,
 	  BLIS_PACKM_6XK_KER,  BLIS_FLOAT,    bli_spackm_haswell_asm_6xk,
 	  BLIS_PACKM_16XK_KER, BLIS_FLOAT,    bli_spackm_haswell_asm_16xk,
+	  BLIS_PACKM_8XK_KER,  BLIS_FLOAT,    bli_spackm_zen5_asm_8xk,
+	  BLIS_PACKM_48XK_KER, BLIS_FLOAT,    bli_spackm_zen5_asm_48xk,
 	  BLIS_PACKM_6XK_KER,  BLIS_DOUBLE,   bli_dpackm_haswell_asm_6xk,
 	  BLIS_PACKM_8XK_KER,  BLIS_DOUBLE,   bli_dpackm_zen4_asm_8xk,
 	  BLIS_PACKM_24XK_KER, BLIS_DOUBLE,   bli_dpackm_zen4_asm_24xk,
