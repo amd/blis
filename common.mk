@@ -5,7 +5,7 @@
 #  libraries.
 #
 #  Copyright (C) 2014, The University of Texas at Austin
-#  Copyright (C) 2020 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+#  Copyright (C) 2020 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 #
 #  Redistribution and use in source and binary forms, with or without
 #  modification, are permitted provided that the following conditions are
@@ -847,7 +847,11 @@ ifeq ($(SECURITY_FLAGS_ENABLED),yes)
   # Apply GCC/Clang UNIX-specific hardening flags only when not on Windows.
   ifneq ($(IS_WIN),yes)
     ifneq ($(filter gcc clang,$(CC_VENDOR)),)
-      CLANGFLAGS += -D_FORTIFY_SOURCE=2 -fstack-protector-strong
+      ifneq ($(DEBUG_TYPE),noopt)
+        CLANGFLAGS += -D_FORTIFY_SOURCE=2 -fstack-protector-strong
+      else
+        CLANGFLAGS += -fstack-protector-strong
+      endif
     endif
   endif
 endif
@@ -866,7 +870,11 @@ CXXLANGFLAGS := -std=c++11
 ifeq ($(SECURITY_FLAGS_ENABLED),yes)
   ifneq ($(IS_WIN),yes)
     ifneq ($(filter gcc clang,$(CC_VENDOR)),)
-      CXXLANGFLAGS += -D_FORTIFY_SOURCE=2 -fstack-protector-strong
+      ifneq ($(DEBUG_TYPE),noopt)
+        CXXLANGFLAGS += -D_FORTIFY_SOURCE=2 -fstack-protector-strong
+      else
+        CXXLANGFLAGS += -fstack-protector-strong
+      endif
     endif
   endif
 endif

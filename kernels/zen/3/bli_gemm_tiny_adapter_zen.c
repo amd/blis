@@ -138,7 +138,7 @@ err_t bli_dgemm_tiny_zen_6x8
     * For non-primary storage scheme, we configure parameters,
     * for kernel re-use.
     */
-   if ( !is_primary )
+    if ( !is_primary )
     {
         a_local = (double *)b;
         b_local = (double *)a;
@@ -244,7 +244,7 @@ err_t bli_dgemm_tiny_zen_6x8
      * This loop k_iter=KC will not get executed.
      * if K > KC, this loop will start from second KC block
      * Since we already have scaled C matrix by Beta, We do
-     * not need to scal C matrix by Beta again. So Beta is set 1.0 here.
+     * not need to scale C matrix by Beta again. So Beta is set 1.0 here.
      */
     for (k_iter = KC; k_iter < K; k_iter += KC )
     {
@@ -293,7 +293,7 @@ static zgemmsup_ker_ft zgemm_kern_fp_zen[] =
 };
 
 err_t bli_zgemm_tiny_zen_3x4
-     (
+      (
         conj_t conja,
         conj_t conjb,
         trans_t transa,
@@ -306,7 +306,7 @@ err_t bli_zgemm_tiny_zen_3x4
         const dcomplex*    b, const inc_t rs_b0, const inc_t cs_b0,
         const dcomplex*    beta,
         dcomplex*    c, const inc_t rs_c0, const inc_t cs_c0
-     )
+      )
 {
     if( conja != BLIS_NO_CONJUGATE || conjb != BLIS_NO_CONJUGATE )
         return BLIS_FAILURE;
@@ -388,7 +388,7 @@ err_t bli_zgemm_tiny_zen_3x4
     * For non-primary storage scheme, we configure parameters,
     * for kernel re-use.
     */
-   if ( !is_primary )
+    if ( !is_primary )
     {
         a_local = (dcomplex *)b;
         b_local = (dcomplex *)a;
@@ -494,7 +494,7 @@ err_t bli_zgemm_tiny_zen_3x4
      * This loop k_iter=KC will not get executed.
      * if K > KC, this loop will start from second KC block
      * Since we already have scaled C matrix by Beta, We do
-     * not need to scal C matrix by Beta again. So Beta is set 1.0 here.
+     * not need to scale C matrix by Beta again. So Beta is set 1.0 here.
      */
     for (k_iter = KC; k_iter < K; k_iter += KC )
     {

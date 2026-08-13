@@ -737,6 +737,9 @@ bool bli_cpuid_is_zen2
 	if ( family != 0x17 ) return FALSE;
 
 	// Finally, check for specific models:
+	// - 0x30 ~ 0xff
+	// NOTE: We must check model because the family 23 (0x17) is shared with
+	// zen.
 	const bool is_arch
 	=
 	( 0x30 <= model && model <= 0xff );
@@ -764,7 +767,12 @@ bool bli_cpuid_is_zen
 	if ( family != 0x17 ) return FALSE;
 
 	// Finally, check for specific models:
-	const bool is_arch = (model <= 0x30 );
+	// - 0x00 ~ 0x2f
+	// NOTE: We must check model because the family 23 (0x17) is shared with
+	// zen2.
+	const bool is_arch
+	=
+	( 0x00 <= model && model <= 0x2f );
 
 	if ( !is_arch ) return FALSE;
 

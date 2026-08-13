@@ -5900,7 +5900,7 @@ BLIS_INLINE err_t ztrsm_AuXB_ref
     ymm0 = _mm256_insertf128_pd(ymm0, xmm5, 0);\
     /*to negate the real part of complex number*/\
     ymm18 = _mm256_setr_pd(1.0, -1.0, 1.0, -1.0);\
-    /*dcomplex multiplication and substraction*/\
+    /*dcomplex multiplication and subtraction*/\
     /*swaps position of real and imag components of complex number*/\
     ymm14 = _mm256_permute_pd(ymm16, 0x5);\
     /*multiply with modified vec2 */\
@@ -5933,7 +5933,7 @@ BLIS_INLINE err_t ztrsm_AuXB_ref
     ymm18 = _mm256_setr_pd(1.0, -1.0, 1.0, -1.0);\
     /*swaps position of real and imag components of complex number*/\
     ymm14 = _mm256_permute_pd(ymm16, 0x5);\
-    /*dcomplex multiplication and substraction*/\
+    /*dcomplex multiplication and subtraction*/\
     /*multiply with modified vec2 */\
     ymm14 = _mm256_mul_pd(ymm14, ymm18);\
     ymm17 = _mm256_mul_pd(ymm0, ymm16);\
@@ -5964,14 +5964,14 @@ BLIS_INLINE err_t ztrsm_AuXB_ref
     \
     ymm14 = _mm256_shuffle_pd(ymm16, ymm16, 5);\
     \
-    /*dcomplex multiplication and substraction*/\
+    /*dcomplex multiplication and subtraction*/\
     ymm17 = _mm256_shuffle_pd(ymm0, ymm0, 15);\
     ymm18 = _mm256_shuffle_pd(ymm0, ymm0,0);\
     ymm19 = _mm256_mul_pd(ymm17, ymm14);\
     ymm15 = _mm256_fmaddsub_pd(ymm18, ymm16, ymm19);\
     ymm0 = _mm256_sub_pd(ymm15, ymm8);\
     \
-    /*dcomplex multiplication and substraction*/\
+    /*dcomplex multiplication and subtraction*/\
     ymm17 = _mm256_shuffle_pd(ymm4, ymm4, 15);\
     ymm18 = _mm256_shuffle_pd(ymm4, ymm4,0);\
     ymm19 = _mm256_mul_pd(ymm17, ymm14);\
@@ -5989,7 +5989,7 @@ BLIS_INLINE err_t ztrsm_AuXB_ref
     \
     ymm0 = _mm256_loadu_pd((double const *)(b11 + cs_b * 0));\
     ymm18 = _mm256_setr_pd(1.0, -1.0, 1.0, -1.0);\
-    /*dcomplex multiplication and substraction*/\
+    /*dcomplex multiplication and subtraction*/\
     ymm14 = _mm256_permute_pd(ymm16, 0x5);\
     ymm14 = _mm256_mul_pd(ymm14, ymm18);\
     ymm17 = _mm256_mul_pd(ymm0, ymm16);\
@@ -6010,7 +6010,7 @@ BLIS_INLINE err_t ztrsm_AuXB_ref
     ymm0 = _mm256_loadu_pd((double const *)(b11 + cs_b *0));\
     ymm1 = _mm256_loadu_pd((double const *)(b11 + cs_b *1));\
     ymm18 = _mm256_setr_pd(1.0, -1.0, 1.0, -1.0);\
-    /*dcomplex multiplication and substraction*/\
+    /*dcomplex multiplication and subtraction*/\
     ymm14 = _mm256_permute_pd(ymm16, 0x5);\
     ymm14 = _mm256_mul_pd(ymm14, ymm18);\
     ymm17 = _mm256_mul_pd(ymm0, ymm16);\
@@ -6018,7 +6018,7 @@ BLIS_INLINE err_t ztrsm_AuXB_ref
     ymm15 = _mm256_hsub_pd(ymm17, ymm14);\
     ymm8 = _mm256_sub_pd(ymm15,ymm8);\
     \
-    /*dcomplex multiplication and substraction*/\
+    /*dcomplex multiplication and subtraction*/\
     ymm14 = _mm256_permute_pd(ymm16, 0x5);\
     ymm14 = _mm256_mul_pd(ymm14, ymm18);\
     ymm17 = _mm256_mul_pd(ymm1, ymm16);\
@@ -6578,13 +6578,13 @@ BLIS_INLINE err_t ztrsm_AuXB_ref
             ymm2 = _mm256_broadcast_sd((double const *)(tptr + p_lda * 2 * 0));\
             ymm7 = _mm256_broadcast_sd((double const *)(tptr + p_lda * 2 * 0 + 1));\
             ymm7 = _mm256_mul_pd(ymm7, ymm18);\
-            /*dcomplex multiplication and substraction*/\
+            /*dcomplex multiplication and subtraction*/\
             \
             ymm3 = _mm256_fmadd_pd(ymm0, ymm2, ymm3);\
             ymm4 = _mm256_fmadd_pd(ymm1, ymm2, ymm4);\
             ymm5 = _mm256_fmadd_pd(ymm0, ymm7, ymm5);\
             ymm6 = _mm256_fmadd_pd(ymm1, ymm7, ymm6);\
-            /*dcomplex multiplication and substraction*/\
+            /*dcomplex multiplication and subtraction*/\
             \
             tptr += 2;\
             b10 += cs_b;\
@@ -6599,14 +6599,14 @@ BLIS_INLINE err_t ztrsm_AuXB_ref
             _mm_prefetch((char*)( b10 + 4*cs_b), _MM_HINT_T0); \
             ymm2 = _mm256_broadcast_sd((double const *)(tptr + p_lda * 2 * 0));\
             ymm7 = _mm256_broadcast_sd((double const *)(tptr + p_lda * 2 * 0 + 1));\
-            /*dcomplex multiplication and substraction*/\
+            /*dcomplex multiplication and subtraction*/\
             \
             ymm3 = _mm256_fmadd_pd(ymm0, ymm2, ymm3);\
             ymm4 = _mm256_fmadd_pd(ymm1, ymm2, ymm4);\
             ymm5 = _mm256_fmadd_pd(ymm0, ymm7, ymm5);\
             ymm6 = _mm256_fmadd_pd(ymm1, ymm7, ymm6);\
             /*ymm3 = _mm256_add_pd(ymm15, ymm3);*/\
-            /*dcomplex multiplication and substraction*/\
+            /*dcomplex multiplication and subtraction*/\
             \
             tptr += 2;\
             b10 += cs_b;\
@@ -6709,7 +6709,7 @@ BLIS_INLINE err_t ztrsm_AuXB_ref
     ymm1 = _mm256_insertf128_pd(ymm1, xmm5, 0);\
     \
     ymm18 = _mm256_setr_pd(1.0, -1.0, 1.0, -1.0);\
-    /*dcomplex multiplication and substraction*/\
+    /*dcomplex multiplication and subtraction*/\
     ymm14 = _mm256_permute_pd(ymm16, 0x5);\
     ymm14 = _mm256_mul_pd(ymm14, ymm18);\
     ymm17 = _mm256_mul_pd(ymm0, ymm16);\
@@ -6717,7 +6717,7 @@ BLIS_INLINE err_t ztrsm_AuXB_ref
     ymm15 = _mm256_hsub_pd(ymm17, ymm14);\
     ymm8 = _mm256_sub_pd(ymm15,ymm8);\
     \
-    /*dcomplex multiplication and substraction*/\
+    /*dcomplex multiplication and subtraction*/\
     ymm14 = _mm256_permute_pd(ymm16, 0x5);\
     ymm14 = _mm256_mul_pd(ymm14, ymm18);\
     ymm17 = _mm256_mul_pd(ymm1, ymm16);\
@@ -6748,7 +6748,7 @@ BLIS_INLINE err_t ztrsm_AuXB_ref
     ymm4 = _mm256_insertf128_pd(ymm4, xmm5, 0);\
 \
     ymm18 = _mm256_setr_pd(1.0, -1.0, 1.0, -1.0);\
-    /*dcomplex multiplication and substraction*/\
+    /*dcomplex multiplication and subtraction*/\
     ymm14 = _mm256_permute_pd(ymm16, 0x5);\
     ymm14 = _mm256_mul_pd(ymm14, ymm18);\
     ymm17 = _mm256_mul_pd(ymm0, ymm16);\
@@ -6756,7 +6756,7 @@ BLIS_INLINE err_t ztrsm_AuXB_ref
     ymm15 = _mm256_hsub_pd(ymm17, ymm14);\
     ymm8 = _mm256_sub_pd(ymm15,ymm8);\
     \
-    /*dcomplex multiplication and substraction*/\
+    /*dcomplex multiplication and subtraction*/\
     ymm14 = _mm256_permute_pd(ymm16, 0x5);\
     ymm14 = _mm256_mul_pd(ymm14, ymm18);\
     ymm17 = _mm256_mul_pd(ymm1, ymm16);\
@@ -6764,7 +6764,7 @@ BLIS_INLINE err_t ztrsm_AuXB_ref
     ymm15 = _mm256_hsub_pd(ymm17, ymm14);\
     ymm9 = _mm256_sub_pd(ymm15,ymm9);\
     \
-    /*dcomplex multiplication and substraction*/\
+    /*dcomplex multiplication and subtraction*/\
     ymm14 = _mm256_permute_pd(ymm16, 0x5);\
     ymm14 = _mm256_mul_pd(ymm14, ymm18);\
     ymm17 = _mm256_mul_pd(ymm3, ymm16);\
@@ -6772,7 +6772,7 @@ BLIS_INLINE err_t ztrsm_AuXB_ref
     ymm15 = _mm256_hsub_pd(ymm17, ymm14);\
     ymm12 = _mm256_sub_pd(ymm15,ymm12);\
     \
-    /*dcomplex multiplication and substraction*/\
+    /*dcomplex multiplication and subtraction*/\
     ymm14 = _mm256_permute_pd(ymm16, 0x5);\
     ymm14 = _mm256_mul_pd(ymm14, ymm18);\
     ymm17 = _mm256_mul_pd(ymm4, ymm16);\
@@ -6805,7 +6805,7 @@ BLIS_INLINE err_t ztrsm_AuXB_ref
             ymm4 = _mm256_broadcast_sd((double const *)(tptr + p_lda * 2 * 0)); \
             ymm6 = _mm256_broadcast_sd((double const *)(tptr + p_lda * 2 * 0 + 1)); \
             ymm6 = _mm256_mul_pd(ymm6, ymm18);\
-            /*dcomplex multiplication and substraction*/\
+            /*dcomplex multiplication and subtraction*/\
             \
             ymm3 = _mm256_fmadd_pd(ymm0, ymm4, ymm3);\
             ymm8 = _mm256_fmadd_pd(ymm0, ymm6, ymm8);\
@@ -6814,7 +6814,7 @@ BLIS_INLINE err_t ztrsm_AuXB_ref
             ymm6 = _mm256_broadcast_sd((double const *)(tptr + p_lda * 2 * 1 + 1)); \
             ymm6 = _mm256_mul_pd(ymm6, ymm18);\
             \
-            /*dcomplex multiplication and substraction*/\
+            /*dcomplex multiplication and subtraction*/\
             \
             ymm5 = _mm256_fmadd_pd(ymm0, ymm4, ymm5);\
             ymm9 = _mm256_fmadd_pd(ymm0, ymm6, ymm9);\
@@ -6823,7 +6823,7 @@ BLIS_INLINE err_t ztrsm_AuXB_ref
             ymm6 = _mm256_broadcast_sd((double const *)(tptr + p_lda * 2 * 2 + 1)); \
             ymm6 = _mm256_mul_pd(ymm6, ymm18);\
             \
-            /*dcomplex multiplication and substraction*/\
+            /*dcomplex multiplication and subtraction*/\
             \
             ymm7 = _mm256_fmadd_pd(ymm0, ymm4, ymm7);\
             ymm10 = _mm256_fmadd_pd(ymm0, ymm6, ymm10);\
@@ -6840,7 +6840,7 @@ BLIS_INLINE err_t ztrsm_AuXB_ref
             _mm_prefetch((char*)( b10 + 2*cs_b), _MM_HINT_T0); \
             ymm4 = _mm256_broadcast_sd((double const *)(tptr + p_lda * 2 * 0)); \
             ymm6 = _mm256_broadcast_sd((double const *)(tptr + p_lda * 2 * 0 + 1)); \
-            /*dcomplex multiplication and substraction*/\
+            /*dcomplex multiplication and subtraction*/\
             \
             ymm3 = _mm256_fmadd_pd(ymm0, ymm4, ymm3);\
             ymm8 = _mm256_fmadd_pd(ymm0, ymm6, ymm8);\
@@ -6849,7 +6849,7 @@ BLIS_INLINE err_t ztrsm_AuXB_ref
             ymm4 = _mm256_broadcast_sd((double const *)(tptr + p_lda * 2 * 1)); \
             ymm6 = _mm256_broadcast_sd((double const *)(tptr + p_lda * 2 * 1 + 1)); \
             \
-            /*dcomplex multiplication and substraction*/\
+            /*dcomplex multiplication and subtraction*/\
             \
             ymm5 = _mm256_fmadd_pd(ymm0, ymm4, ymm5);\
             ymm9 = _mm256_fmadd_pd(ymm0, ymm6, ymm9);\
@@ -6858,7 +6858,7 @@ BLIS_INLINE err_t ztrsm_AuXB_ref
             ymm4 = _mm256_broadcast_sd((double const *)(tptr + p_lda * 2 * 2)); \
             ymm6 = _mm256_broadcast_sd((double const *)(tptr + p_lda * 2 * 2 + 1)); \
             \
-            /*dcomplex multiplication and substraction*/\
+            /*dcomplex multiplication and subtraction*/\
             \
             ymm7 = _mm256_fmadd_pd(ymm0, ymm4, ymm7);\
             ymm10 = _mm256_fmadd_pd(ymm0, ymm6, ymm10);\
@@ -7265,13 +7265,13 @@ BLIS_INLINE err_t ztrsm_AuXB_ref
             ymm2 = _mm256_broadcast_sd((double const *)(tptr + p_lda * 2 * 0));\
             ymm7 = _mm256_broadcast_sd((double const *)(tptr + p_lda * 2 * 0 + 1));\
             ymm7 = _mm256_mul_pd(ymm7, ymm18);\
-            /*dcomplex multiplication and substraction*/\
+            /*dcomplex multiplication and subtraction*/\
             \
             ymm3 = _mm256_fmadd_pd(ymm0, ymm2, ymm3);\
             ymm4 = _mm256_fmadd_pd(ymm1, ymm2, ymm4);\
             ymm5 = _mm256_fmadd_pd(ymm0, ymm7, ymm5);\
             ymm6 = _mm256_fmadd_pd(ymm1, ymm7, ymm6);\
-            /*dcomplex multiplication and substraction*/\
+            /*dcomplex multiplication and subtraction*/\
             \
             tptr += 2;\
             b10 += cs_b;\
@@ -7287,14 +7287,14 @@ BLIS_INLINE err_t ztrsm_AuXB_ref
             _mm_prefetch((char*)( b10 + 4*cs_b), _MM_HINT_T0); \
             ymm2 = _mm256_broadcast_sd((double const *)(tptr + p_lda * 2 * 0));\
             ymm7 = _mm256_broadcast_sd((double const *)(tptr + p_lda * 2 * 0 + 1));\
-            /*dcomplex multiplication and substraction*/\
+            /*dcomplex multiplication and subtraction*/\
             \
             ymm3 = _mm256_fmadd_pd(ymm0, ymm2, ymm3);\
             ymm4 = _mm256_fmadd_pd(ymm1, ymm2, ymm4);\
             ymm5 = _mm256_fmadd_pd(ymm0, ymm7, ymm5);\
             ymm6 = _mm256_fmadd_pd(ymm1, ymm7, ymm6);\
             /*ymm3 = _mm256_add_pd(ymm15, ymm3);*/\
-            /*dcomplex multiplication and substraction*/\
+            /*dcomplex multiplication and subtraction*/\
             \
             tptr += 2;\
             b10 += cs_b;\
@@ -7599,7 +7599,7 @@ BLIS_INLINE err_t ztrsm_AuXB_ref
             ymm4 = _mm256_broadcast_sd((double const *)(tptr + p_lda * 2 * 0)); \
             ymm6 = _mm256_broadcast_sd((double const *)(tptr + p_lda * 2 * 0 + 1)); \
             ymm6 = _mm256_mul_pd(ymm6, ymm18);\
-            /*dcomplex multiplication and substraction*/\
+            /*dcomplex multiplication and subtraction*/\
             \
             ymm3 = _mm256_fmadd_pd(ymm0, ymm4, ymm3);\
             ymm8 = _mm256_fmadd_pd(ymm0, ymm6, ymm8);\
@@ -7608,7 +7608,7 @@ BLIS_INLINE err_t ztrsm_AuXB_ref
             ymm6 = _mm256_broadcast_sd((double const *)(tptr + p_lda * 2 * 1 + 1)); \
             ymm6 = _mm256_mul_pd(ymm6, ymm18);\
             \
-            /*dcomplex multiplication and substraction*/\
+            /*dcomplex multiplication and subtraction*/\
             \
             ymm5 = _mm256_fmadd_pd(ymm0, ymm4, ymm5);\
             ymm9 = _mm256_fmadd_pd(ymm0, ymm6, ymm9);\
@@ -7617,7 +7617,7 @@ BLIS_INLINE err_t ztrsm_AuXB_ref
             ymm6 = _mm256_broadcast_sd((double const *)(tptr + p_lda * 2 * 2 + 1)); \
             ymm6 = _mm256_mul_pd(ymm6, ymm18);\
             \
-            /*dcomplex multiplication and substraction*/\
+            /*dcomplex multiplication and subtraction*/\
             \
             ymm7 = _mm256_fmadd_pd(ymm0, ymm4, ymm7);\
             ymm10 = _mm256_fmadd_pd(ymm0, ymm6, ymm10);\
@@ -7635,7 +7635,7 @@ BLIS_INLINE err_t ztrsm_AuXB_ref
             _mm_prefetch((char*)( b10 + 2*cs_b), _MM_HINT_T0); \
             ymm4 = _mm256_broadcast_sd((double const *)(tptr + p_lda * 2 * 0)); \
             ymm6 = _mm256_broadcast_sd((double const *)(tptr + p_lda * 2 * 0 + 1)); \
-            /*dcomplex multiplication and substraction*/\
+            /*dcomplex multiplication and subtraction*/\
             \
             ymm3 = _mm256_fmadd_pd(ymm0, ymm4, ymm3);\
             ymm8 = _mm256_fmadd_pd(ymm0, ymm6, ymm8);\
@@ -7644,7 +7644,7 @@ BLIS_INLINE err_t ztrsm_AuXB_ref
             ymm4 = _mm256_broadcast_sd((double const *)(tptr + p_lda * 2 * 1)); \
             ymm6 = _mm256_broadcast_sd((double const *)(tptr + p_lda * 2 * 1 + 1)); \
             \
-            /*dcomplex multiplication and substraction*/\
+            /*dcomplex multiplication and subtraction*/\
             \
             ymm5 = _mm256_fmadd_pd(ymm0, ymm4, ymm5);\
             ymm9 = _mm256_fmadd_pd(ymm0, ymm6, ymm9);\
@@ -7653,7 +7653,7 @@ BLIS_INLINE err_t ztrsm_AuXB_ref
             ymm4 = _mm256_broadcast_sd((double const *)(tptr + p_lda * 2 * 2)); \
             ymm6 = _mm256_broadcast_sd((double const *)(tptr + p_lda * 2 * 2 + 1)); \
             \
-            /*dcomplex multiplication and substraction*/\
+            /*dcomplex multiplication and subtraction*/\
             \
             ymm7 = _mm256_fmadd_pd(ymm0, ymm4, ymm7);\
             ymm10 = _mm256_fmadd_pd(ymm0, ymm6, ymm10);\
@@ -34139,7 +34139,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_AutXB_AlXB
             ymm1 = _mm256_broadcast_pd((__m128d const *)(d11_pack));
 
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-        /*performs dcomplex divison of ymm8 and ymm4 with ymm1*/
+        /*performs dcomplex division of ymm8 and ymm4 with ymm1*/
         BLIS_ZTRSM_TWO_DIV(ymm8,ymm4)
 #else
         /*performs dcomplex multiplication of ymm8 and ymm4 with ymm1*/
@@ -34251,7 +34251,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_AutXB_AlXB
             ymm7 = _mm256_add_pd(ymm17, ymm7);
 
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-        /*performs dcomplex divison of ymm9 and ymm5 with ymm1*/
+        /*performs dcomplex division of ymm9 and ymm5 with ymm1*/
         BLIS_ZTRSM_TWO_DIV(ymm9,ymm5)
 #else
         /*performs dcomplex multiplication of ymm9 and ymm5 with ymm1*/
@@ -34328,7 +34328,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_AutXB_AlXB
             ymm7 = _mm256_add_pd(ymm17, ymm7);
 
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-        /*performs dcomplex divison of ymm10 and ymm6 with ymm1*/
+        /*performs dcomplex division of ymm10 and ymm6 with ymm1*/
         BLIS_ZTRSM_TWO_DIV(ymm10,ymm6)
 #else
         /*performs dcomplex multiplication of ymm10 and ymm6 with ymm1*/
@@ -34373,7 +34373,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_AutXB_AlXB
             ymm7 = _mm256_add_pd(ymm17, ymm7);
 
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-        /*performs dcomplex divison of ymm11 and ymm7 with ymm1*/
+        /*performs dcomplex division of ymm11 and ymm7 with ymm1*/
         BLIS_ZTRSM_TWO_DIV(ymm11,ymm7)
 #else
         /*performs dcomplex nultiplication of ymm11 and ymm7 with ymm1*/
@@ -35385,7 +35385,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_AltXB_AuXB
             ymm1 = _mm256_broadcast_pd((__m128d const *)(d11_pack + 3));
 
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-        /*performs dcomplex divison of ymm11 and ymm7 with ymm1*/
+        /*performs dcomplex division of ymm11 and ymm7 with ymm1*/
         BLIS_ZTRSM_TWO_DIV(ymm11,ymm7)
 #else
         /*performs dcomplex multiplication of ymm11 and ymm7 with ymm1*/
@@ -35495,7 +35495,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_AltXB_AuXB
             ymm4 = _mm256_add_pd(ymm17, ymm4);
 
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-        /*performs dcomplex divison of ymm10 and ymm6 with ymm1*/
+        /*performs dcomplex division of ymm10 and ymm6 with ymm1*/
         BLIS_ZTRSM_TWO_DIV(ymm10,ymm6)
 #else
         /*performs dcomplex multiplication of ymm10 and ymm6 with ymm1*/
@@ -35571,7 +35571,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_AltXB_AuXB
             ymm4 = _mm256_add_pd(ymm17, ymm4);
 
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-        /*performs dcomplex divison of ymm9 and ymm5 with ymm1*/
+        /*performs dcomplex division of ymm9 and ymm5 with ymm1*/
         BLIS_ZTRSM_TWO_DIV(ymm9,ymm5)
 #else
         /*performs dcomplex multiplication of ymm9 and ymm5 with ymm1*/
@@ -35614,7 +35614,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_AltXB_AuXB
             ymm4 = _mm256_add_pd(ymm17, ymm4);
 
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-        /*performs dcomplex divison of ymm8 and ymm4 with ymm1*/
+        /*performs dcomplex division of ymm8 and ymm4 with ymm1*/
         BLIS_ZTRSM_TWO_DIV(ymm8,ymm4)
 #else
         /*performs dcomplex nultiplication of ymm8 and ymm4 with ymm1*/
@@ -36607,7 +36607,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAutB_XAlB
             ymm15 = _mm256_setr_pd(-1.0, -1.0, -1.0, -1.0);
             ymm1 = _mm256_broadcast_pd((__m128d const *)(d11_pack + 2));
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-            /*performs dcomplex divison of ymm7 and ymm8 with ymm1*/
+            /*performs dcomplex division of ymm7 and ymm8 with ymm1*/
             BLIS_ZTRSM_TWO_DIV(ymm7,ymm8)
 #else
             /*performs dcomplex multiplication of ymm7 and ymm8 with ymm1*/
@@ -36688,7 +36688,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAutB_XAlB
 
 
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-            /*performs dcomplex divison of ymm5 and ymm6 with ymm1*/
+            /*performs dcomplex division of ymm5 and ymm6 with ymm1*/
             BLIS_ZTRSM_TWO_DIV(ymm5,ymm6)
 #else
             /*performs dcomplex multiplication of ymm5 and ymm6 with ymm1*/
@@ -36733,7 +36733,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAutB_XAlB
 
 
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-            /*performs dcomplex divison of ymm3 and ymm4 with ymm1*/
+            /*performs dcomplex division of ymm3 and ymm4 with ymm1*/
             BLIS_ZTRSM_TWO_DIV(ymm3,ymm4)
 #else
             /*performs dcomplex multiplication of ymm3 and ymm4 with ymm1*/
@@ -36792,7 +36792,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAutB_XAlB
                 ymm1 = _mm256_broadcast_pd((__m128d const *)
                         (d11_pack + 2));
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-                /*performs dcomplex divison of ymm7 and ymm8 with ymm1*/
+                /*performs dcomplex division of ymm7 and ymm8 with ymm1*/
                 BLIS_ZTRSM_TWO_DIV(ymm7,ymm8)
 #else
                 /*performs dcomplex multiplication of ymm7 and
@@ -36876,7 +36876,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAutB_XAlB
 
 
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-                /*performs dcomplex divison of ymm5 and ymm6 with ymm1*/
+                /*performs dcomplex division of ymm5 and ymm6 with ymm1*/
                 BLIS_ZTRSM_TWO_DIV(ymm5,ymm6)
 #else
                 /*performs dcomplex multiplication of ymm5 and
@@ -36923,7 +36923,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAutB_XAlB
 
 
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-                /*performs dcomplex divison of ymm3 and ymm4 with ymm1*/
+                /*performs dcomplex division of ymm3 and ymm4 with ymm1*/
                 BLIS_ZTRSM_TWO_DIV(ymm3,ymm4)
 #else
                 /*performs dcomplex multiplication of ymm3 and
@@ -36985,7 +36985,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAutB_XAlB
                 ymm1 = _mm256_broadcast_pd((__m128d const *)
                         (d11_pack + 2));
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-                /*performs dcomplex divison of ymm7 with ymm1*/
+                /*performs dcomplex division of ymm7 with ymm1*/
                 BLIS_ZTRSM_DIV(ymm7)
 #else
                 /*performs dcomplex multiplication of ymm7 with ymm1*/
@@ -37047,7 +37047,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAutB_XAlB
 
 
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-                /*performs dcomplex divison of ymm5 with ymm1*/
+                /*performs dcomplex division of ymm5 with ymm1*/
                 BLIS_ZTRSM_DIV(ymm5)
 #else
                 /*performs dcomplex multiplication of ymm5 with ymm1*/
@@ -37081,7 +37081,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAutB_XAlB
 
 
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-                /*performs dcomplex divison of ymm3 with ymm1*/
+                /*performs dcomplex division of ymm3 with ymm1*/
                 BLIS_ZTRSM_DIV(ymm3)
 #else
                 /*performs dcomplex multiplication of ymm3 with ymm1*/
@@ -37134,7 +37134,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAutB_XAlB
                 ymm1 = _mm256_broadcast_pd((__m128d const *)
                         (d11_pack + 2));
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-                /*performs dcomplex divison of ymm7 with ymm1*/
+                /*performs dcomplex division of ymm7 with ymm1*/
                 BLIS_ZTRSM_DIV(ymm7)
 #else
                 /*performs dcomplex multiplication of ymm7 with ymm1*/
@@ -37197,7 +37197,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAutB_XAlB
 
 
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-                /*performs dcomplex divison of ymm5 with ymm1*/
+                /*performs dcomplex division of ymm5 with ymm1*/
                 BLIS_ZTRSM_DIV(ymm5)
 #else
                 /*performs dcomplex multiplication of ymm5 with ymm1*/
@@ -37231,7 +37231,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAutB_XAlB
 
 
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-                /*performs dcomplex divison of ymm3 with ymm1*/
+                /*performs dcomplex division of ymm3 with ymm1*/
                 BLIS_ZTRSM_DIV(ymm3)
 #else
                 /*performs dcomplex multiplication of ymm3 and with ymm1*/
@@ -37366,7 +37366,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAutB_XAlB
             ymm1 = _mm256_broadcast_pd((__m128d const *)(d11_pack + 1));
 
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-            /*performs dcomplex divison of ymm5 and ymm6 with ymm1*/
+            /*performs dcomplex division of ymm5 and ymm6 with ymm1*/
             BLIS_ZTRSM_TWO_DIV(ymm5,ymm6)
 #else
             /*performs dcomplex multiplication of ymm5 and ymm6 with ymm1*/
@@ -37411,7 +37411,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAutB_XAlB
 
 
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-            /*performs dcomplex divison of ymm3 and ymm4 with ymm1*/
+            /*performs dcomplex division of ymm3 and ymm4 with ymm1*/
             BLIS_ZTRSM_TWO_DIV(ymm3,ymm4)
 #else
             /*performs dcomplex multiplication of ymm3 and ymm4 with ymm1*/
@@ -37453,7 +37453,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAutB_XAlB
             ymm1 = _mm256_broadcast_pd((__m128d const *)(d11_pack + 1));
 
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-            /*performs dcomplex divison of ymm5 and ymm6 with ymm1*/
+            /*performs dcomplex division of ymm5 and ymm6 with ymm1*/
             BLIS_ZTRSM_TWO_DIV(ymm5,ymm6)
 #else
             /*performs dcomplex multiplication of ymm5 and ymm6 with ymm1*/
@@ -37498,7 +37498,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAutB_XAlB
 
 
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-            /*performs dcomplex divison of ymm3 and ymm4 with ymm1*/
+            /*performs dcomplex division of ymm3 and ymm4 with ymm1*/
             BLIS_ZTRSM_TWO_DIV(ymm3,ymm4)
 #else
             /*performs dcomplex multiplication of ymm3 and ymm4 with ymm1*/
@@ -37540,7 +37540,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAutB_XAlB
             ymm1 = _mm256_broadcast_pd((__m128d const *)(d11_pack + 1));
 
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-            /*performs dcomplex divison of ymm5 with ymm1*/
+            /*performs dcomplex division of ymm5 with ymm1*/
             BLIS_ZTRSM_DIV(ymm5)
 #else
             /*performs dcomplex multiplication of ymm5 with ymm1*/
@@ -37575,7 +37575,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAutB_XAlB
 
 
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-            /*performs dcomplex divison of ymm3 with ymm1*/
+            /*performs dcomplex division of ymm3 with ymm1*/
             BLIS_ZTRSM_DIV(ymm3)
 #else
             /*performs dcomplex multiplication of ymm3 with ymm1*/
@@ -37611,7 +37611,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAutB_XAlB
             ymm1 = _mm256_broadcast_pd((__m128d const *)(d11_pack + 1));
 
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-            /*performs dcomplex divison of ymm5 with ymm1*/
+            /*performs dcomplex division of ymm5 with ymm1*/
             BLIS_ZTRSM_DIV(ymm5)
 #else
             /*performs dcomplex multiplication of ymm5 with ymm1*/
@@ -37646,7 +37646,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAutB_XAlB
 
 
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-            /*performs dcomplex divison of ymm3 with ymm1*/
+            /*performs dcomplex division of ymm3 with ymm1*/
             BLIS_ZTRSM_DIV(ymm3)
 #else
             /*performs dcomplex multiplication of ymm3 with ymm1*/
@@ -37770,7 +37770,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAutB_XAlB
             ymm15 = _mm256_setr_pd(-1.0, -1.0, -1.0, -1.0);
             ymm1 = _mm256_broadcast_pd((__m128d const *)(d11_pack));
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-            /*performs dcomplex divison of ymm3 and ymm4 with ymm1*/
+            /*performs dcomplex division of ymm3 and ymm4 with ymm1*/
             BLIS_ZTRSM_TWO_DIV(ymm3,ymm4)
 #else
             /*performs dcomplex multiplication of ymm3 and ymm4 with ymm1*/
@@ -37803,7 +37803,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAutB_XAlB
             ymm15 = _mm256_setr_pd(-1.0, -1.0, -1.0, -1.0);
             ymm1 = _mm256_broadcast_pd((__m128d const *)(d11_pack));
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-            /*performs dcomplex divison of ymm3 and ymm4 with ymm1*/
+            /*performs dcomplex division of ymm3 and ymm4 with ymm1*/
             BLIS_ZTRSM_TWO_DIV(ymm3,ymm4)
 #else
             /*performs dcomplex multiplication of ymm3 and ymm4 with ymm1*/
@@ -37840,7 +37840,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAutB_XAlB
             ymm15 = _mm256_setr_pd(-1.0, -1.0, -1.0, -1.0);
             ymm1 = _mm256_broadcast_pd((__m128d const *)(d11_pack));
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-            /*performs dcomplex divison of ymm3 with ymm1*/
+            /*performs dcomplex division of ymm3 with ymm1*/
             BLIS_ZTRSM_DIV(ymm3)
 #else
             /*performs dcomplex multiplication of ymm3 with ymm1*/
@@ -37874,7 +37874,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAutB_XAlB
             ymm15 = _mm256_setr_pd(-1.0, -1.0, -1.0, -1.0);
             ymm1 = _mm256_broadcast_pd((__m128d const *)(d11_pack));
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-            /*performs dcomplex divison of ymm3 with ymm1*/
+            /*performs dcomplex division of ymm3 with ymm1*/
             BLIS_ZTRSM_DIV(ymm3)
 #else
             /*performs dcomplex multiplication of ymm3 with ymm1*/
@@ -38071,7 +38071,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAltB_XAuB
             ymm15 = _mm256_setr_pd(-1.0, -1.0, -1.0, -1.0);
             ymm1 = _mm256_broadcast_pd((__m128d const *)(d11_pack));
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-            /*performs dcomplex divison of ymm3 and ymm4 with ymm1*/
+            /*performs dcomplex division of ymm3 and ymm4 with ymm1*/
             BLIS_ZTRSM_TWO_DIV(ymm3,ymm4)
 #else
             /*performs dcomplex multiplication of ymm3 and ymm4 with ymm1*/
@@ -38151,7 +38151,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAltB_XAuB
 
 
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-            /*performs dcomplex divison of ymm5 and ymm6 with ymm1*/
+            /*performs dcomplex division of ymm5 and ymm6 with ymm1*/
             BLIS_ZTRSM_TWO_DIV(ymm5,ymm6)
 #else
             /*performs dcomplex multiplication of ymm5 and ymm6 with ymm1*/
@@ -38197,7 +38197,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAltB_XAuB
 
 
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-            /*performs dcomplex divison of ymm7 and ymm8 with ymm1*/
+            /*performs dcomplex division of ymm7 and ymm8 with ymm1*/
             BLIS_ZTRSM_TWO_DIV(ymm7,ymm8)
 #else
             /*performs dcomplex multiplication of ymm7 and ymm8 with ymm1*/
@@ -38241,7 +38241,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAltB_XAuB
                 ymm15 = _mm256_setr_pd(-1.0, -1.0, -1.0, -1.0);
                 ymm1 = _mm256_broadcast_pd((__m128d const *)(d11_pack));
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-                /*performs dcomplex divison of ymm3 and ymm4 with ymm1*/
+                /*performs dcomplex division of ymm3 and ymm4 with ymm1*/
                 BLIS_ZTRSM_TWO_DIV(ymm3,ymm4)
 #else
                 /*performs dcomplex multiplication of ymm3 and ymm4
@@ -38325,7 +38325,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAltB_XAuB
 
 
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-                /*performs dcomplex divison of ymm5 and ymm6 with ymm1*/
+                /*performs dcomplex division of ymm5 and ymm6 with ymm1*/
                 BLIS_ZTRSM_TWO_DIV(ymm5,ymm6)
 #else
                 /*performs dcomplex multiplication of ymm5 and ymm6 with
@@ -38374,7 +38374,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAltB_XAuB
 
 
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-                /*performs dcomplex divison of ymm7 and ymm8 with ymm1*/
+                /*performs dcomplex division of ymm7 and ymm8 with ymm1*/
                 BLIS_ZTRSM_TWO_DIV(ymm7,ymm8)
 #else
                 /*performs dcomplex multiplication of ymm7 and ymm8
@@ -38421,7 +38421,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAltB_XAuB
                 ymm15 = _mm256_setr_pd(-1.0, -1.0, -1.0, -1.0);
                 ymm1 = _mm256_broadcast_pd((__m128d const *)(d11_pack));
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-                /*performs dcomplex divison of ymm3 with ymm1*/
+                /*performs dcomplex division of ymm3 with ymm1*/
                 BLIS_ZTRSM_DIV(ymm3)
 #else
                 /*performs dcomplex multiplication of ymm3
@@ -38483,7 +38483,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAltB_XAuB
                 ymm7 = _mm256_add_pd(ymm16, ymm7);
 
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-                /*performs dcomplex divison of ymm5 with ymm1*/
+                /*performs dcomplex division of ymm5 with ymm1*/
                 BLIS_ZTRSM_DIV(ymm5)
 #else
                 /*performs dcomplex multiplication of ymm5
@@ -38520,7 +38520,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAltB_XAuB
                 ymm7 = _mm256_add_pd(ymm16, ymm7);
 
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-                /*performs dcomplex divison of ymm7 with ymm1*/
+                /*performs dcomplex division of ymm7 with ymm1*/
                 BLIS_ZTRSM_DIV(ymm7)
 #else
                 /*performs dcomplex multiplication of ymm7
@@ -38558,7 +38558,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAltB_XAuB
                 ymm15 = _mm256_setr_pd(-1.0, -1.0, -1.0, -1.0);
                 ymm1 = _mm256_broadcast_pd((__m128d const *)(d11_pack));
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-                /*performs dcomplex divison of ymm3 with ymm1*/
+                /*performs dcomplex division of ymm3 with ymm1*/
                 BLIS_ZTRSM_DIV(ymm3)
 #else
                 /*performs dcomplex multiplication of ymm3
@@ -38620,7 +38620,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAltB_XAuB
                 ymm7 = _mm256_add_pd(ymm16, ymm7);
 
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-                /*performs dcomplex divison of ymm5 with ymm1*/
+                /*performs dcomplex division of ymm5 with ymm1*/
                 BLIS_ZTRSM_DIV(ymm5)
 #else
                 /*performs dcomplex multiplication of ymm5
@@ -38657,7 +38657,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAltB_XAuB
                 ymm7 = _mm256_add_pd(ymm16, ymm7);
 
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-                /*performs dcomplex divison of ymm7 with ymm1*/
+                /*performs dcomplex division of ymm7 with ymm1*/
                 BLIS_ZTRSM_DIV(ymm7)
 #else
                 /*performs dcomplex multiplication of ymm7
@@ -38801,7 +38801,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAltB_XAuB
             ymm15 = _mm256_setr_pd(-1.0, -1.0, -1.0, -1.0);
             ymm1 = _mm256_broadcast_pd((__m128d const *)(d11_pack));
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-            /*performs dcomplex divison of ymm3 and ymm4 with ymm1*/
+            /*performs dcomplex division of ymm3 and ymm4 with ymm1*/
             BLIS_ZTRSM_TWO_DIV(ymm3,ymm4)
 #else
             /*performs dcomplex multiplication of ymm3 and ymm4 with ymm1*/
@@ -38848,7 +38848,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAltB_XAuB
             ymm6 = _mm256_add_pd(ymm17, ymm6);
 
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-            /*performs dcomplex divison of ymm5 and ymm6 with ymm1*/
+            /*performs dcomplex division of ymm5 and ymm6 with ymm1*/
             BLIS_ZTRSM_TWO_DIV(ymm5,ymm6)
 #else
             /*performs dcomplex multiplication of ymm5 and ymm6 with ymm1*/
@@ -38884,7 +38884,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAltB_XAuB
             ymm15 = _mm256_setr_pd(-1.0, -1.0, -1.0, -1.0);
             ymm1 = _mm256_broadcast_pd((__m128d const *)(d11_pack));
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-            /*performs dcomplex divison of ymm3 and ymm4 with ymm1*/
+            /*performs dcomplex division of ymm3 and ymm4 with ymm1*/
             BLIS_ZTRSM_TWO_DIV(ymm3,ymm4)
 #else
             /*performs dcomplex multiplication of ymm3 and ymm4 with ymm1*/
@@ -38930,7 +38930,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAltB_XAuB
             ymm5 = _mm256_add_pd(ymm16, ymm5);
             ymm6 = _mm256_add_pd(ymm17, ymm6);
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-            /*performs dcomplex divison of ymm5 and ymm6 with ymm1*/
+            /*performs dcomplex division of ymm5 and ymm6 with ymm1*/
             BLIS_ZTRSM_TWO_DIV(ymm5,ymm6)
 #else
             /*performs dcomplex multiplication of ymm5 and ymm6 with ymm1*/
@@ -38971,7 +38971,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAltB_XAuB
             ymm15 = _mm256_setr_pd(-1.0, -1.0, -1.0, -1.0);
             ymm1 = _mm256_broadcast_pd((__m128d const *)(d11_pack));
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-            /*performs dcomplex divison of ymm3 with ymm1*/
+            /*performs dcomplex division of ymm3 with ymm1*/
             BLIS_ZTRSM_DIV(ymm3)
 #else
             /*performs dcomplex multiplication of ymm3 with ymm1*/
@@ -39006,7 +39006,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAltB_XAuB
             //Step 3
             ymm5 = _mm256_add_pd(ymm16, ymm5);
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-            /*performs dcomplex divison of ymm5 with ymm1*/
+            /*performs dcomplex division of ymm5 with ymm1*/
             BLIS_ZTRSM_DIV(ymm5)
 #else
             /*performs dcomplex multiplication of ymm5 with ymm1*/
@@ -39041,7 +39041,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAltB_XAuB
             ymm15 = _mm256_setr_pd(-1.0, -1.0, -1.0, -1.0);
             ymm1 = _mm256_broadcast_pd((__m128d const *)(d11_pack));
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-            /*performs dcomplex divison of ymm3 with ymm1*/
+            /*performs dcomplex division of ymm3 with ymm1*/
             BLIS_ZTRSM_DIV(ymm3)
 #else
             /*performs dcomplex multiplication of ymm3 with ymm1*/
@@ -39076,7 +39076,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAltB_XAuB
             //Step 3
             ymm5 = _mm256_add_pd(ymm16, ymm5);
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-            /*performs dcomplex divison of ymm5 with ymm1*/
+            /*performs dcomplex division of ymm5 with ymm1*/
             BLIS_ZTRSM_DIV(ymm5)
 #else
             /*performs dcomplex multiplication of ymm5 with ymm1*/
@@ -39203,7 +39203,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAltB_XAuB
             ymm15 = _mm256_setr_pd(-1.0, -1.0, -1.0, -1.0);
             ymm1 = _mm256_broadcast_pd((__m128d const *)(d11_pack));
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-            /*performs dcomplex divison of ymm3 and ymm4 with ymm1*/
+            /*performs dcomplex division of ymm3 and ymm4 with ymm1*/
             BLIS_ZTRSM_TWO_DIV(ymm3,ymm4)
 #else
             /*performs dcomplex multiplication of ymm3 and ymm4 with ymm1*/
@@ -39235,7 +39235,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAltB_XAuB
             ymm15 = _mm256_setr_pd(-1.0, -1.0, -1.0, -1.0);
             ymm1 = _mm256_broadcast_pd((__m128d const *)(d11_pack));
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-            /*performs dcomplex divison of ymm3 and ymm4 with ymm1*/
+            /*performs dcomplex division of ymm3 and ymm4 with ymm1*/
             BLIS_ZTRSM_TWO_DIV(ymm3,ymm4)
 #else
             /*performs dcomplex multiplication of ymm3 and ymm4 with ymm1*/
@@ -39275,7 +39275,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAltB_XAuB
             ymm15 = _mm256_setr_pd(-1.0, -1.0, -1.0, -1.0);
             ymm1 = _mm256_broadcast_pd((__m128d const *)(d11_pack));
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-            /*performs dcomplex divison of ymm3 with ymm1*/
+            /*performs dcomplex division of ymm3 with ymm1*/
             BLIS_ZTRSM_DIV(ymm3)
 #else
             /*performs dcomplex multiplication of ymm3 with ymm1*/
@@ -39314,7 +39314,7 @@ BLIS_INLINE err_t bli_ztrsm_small_zen_int_XAltB_XAuB
             ymm15 = _mm256_setr_pd(-1.0, -1.0, -1.0, -1.0);
             ymm1 = _mm256_broadcast_pd((__m128d const *)(d11_pack));
 #ifndef BLIS_ENABLE_TRSM_PREINVERSION
-            /*performs dcomplex divison of ymm3 with ymm1*/
+            /*performs dcomplex division of ymm3 with ymm1*/
             BLIS_ZTRSM_DIV(ymm3)
 #else
             /*performs dcomplex multiplication of ymm3 with ymm1*/

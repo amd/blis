@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2025 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -351,7 +351,7 @@ BLIS_INLINE void runn_n_rem
             bli_dpackm_zen4_asm_8xk
             (
                 BLIS_NO_CONJUGATE,
-                BLIS_NULL_POINTER,
+                BLIS_PACKED_ROW_PANELS, // Default for schema_a but unused here
                 n_rem,
                 j,
                 j,
@@ -462,7 +462,7 @@ BLIS_INLINE void runn_n_rem
 }
 
 /*
-* Solve Right Upper NonTranspose TRSM when N < 8
+* Solve Right Lower NonTranspose TRSM when N < 8
 */
 BLIS_INLINE void rlnn_n_rem
 (
@@ -511,7 +511,7 @@ BLIS_INLINE void rlnn_n_rem
             bli_dpackm_zen4_asm_8xk
             (
                 BLIS_NO_CONJUGATE,
-                BLIS_NULL_POINTER,
+                BLIS_PACKED_ROW_PANELS, // Default for schema_a but unused here
                 n_rem,
                 (n - j - d_nr),
                 (n - j - d_nr),
@@ -696,7 +696,7 @@ err_t bli_dtrsm_small_zen5_int_XAltB_XAuB
             bli_dpackm_zen4_asm_8xk
             (
                 BLIS_NO_CONJUGATE,
-                BLIS_NULL_POINTER,
+                BLIS_PACKED_ROW_PANELS, // Default for schema_a but unused here
                 D_NR_,
                 j,
                 j,
@@ -754,7 +754,7 @@ err_t bli_dtrsm_small_zen5_int_XAltB_XAuB
             bli_dpackm_zen4_asm_8xk
             (
                 BLIS_NO_CONJUGATE,
-                BLIS_NULL_POINTER,
+                BLIS_PACKED_ROW_PANELS, // Default for schema_a but unused here
                 n_rem,
                 j,
                 j,
@@ -872,7 +872,7 @@ err_t bli_dtrsm_small_zen5_int_XAutB_XAlB
             bli_dpackm_zen4_asm_8xk
             (
                 BLIS_NO_CONJUGATE,
-                BLIS_NULL_POINTER,
+                BLIS_PACKED_ROW_PANELS, // Default for schema_a but unused here
                 D_NR_,
                 (n - j - d_nr),
                 (n - j - d_nr),
@@ -1332,7 +1332,7 @@ BLIS_INLINE void llnn_n_rem
 
 
 /*
-* Solve Left Lower NonTranspose TRSM when N < 8
+* Solve Left Upper NonTranspose TRSM when N < 8
 */
 BLIS_INLINE void lunn_n_rem
 (

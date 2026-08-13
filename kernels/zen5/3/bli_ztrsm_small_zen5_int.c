@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2025 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -435,8 +435,8 @@ BLIS_INLINE void runn_n_rem
     bli_auxinfo_set_ps_a( ps_a_use, &auxinfo );
     __m512d t_reg[6];                  // temporary registers
     t_reg[5] = _mm512_set1_pd( 1.0 );  // (constant) used for fmaddsub
-    t_reg[4] = _mm512_set1_pd(-1.0);   // (constatnt) used in complex multiplicaton
-    double g_double[3];                // temporary registers for complex divison
+    t_reg[4] = _mm512_set1_pd(-1.0);   // (constant) used in complex multiplication
+    double g_double[3];                // temporary registers for complex division
     __m512d c_reg[Z_MR_];              // registers to hold GEMM accumulation
 
     for(dim_t i = 0; i < Z_MR_; ++i)
@@ -456,7 +456,7 @@ BLIS_INLINE void runn_n_rem
             bli_zpackm_zen4_asm_4xk
             (
                 BLIS_NO_CONJUGATE,
-                BLIS_NULL_POINTER,
+                BLIS_PACKED_ROW_PANELS, // Default for schema_a but unused here
                 n_rem,
                 j,
                 j,
@@ -519,7 +519,7 @@ BLIS_INLINE void runn_n_rem
 }
 
 /*
-* Solve Right Upper NonTranspose TRSM when N < 4
+* Solve Right Lower NonTranspose TRSM when N < 4
 */
 BLIS_INLINE void rlnn_n_rem
 (
@@ -565,7 +565,7 @@ BLIS_INLINE void rlnn_n_rem
             bli_zpackm_zen4_asm_4xk
             (
                 BLIS_NO_CONJUGATE,
-                BLIS_NULL_POINTER,
+                BLIS_PACKED_ROW_PANELS, // Default for schema_a but unused here
                 n_rem,
                 (n - j - z_nr),
                 (n - j - z_nr),
@@ -706,7 +706,7 @@ err_t bli_ztrsm_small_zen5_int_XAltB_XAuB
             bli_zpackm_zen4_asm_4xk
             (
                 BLIS_NO_CONJUGATE,
-                BLIS_NULL_POINTER,
+                BLIS_PACKED_ROW_PANELS, // Default for schema_a but unused here
                 Z_NR_,
                 j,
                 j,
@@ -766,7 +766,7 @@ err_t bli_ztrsm_small_zen5_int_XAltB_XAuB
             bli_zpackm_zen4_asm_4xk
             (
                 BLIS_NO_CONJUGATE,
-                BLIS_NULL_POINTER,
+                BLIS_PACKED_ROW_PANELS, // Default for schema_a but unused here
                 n_rem,
                 j,
                 j,
@@ -884,7 +884,7 @@ err_t bli_ztrsm_small_zen5_int_XAutB_XAlB
             bli_zpackm_zen4_asm_4xk
             (
                 BLIS_NO_CONJUGATE,
-                BLIS_NULL_POINTER,
+                BLIS_PACKED_ROW_PANELS, // Default for schema_a but unused here
                 Z_NR_,
                 (n - j - z_nr),
                 (n - j - z_nr),
@@ -1320,7 +1320,7 @@ BLIS_INLINE void llnn_n_rem
 
 
 /*
-* Solve Left Lower NonTranspose TRSM when N < 4
+* Solve Left Upper NonTranspose TRSM when N < 4
 */
 BLIS_INLINE void lunn_n_rem
 (

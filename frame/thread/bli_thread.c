@@ -1756,7 +1756,7 @@ void bli_thread_set_num_threads( dim_t n_threads )
 	bli_rntm_set_auto_factor_only( TRUE, &tl_rntm );
 
 #ifdef PRINT_THREADING
-    // Make a local copy of global_rntm while holding the mutex to avoid
+	// Make a local copy of global_rntm while holding the mutex to avoid
 	// data races with concurrent updates.
 	rntm_t local_rntm;
 	bli_pthread_mutex_lock( &global_rntm_mutex );
@@ -2007,7 +2007,7 @@ void bli_thread_init_rntm_from_global_rntm
 	// concurrently by bli_thread_set_num_threads() from another thread.
 	bli_pthread_mutex_lock( &global_rntm_mutex );
 	*rntm = global_rntm;
-    bli_pthread_mutex_unlock( &global_rntm_mutex );
+	bli_pthread_mutex_unlock( &global_rntm_mutex );
 }
 
 void bli_thread_update_rntm_from_env

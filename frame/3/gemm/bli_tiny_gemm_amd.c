@@ -708,7 +708,6 @@ err_t bli_cgemm_tiny
 {
     // Query the architecture ID
     arch_t arch_id = bli_arch_query_id_internal();
-    bool is_mt = is_parallel;
     // Dispatch on ISA capability tier rather than on individual arch_id
     // values. bli_arch_isa_tier() is the single source of truth mapping a
     // Zen arch to its tier, so new Zen parts only need to be added there.
@@ -740,6 +739,7 @@ err_t bli_cgemm_tiny
              * AVX-512 FMA units sustain ~32 flops/cycle, giving
              * 32 flops/cycle * 3.7 GHz ~= 118 GFLOP/s. The 24x4 register tile is
              * that of bli_cgemm_tiny_zen4_24x4 dispatched below. */
+            bool is_mt = is_parallel;
             if( (is_mt == FALSE) ||
                 ( bli_gemm_tiny_single_threaded(m, n, k, 24/*MR*/, 4/*NR*/, 118/*Core's Gflops*/, 15/*Threading_overhead*/, BLIS_SCOMPLEX) == TRUE ) )
             {

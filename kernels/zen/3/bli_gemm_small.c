@@ -291,7 +291,7 @@ static err_t bli_sgemm_small
             is_beta_non_zero = 1;
         }
 
-    //update the pointer math if matrix B needs to be transposed.
+        //update the pointer math if matrix B needs to be transposed.
         if (bli_obj_has_trans( b )) {
             tb_inc_col = 1; //switch row and column strides
             tb_inc_row = ldb;
