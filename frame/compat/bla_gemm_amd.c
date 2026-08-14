@@ -542,7 +542,31 @@ void dgemm_blis_impl
     to an uninitialized void pointer i.e. ((void *)0)*/
     if (n0 == 1)
     {
-        if (bli_is_notrans(blis_transa))
+        bool tiny_gemv_handled = FALSE;
+
+#ifdef BLIS_ENABLE_TINY_MATRIX
+        if ((m0 < 8) && (k0 < 8) && (bli_cpuid_is_avx2fma3_supported() != FALSE))
+        {
+            const dim_t gemv_m = bli_is_notrans(blis_transa) ? m0 : k0;
+            const dim_t gemv_n = bli_is_notrans(blis_transa) ? k0 : m0;
+
+            bli_dgemv_zen_ref
+            (
+                blis_transa,
+                gemv_m, gemv_n,
+                (double*)alpha,
+                (double*)a, rs_a, cs_a,
+                (double*)b, bli_is_notrans(blis_transb) ? rs_b : cs_b,
+                (double*)beta,
+                c, rs_c,
+                ((void*)0)
+            );
+
+            tiny_gemv_handled = TRUE;
+        }
+#endif
+
+        if (!tiny_gemv_handled && bli_is_notrans(blis_transa))
         {
             bli_dgemv_unf_var2
             (
@@ -557,7 +581,7 @@ void dgemm_blis_impl
                 ((void*)0)
             );
         }
-        else
+        else if (!tiny_gemv_handled)
         {
             bli_dgemv_unf_var1
             (
