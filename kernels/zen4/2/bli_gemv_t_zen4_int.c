@@ -44,7 +44,10 @@
 #ifdef BLIS_ENABLE_OPENMP
 #include <omp.h>
     #define SHOULD_CALL_ST_s (size < 22000)
-    #define SHOULD_CALL_ST_d (size < 11000)
+    #define SHOULD_CALL_ST_d \
+        ( size < 26520 || \
+          ( rs_a == 1 && cs_a > m && incx == 1 && incy == 1 && \
+            n <= 128 && size <= 150000 ) )
     #define SHOULD_CALL_ST_c (size < 15000)
     #define SHOULD_CALL_ST_z (size < 8000 )
 #endif

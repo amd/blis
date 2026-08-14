@@ -3854,6 +3854,12 @@ BLIS_INLINE void aocl_dgemv_dynamic
     // Pick the AOCL dynamic logic based on the
     // architecture ID
     dim_t size = n_elem * m_elem;
+    dim_t min_elem = bli_min( m_elem, n_elem );
+    dim_t max_elem = bli_max( m_elem, n_elem );
+
+    // Treat matrices within a 2:1 aspect ratio as squarish. For nonnegative
+    // dimensions, subtraction avoids the overflow risk of 2 * min_elem.
+    bool is_squarish = max_elem - min_elem <= min_elem;
 
     // AOCL dynamic logic for transpose case
     if ( bli_does_trans( variant ) )
@@ -3862,23 +3868,29 @@ BLIS_INLINE void aocl_dgemv_dynamic
         {
             case BLIS_ARCH_ZEN6:
             case BLIS_ARCH_ZEN5:
+            case BLIS_ARCH_ZEN4:
 				if      ( size <      26520 ) *nt_ideal = 1;
 				else if ( size <      27140 ) *nt_ideal = 2;
 				else if ( size <      94788 ) *nt_ideal = 4;
 				else if ( size <    1243612 ) *nt_ideal = 8;
-				else if ( size <    3106704 ) *nt_ideal = 16;
+				else if ( size <    1800000 ) *nt_ideal = 16;
 				else if ( size <    7734456 ) *nt_ideal = 32;
+				else if ( size <   16000000 ) *nt_ideal = 128;
 				else                       *nt_ideal = -1;
-                break;
-
-            case BLIS_ARCH_ZEN4:
-				if      ( size <      26520 ) *nt_ideal = 1;
-				else if ( size <      26896 ) *nt_ideal = 2;
-				else if ( size <      96482 ) *nt_ideal = 4;
-				else if ( size <    1493851 ) *nt_ideal = 8;
-				else if ( size <    4473852 ) *nt_ideal = 16;
-				else if ( size <   16043941 ) *nt_ideal = 32;
-				else                       *nt_ideal = -1;
+				if ( is_squarish )
+				{
+					if      ( size >=   3390000 && size < 10000000 ) *nt_ideal = 64;
+					else if ( size >=    758000 && size <  1243612 ) *nt_ideal = 16;
+					else if ( size >=     75000 && size <    94788 ) *nt_ideal = 8;
+					else if ( size <      26520 ) *nt_ideal = 1;
+					else if ( size <      27140 ) *nt_ideal = 2;
+					else if ( size <      94788 ) *nt_ideal = 4;
+					else if ( size <    1243612 ) *nt_ideal = 8;
+					else if ( size <    1800000 ) *nt_ideal = 16;
+					else if ( size <    7734456 ) *nt_ideal = 32;
+					else if ( size <   16000000 ) *nt_ideal = 128;
+					else                       *nt_ideal = -1;
+				}
                 break;
 
             case BLIS_ARCH_ZEN:
@@ -3921,21 +3933,63 @@ BLIS_INLINE void aocl_dgemv_dynamic
         {
         case BLIS_ARCH_ZEN6:
         case BLIS_ARCH_ZEN5:
-            // logic tuned using linear regression
-			if      ( size <     195889 && (n_elem < 200 || m_elem < 40) ) *nt_ideal = 1;
+        case BLIS_ARCH_ZEN4:
+			if ( is_squarish )
+			{
+				if      ( size >= 4000000 && size < 66090713 ) *nt_ideal = 64;
+				else if ( size >= 1800000 && size <  4000000 ) *nt_ideal = 32;
+				else if ( n_elem <= 32 )
+				{
+					if      ( m_elem <  768 ) *nt_ideal = 1;
+					else if ( m_elem < 1200 ) *nt_ideal = 2;
+					else                      *nt_ideal = 8;
+				}
+				else if ( n_elem <= 64 && m_elem >= 512 )
+				{
+					if      ( m_elem < 1536 ) *nt_ideal = 4;
+					else                      *nt_ideal = 8;
+				}
+				else if ( n_elem <= 200 )
+				{
+					if      ( m_elem <= 160 ) *nt_ideal = 1;
+					else if ( m_elem <= 192 ) *nt_ideal = 4;
+					else if ( size <  200000 ) *nt_ideal = 8;
+					else if ( size <  400000 ) *nt_ideal = 16;
+					else                       *nt_ideal = 8;
+				}
+				else if ( size <     200108 && n_elem < 300 ) *nt_ideal = 2;
+				else if ( size <     235073 && n_elem < 400 ) *nt_ideal = 4;
+				else if ( size <    1794596 && n_elem < 1000 ) *nt_ideal = 8;
+				else if ( size <    3728210 ) *nt_ideal = 16;
+				else if ( size <   33274204 ) *nt_ideal = 32;
+				else if ( size <   66090713 ) *nt_ideal = 64;
+				else                       *nt_ideal = -1;
+			}
+			else if ( n_elem <= 32 )
+			{
+				if      ( m_elem <  768 ) *nt_ideal = 1;
+				else if ( m_elem < 1200 ) *nt_ideal = 2;
+				else                      *nt_ideal = 8;
+			}
+			else if ( n_elem <= 64 && m_elem >= 512 )
+			{
+				if      ( m_elem < 1536 ) *nt_ideal = 4;
+				else                      *nt_ideal = 8;
+			}
+			else if ( n_elem <= 200 )
+			{
+				if      ( m_elem <= 160 ) *nt_ideal = 1;
+				else if ( m_elem <= 192 ) *nt_ideal = 4;
+				else if ( size <  200000 ) *nt_ideal = 8;
+				else if ( size <  400000 ) *nt_ideal = 16;
+				else                       *nt_ideal = 8;
+			}
 			else if ( size <     200108 && n_elem < 300 ) *nt_ideal = 2;
 			else if ( size <     235073 && n_elem < 400 ) *nt_ideal = 4;
 			else if ( size <    1794596 && n_elem < 1000 ) *nt_ideal = 8;
 			else if ( size <    3728210 ) *nt_ideal = 16;
 			else if ( size <   33274204 ) *nt_ideal = 32;
 			else if ( size <   66090713 ) *nt_ideal = 64;
-			else                       *nt_ideal = -1;  // nt=96 for the largest sizes
-            break;
-        case BLIS_ARCH_ZEN4:
-			if      ( size <     235073 && (n_elem < 200 || m_elem < 40) ) *nt_ideal = 1;
-			else if ( size <    2585803 && n_elem < 1000 ) *nt_ideal = 8;
-			else if ( size <    9281592 ) *nt_ideal = 16;
-			else if ( size <   27727772 ) *nt_ideal = 32;
 			else                       *nt_ideal = -1;
             break;
         default:
@@ -4073,10 +4127,18 @@ BLIS_INLINE void aocl_zgemv_dynamic
         switch ( arch_id )
         {
             case BLIS_ARCH_ZEN6:
-            case BLIS_ARCH_ZEN5:
 				if      ( size <      18208 ) *nt_ideal = 1;
 				else if ( size <      38500 ) *nt_ideal = 4;
 				else if ( size <     489970 ) *nt_ideal = 8;
+				else if ( size <    1140276 ) *nt_ideal = 16;
+				else if ( size <    3128270 ) *nt_ideal = 32;
+				else                       *nt_ideal = -1;
+				break;
+            case BLIS_ARCH_ZEN5:
+				if      ( n_elem <= 32 && m_elem <= 2048 ) *nt_ideal = 1;
+				else if ( size <       8000 ) *nt_ideal = 1;
+				else if ( size <      11000 ) *nt_ideal = 4;
+				else if ( size <     200000 ) *nt_ideal = 8;
 				else if ( size <    1140276 ) *nt_ideal = 16;
 				else if ( size <    3128270 ) *nt_ideal = 32;
 				else                       *nt_ideal = -1;

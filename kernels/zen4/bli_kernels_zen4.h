@@ -610,6 +610,20 @@ void bli_zgemv_n_zen4_int
        cntx_t* cntx
      );
 
+void bli_dgemv_m_zen4_int_32x1
+     (
+       trans_t transa,
+       conj_t  conjx,
+       dim_t   m,
+       dim_t   n,
+       double* alpha,
+       double* a, inc_t rs_a, inc_t cs_a,
+       double* x, inc_t incx,
+       double* beta,
+       double* y, inc_t incy,
+       cntx_t* cntx
+     );
+
 // Compatibility aliases retained for external callers (for example libflame)
 BLIS_EXPORT void bli_dgemv_n_zen4_int_40x2_st
      (

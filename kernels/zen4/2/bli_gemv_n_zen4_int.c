@@ -447,6 +447,13 @@ PASTECH4(GENERATE_,d,_KERNELS_,40,_NM)(double, d, 40, 8)
 // expands to: bli_dgemv_m_zen4_int_40x8 (single-thread M-direction tiled caller)
 GENT_GEMV_CALLER(double, d, 40, 8, m)
 
+// The 40x8 NM generation above instantiates the 32/31 NR=1 microkernels reused below.
+static dgemv_ker dgemv_m_ker_fp_32_1[8][1] = {
+    FOR_EACH(GEN_ARRAY_ROW_NM, double, d, 1, 32, 8, 16, 24)
+    FOR_EACH(GEN_ARRAY_ROW_NM, double, d, 1, 7, 15, 23, 31)
+};
+GENT_GEMV_CALLER(double, d, 32, 1, m)
+
 /* float: NR=2 for N-kernel, NR=8 for M-kernel */
 // PASTECH4(GENERATE_,s,_KERNELS_,80,_N) == GENERATE_s_KERNELS_80_N
 // expands to: N micro-kernel family bli_sgemv_n_block_*_avx512 + table bli_sgemv_n_ker_fp_80_8
@@ -487,7 +494,16 @@ void bli_dgemv_n_zen4_int_st
        double* y, inc_t incy, cntx_t* cntx
      )
 {
-    if ( (dim_t)( m * n ) * (dim_t)sizeof( double ) < GEMV_N_CTRL_THRESH_BYTES )
+    const bool use_narrow_m =
+        transa == BLIS_NO_TRANSPOSE &&
+        ( rs_a == 1 || cs_a == 1 ) &&
+        incx == 1 && incy == 1 &&
+        m <= 160 && n >= 8 && n <= 160;
+
+    if ( use_narrow_m )
+        bli_dgemv_m_zen4_int_32x1( transa, conjx, m, n, alpha, a, rs_a, cs_a,
+                                   x, incx, beta, y, incy, cntx );
+    else if ( (dim_t)( m * n ) * (dim_t)sizeof( double ) < GEMV_N_CTRL_THRESH_BYTES )
         bli_dgemv_m_zen4_int_40x8( transa, conjx, m, n, alpha, a, rs_a, cs_a,
                                    x, incx, beta, y, incy, cntx );
     else

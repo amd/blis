@@ -377,6 +377,32 @@ void dgemv_blis_impl
 
 #endif // End of BLIS_ENABLE_TINY_MATRIX
 
+#if defined(BLIS_KERNELS_ZEN4)
+    if ( blis_transa == BLIS_NO_TRANSPOSE &&
+         m0 <= 160 && n0 >= 8 && n0 <= 160 &&
+         incx0 == 1 && incy0 == 1 &&
+         bli_arch_isa_tier( bli_arch_query_id_internal() ) == BLIS_ISA_TIER_AVX512 )
+    {
+        bli_dgemv_m_zen4_int_32x1
+        (
+          blis_transa,
+          BLIS_NO_CONJUGATE,
+          m0,
+          n0,
+          (double*)alpha,
+          (double*)a, rs_a, cs_a,
+          x0, incx0,
+          (double*)beta,
+          y0, incy0,
+          NULL
+        );
+
+        AOCL_DTL_LOG_GEMV_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(d), *m, *n);
+        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+        return;
+    }
+#endif
+
     /* Call variants based on transpose value. */
     if((bli_does_notrans(blis_transa) && bli_is_col_stored( rs_a, cs_a )) 
         || (bli_does_trans(blis_transa) && bli_is_row_stored( rs_a, cs_a )))
@@ -955,6 +981,68 @@ void cgemv_
                         x, incx, beta, y, incy );
 }
 #endif
+
+#define BLIS_ZGEMV_SMALL_TRANS_MAX_DIM 48
+
+static bool bli_zgemv_small_trans
+     (
+       trans_t    transa,
+       dim_t      m,
+       dim_t      n,
+       dcomplex*  alpha,
+       dcomplex*  a, inc_t lda,
+       dcomplex*  x, inc_t incx,
+       dcomplex*  beta,
+       dcomplex*  y, inc_t incy
+     )
+{
+    zdotxf_ker_ft dotxf_ker;
+    dim_t         fuse_factor;
+
+    switch ( bli_arch_query_id_internal() )
+    {
+#if defined(BLIS_KERNELS_ZEN4)
+        case BLIS_ARCH_ZEN6:
+        case BLIS_ARCH_ZEN5:
+        case BLIS_ARCH_ZEN4:
+            dotxf_ker   = bli_zdotxf_zen4_int_8;
+            fuse_factor = 8;
+            break;
+#endif
+        case BLIS_ARCH_ZEN3:
+        case BLIS_ARCH_ZEN2:
+        case BLIS_ARCH_ZEN:
+            dotxf_ker   = bli_zdotxf_zen_int_6;
+            fuse_factor = 6;
+            break;
+        default:
+            return false;
+    }
+
+    const conj_t conja = bli_extract_conj( transa );
+
+    for ( dim_t j = 0; j < n; j += fuse_factor )
+    {
+        const dim_t width = bli_determine_blocksize_dim_f( j, n, fuse_factor );
+
+        dotxf_ker
+        (
+          conja,
+          BLIS_NO_CONJUGATE,
+          m,
+          width,
+          alpha,
+          a + j * lda, 1, lda,
+          x, incx,
+          beta,
+          y + j * incy, incy,
+          NULL
+        );
+    }
+
+    return true;
+}
+
 void zgemv_blis_impl
      (
        const f77_char* transa,
@@ -1157,6 +1245,27 @@ void zgemv_blis_impl
         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
         /* Finalize BLIS. */
         // Call to bli_finalize_auto() is not needed here
+        return;
+    }
+
+    if ( bli_does_trans( blis_transa ) &&
+         m0 <= BLIS_ZGEMV_SMALL_TRANS_MAX_DIM &&
+         n0 <= BLIS_ZGEMV_SMALL_TRANS_MAX_DIM &&
+         incx0 == 1 && incy0 == 1 &&
+         bli_zgemv_small_trans
+         (
+           blis_transa,
+           m0,
+           n0,
+           (dcomplex*)alpha,
+           (dcomplex*)a, *lda,
+           x0, incx0,
+           (dcomplex*)beta,
+           y0, incy0
+         ) )
+    {
+        AOCL_DTL_LOG_GEMV_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(z), *m, *n);
+        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
         return;
     }
 
