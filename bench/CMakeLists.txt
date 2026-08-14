@@ -96,6 +96,24 @@ else()
 endif()
 
 set(NREPEATS "1000" CACHE STRING "Set no. of times loop repeats.")
+
+# Select the clock used by the benchmark timing helpers. The default preserves
+# the original BLIS OS timer; the TSC modes are available only on x86 targets.
+# Usage: cmake -S . -B build -DTIMER=rdtsc
+#        cmake -S . -B build -DTIMER=rdtscp
+set(TIMER "os" CACHE STRING "Select benchmark timer: os, rdtsc, or rdtscp.")
+set_property(CACHE TIMER PROPERTY STRINGS "os" "rdtsc" "rdtscp")
+
+if(TIMER STREQUAL "os")
+    set(TIMER_FLAGS)
+elseif(TIMER STREQUAL "rdtsc")
+    set(TIMER_FLAGS BENCH_RDTSC)
+elseif(TIMER STREQUAL "rdtscp")
+    set(TIMER_FLAGS BENCH_RDTSCP)
+else()
+    message(FATAL_ERROR "Unsupported TIMER='${TIMER}'; use os, rdtsc, or rdtscp")
+endif()
+
 set(MKL_PATH $ENV{MKLROOT} CACHE STRING "Set MKL_PATH.")
 if(THREADING_MODEL STREQUAL "no")
     set(MKL_THREAD "${MKL_PATH}/libmkl_sequential.${LIBSUFFIX}")
@@ -129,6 +147,7 @@ elseif ((INT_SIZE STREQUAL "auto") OR (INT_SIZE STREQUAL "64"))
 else()
     set(BENCH_FLAGS -DN_REPEAT=${NREPEATS} -DINT_FS="%d" -DUINT_FS="%u")
 endif()
+list(APPEND BENCH_FLAGS ${TIMER_FLAGS})
 
 # Create an executable using the sources above.
 function(benchexe extn)
