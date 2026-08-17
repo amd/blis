@@ -158,7 +158,7 @@ bool bli_cntx_gemmsup_thresh_is_met_zen5( obj_t* a, obj_t* b, obj_t* c, cntx_t* 
 		}
 		return FALSE;
 	}
-	else if( dt == BLIS_FLOAT )
+	else // dt == BLIS_FLOAT
 	{
 		const stor3_t stor_id = bli_obj_stor3_from_strides( c, a, b );
 
@@ -192,8 +192,6 @@ bool bli_cntx_gemmsup_thresh_is_met_zen5( obj_t* a, obj_t* b, obj_t* c, cntx_t* 
 		// in all other cases, goto the native code path
 		return FALSE;
 	}
-	else
-		return bli_cntx_l3_sup_thresh_is_met( a, b, c, cntx );
 }
 
 /* This function determines the ideal blocksizes for given datatype
