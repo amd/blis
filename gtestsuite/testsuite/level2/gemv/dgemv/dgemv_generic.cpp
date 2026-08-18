@@ -203,6 +203,27 @@ INSTANTIATE_TEST_SUITE_P(
     );
 
 INSTANTIATE_TEST_SUITE_P(
+        SmallTranspose,
+        dgemvGeneric,
+        ::testing::Combine(
+            ::testing::Values('c'),                                          // storage format
+            ::testing::Values('t'),                                          // transa
+            ::testing::Values('n'),                                          // conjx
+            ::testing::Values(gtint_t(1), gtint_t(7), gtint_t(16),
+                              gtint_t(31), gtint_t(63), gtint_t(99)),        // m
+            ::testing::Values(gtint_t(1), gtint_t(4), gtint_t(8),
+                              gtint_t(17), gtint_t(64), gtint_t(99)),        // n
+            ::testing::Values( 1.0, -1.2 ),                                  // alpha
+            ::testing::Values( 0.0, 1.0, -1.0, 2.1 ),                        // beta
+            ::testing::Values(gtint_t(1)),                                   // stride size for x
+            ::testing::Values(gtint_t(1), gtint_t(5), gtint_t(-2)),          // stride size for y
+            ::testing::Values(gtint_t(0), gtint_t(7)),                       // increment to the leading dim of a
+            ::testing::Values(false, true)                                   // is_memory_test
+        ),
+        ::gemvGenericPrint<T>()
+    );
+
+INSTANTIATE_TEST_SUITE_P(
         BlackboxMedium,
         dgemvGeneric,
         ::testing::Combine(

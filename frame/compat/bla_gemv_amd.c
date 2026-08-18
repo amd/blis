@@ -350,10 +350,10 @@ void dgemv_blis_impl
 
     /**
      * DGEMV Tiny Path
-     * If the matrix dimensions are within 8x8 then calculate the result
-     * using DGEMV Reference kernel.
+     * If the matrix dimensions are smaller than 8x8 (i.e. m0 < 8 && n0 < 8)
+     * then calculate the result using the DGEMV Reference kernel.
      */
-    if ( (m0 < 8 && n0 < 8) )
+    if ((m0 < 8) && (n0 < 8))
     {
         bli_dgemv_zen_ref
         (
@@ -376,6 +376,50 @@ void dgemv_blis_impl
     }
 
 #endif // End of BLIS_ENABLE_TINY_MATRIX
+
+    if ((m0 < 160) && (n0 < 160) && (incx0 == 1) && bli_does_trans( blis_transa ))
+    {
+#ifdef BLIS_KERNELS_ZEN4
+        if (bli_arch_isa_tier( bli_arch_query_id_internal() ) == BLIS_ISA_TIER_AVX512)
+        {
+            bli_dgemv_t_zen4_int_8x8
+            (
+                blis_transa,
+                BLIS_NO_CONJUGATE,
+                m0,
+                n0,
+                (double*)alpha,
+                (double*)a, rs_a, cs_a,
+                x0, incx0,
+                (double*)beta,
+                y0, incy0,
+                NULL
+            );
+        }
+        else
+#endif // BLIS_KERNELS_ZEN4
+        {
+            bli_dgemv_t_zen_int_4x4
+            (
+                blis_transa,
+                BLIS_NO_CONJUGATE,
+                m0,
+                n0,
+                (double*)alpha,
+                (double*)a, rs_a, cs_a,
+                x0, incx0,
+                (double*)beta,
+                y0, incy0,
+                NULL
+            );
+        }
+
+        AOCL_DTL_LOG_GEMV_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(d), *m, *n);
+        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+        /* Finalize BLIS. */
+        // Call to bli_finalize_auto() is not needed here
+        return;
+    }
 
 #if defined(BLIS_KERNELS_ZEN4)
     if ( blis_transa == BLIS_NO_TRANSPOSE &&
@@ -639,6 +683,37 @@ void sgemv_blis_impl
         // Call to bli_finalize_auto() is not needed here
         return;
     }
+
+#ifdef BLIS_ENABLE_TINY_MATRIX
+
+    /**
+     * SGEMV Tiny Path
+     * If the matrix dimensions are smaller than 8x8 (i.e. m0 < 8 && n0 < 8)
+     * then calculate the result using the SGEMV Reference kernel.
+     */
+    if ((m0 < 8) && (n0 < 8))
+    {
+        bli_sgemv_zen_ref
+        (
+          blis_transa,
+          m0,
+          n0,
+          (float*)alpha,
+          (float*)a, rs_a, cs_a,
+          x0, incx0,
+          (float*)beta,
+          y0, incy0,
+          NULL
+        );
+
+        AOCL_DTL_LOG_GEMV_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(s), *m, *n);
+        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+        /* Finalize BLIS. */
+        // Call to bli_finalize_auto() is not needed here
+        return;
+    }
+
+#endif // End of BLIS_ENABLE_TINY_MATRIX
 
     /* Call variants based on transpose value. */
     if(bli_does_notrans(blis_transa))

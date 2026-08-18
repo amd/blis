@@ -134,6 +134,24 @@ BLIS_EXPORT void bli_dgemv_t_zen4_int
        cntx_t* restrict cntx
       );
 
+void bli_dgemv_t_zen4_int_8x8
+     (
+       trans_t transa,
+       conj_t conjx,
+       dim_t m,
+       dim_t n,
+       double* restrict alpha,
+       double* restrict a,
+       inc_t rs,
+       inc_t cs,
+       double* restrict x,
+       inc_t incx,
+       double* restrict beta,
+       double* restrict y,
+       inc_t incy,
+       cntx_t* restrict cntx
+      );
+
 
 GEMMTRSM_UKR_PROT( double,   d, gemmtrsm_l_zen4_asm_16x14)
 GEMMTRSM_UKR_PROT( double,   d, gemmtrsm_u_zen4_asm_16x14)

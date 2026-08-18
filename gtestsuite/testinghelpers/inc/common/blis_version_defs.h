@@ -137,6 +137,7 @@
     #define K_bli_dgemv_t_zen_int bli_dgemv_t_zen_int
     #define K_bli_dgemv_t_zen_int_16x4 bli_dgemv_t_zen_int_16x4
     #define K_bli_dgemv_t_zen_int_16x4_mt bli_dgemv_t_zen_int_16x4_mt
+    #define K_bli_dgemv_t_zen_int_4x4 bli_dgemv_t_zen_int_4x4
     #define K_bli_dgemv_n_zen_int bli_dgemv_n_zen_int
     #define K_bli_dgemv_n_zen_int_20x4 bli_dgemv_n_zen_int_20x4
     #define K_bli_dgemv_n_zen_int_20x4_mt bli_dgemv_n_zen_int_20x4_mt
@@ -166,6 +167,7 @@
     #define K_bli_dgemv_t_zen4_int bli_dgemv_t_zen4_int
     #define K_bli_dgemv_t_zen4_int_32x8 bli_dgemv_t_zen4_int_32x8
     #define K_bli_dgemv_t_zen4_int_32x8_mt bli_dgemv_t_zen4_int_32x8_mt
+    #define K_bli_dgemv_t_zen4_int_8x8 bli_dgemv_t_zen4_int_8x8
     #define K_bli_dgemv_n_zen4_int bli_dgemv_n_zen4_int
     #define K_bli_dgemv_n_zen4_int_40x8 bli_dgemv_n_zen4_int_40x8
     #define K_bli_dgemv_n_zen4_int_40x8_mt bli_dgemv_n_zen4_int_40x8_mt
@@ -225,6 +227,9 @@
     #endif
     #ifndef K_bli_dgemv_t_zen_int_16x4_mt
       #define K_bli_dgemv_t_zen_int_16x4_mt bli_dgemv_t_zen_int_16x4_mt
+    #endif
+    #ifndef K_bli_dgemv_t_zen_int_4x4
+      #define K_bli_dgemv_t_zen_int_4x4 bli_dgemv_t_zen_int_4x4
     #endif
     #ifndef K_bli_dgemv_n_zen_int
       #define K_bli_dgemv_n_zen_int bli_dgemv_n_zen_int
@@ -312,6 +317,9 @@
     #endif
     #ifndef K_bli_dgemv_t_zen4_int_32x8_mt
       #define K_bli_dgemv_t_zen4_int_32x8_mt bli_dgemv_t_zen4_int_32x8_mt
+    #endif
+    #ifndef K_bli_dgemv_t_zen4_int_8x8
+      #define K_bli_dgemv_t_zen4_int_8x8 bli_dgemv_t_zen4_int_8x8
     #endif
     #ifndef K_bli_dgemv_n_zen4_int
       #define K_bli_dgemv_n_zen4_int bli_dgemv_n_zen4_int

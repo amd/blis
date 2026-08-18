@@ -172,6 +172,20 @@ void bli_dgemv_t_zen_int
       double* restrict y, inc_t incy,
       cntx_t* restrict cntx
     );
+
+void bli_dgemv_t_zen_int_4x4
+    (
+      trans_t transa,
+      conj_t conjx,
+      dim_t m, dim_t n,
+      double* restrict alpha,
+      double* restrict a, inc_t rs, inc_t cs,
+      double* restrict x, inc_t incx,
+      double* restrict beta,
+      double* restrict y, inc_t incy,
+      cntx_t* restrict cntx
+    );
+
 GEMV_KER_PROT( double,  d, gemv_t_zen_int_16x7m )
 GEMV_KER_PROT( double,  d, gemv_t_zen_int_16x6m )
 GEMV_KER_PROT( double,  d, gemv_t_zen_int_16x5m )

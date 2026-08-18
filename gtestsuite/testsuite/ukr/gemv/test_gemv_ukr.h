@@ -80,11 +80,13 @@ GEMV_UKR_KER_PROT( float, bli_sgemv_m_zen4_int_80x8_mt_Ndiv )
 // --- double (AVX2 / AVX-512) ---
 GEMV_UKR_KER_PROT( double, bli_dgemv_t_zen_int_16x4 )
 GEMV_UKR_KER_PROT( double, bli_dgemv_t_zen_int_16x4_mt )
+GEMV_UKR_KER_PROT( double, bli_dgemv_t_zen_int_4x4 )
 GEMV_UKR_KER_PROT( double, bli_dgemv_n_zen_int_20x4 )
 GEMV_UKR_KER_PROT( double, bli_dgemv_n_zen_int_20x4_mt )
 GEMV_UKR_KER_PROT( double, bli_dgemv_m_zen_int_20x4 )
 GEMV_UKR_KER_PROT( double, bli_dgemv_t_zen4_int_32x8 )
 GEMV_UKR_KER_PROT( double, bli_dgemv_t_zen4_int_32x8_mt )
+GEMV_UKR_KER_PROT( double, bli_dgemv_t_zen4_int_8x8 )
 GEMV_UKR_KER_PROT( double, bli_dgemv_n_zen4_int_40x8 )
 GEMV_UKR_KER_PROT( double, bli_dgemv_n_zen4_int_40x8_mt )
 // --- scomplex (AVX2 / AVX-512) ---

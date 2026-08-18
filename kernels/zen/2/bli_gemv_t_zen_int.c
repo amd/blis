@@ -56,3 +56,8 @@ GENERATE_KERNEL(float,    s, 24, 4)   // float    AVX2: MR=24 (=48/2), NR=4 (=8/
 GENERATE_KERNEL(double,   d, 16, 4)   // double   AVX2: MR=16 (=32/2), NR=4 (=8/2)
 GENERATE_KERNEL(scomplex, c, 20, 4)   // scomplex AVX2: MR=20 (=40/2), NR=4 (=8/2)
 GENERATE_KERNEL(dcomplex, z, 10, 4)   // dcomplex AVX2: MR=10 (=20/2), NR=4 (=8/2)
+
+// Generate the AVX2 4x4 transpose DGEMV kernel and single-threaded caller
+// used by the small-matrix path.
+GENERATE_T_KERNELS_FAMILY(double, d, 4, 4);
+GENT_GEMV_CALLER(double, d, 4, 4);
