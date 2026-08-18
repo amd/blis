@@ -2632,14 +2632,18 @@ BLIS_INLINE void aocl_dscalv_dynamic
 				*nt_ideal = 1;
 			else if ( n_elem <= 145165 )
 				*nt_ideal = 4;
-			else if ( n_elem <= 4487626 )
+			else if ( n_elem <= 300000 )
 				*nt_ideal = 8;
-			else if ( n_elem <= 5773817 )
+			else if ( n_elem <= 600000 )
+				*nt_ideal = 16;
+			else if ( n_elem <= 1000000 )
 				*nt_ideal = 32;
-			else if ( n_elem <= 10000000 )
-				*nt_ideal = 64;
 			else
-				*nt_ideal = 96;
+				// Large memory-bandwidth-bound scal: ramp to the full team
+				// instead of capping at 8 up to ~4.5M elements. Mirrors the
+				// COMSOL-validated Zen4 double curve; Zen5/6 knees pending a
+				// per-SKU sweep. -1 => use all available threads.
+				*nt_ideal = -1;
 
 			break;
 
@@ -2650,12 +2654,19 @@ BLIS_INLINE void aocl_dscalv_dynamic
 				*nt_ideal = 2;
 			else if ( n_elem <= 145000 )
 				*nt_ideal = 4;
-			else if ( n_elem <= 4944375 )
+			else if ( n_elem <= 300000 )
 				*nt_ideal = 8;
-			else if( n_elem <= 10000000 )
+			else if ( n_elem <= 600000 )
+				*nt_ideal = 16;
+			else if ( n_elem <= 1000000 )
 				*nt_ideal = 32;
 			else
-				*nt_ideal = 64;
+				// Large memory-bandwidth-bound scal: ramp to the full
+				// team size requested by the runtime instead of capping at 8. The 8-thread
+				// cap left ~88/96 OpenMP workers idle at the fork barrier for
+				// COMSOL-style workloads issuing ~1.3M-element L1 ops from the
+				// master. -1 => use all available threads.
+				*nt_ideal = -1;
 
 			break;
 
@@ -2742,14 +2753,19 @@ BLIS_INLINE void aocl_zdscalv_dynamic
 				*nt_ideal = 1;
 			else if (n_elem <= 20000)
 				*nt_ideal = 4;
-			else if (n_elem <= 1000000)
+			else if (n_elem <= 150000)
 				*nt_ideal = 8;
-			else if (n_elem <= 2500000)
-				*nt_ideal = 12;
-			else if (n_elem <= 5000000)
+			else if (n_elem <= 300000)
+				*nt_ideal = 16;
+			else if (n_elem <= 500000)
 				*nt_ideal = 32;
 			else
-				*nt_ideal = 64;
+				// Large memory-bandwidth-bound complex scal: ramp to the full
+				// team instead of capping at 8 up to 1M elements. Thresholds are
+				// the validated Zen4 double curve scaled for 16 B/elem complex
+				// data (half the element count for equal bytes). Unmeasured
+				// extrapolation pending a per-SKU sweep. -1 => all threads.
+				*nt_ideal = -1;
 
 			break;
 
@@ -2809,16 +2825,17 @@ BLIS_INLINE void aocl_daxpyv_dynamic
 				*nt_ideal = 1;
 			else if ( n_elem <= 82000 )
 				*nt_ideal = 4;
-			else if ( n_elem <= 2330000 )
+			else if ( n_elem <= 300000 )
 				*nt_ideal = 8;
-			else if ( n_elem <= 4250000 )
+			else if ( n_elem <= 600000 )
 				*nt_ideal = 16;
-			else if ( n_elem <= 7000000 )
+			else if ( n_elem <= 1000000 )
 				*nt_ideal = 32;
-			else if ( n_elem <= 21300000 )
-				*nt_ideal = 64;
 			else
-				// For sizes in this range, AOCL dynamic does not make any change
+				// Large memory-bandwidth-bound axpy: ramp to the full team
+				// instead of capping at 8 up to ~2.3M elements. Mirrors the
+				// COMSOL-validated Zen4 double curve; Zen5/6 knees pending a
+				// per-SKU sweep. -1 => use all available threads.
 				*nt_ideal = -1;
 
 			break;
@@ -2829,16 +2846,16 @@ BLIS_INLINE void aocl_daxpyv_dynamic
 				*nt_ideal = 1;
 			else if ( n_elem <= 130000 )
 				*nt_ideal = 4;
-			else if ( n_elem <= 2230000 )
+			else if ( n_elem <= 300000 )
 				*nt_ideal = 8;
-			else if ( n_elem <= 3400000 )
+			else if ( n_elem <= 600000 )
 				*nt_ideal = 16;
-			else if ( n_elem <= 9250000 )
+			else if ( n_elem <= 1000000 )
 				*nt_ideal = 32;
-			else if ( n_elem <= 15800000 )
-				*nt_ideal = 64;
 			else
-				// For sizes in this range, AOCL dynamic does not make any change
+				// Large memory-bandwidth-bound axpy: ramp to the full
+				// (socket-local) team instead of capping at 8. -1 => use all
+				// available threads. See dscalv note above.
 				*nt_ideal = -1;
 
 			break;
@@ -2921,16 +2938,19 @@ BLIS_INLINE void aocl_zaxpyv_dynamic
 				*nt_ideal = 1;
 			else if (n_elem <= 43000)
 				*nt_ideal = 4;
-			else if (n_elem <= 2300000)
+			else if (n_elem <= 150000)
 				*nt_ideal = 8;
-			else if (n_elem <= 4000000)
+			else if (n_elem <= 300000)
+				*nt_ideal = 16;
+			else if (n_elem <= 500000)
 				*nt_ideal = 32;
-			else if (n_elem <= 6600000)
-				*nt_ideal = 64;
-			else if (n_elem <= 6600000)
-				*nt_ideal = 96;
 			else
-				*nt_ideal = 128;
+				// Large memory-bandwidth-bound complex axpy: ramp to the full
+				// team instead of capping at 8 up to ~2.3M elements. Zen4 double
+				// curve scaled for 16 B/elem complex data; pending per-SKU sweep.
+				// -1 => all threads. (Also drops a stray unreachable branch and
+				// hard-coded 96/128 counts from the previous table.)
+				*nt_ideal = -1;
 			break;
 
 		case BLIS_ARCH_ZEN4:
@@ -2941,12 +2961,18 @@ BLIS_INLINE void aocl_zaxpyv_dynamic
 				*nt_ideal = 2;
 			else if (n_elem <= 61500)
 				*nt_ideal = 4;
-			else if (n_elem <= 1200000)
+			else if (n_elem <= 150000)
 				*nt_ideal = 8;
-			else if (n_elem <= 4000000)
+			else if (n_elem <= 300000)
+				*nt_ideal = 16;
+			else if (n_elem <= 500000)
 				*nt_ideal = 32;
 			else
-				*nt_ideal = 96;
+				// Large memory-bandwidth-bound complex axpy: ramp to the full
+				// team instead of capping at 8 up to 1.2M elements. Zen4 double
+				// curve scaled for 16 B/elem complex data; pending per-SKU sweep.
+				// -1 => all threads.
+				*nt_ideal = -1;
 			break;
 
 		case BLIS_ARCH_ZEN:
@@ -3143,13 +3169,17 @@ BLIS_INLINE void aocl_dcopyv_dynamic
 				*nt_ideal = 2;
 			else if (n_elem <= 130000)
 				*nt_ideal = 4;
-			else if (n_elem <= 2300000)
+			else if (n_elem <= 300000)
 				*nt_ideal = 8;
-			else if (n_elem <= 4000000)
-				*nt_ideal = 96;
+			else if (n_elem <= 600000)
+				*nt_ideal = 16;
+			else if (n_elem <= 1000000)
+				*nt_ideal = 32;
 			else
-				// For sizes in this range, AOCL dynamic does not make any change
-				// Use -1 to indicate that all available threads should be used.
+				// Large memory-bandwidth-bound copy: ramp to the full team
+				// instead of capping at 8 up to ~2.3M elements. Mirrors the
+				// COMSOL-validated Zen4 double curve; Zen5/6 knees pending a
+				// per-SKU sweep. -1 => use all available threads.
 				*nt_ideal = -1;
 			break;
 
@@ -3161,15 +3191,16 @@ BLIS_INLINE void aocl_dcopyv_dynamic
 				*nt_ideal = 2;
 			else if (n_elem <= 140000)
 				*nt_ideal = 4;
-			else if (n_elem <= 3000000)
+			else if (n_elem <= 300000)
 				*nt_ideal = 8;
-			else if (n_elem <= 10000000)
+			else if (n_elem <= 600000)
+				*nt_ideal = 16;
+			else if (n_elem <= 1000000)
 				*nt_ideal = 32;
-			else if (n_elem <= 30000000)
-				*nt_ideal = 64;
 			else
-				// For sizes in this range, AOCL dynamic does not make any change
-				// Use -1 to indicate that all available threads should be used.
+				// Large memory-bandwidth-bound copy: ramp to the full
+				// (socket-local) team instead of capping at 8. -1 => use all
+				// available threads. See dscalv note above.
 				*nt_ideal = -1;
 			break;
 
