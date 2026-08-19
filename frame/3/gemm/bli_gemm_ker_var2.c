@@ -171,10 +171,10 @@ void bli_gemm_ker_var2
 	// function pointer.
 	f = ftypes[dt_exec];
 
+#ifdef BLIS_KERNELS_ZEN4
+
 	// Query the architecture ID
 	arch_t arch_id = bli_arch_query_id_internal();
-
-#ifdef BLIS_KERNELS_ZEN4
 
 	// Optimized macro kernel is available for DGEMM and SGEMM
 	// for AVX512. Only row major stored C is supported.
@@ -199,7 +199,6 @@ void bli_gemm_ker_var2
 			n, m, k, buf_c, buf_a, buf_b, rs_c, buf_beta
 		);
 	} else
-#endif
 #ifdef BLIS_KERNELS_ZEN5
 	if
 	(
@@ -219,6 +218,7 @@ void bli_gemm_ker_var2
 			n, m, k, buf_c, buf_a, buf_b, rs_c, buf_beta
 		);
 	} else
+#endif
 #endif
 	{
 	  f( schema_a,

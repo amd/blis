@@ -226,7 +226,7 @@ void bli_dynamic_blkszs_zen5( dim_t m, dim_t n, dim_t n_threads, cntx_t* cntx, n
 
 	blksz_t blkszs[ BLIS_NUM_BLKSZS ];
 	dim_t mc, kc, nc;
-	model_t model = bli_init_model_query_id();
+	model_t model = bli_model_query_id_internal();
 
 	// determine ideal blocksize
 	if ( model == BLIS_MODEL_TURIN_DENSE )
@@ -254,7 +254,7 @@ void bli_dynamic_blkszs_zen5( dim_t m, dim_t n, dim_t n_threads, cntx_t* cntx, n
 		}
 	}
 
-	// set blocksizes
+	// set blocksizes (s, c and z values are not used from this copy of cntx)
 	bli_blksz_init_easy( &blkszs[ BLIS_MC ],   192,  mc,    72,    48 );
 	bli_blksz_init_easy( &blkszs[ BLIS_KC ],   512,  kc,   128,    64 );
 	bli_blksz_init_easy( &blkszs[ BLIS_NC ],  8064,  nc,  2040,  1020 );

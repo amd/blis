@@ -1,5 +1,9 @@
 #include "blis.h"
 #ifdef BLIS_ENABLE_CBLAS
+/*
+ * Copyright (C) 2024 - 2026, Advanced Micro Devices, Inc. All rights reserved.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

@@ -42,7 +42,7 @@ void bli_dynamic_blkszs_zen6( dim_t m, dim_t n, dim_t n_threads, cntx_t* cntx, n
 	// dynamic blocksizes enabled only for double and single datatype.
 	if (dt != BLIS_DOUBLE && dt != BLIS_FLOAT) return;
 
-    if (dt == BLIS_FLOAT)
+	if (dt == BLIS_FLOAT)
 	{
         // For floats, KC has to be changed based on the size of C for the following reasons. 
         // When C is large, a larger KC is better because KC determines how many accesses over
@@ -68,22 +68,21 @@ void bli_dynamic_blkszs_zen6( dim_t m, dim_t n, dim_t n_threads, cntx_t* cntx, n
 	dim_t mc, kc, nc;
 
 	// determine ideal blocksize
-    if (n_threads == 1 )
-    {
-        mc = 88, kc = 384, nc = 4032;
-    }
-    else if (n_threads <= 32)
-    {
-        // these blocksizes are tuned for M >> K, N >> K and K < 500
-        mc = 160, kc = 512, nc = 2016;
-    }
-    else
-    {
-        mc = 144, kc = 512, nc = 4032;
-    }
+	if (n_threads == 1 )
+	{
+		mc = 88, kc = 384, nc = 4032;
+	}
+	else if (n_threads <= 32)
+	{
+		// these blocksizes are tuned for M >> K, N >> K and K < 500
+		mc = 160, kc = 512, nc = 2016;
+	}
+	else
+	{
+		mc = 144, kc = 512, nc = 4032;
+	}
 
-
-	// set blocksizes
+	// set blocksizes (s, c and z values are not used from this copy of cntx)
 	bli_blksz_init_easy( &blkszs[ BLIS_MC ],   192,  mc,    72,    48 );
 	bli_blksz_init_easy( &blkszs[ BLIS_KC ],   512,  kc,   128,    64 );
 	bli_blksz_init_easy( &blkszs[ BLIS_NC ],  8064,  nc,  2040,  1020 );
