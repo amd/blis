@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2020 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2020 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -41,6 +41,7 @@
  *
  *==================================================================*/
 
+#include <stdlib.h>
 #include "blis.h"
 #include "aocltpdef.h"
 #include "aocldtl.h"
@@ -148,7 +149,14 @@ AOCL_FAL_FILE *AOCL_FLIST_AddFile(const int8 *pchFilePrefix, AOCL_FLIST_Node **p
 {
     AOCL_FLIST_Node *newNode = NULL, *temp = NULL;
     AOCL_FAL_FILE *file = NULL;
-    int8 pchFileName[255];
+    int8 pchFileName[1024];
+    /* Allow redirecting per-thread DTL log files to a high-capacity directory
+       via the AOCL_DTL_LOG_DIR environment variable (default: current dir). */
+    const char *pchLogDir = getenv("AOCL_DTL_LOG_DIR");
+    if ((pchLogDir == NULL) || (pchLogDir[0] == '\0'))
+    {
+        pchLogDir = ".";
+    }
 
     /* We don't want duplicates so we will check if the file already opened for this thread */
     file = AOCL_FLIST_GetFile(*plist, tid);
@@ -160,9 +168,9 @@ AOCL_FAL_FILE *AOCL_FLIST_AddFile(const int8 *pchFilePrefix, AOCL_FLIST_Node **p
 
     /* We don't have exiting file, lets try to open new one */
 #ifdef BLIS_ENABLE_PTHREADS
-    sprintf(pchFileName, "P%d_T%lu_%s", AOCL_getpid(), tid, pchFilePrefix);
+    snprintf(pchFileName, sizeof(pchFileName), "%s/P%d_T%lu_%s", pchLogDir, AOCL_getpid(), tid, pchFilePrefix);
 #else
-    sprintf(pchFileName, "P%d_T%u_%s", AOCL_getpid(), tid, pchFilePrefix);
+    snprintf(pchFileName, sizeof(pchFileName), "%s/P%d_T%u_%s", pchLogDir, AOCL_getpid(), tid, pchFilePrefix);
 #endif
     file = AOCL_FAL_Open(pchFileName, "wb");
     if (file == NULL)
