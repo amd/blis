@@ -98,7 +98,7 @@ void cblas_zgemm3m(enum CBLAS_ORDER Order, enum CBLAS_TRANSPOSE TransA,
       else 
       {
          AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
-         cblas_xerbla(2, "cblas_zgemm3m", "Illegal TransB setting, %d\n", TransB);
+         cblas_xerbla(3, "cblas_zgemm3m", "Illegal TransB setting, %d\n", TransB);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
          return;

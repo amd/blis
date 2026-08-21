@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2024 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -47,7 +47,7 @@ void cblas_zdrot( f77_int N, void *X, f77_int incX, void *Y,
                 f77_int incY, const double c, const double s )
 {
 #ifdef F77_INT
-   F77_INT F77_N=N, F77_incX=incX; F77_incY=incY;
+   F77_INT F77_N=N, F77_incX=incX, F77_incY=incY;
 #else
    #define F77_N N
    #define F77_incX incX

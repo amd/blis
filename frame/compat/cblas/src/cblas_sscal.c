@@ -7,7 +7,7 @@
  *
  * Written by Keita Teranishi.  2/11/1998
  *
- * Copyright (C) 2021, Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (C) 2021 - 2026, Advanced Micro Devices, Inc. All rights reserved.
  *
  */
 #include "cblas.h"
@@ -20,7 +20,6 @@ void cblas_sscal( f77_int N, float alpha, float *X,
 #else
    #define F77_N N
    #define F77_incX incX
-   #define F77_incY incY
 #endif
 
    F77_sscal( &F77_N, &alpha, X, &F77_incX);

@@ -87,8 +87,7 @@ void cblas_zher2k(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
          RowMajorStrg = 0;
          return;
       }
-      if( Trans == CblasTrans) TR ='N';
-      else if ( Trans == CblasConjTrans ) TR='N';
+      if ( Trans == CblasConjTrans ) TR='N';
       else if ( Trans == CblasNoTrans )   TR='C';
       else 
       {

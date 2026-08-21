@@ -7,6 +7,8 @@
  * Written by Keita Teranishi
  * 4/8/1998
  *
+ * Copyright (C) 2026, Advanced Micro Devices, Inc. All rights reserved.
+ *
  */
 
 #include "cblas.h"
@@ -76,13 +78,12 @@ void cblas_zherk(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
       else if ( Uplo == CblasLower ) UL='U';
       else 
       {
-         cblas_xerbla(3, "cblas_zherk", "Illegal Uplo setting, %d\n", Uplo);
+         cblas_xerbla(2, "cblas_zherk", "Illegal Uplo setting, %d\n", Uplo);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
          return;
       }
-      if( Trans == CblasTrans) TR ='N';
-      else if ( Trans == CblasConjTrans ) TR='N';
+      if ( Trans == CblasConjTrans ) TR='N';
       else if ( Trans == CblasNoTrans )   TR='C';
       else 
       {
@@ -94,7 +95,7 @@ void cblas_zherk(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
 
       #ifdef F77_CHAR
          F77_UL = C2F_CHAR(&UL);
-         F77_SD = C2F_CHAR(&SD);
+         F77_TR = C2F_CHAR(&TR);
       #endif
 
       F77_zherk(F77_UL, F77_TR, &F77_N, &F77_K, &alpha, (dcomplex*)A, &F77_lda,

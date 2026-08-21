@@ -128,7 +128,7 @@ void cblas_ztbmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
       else if (Diag == CblasNonUnit) DI = 'N';
       else 
       {
-         cblas_xerbla(4, "cblas_ztbmv","Illegal Uplo setting, %d\n", Uplo);
+         cblas_xerbla(4, "cblas_ztbmv","Illegal Diag setting, %d\n", Diag);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
          return;
