@@ -1670,6 +1670,15 @@ void PASTEMAC(ch,varname) \
     ctype_r  scale; \
     ctype_r  sumsq; \
     ctype_r  sqrt_sumsq; \
+    /* For single-precision types (s, c) the running float sumsq saturates at \
+       2^24, under-reporting the Frobenius norm once the total element count \
+       exceeds ~16.7M. Accumulate each column's sum of squares into a double \
+       running total, which prevents saturation across columns / total element \
+       count. Per-column accumulation is still float, so a single column with \
+       more than 2^24 like-magnitude elements remains out of scope. \
+       Double-precision types (d, z) are unchanged. */ \
+    double   sumsq_w = 0.0; \
+    const bool use_wide_acc = ( sizeof( ctype_r ) == sizeof( float ) ); \
     uplo_t   uplox_eff; \
     dim_t    n_iter; \
     dim_t    n_elem, n_elem_max; \
@@ -1714,6 +1723,14 @@ void PASTEMAC(ch,varname) \
 \
             x0     = x + (j  )*ldx + (0  )*incx; \
 \
+            /* Single precision: restart the per-column accumulator so this \
+               column's sum of squares can be widened to double below. */ \
+            if ( use_wide_acc ) \
+            { \
+                PASTEMAC(chr,set0s)( scale ); \
+                PASTEMAC(chr,copys)( *one_r, sumsq ); \
+            } \
+\
             /* Compute the norm of the current column. */ \
             PASTEMAC(ch,kername) \
             ( \
@@ -1724,6 +1741,10 @@ void PASTEMAC(ch,varname) \
               cntx, \
               rntm  \
             ); \
+\
+            /* Widen this column's sum of squares into the double accumulator. */ \
+            if ( use_wide_acc ) \
+                sumsq_w += ( double )sumsq * ( double )scale * ( double )scale; \
         } \
     } \
     else \
@@ -1736,6 +1757,12 @@ void PASTEMAC(ch,varname) \
 \
                 x0     = x + (ij0+j  )*ldx + (0       )*incx; \
                 chi1   = x + (ij0+j  )*ldx + (n_elem-1)*incx; \
+\
+                if ( use_wide_acc ) \
+                { \
+                    PASTEMAC(chr,set0s)( scale ); \
+                    PASTEMAC(chr,copys)( *one_r, sumsq ); \
+                } \
 \
                 /* Sum the squares of the super-diagonal elements. */ \
                 PASTEMAC(ch,kername) \
@@ -1761,6 +1788,9 @@ void PASTEMAC(ch,varname) \
                   cntx, \
                   rntm  \
                 ); \
+\
+                if ( use_wide_acc ) \
+                    sumsq_w += ( double )sumsq * ( double )scale * ( double )scale; \
             } \
         } \
         else if ( bli_is_lower( uplox_eff ) ) \
@@ -1772,6 +1802,12 @@ void PASTEMAC(ch,varname) \
 \
                 chi1   = x + (j  )*ldx + (ij0+i  )*incx; \
                 x2     = x + (j  )*ldx + (ij0+i+1)*incx; \
+\
+                if ( use_wide_acc ) \
+                { \
+                    PASTEMAC(chr,set0s)( scale ); \
+                    PASTEMAC(chr,copys)( *one_r, sumsq ); \
+                } \
 \
                 /* Sum the squares of the sub-diagonal elements. */ \
                 PASTEMAC(ch,kername) \
@@ -1797,16 +1833,28 @@ void PASTEMAC(ch,varname) \
                   cntx, \
                   rntm  \
                 ); \
+\
+                if ( use_wide_acc ) \
+                    sumsq_w += ( double )sumsq * ( double )scale * ( double )scale; \
             } \
         } \
     } \
 \
     /* Compute: norm = scale * sqrt( sumsq ) */ \
-    PASTEMAC(chr,sqrt2s)( sumsq, sqrt_sumsq ); \
-    PASTEMAC(chr,scals)( scale, sqrt_sumsq ); \
+    if ( use_wide_acc ) \
+    { \
+        /* Single precision: sqrt of the double-accumulated sum of squares. */ \
+        sqrt_sumsq = ( ctype_r )sqrt( sumsq_w ); \
+        PASTEMAC(chr,copys)( sqrt_sumsq, *norm ); \
+    } \
+    else \
+    { \
+        PASTEMAC(chr,sqrt2s)( sumsq, sqrt_sumsq ); \
+        PASTEMAC(chr,scals)( scale, sqrt_sumsq ); \
 \
-    /* Store the final value to the output variable. */ \
-    PASTEMAC(chr,copys)( sqrt_sumsq, *norm ); \
+        /* Store the final value to the output variable. */ \
+        PASTEMAC(chr,copys)( sqrt_sumsq, *norm ); \
+    } \
 }
 
 INSERT_GENTFUNCR_BASIC( normfm_unb_var1, sumsqv_unb_var1 )
