@@ -787,6 +787,10 @@ INSTANTIATE_TEST_SUITE_P(
 );
 #endif
 
+#endif // defined(BLIS_KERNELS_ZEN4) && defined(GTEST_AVX512)
+
+#if defined(BLIS_KERNELS_ZEN5) && defined(GTEST_AVX512)
+
 #ifdef K_bli_sgemm_zen5_asm_8x48
 INSTANTIATE_TEST_SUITE_P(
     bli_sgemm_zen5_asm_8x48,
@@ -841,7 +845,7 @@ INSTANTIATE_TEST_SUITE_P(
 );
 #endif
 
-#endif
+#endif // defined(BLIS_KERNELS_ZEN5) && defined(GTEST_AVX512)
 
 #if defined(BLIS_KERNELS_HASWELL) && defined(GTEST_AVX2FMA3)
 
