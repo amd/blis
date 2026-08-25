@@ -35,47 +35,36 @@
 #include <gtest/gtest.h>
 #include "level3/trmm/test_trmm.h"
 
-class ctrmmGeneric :
-        public ::testing::TestWithParam<std::tuple<char,
-                                                   char,
-                                                   char,
-                                                   char,
-                                                   char,
-                                                   gtint_t,
-                                                   gtint_t,
-                                                   scomplex,
-                                                   gtint_t,
-                                                   gtint_t>> {};
+class ctrmmGeneric1 :
+        public ::testing::TestWithParam<std::tuple<char,          // storage format
+                                                   char,          // side
+                                                   char,          // uplo
+                                                   char,          // transa
+                                                   char,          // diaga
+                                                   gtint_t,       // m
+                                                   gtint_t,       // n
+                                                   scomplex,      // alpha
+                                                   gtint_t>> {};  // inc to the lda and ldb
 
-TEST_P( ctrmmGeneric, API )
+class ctrmmGeneric2 :
+        public ::testing::TestWithParam<std::tuple<char,          // storage format
+                                                   char,          // side
+                                                   char,          // uplo
+                                                   char,          // transa
+                                                   char,          // diaga
+                                                   gtint_t,       // m
+                                                   gtint_t,       // n
+                                                   scomplex,      // alpha
+                                                   gtint_t,       // lda_inc
+                                                   gtint_t>> {};  // ldb_inc
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ctrmmGeneric1);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ctrmmGeneric2);
+
+using T = scomplex;
+void ctrmmGeneric( char storage, char side, char uploa, char transa, char diaga, gtint_t m, gtint_t n,
+                   T alpha, gtint_t lda_inc, gtint_t ldb_inc )
 {
-    using T = scomplex;
-    //----------------------------------------------------------
-    // Initialize values from the parameters passed through
-    // test suite instantiation (INSTANTIATE_TEST_SUITE_P).
-    //----------------------------------------------------------
-    // matrix storage format(row major, column major)
-    char storage = std::get<0>(GetParam());
-    // specifies matrix A appears left or right in
-    // the matrix multiplication
-    char side = std::get<1>(GetParam());
-    // specifies upper or lower triangular part of A is used
-    char uploa = std::get<2>(GetParam());
-    // denotes whether matrix a is n,c,t,h
-    char transa = std::get<3>(GetParam());
-    // denotes whether matrix a in unit or non-unit diagonal
-    char diaga = std::get<4>(GetParam());
-    // matrix size m
-    gtint_t m  = std::get<5>(GetParam());
-    // matrix size n
-    gtint_t n  = std::get<6>(GetParam());
-    // specifies alpha value
-    T alpha = std::get<7>(GetParam());
-    // lda, ldb, ldc increments.
-    // If increments are zero, then the array size matches the matrix size.
-    // If increments are nonnegative, the array size is bigger than the matrix size.
-    gtint_t lda_inc = std::get<8>(GetParam());
-    gtint_t ldb_inc = std::get<9>(GetParam());
 
     // Set the threshold for the errors:
     // Check gtestsuite trmm.h or netlib source code for reminder of the
@@ -123,10 +112,80 @@ TEST_P( ctrmmGeneric, API )
 #endif
 }
 
-// Black box testing.
+TEST_P( ctrmmGeneric1, API )
+{
+    //----------------------------------------------------------
+    // Initialize values from the parameters passed through
+    // test suite instantiation (INSTANTIATE_TEST_SUITE_P).
+    //----------------------------------------------------------
+    // matrix storage format(row major, column major)
+    char storage = std::get<0>(GetParam());
+    // specifies matrix A appears left or right in
+    // the matrix multiplication
+    char side = std::get<1>(GetParam());
+    // specifies upper or lower triangular part of A is used
+    char uploa = std::get<2>(GetParam());
+    // denotes whether matrix a is n,c,t,h
+    char transa = std::get<3>(GetParam());
+    // denotes whether matrix a in unit or non-unit diagonal
+    char diaga = std::get<4>(GetParam());
+    // matrix size m
+    gtint_t m  = std::get<5>(GetParam());
+    // matrix size n
+    gtint_t n  = std::get<6>(GetParam());
+    // specifies alpha value
+    T alpha = std::get<7>(GetParam());
+    // lda, ldb, ldc increments.
+    // If increments are zero, then the array size matches the matrix size.
+    // If increments are nonnegative, the array size is bigger than the matrix size.
+    gtint_t lda_inc = std::get<8>(GetParam());
+
+    gtint_t ldb_inc = lda_inc;
+
+    ctrmmGeneric( storage, side, uploa, transa, diaga, m, n,
+                  alpha, lda_inc, ldb_inc );
+}
+
+TEST_P( ctrmmGeneric2, API )
+{
+    //----------------------------------------------------------
+    // Initialize values from the parameters passed through
+    // test suite instantiation (INSTANTIATE_TEST_SUITE_P).
+    //----------------------------------------------------------
+    // matrix storage format(row major, column major)
+    char storage = std::get<0>(GetParam());
+    // specifies matrix A appears left or right in
+    // the matrix multiplication
+    char side = std::get<1>(GetParam());
+    // specifies upper or lower triangular part of A is used
+    char uploa = std::get<2>(GetParam());
+    // denotes whether matrix a is n,c,t,h
+    char transa = std::get<3>(GetParam());
+    // denotes whether matrix a in unit or non-unit diagonal
+    char diaga = std::get<4>(GetParam());
+    // matrix size m
+    gtint_t m  = std::get<5>(GetParam());
+    // matrix size n
+    gtint_t n  = std::get<6>(GetParam());
+    // specifies alpha value
+    T alpha = std::get<7>(GetParam());
+    // lda, ldb, ldc increments.
+    // If increments are zero, then the array size matches the matrix size.
+    // If increments are nonnegative, the array size is bigger than the matrix size.
+    gtint_t lda_inc = std::get<8>(GetParam());
+    gtint_t ldb_inc = std::get<9>(GetParam());
+
+    ctrmmGeneric( storage, side, uploa, transa, diaga, m, n,
+                  alpha, lda_inc, ldb_inc );
+}
+
+/**
+ * @brief Test Ctrmm native path, which starts from size 1001 for BLAS api
+ *        and starts from size 0 for BLIS api.
+ */
 INSTANTIATE_TEST_SUITE_P(
         Blackbox,
-        ctrmmGeneric,
+        ctrmmGeneric1,
         ::testing::Combine(
             ::testing::Values('c'
 #ifndef TEST_BLAS_LIKE
@@ -137,11 +196,34 @@ INSTANTIATE_TEST_SUITE_P(
             ::testing::Values('u','l'),                                      // uplo  u:upper, l:lower
             ::testing::Values('n','c','t'),                                  // transa
             ::testing::Values('n','u'),                                      // diaga , n=nonunit u=unit
-            ::testing::Range(gtint_t(10), gtint_t(31), 10),                  // m
-            ::testing::Range(gtint_t(10), gtint_t(31), 10),                  // n
-            ::testing::Values(scomplex{2.0,-1.0}),                           // alpha
-            ::testing::Values(gtint_t(0), gtint_t(4)),                       // increment to the leading dim of a
-            ::testing::Values(gtint_t(0), gtint_t(3))                        // increment to the leading dim of b
+            ::testing::Range(gtint_t(1), gtint_t(17), 1),                    // m
+            ::testing::Range(gtint_t(1), gtint_t(17), 1),                    // n
+            ::testing::Values(scomplex{0.0,0.0},scomplex{1.0,0.0},
+                              scomplex{-1.0,0.0},scomplex{2.0,-3.4}),        // alpha
+            ::testing::Values(gtint_t(0),gtint_t(3))                         // increment to the leading dim of a and b
         ),
-        ::trmmGenericPrint<scomplex>()
+        ::trmmGenericPrint1<scomplex>()
+    );
+
+// Black box testing.
+INSTANTIATE_TEST_SUITE_P(
+        Blackbox2,
+        ctrmmGeneric1,
+        ::testing::Combine(
+            ::testing::Values('c'
+#ifndef TEST_BLAS_LIKE
+            ,'r'
+#endif
+            ),                                                               // storage format
+            ::testing::Values('l','r'),                                      // side  l:left, r:right
+            ::testing::Values('u','l'),                                      // uplo  u:upper, l:lower
+            ::testing::Values('n','c','t'),                                  // transa
+            ::testing::Values('n','u'),                                      // diaga , n=nonunit u=unit
+            ::testing::Values(1, 2, 112, 551),                               // m
+            ::testing::Values(1, 2, 154, 676),                               // n
+            ::testing::Values(scomplex{0.0,0.0},scomplex{1.0,0.0},
+                              scomplex{-1.0,0.0},scomplex{2.0,-3.4}),        // alpha
+            ::testing::Values(gtint_t(0),gtint_t(3))                         // increment to the leading dim of a and b
+        ),
+        ::trmmGenericPrint1<scomplex>()
     );

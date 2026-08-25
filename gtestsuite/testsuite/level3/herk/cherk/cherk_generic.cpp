@@ -35,7 +35,17 @@
 #include <gtest/gtest.h>
 #include "level3/herk/test_herk.h"
 
-class cherkGeneric :
+class cherkGeneric1 :
+        public ::testing::TestWithParam<std::tuple<char,
+                                                   char,
+                                                   char,
+                                                   gtint_t,
+                                                   gtint_t,
+                                                   float,
+                                                   float,
+                                                   gtint_t>> {};
+
+class cherkGeneric2 :
         public ::testing::TestWithParam<std::tuple<char,
                                                    char,
                                                    char,
@@ -46,34 +56,14 @@ class cherkGeneric :
                                                    gtint_t,
                                                    gtint_t>> {};
 
-TEST_P( cherkGeneric, API )
-{
-    using T = scomplex;
-    using RT = typename testinghelpers::type_info<T>::real_type;
-    //----------------------------------------------------------
-    // Initialize values from the parameters passed through
-    // test suite instantiation (INSTANTIATE_TEST_SUITE_P).
-    //----------------------------------------------------------
-    // matrix storage format(row major, column major)
-    char storage = std::get<0>(GetParam());
-    // specifies if the upper or lower triangular part of C is used
-    char uplo = std::get<1>(GetParam());
-    // denotes whether matrix a is n,c,t,h
-    char transa = std::get<2>(GetParam());
-    // matrix size n
-    gtint_t n  = std::get<3>(GetParam());
-    // matrix size k
-    gtint_t k  = std::get<4>(GetParam());
-    // specifies alpha value
-    RT alpha = std::get<5>(GetParam());
-    // specifies beta value
-    RT beta = std::get<6>(GetParam());
-    // lda, ldc increments.
-    // If increments are zero, then the array size matches the matrix size.
-    // If increments are nonnegative, the array size is bigger than the matrix size.
-    gtint_t lda_inc = std::get<7>(GetParam());
-    gtint_t ldc_inc = std::get<8>(GetParam());
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(cherkGeneric1);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(cherkGeneric2);
 
+using T = scomplex;
+using RT = typename testinghelpers::type_info<T>::real_type;
+void cherkGeneric( char storage, char uplo, char transa, gtint_t n, gtint_t k,
+                   RT alpha, RT beta, gtint_t lda_inc, gtint_t ldc_inc )
+{
     // Set the threshold for the errors:
     // Check gtestsuite herk.h or netlib source code for reminder of the
     // functionality from which we estimate operation count per element
@@ -83,9 +73,10 @@ TEST_P( cherkGeneric, API )
         thresh = 0.0;
     else if ((alpha == 0.0f || k == 0) && (beta == 0.0f || beta == 1.0f))
         thresh = 0.0;
+    else if (alpha == testinghelpers::ZERO<RT>())
+        thresh = testinghelpers::getEpsilon<RT>();
     else
     {
-        // Threshold adjustment
 #ifdef BLIS_INT_ELEMENT_TYPE
         double adj = 1.0;
 #else
@@ -93,6 +84,7 @@ TEST_P( cherkGeneric, API )
 #endif
         thresh = adj*(3*k+1)*testinghelpers::getEpsilon<T>();
     }
+
     //----------------------------------------------------------
     //     Call test body using these parameters
     //----------------------------------------------------------
@@ -125,24 +117,105 @@ TEST_P( cherkGeneric, API )
 #endif
 }
 
+TEST_P( cherkGeneric1, API )
+{
+    //----------------------------------------------------------
+    // Initialize values from the parameters passed through
+    // test suite instantiation (INSTANTIATE_TEST_SUITE_P).
+    //----------------------------------------------------------
+    // matrix storage format(row major, column major)
+    char storage = std::get<0>(GetParam());
+    // specifies if the upper or lower triangular part of C is used
+    char uplo = std::get<1>(GetParam());
+    // denotes whether matrix a is n,c,t,h
+    char transa = std::get<2>(GetParam());
+    // matrix size n
+    gtint_t n  = std::get<3>(GetParam());
+    // matrix size k
+    gtint_t k  = std::get<4>(GetParam());
+    // specifies alpha value
+    RT alpha = std::get<5>(GetParam());
+    // specifies beta value
+    RT beta = std::get<6>(GetParam());
+    // lda, ldc increments.
+    // If increments are zero, then the array size matches the matrix size.
+    // If increments are nonnegative, the array size is bigger than the matrix size.
+    gtint_t lda_inc = std::get<7>(GetParam());
+
+    gtint_t ldc_inc = lda_inc;
+
+    cherkGeneric( storage, uplo, transa, n, k,
+                  alpha, beta, lda_inc, ldc_inc );
+}
+
+TEST_P( cherkGeneric2, API )
+{
+    //----------------------------------------------------------
+    // Initialize values from the parameters passed through
+    // test suite instantiation (INSTANTIATE_TEST_SUITE_P).
+    //----------------------------------------------------------
+    // matrix storage format(row major, column major)
+    char storage = std::get<0>(GetParam());
+    // specifies if the upper or lower triangular part of C is used
+    char uplo = std::get<1>(GetParam());
+    // denotes whether matrix a is n,c,t,h
+    char transa = std::get<2>(GetParam());
+    // matrix size n
+    gtint_t n  = std::get<3>(GetParam());
+    // matrix size k
+    gtint_t k  = std::get<4>(GetParam());
+    // specifies alpha value
+    RT alpha = std::get<5>(GetParam());
+    // specifies beta value
+    RT beta = std::get<6>(GetParam());
+    // lda, ldc increments.
+    // If increments are zero, then the array size matches the matrix size.
+    // If increments are nonnegative, the array size is bigger than the matrix size.
+    gtint_t lda_inc = std::get<7>(GetParam());
+    gtint_t ldc_inc = std::get<8>(GetParam());
+
+    cherkGeneric( storage, uplo, transa, n, k,
+                  alpha, beta, lda_inc, ldc_inc );
+}
+
 // Black box testing.
 INSTANTIATE_TEST_SUITE_P(
         Blackbox,
-        cherkGeneric,
+        cherkGeneric1,
         ::testing::Combine(
             ::testing::Values('c'
 #ifndef TEST_BLAS_LIKE
             ,'r'
 #endif
             ),                                                               // storage format
-            ::testing::Values('u','l'),                                      // u:upper, l:lower
+            ::testing::Values('u','l'),                                      // uplo  u:upper, l:lower
             ::testing::Values('n','c'),                                      // transa
-            ::testing::Values(gtint_t(1), gtint_t(3), gtint_t(30)),          // n
-            ::testing::Values(gtint_t(1), gtint_t(2), gtint_t(26)),          // k
-            ::testing::Values(-2.0, 3.0),                                    // alpha
-            ::testing::Values(4.0, -1.0),                                    // beta
-            ::testing::Values(gtint_t(0), gtint_t(2)),                       // increment to the leading dim of a
-            ::testing::Values(gtint_t(0), gtint_t(4))                        // increment to the leading dim of b
+            ::testing::Range(gtint_t(1), gtint_t(17), 1),                    // m
+            ::testing::Range(gtint_t(1), gtint_t(17), 1),                    // n
+            ::testing::Values(0.0, 1.0, -1.0, -3.4),                         // alpha
+            ::testing::Values(0.0, 1.0, -1.0, -3.4),                         // beta
+            ::testing::Values(gtint_t(0),gtint_t(3))                         // increment to the leading dim of a and b
         ),
-        ::herkGenericPrint<scomplex>()
+        ::herkGenericPrint1<scomplex>()
+    );
+
+// Black box testing.
+INSTANTIATE_TEST_SUITE_P(
+        Blackbox2,
+        cherkGeneric1,
+        ::testing::Combine(
+            ::testing::Values('c'
+#ifndef TEST_BLAS_LIKE
+            ,'r'
+#endif
+            ),                                                               // storage format
+            ::testing::Values('u','l'),                                      // uplo  u:upper, l:lower
+            ::testing::Values('n','c'),                                      // transa
+            ::testing::Values(1, 2, 112, 551),                               // m
+            ::testing::Values(1, 2, 154, 676),                               // n
+            ::testing::Values(0.0, 1.0, -1.0, -3.4),                         // alpha
+            ::testing::Values(0.0, 1.0, -1.0, -3.4),                         // beta
+            ::testing::Values(gtint_t(0),gtint_t(3))                         // increment to the leading dim of a and b
+        ),
+        ::herkGenericPrint1<scomplex>()
     );

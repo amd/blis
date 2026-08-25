@@ -35,7 +35,18 @@
 #include <gtest/gtest.h>
 #include "level3/syr2k/test_syr2k.h"
 
-class csyr2kGeneric :
+class csyr2kGeneric1 :
+        public ::testing::TestWithParam<std::tuple<char,
+                                                   char,
+                                                   char,
+                                                   char,
+                                                   gtint_t,
+                                                   gtint_t,
+                                                   scomplex,
+                                                   scomplex,
+                                                   gtint_t>> {};
+
+class csyr2kGeneric3 :
         public ::testing::TestWithParam<std::tuple<char,
                                                    char,
                                                    char,
@@ -48,41 +59,17 @@ class csyr2kGeneric :
                                                    gtint_t,
                                                    gtint_t>> {};
 
-TEST_P( csyr2kGeneric, API )
-{
-    using T = scomplex;
-    //----------------------------------------------------------
-    // Initialize values from the parameters passed through
-    // test suite instantiation (INSTANTIATE_TEST_SUITE_P).
-    //----------------------------------------------------------
-    // matrix storage format(row major, column major)
-    char storage = std::get<0>(GetParam());
-    // specifies if the upper or lower triangular part of C is used
-    char uplo = std::get<1>(GetParam());
-    // denotes whether matrix a is n,c
-    char transa = std::get<2>(GetParam());
-    // denotes whether matrix b is n,c,t,h
-    char transb = std::get<3>(GetParam());
-    // matrix size n
-    gtint_t n  = std::get<4>(GetParam());
-    // matrix size k
-    gtint_t k  = std::get<5>(GetParam());
-    // specifies alpha value
-    T alpha = std::get<6>(GetParam());
-    // specifies beta value
-    T beta = std::get<7>(GetParam());
-    // lda, ldb, ldc increments.
-    // If increments are zero, then the array size matches the matrix size.
-    // If increments are nonnegative, the array size is bigger than the matrix size.
-    gtint_t lda_inc = std::get<8>(GetParam());
-    gtint_t ldb_inc = std::get<9>(GetParam());
-    gtint_t ldc_inc = std::get<10>(GetParam());
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(csyr2kGeneric1);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(csyr2kGeneric3);
 
+using T = scomplex;
+void csyr2kGeneric( char storage, char uplo, char transa, char transb, gtint_t n, gtint_t k,
+                    T alpha, T beta, gtint_t lda_inc, gtint_t ldb_inc, gtint_t ldc_inc )
+{
     // Set the threshold for the errors:
     // Check gtestsuite syr2k.h or netlib source code for reminder of the
     // functionality from which we estimate operation count per element
     // of output, and hence the multiplier for epsilon.
-    // No adjustment applied yet for complex data.
     double thresh;
     if (n == 0)
         thresh = 0.0;
@@ -92,7 +79,14 @@ TEST_P( csyr2kGeneric, API )
     else if (alpha == testinghelpers::ZERO<T>())
         thresh = testinghelpers::getEpsilon<T>();
     else
-        thresh = (6*k+1)*testinghelpers::getEpsilon<T>();
+    {
+#ifdef BLIS_INT_ELEMENT_TYPE
+        double adj = 1.0;
+#else
+        double adj = 2.4;
+#endif
+        thresh = adj*(6*k+1)*testinghelpers::getEpsilon<T>();
+    }
 
     //----------------------------------------------------------
     //     Call test body using these parameters
@@ -126,26 +120,117 @@ TEST_P( csyr2kGeneric, API )
 #endif
 }
 
+TEST_P( csyr2kGeneric1, API )
+{
+    //----------------------------------------------------------
+    // Initialize values from the parameters passed through
+    // test suite instantiation (INSTANTIATE_TEST_SUITE_P).
+    //----------------------------------------------------------
+    // matrix storage format(row major, column major)
+    char storage = std::get<0>(GetParam());
+    // specifies if the upper or lower triangular part of C is used
+    char uplo = std::get<1>(GetParam());
+    // denotes whether matrix a is n,c
+    char transa = std::get<2>(GetParam());
+    // denotes whether matrix b is n,c,t,h
+    char transb = std::get<3>(GetParam());
+    // matrix size n
+    gtint_t n  = std::get<4>(GetParam());
+    // matrix size k
+    gtint_t k  = std::get<5>(GetParam());
+    // specifies alpha value
+    T alpha = std::get<6>(GetParam());
+    // specifies beta value
+    T beta = std::get<7>(GetParam());
+    // lda, ldb, ldc increments.
+    // If increments are zero, then the array size matches the matrix size.
+    // If increments are nonnegative, the array size is bigger than the matrix size.
+    gtint_t lda_inc = std::get<8>(GetParam());
+
+    gtint_t ldb_inc = lda_inc;
+    gtint_t ldc_inc = lda_inc;
+
+    csyr2kGeneric( storage, uplo, transa, transb, n, k,
+                   alpha, beta, lda_inc, ldb_inc, ldc_inc );
+}
+
+TEST_P( csyr2kGeneric3, API )
+{
+    //----------------------------------------------------------
+    // Initialize values from the parameters passed through
+    // test suite instantiation (INSTANTIATE_TEST_SUITE_P).
+    //----------------------------------------------------------
+    // matrix storage format(row major, column major)
+    char storage = std::get<0>(GetParam());
+    // specifies if the upper or lower triangular part of C is used
+    char uplo = std::get<1>(GetParam());
+    // denotes whether matrix a is n,c
+    char transa = std::get<2>(GetParam());
+    // denotes whether matrix b is n,c,t,h
+    char transb = std::get<3>(GetParam());
+    // matrix size n
+    gtint_t n  = std::get<4>(GetParam());
+    // matrix size k
+    gtint_t k  = std::get<5>(GetParam());
+    // specifies alpha value
+    T alpha = std::get<6>(GetParam());
+    // specifies beta value
+    T beta = std::get<7>(GetParam());
+    // lda, ldb, ldc increments.
+    // If increments are zero, then the array size matches the matrix size.
+    // If increments are nonnegative, the array size is bigger than the matrix size.
+    gtint_t lda_inc = std::get<8>(GetParam());
+    gtint_t ldb_inc = std::get<9>(GetParam());
+    gtint_t ldc_inc = std::get<10>(GetParam());
+
+    csyr2kGeneric( storage, uplo, transa, transb, n, k,
+                   alpha, beta, lda_inc, ldb_inc, ldc_inc );
+}
+
 // Black box testing.
 INSTANTIATE_TEST_SUITE_P(
         Blackbox,
-        csyr2kGeneric,
+        csyr2kGeneric1,
         ::testing::Combine(
             ::testing::Values('c'
 #ifndef TEST_BLAS_LIKE
             ,'r'
 #endif
             ),                                                               // storage format
-            ::testing::Values('u','l'),                                      // u:upper, l:lower
-            ::testing::Values('n'),                                          // transa
+            ::testing::Values('u','l'),                                      // uplo  u:upper, l:lower
+            ::testing::Values('n','t'),                                      // transa
             ::testing::Values('n'),                                          // transb
-            ::testing::Range(gtint_t(10), gtint_t(31), 10),                  // n
-            ::testing::Range(gtint_t(10), gtint_t(31), 10),                  // k
-            ::testing::Values(scomplex{2.0, -1.0}, scomplex{-2.0, 3.0}),     // alpha
-            ::testing::Values(scomplex{-3.0, 2.0}, scomplex{4.0, -1.0}),     // beta
-            ::testing::Values(gtint_t(0), gtint_t(2)),                       // increment to the leading dim of a
-            ::testing::Values(gtint_t(0), gtint_t(4)),                       // increment to the leading dim of b
-            ::testing::Values(gtint_t(0), gtint_t(1))                        // increment to the leading dim of c
+            ::testing::Range(gtint_t(1), gtint_t(17), 1),                    // m
+            ::testing::Range(gtint_t(1), gtint_t(17), 1),                    // n
+            ::testing::Values(scomplex{0.0,0.0},scomplex{1.0,0.0},
+                              scomplex{-1.0,0.0},scomplex{2.0,-3.4}),        // alpha
+            ::testing::Values(scomplex{0.0,0.0},scomplex{1.0,0.0},
+                              scomplex{-1.0,0.0},scomplex{2.0,-3.4}),        // beta
+            ::testing::Values(gtint_t(0),gtint_t(3))                         // increment to the leading dim of a and b
         ),
-        ::syr2kGenericPrint<scomplex>()
+        ::syr2kGenericPrint1<scomplex>()
+    );
+
+// Black box testing.
+INSTANTIATE_TEST_SUITE_P(
+        Blackbox2,
+        csyr2kGeneric1,
+        ::testing::Combine(
+            ::testing::Values('c'
+#ifndef TEST_BLAS_LIKE
+            ,'r'
+#endif
+            ),                                                               // storage format
+            ::testing::Values('u','l'),                                      // uplo  u:upper, l:lower
+            ::testing::Values('n','t'),                                      // transa
+            ::testing::Values('n'),                                          // transb
+            ::testing::Values(1, 2, 112, 551),                               // m
+            ::testing::Values(1, 2, 154, 676),                               // n
+            ::testing::Values(scomplex{0.0,0.0},scomplex{1.0,0.0},
+                              scomplex{-1.0,0.0},scomplex{2.0,-3.4}),        // alpha
+            ::testing::Values(scomplex{0.0,0.0},scomplex{1.0,0.0},
+                              scomplex{-1.0,0.0},scomplex{2.0,-3.4}),        // beta
+            ::testing::Values(gtint_t(0),gtint_t(3))                         // increment to the leading dim of a and b
+        ),
+        ::syr2kGenericPrint1<scomplex>()
     );

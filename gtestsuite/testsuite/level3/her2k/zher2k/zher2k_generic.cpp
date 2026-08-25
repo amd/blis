@@ -35,7 +35,18 @@
 #include <gtest/gtest.h>
 #include "level3/her2k/test_her2k.h"
 
-class zher2kGeneric :
+class zher2kGeneric1 :
+        public ::testing::TestWithParam<std::tuple<char,
+                                                   char,
+                                                   char,
+                                                   char,
+                                                   gtint_t,
+                                                   gtint_t,
+                                                   dcomplex,
+                                                   double,
+                                                   gtint_t>> {};
+
+class zher2kGeneric3 :
         public ::testing::TestWithParam<std::tuple<char,
                                                    char,
                                                    char,
@@ -48,37 +59,14 @@ class zher2kGeneric :
                                                    gtint_t,
                                                    gtint_t>> {};
 
-TEST_P( zher2kGeneric, API )
-{
-    using T = dcomplex;
-    using RT = typename testinghelpers::type_info<T>::real_type;
-    //----------------------------------------------------------
-    // Initialize values from the parameters passed through
-    // test suite instantiation (INSTANTIATE_TEST_SUITE_P).
-    //----------------------------------------------------------
-    // matrix storage format(row major, column major)
-    char storage = std::get<0>(GetParam());
-    // specifies if the upper or lower triangular part of C is used
-    char uplo = std::get<1>(GetParam());
-    // denotes whether matrix a is n,c
-    char transa = std::get<2>(GetParam());
-    // denotes whether matrix b is n,c,t,h
-    char transb = std::get<3>(GetParam());
-    // matrix size n
-    gtint_t n  = std::get<4>(GetParam());
-    // matrix size k
-    gtint_t k  = std::get<5>(GetParam());
-    // specifies alpha value
-    T alpha = std::get<6>(GetParam());
-    // specifies beta value
-    RT beta = std::get<7>(GetParam());
-    // lda, ldb, ldc increments.
-    // If increments are zero, then the array size matches the matrix size.
-    // If increments are nonnegative, the array size is bigger than the matrix size.
-    gtint_t lda_inc = std::get<8>(GetParam());
-    gtint_t ldb_inc = std::get<9>(GetParam());
-    gtint_t ldc_inc = std::get<10>(GetParam());
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(zher2kGeneric1);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(zher2kGeneric3);
 
+using T = dcomplex;
+using RT = typename testinghelpers::type_info<T>::real_type;
+void zher2kGeneric( char storage, char uplo, char transa, char transb, gtint_t n, gtint_t k,
+                    T alpha, RT beta, gtint_t lda_inc, gtint_t ldb_inc, gtint_t ldc_inc )
+{
     // Set the threshold for the errors:
     // Check gtestsuite her2k.h or netlib source code for reminder of the
     // functionality from which we estimate operation count per element
@@ -88,9 +76,10 @@ TEST_P( zher2kGeneric, API )
         thresh = 0.0;
     else if ((alpha == testinghelpers::ZERO<T>() || k == 0) && (beta == 0.0 || beta == 1.0))
         thresh = 0.0;
+    else if (alpha == testinghelpers::ZERO<T>())
+        thresh = testinghelpers::getEpsilon<T>();
     else
     {
-        // Threshold adjustment
 #ifdef BLIS_INT_ELEMENT_TYPE
         double adj = 1.0;
 #else
@@ -98,6 +87,7 @@ TEST_P( zher2kGeneric, API )
 #endif
         thresh = adj*(6*k+1)*testinghelpers::getEpsilon<T>();
     }
+
     //----------------------------------------------------------
     //     Call test body using these parameters
     //----------------------------------------------------------
@@ -130,26 +120,115 @@ TEST_P( zher2kGeneric, API )
 #endif
 }
 
+TEST_P( zher2kGeneric1, API )
+{
+    //----------------------------------------------------------
+    // Initialize values from the parameters passed through
+    // test suite instantiation (INSTANTIATE_TEST_SUITE_P).
+    //----------------------------------------------------------
+    // matrix storage format(row major, column major)
+    char storage = std::get<0>(GetParam());
+    // specifies if the upper or lower triangular part of C is used
+    char uplo = std::get<1>(GetParam());
+    // denotes whether matrix a is n,c
+    char transa = std::get<2>(GetParam());
+    // denotes whether matrix b is n,c,t,h
+    char transb = std::get<3>(GetParam());
+    // matrix size n
+    gtint_t n  = std::get<4>(GetParam());
+    // matrix size k
+    gtint_t k  = std::get<5>(GetParam());
+    // specifies alpha value
+    T alpha = std::get<6>(GetParam());
+    // specifies beta value
+    RT beta = std::get<7>(GetParam());
+    // lda, ldb, ldc increments.
+    // If increments are zero, then the array size matches the matrix size.
+    // If increments are nonnegative, the array size is bigger than the matrix size.
+    gtint_t lda_inc = std::get<8>(GetParam());
+
+    gtint_t ldb_inc = lda_inc;
+    gtint_t ldc_inc = lda_inc;
+
+    zher2kGeneric( storage, uplo, transa, transb, n, k,
+                   alpha, beta, lda_inc, ldb_inc, ldc_inc );
+}
+
+TEST_P( zher2kGeneric3, API )
+{
+    //----------------------------------------------------------
+    // Initialize values from the parameters passed through
+    // test suite instantiation (INSTANTIATE_TEST_SUITE_P).
+    //----------------------------------------------------------
+    // matrix storage format(row major, column major)
+    char storage = std::get<0>(GetParam());
+    // specifies if the upper or lower triangular part of C is used
+    char uplo = std::get<1>(GetParam());
+    // denotes whether matrix a is n,c
+    char transa = std::get<2>(GetParam());
+    // denotes whether matrix b is n,c,t,h
+    char transb = std::get<3>(GetParam());
+    // matrix size n
+    gtint_t n  = std::get<4>(GetParam());
+    // matrix size k
+    gtint_t k  = std::get<5>(GetParam());
+    // specifies alpha value
+    T alpha = std::get<6>(GetParam());
+    // specifies beta value
+    RT beta = std::get<7>(GetParam());
+    // lda, ldb, ldc increments.
+    // If increments are zero, then the array size matches the matrix size.
+    // If increments are nonnegative, the array size is bigger than the matrix size.
+    gtint_t lda_inc = std::get<8>(GetParam());
+    gtint_t ldb_inc = std::get<9>(GetParam());
+    gtint_t ldc_inc = std::get<10>(GetParam());
+
+    zher2kGeneric( storage, uplo, transa, transb, n, k,
+                   alpha, beta, lda_inc, ldb_inc, ldc_inc );
+}
+
 // Black box testing.
 INSTANTIATE_TEST_SUITE_P(
         Blackbox,
-        zher2kGeneric,
+        zher2kGeneric1,
         ::testing::Combine(
             ::testing::Values('c'
 #ifndef TEST_BLAS_LIKE
             ,'r'
 #endif
             ),                                                               // storage format
-            ::testing::Values('u','l'),                                      // u:upper, l:lower
-            ::testing::Values('n'),                                          // transa
+            ::testing::Values('u','l'),                                      // uplo  u:upper, l:lower
+            ::testing::Values('n','c'),                                      // transa
             ::testing::Values('n'),                                          // transb
-            ::testing::Values(gtint_t(1), gtint_t(3), gtint_t(30)),          // n
-            ::testing::Values(gtint_t(1), gtint_t(2), gtint_t(26)),          // k
-            ::testing::Values(dcomplex{2.0, -1.0}, dcomplex{-2.0, 3.0}),     // alpha
-            ::testing::Values(4.0, -1.0),                                    // beta
-            ::testing::Values(gtint_t(0), gtint_t(3)),                       // increment to the leading dim of a
-            ::testing::Values(gtint_t(0), gtint_t(2)),                       // increment to the leading dim of b
-            ::testing::Values(gtint_t(0), gtint_t(1))                        // increment to the leading dim of c
+            ::testing::Range(gtint_t(1), gtint_t(17), 1),                    // m
+            ::testing::Range(gtint_t(1), gtint_t(17), 1),                    // n
+            ::testing::Values(dcomplex{0.0,0.0},dcomplex{1.0,0.0},
+                              dcomplex{-1.0,0.0},dcomplex{2.0,-3.4}),        // alpha
+            ::testing::Values(0.0, 1.0, -1.0, -3.4),                         // beta
+            ::testing::Values(gtint_t(0),gtint_t(3))                         // increment to the leading dim of a and b
         ),
-        ::her2kGenericPrint<dcomplex>()
+        ::her2kGenericPrint1<dcomplex>()
+    );
+
+// Black box testing.
+INSTANTIATE_TEST_SUITE_P(
+        Blackbox2,
+        zher2kGeneric1,
+        ::testing::Combine(
+            ::testing::Values('c'
+#ifndef TEST_BLAS_LIKE
+            ,'r'
+#endif
+            ),                                                               // storage format
+            ::testing::Values('u','l'),                                      // uplo  u:upper, l:lower
+            ::testing::Values('n','c'),                                      // transa
+            ::testing::Values('n'),                                          // transb
+            ::testing::Values(1, 2, 112, 551),                               // m
+            ::testing::Values(1, 2, 154, 676),                               // n
+            ::testing::Values(dcomplex{0.0,0.0},dcomplex{1.0,0.0},
+                              dcomplex{-1.0,0.0},dcomplex{2.0,-3.4}),        // alpha
+            ::testing::Values(0.0, 1.0, -1.0, -3.4),                         // beta
+            ::testing::Values(gtint_t(0),gtint_t(3))                         // increment to the leading dim of a and b
+        ),
+        ::her2kGenericPrint1<dcomplex>()
     );

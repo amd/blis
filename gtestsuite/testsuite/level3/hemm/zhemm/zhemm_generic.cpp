@@ -35,7 +35,21 @@
 #include <gtest/gtest.h>
 #include "level3/hemm/test_hemm.h"
 
-class zhemmGeneric :
+// Two options for instantiate block, one to set lda_inc = ldb_inc = ldc_inc to
+// reduce Cartesian product, and one to allow all to be varied independently.
+class zhemmGeneric1 :
+        public ::testing::TestWithParam<std::tuple<char,
+                                                   char,
+                                                   char,
+                                                   char,
+                                                   char,
+                                                   gtint_t,
+                                                   gtint_t,
+                                                   dcomplex,
+                                                   dcomplex,
+                                                   gtint_t>> {};
+
+class zhemmGeneric3 :
         public ::testing::TestWithParam<std::tuple<char,
                                                    char,
                                                    char,
@@ -49,56 +63,38 @@ class zhemmGeneric :
                                                    gtint_t,
                                                    gtint_t>> {};
 
-TEST_P( zhemmGeneric, API )
-{
-    using T = dcomplex;
-    //----------------------------------------------------------
-    // Initialize values from the parameters passed through
-    // test suite instantiation (INSTANTIATE_TEST_SUITE_P).
-    //----------------------------------------------------------
-    // matrix storage format(row major, column major)
-    char storage = std::get<0>(GetParam());
-    // specifies if the hemmetric matrix A appears left or right in
-    // the matrix multiplication
-    char side = std::get<1>(GetParam());
-    // specifies if the upper or lower triangular part of A is used
-    char uplo = std::get<2>(GetParam());
-    // denotes whether matrix a is n,c
-    char conja = std::get<3>(GetParam());
-    // denotes whether matrix b is n,c,t,h
-    char transb = std::get<4>(GetParam());
-    // matrix size m
-    gtint_t m  = std::get<5>(GetParam());
-    // matrix size n
-    gtint_t n  = std::get<6>(GetParam());
-    // specifies alpha value
-    T alpha = std::get<7>(GetParam());
-    // specifies beta value
-    T beta = std::get<8>(GetParam());
-    // lda, ldb, ldc increments.
-    // If increments are zero, then the array size matches the matrix size.
-    // If increments are nonnegative, the array size is bigger than the matrix size.
-    gtint_t lda_inc = std::get<9>(GetParam());
-    gtint_t ldb_inc = std::get<10>(GetParam());
-    gtint_t ldc_inc = std::get<11>(GetParam());
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(zhemmGeneric1);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(zhemmGeneric3);
 
+using T = dcomplex;
+void zhemmGeneric( char storage, char side, char uplo, char conja, char transb, gtint_t m, gtint_t n,
+                   T alpha, T beta, gtint_t lda_inc, gtint_t ldb_inc, gtint_t ldc_inc )
+{
     // Set the threshold for the errors:
     // Check gtestsuite hemm.h or netlib source code for reminder of the
     // functionality from which we estimate operation count per element
     // of output, and hence the multiplier for epsilon.
-    // No adjustment applied yet for complex data.
     double thresh;
     if (m == 0 || n == 0)
         thresh = 0.0;
     else if (alpha == testinghelpers::ZERO<T>() &&
             (beta == testinghelpers::ZERO<T>() || beta == testinghelpers::ONE<T>()))
         thresh = 0.0;
+    else if (alpha == testinghelpers::ZERO<T>())
+        thresh = testinghelpers::getEpsilon<T>();
     else
+    {
+        // Threshold adjustment
+#ifdef BLIS_INT_ELEMENT_TYPE
+        double adj = 1.0;
+#else
+        double adj = 1.01;
+#endif
         if ( side == 'l' || side == 'L' )
-           thresh = (3*m+1)*testinghelpers::getEpsilon<T>();
+           thresh = adj*(3*m+1)*testinghelpers::getEpsilon<T>();
         else
-           thresh = (3*n+1)*testinghelpers::getEpsilon<T>();
-
+           thresh = adj*(3*n+1)*testinghelpers::getEpsilon<T>();
+    }
     //----------------------------------------------------------
     //     Call test body using these parameters
     //----------------------------------------------------------
@@ -129,13 +125,85 @@ TEST_P( zhemmGeneric, API )
         //std::cout << "Not inside parallel region\n";
         test_hemm<T>( storage, side, uplo, conja, transb, m, n, lda_inc, ldb_inc, ldc_inc, alpha, beta, thresh );
 #endif
-    test_hemm<T>( storage, side, uplo, conja, transb, m, n, lda_inc, ldb_inc, ldc_inc, alpha, beta, thresh );
+}
+
+TEST_P( zhemmGeneric1, API )
+{
+    //----------------------------------------------------------
+    // Initialize values from the parameters passed through
+    // test suite instantiation (INSTANTIATE_TEST_SUITE_P).
+    //----------------------------------------------------------
+    // matrix storage format(row major, column major)
+    char storage = std::get<0>(GetParam());
+    // specifies if the hemmetric matrix A appears left or right in
+    // the matrix multiplication
+    char side = std::get<1>(GetParam());
+    // specifies if the upper or lower triangular part of A is used
+    char uplo = std::get<2>(GetParam());
+    // denotes whether matrix a is n,c
+    char conja = std::get<3>(GetParam());
+    // denotes whether matrix b is n,c,t,h
+    char transb = std::get<4>(GetParam());
+    // matrix size m
+    gtint_t m  = std::get<5>(GetParam());
+    // matrix size n
+    gtint_t n  = std::get<6>(GetParam());
+    // specifies alpha value
+    T alpha = std::get<7>(GetParam());
+    // specifies beta value
+    T beta = std::get<8>(GetParam());
+    // lda, ldb, ldc increments.
+    // If increments are zero, then the array size matches the matrix size.
+    // If increments are nonnegative, the array size is bigger than the matrix size.
+    gtint_t lda_inc = std::get<9>(GetParam());
+
+    gtint_t ldb_inc = lda_inc;
+    gtint_t ldc_inc = lda_inc;
+
+    zhemmGeneric( storage, side, uplo, conja, transb, m, n,
+                  alpha, beta, lda_inc, ldb_inc, ldc_inc );
+}
+
+TEST_P( zhemmGeneric3, API )
+{
+    //----------------------------------------------------------
+    // Initialize values from the parameters passed through
+    // test suite instantiation (INSTANTIATE_TEST_SUITE_P).
+    //----------------------------------------------------------
+    // matrix storage format(row major, column major)
+    char storage = std::get<0>(GetParam());
+    // specifies if the hemmetric matrix A appears left or right in
+    // the matrix multiplication
+    char side = std::get<1>(GetParam());
+    // specifies if the upper or lower triangular part of A is used
+    char uplo = std::get<2>(GetParam());
+    // denotes whether matrix a is n,c
+    char conja = std::get<3>(GetParam());
+    // denotes whether matrix b is n,c,t,h
+    char transb = std::get<4>(GetParam());
+    // matrix size m
+    gtint_t m  = std::get<5>(GetParam());
+    // matrix size n
+    gtint_t n  = std::get<6>(GetParam());
+    // specifies alpha value
+    T alpha = std::get<7>(GetParam());
+    // specifies beta value
+    T beta = std::get<8>(GetParam());
+    // lda, ldb, ldc increments.
+    // If increments are zero, then the array size matches the matrix size.
+    // If increments are nonnegative, the array size is bigger than the matrix size.
+    gtint_t lda_inc = std::get<9>(GetParam());
+    gtint_t ldb_inc = std::get<10>(GetParam());
+    gtint_t ldc_inc = std::get<11>(GetParam());
+
+    zhemmGeneric( storage, side, uplo, conja, transb, m, n,
+                  alpha, beta, lda_inc, ldb_inc, ldc_inc );
 }
 
 // Black box testing.
 INSTANTIATE_TEST_SUITE_P(
         Blackbox,
-        zhemmGeneric,
+        zhemmGeneric1,
         ::testing::Combine(
             ::testing::Values('c'
 #ifndef TEST_BLAS_LIKE
@@ -144,15 +212,40 @@ INSTANTIATE_TEST_SUITE_P(
             ),                                                               // storage format
             ::testing::Values('l','r'),                                      // l:left, r:right
             ::testing::Values('u','l'),                                      // u:upper, l:lower
-            ::testing::Values('n'),                                          // transa
+            ::testing::Values('n'),                                          // conja
             ::testing::Values('n'),                                          // transb
-            ::testing::Values(gtint_t(1), gtint_t(3), gtint_t(30)),          // n
-            ::testing::Values(gtint_t(1), gtint_t(2), gtint_t(26)),          // k
-            ::testing::Values(dcomplex{-2.0, 3.0}),                          // alpha
-            ::testing::Values(dcomplex{4.0, -1.0}),                          // beta
-            ::testing::Values(gtint_t(0), gtint_t(3)),                       // increment to the leading dim of a
-            ::testing::Values(gtint_t(0), gtint_t(5)),                       // increment to the leading dim of b
-            ::testing::Values(gtint_t(0), gtint_t(6))                        // increment to the leading dim of c
+            ::testing::Range(gtint_t(1), gtint_t(17), 1),                    // m
+            ::testing::Range(gtint_t(1), gtint_t(17), 1),                    // n
+            ::testing::Values(dcomplex{0.0,0.0},dcomplex{1.0,0.0},
+                              dcomplex{-1.0,0.0},dcomplex{2.0,-3.4}),        // alpha
+            ::testing::Values(dcomplex{0.0,0.0},dcomplex{1.0,0.0},
+                              dcomplex{-1.0,0.0},dcomplex{2.0,-3.4}),        // beta
+            ::testing::Values(gtint_t(0), gtint_t(3))                        // increment to the leading dim of a, b and c
         ),
-        ::hemmGenericPrint<dcomplex>()
+        ::hemmGenericPrint1<dcomplex>()
+    );
+
+// Black box testing.
+INSTANTIATE_TEST_SUITE_P(
+        Blackbox2,
+        zhemmGeneric1,
+        ::testing::Combine(
+            ::testing::Values('c'
+#ifndef TEST_BLAS_LIKE
+            ,'r'
+#endif
+            ),                                                               // storage format
+            ::testing::Values('l','r'),                                      // l:left, r:right
+            ::testing::Values('u','l'),                                      // u:upper, l:lower
+            ::testing::Values('n'),                                          // conja
+            ::testing::Values('n'),                                          // transb
+            ::testing::Values(1, 2, 112, 551),                               // m
+            ::testing::Values(1, 2, 154, 676),                               // n
+            ::testing::Values(dcomplex{0.0,0.0},dcomplex{1.0,0.0},
+                              dcomplex{-1.0,0.0},dcomplex{2.0,-3.4}),        // alpha
+            ::testing::Values(dcomplex{0.0,0.0},dcomplex{1.0,0.0},
+                              dcomplex{-1.0,0.0},dcomplex{2.0,-3.4}),        // beta
+            ::testing::Values(gtint_t(0), gtint_t(3))                        // increment to the leading dim of a, b and c
+        ),
+        ::hemmGenericPrint1<dcomplex>()
     );

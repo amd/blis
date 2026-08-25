@@ -35,7 +35,21 @@
 #include <gtest/gtest.h>
 #include "level3/symm/test_symm.h"
 
-class ssymmGeneric :
+// Two options for instantiate block, one to set lda_inc = ldb_inc = ldc_inc to
+// reduce Cartesian product, and one to allow all to be varied independently.
+class ssymmGeneric1 :
+        public ::testing::TestWithParam<std::tuple<char,
+                                                   char,
+                                                   char,
+                                                   char,
+                                                   char,
+                                                   gtint_t,
+                                                   gtint_t,
+                                                   float,
+                                                   float,
+                                                   gtint_t>> {};
+
+class ssymmGeneric3 :
         public ::testing::TestWithParam<std::tuple<char,
                                                    char,
                                                    char,
@@ -49,39 +63,13 @@ class ssymmGeneric :
                                                    gtint_t,
                                                    gtint_t>> {};
 
-TEST_P( ssymmGeneric, API )
-{
-    using T = float;
-    //----------------------------------------------------------
-    // Initialize values from the parameters passed through
-    // test suite instantiation (INSTANTIATE_TEST_SUITE_P).
-    //----------------------------------------------------------
-    // matrix storage format(row major, column major)
-    char storage = std::get<0>(GetParam());
-    // specifies if the symmetric matrix A appears left or right in
-    // the matrix multiplication
-    char side = std::get<1>(GetParam());
-    // specifies if the upper or lower triangular part of A is used
-    char uplo = std::get<2>(GetParam());
-    // denotes whether matrix a is n,c
-    char conja = std::get<3>(GetParam());
-    // denotes whether matrix b is n,c,t,h
-    char transb = std::get<4>(GetParam());
-    // matrix size m
-    gtint_t m  = std::get<5>(GetParam());
-    // matrix size n
-    gtint_t n  = std::get<6>(GetParam());
-    // specifies alpha value
-    T alpha = std::get<7>(GetParam());
-    // specifies beta value
-    T beta = std::get<8>(GetParam());
-    // lda, ldb, ldc increments.
-    // If increments are zero, then the array size matches the matrix size.
-    // If increments are nonnegative, the array size is bigger than the matrix size.
-    gtint_t lda_inc = std::get<9>(GetParam());
-    gtint_t ldb_inc = std::get<10>(GetParam());
-    gtint_t ldc_inc = std::get<11>(GetParam());
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ssymmGeneric1);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ssymmGeneric3);
 
+using T = float;
+void ssymmGeneric( char storage, char side, char uplo, char conja, char transb, gtint_t m, gtint_t n,
+                   T alpha, T beta, gtint_t lda_inc, gtint_t ldb_inc, gtint_t ldc_inc )
+{
     // Set the threshold for the errors:
     // Check gtestsuite symm.h or netlib source code for reminder of the
     // functionality from which we estimate operation count per element
@@ -132,10 +120,83 @@ TEST_P( ssymmGeneric, API )
 #endif
 }
 
+TEST_P( ssymmGeneric1, API )
+{
+    //----------------------------------------------------------
+    // Initialize values from the parameters passed through
+    // test suite instantiation (INSTANTIATE_TEST_SUITE_P).
+    //----------------------------------------------------------
+    // matrix storage format(row major, column major)
+    char storage = std::get<0>(GetParam());
+    // specifies if the symmetric matrix A appears left or right in
+    // the matrix multiplication
+    char side = std::get<1>(GetParam());
+    // specifies if the upper or lower triangular part of A is used
+    char uplo = std::get<2>(GetParam());
+    // denotes whether matrix a is n,c
+    char conja = std::get<3>(GetParam());
+    // denotes whether matrix b is n,c,t,h
+    char transb = std::get<4>(GetParam());
+    // matrix size m
+    gtint_t m  = std::get<5>(GetParam());
+    // matrix size n
+    gtint_t n  = std::get<6>(GetParam());
+    // specifies alpha value
+    T alpha = std::get<7>(GetParam());
+    // specifies beta value
+    T beta = std::get<8>(GetParam());
+    // lda, ldb, ldc increments.
+    // If increments are zero, then the array size matches the matrix size.
+    // If increments are nonnegative, the array size is bigger than the matrix size.
+    gtint_t lda_inc = std::get<9>(GetParam());
+
+    gtint_t ldb_inc = lda_inc;
+    gtint_t ldc_inc = lda_inc;
+
+    ssymmGeneric( storage, side, uplo, conja, transb, m, n,
+                  alpha, beta, lda_inc, ldb_inc, ldc_inc );
+}
+
+TEST_P( ssymmGeneric3, API )
+{
+    //----------------------------------------------------------
+    // Initialize values from the parameters passed through
+    // test suite instantiation (INSTANTIATE_TEST_SUITE_P).
+    //----------------------------------------------------------
+    // matrix storage format(row major, column major)
+    char storage = std::get<0>(GetParam());
+    // specifies if the symmetric matrix A appears left or right in
+    // the matrix multiplication
+    char side = std::get<1>(GetParam());
+    // specifies if the upper or lower triangular part of A is used
+    char uplo = std::get<2>(GetParam());
+    // denotes whether matrix a is n,c
+    char conja = std::get<3>(GetParam());
+    // denotes whether matrix b is n,c,t,h
+    char transb = std::get<4>(GetParam());
+    // matrix size m
+    gtint_t m  = std::get<5>(GetParam());
+    // matrix size n
+    gtint_t n  = std::get<6>(GetParam());
+    // specifies alpha value
+    T alpha = std::get<7>(GetParam());
+    // specifies beta value
+    T beta = std::get<8>(GetParam());
+    // lda, ldb, ldc increments.
+    // If increments are zero, then the array size matches the matrix size.
+    // If increments are nonnegative, the array size is bigger than the matrix size.
+    gtint_t lda_inc = std::get<9>(GetParam());
+    gtint_t ldb_inc = std::get<10>(GetParam());
+    gtint_t ldc_inc = std::get<11>(GetParam());
+
+    ssymmGeneric( storage, side, uplo, conja, transb, m, n,
+                  alpha, beta, lda_inc, ldb_inc, ldc_inc );
+}
+
 // Black box testing.
 INSTANTIATE_TEST_SUITE_P(
         Blackbox,
-        ssymmGeneric,
+        ssymmGeneric1,
         ::testing::Combine(
             ::testing::Values('c'
 #ifndef TEST_BLAS_LIKE
@@ -146,13 +207,34 @@ INSTANTIATE_TEST_SUITE_P(
             ::testing::Values('u','l'),                                      // u:upper, l:lower
             ::testing::Values('n'),                                          // conja
             ::testing::Values('n'),                                          // transb
-            ::testing::Values(gtint_t(1), gtint_t(3), gtint_t(30)),          // m
-            ::testing::Values(gtint_t(1), gtint_t(2), gtint_t(26)),          // n
-            ::testing::Values( 1.0, -2.0),                                   // alpha
-            ::testing::Values(-1.0,  1.0),                                   // beta
-            ::testing::Values(gtint_t(0), gtint_t(3)),                       // increment to the leading dim of a
-            ::testing::Values(gtint_t(0), gtint_t(1)),                       // increment to the leading dim of b
-            ::testing::Values(gtint_t(0), gtint_t(9))                        // increment to the leading dim of c
+            ::testing::Range(gtint_t(1), gtint_t(17), 1),                    // m
+            ::testing::Range(gtint_t(1), gtint_t(17), 1),                    // n
+            ::testing::Values(0.0, 1.0, -1.0, 3.1),                          // alpha
+            ::testing::Values(0.0, 1.0, -1.0, 3.1),                          // beta
+            ::testing::Values(gtint_t(0), gtint_t(3))                        // increment to the leading dim of a, b and c
         ),
-        ::symmGenericPrint<float>()
+        ::symmGenericPrint1<float>()
+    );
+
+// Black box testing.
+INSTANTIATE_TEST_SUITE_P(
+        Blackbox2,
+        ssymmGeneric1,
+        ::testing::Combine(
+            ::testing::Values('c'
+#ifndef TEST_BLAS_LIKE
+            ,'r'
+#endif
+            ),                                                               // storage format
+            ::testing::Values('l','r'),                                      // l:left, r:right
+            ::testing::Values('u','l'),                                      // u:upper, l:lower
+            ::testing::Values('n'),                                          // conja
+            ::testing::Values('n'),                                          // transb
+            ::testing::Values(1, 2, 112, 551),                               // m
+            ::testing::Values(1, 2, 154, 676),                               // n
+            ::testing::Values(0.0, 1.0, -1.0, 3.1),                          // alpha
+            ::testing::Values(0.0, 1.0, -1.0, 3.1),                          // beta
+            ::testing::Values(gtint_t(0), gtint_t(3))                        // increment to the leading dim of a, b and c
+        ),
+        ::symmGenericPrint1<float>()
     );
