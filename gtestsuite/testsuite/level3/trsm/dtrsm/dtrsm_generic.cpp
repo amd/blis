@@ -35,7 +35,20 @@
 #include <gtest/gtest.h>
 #include "level3/trsm/test_trsm.h"
 
-class dtrsmGeneric :
+// Two options for instantiate block, one to set lda_inc = ldb_inc to
+// reduce Cartesian product, and one to allow all to be varied independently.
+class dtrsmGeneric1 :
+        public ::testing::TestWithParam<std::tuple<char,          // storage format
+                                                   char,          // side
+                                                   char,          // uplo
+                                                   char,          // transa
+                                                   char,          // diaga
+                                                   gtint_t,       // m
+                                                   gtint_t,       // n
+                                                   double,        // alpha
+                                                   gtint_t>> {};  // inc to the lda and ldb
+
+class dtrsmGeneric2 :
         public ::testing::TestWithParam<std::tuple<char,          // storage format
                                                    char,          // side
                                                    char,          // uplo
@@ -47,38 +60,13 @@ class dtrsmGeneric :
                                                    gtint_t,       // lda_inc
                                                    gtint_t>> {};  // ldb_inc
 
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(strsmGeneric);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(dtrsmGeneric1);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(dtrsmGeneric2);
 
-TEST_P( dtrsmGeneric, API )
+using T = double;
+void dtrsmGeneric( char storage, char side, char uploa, char transa, char diaga, gtint_t m, gtint_t n,
+                   T alpha, gtint_t lda_inc, gtint_t ldb_inc )
 {
-    using T = double;
-    //----------------------------------------------------------
-    // Initialize values from the parameters passed through
-    // test suite instantiation (INSTANTIATE_TEST_SUITE_P).
-    //----------------------------------------------------------
-    // matrix storage format(row major, column major)
-    char storage = std::get<0>(GetParam());
-    // specifies matrix A appears left or right in
-    // the matrix multiplication
-    char side = std::get<1>(GetParam());
-    // specifies upper or lower triangular part of A is used
-    char uploa = std::get<2>(GetParam());
-    // denotes whether matrix a is n,c,t,h
-    char transa = std::get<3>(GetParam());
-    // denotes whether matrix a in unit or non-unit diagonal
-    char diaga = std::get<4>(GetParam());
-    // matrix size m
-    gtint_t m  = std::get<5>(GetParam());
-    // matrix size n
-    gtint_t n  = std::get<6>(GetParam());
-    // specifies alpha value
-    T alpha = std::get<7>(GetParam());
-    // lda, ldb, ldc increments.
-    // If increments are zero, then the array size matches the matrix size.
-    // If increments are nonnegative, the array size is bigger than the matrix size.
-    gtint_t lda_inc = std::get<8>(GetParam());
-    gtint_t ldb_inc = std::get<9>(GetParam());
-
     // Set the threshold for the errors:
     // Check gtestsuite trsm.h or netlib source code for reminder of the
     // functionality from which we estimate operation count per element
@@ -124,13 +112,82 @@ TEST_P( dtrsmGeneric, API )
 #endif
 }
 
+TEST_P( dtrsmGeneric1, API )
+{
+    using T = double;
+    //----------------------------------------------------------
+    // Initialize values from the parameters passed through
+    // test suite instantiation (INSTANTIATE_TEST_SUITE_P).
+    //----------------------------------------------------------
+    // matrix storage format(row major, column major)
+    char storage = std::get<0>(GetParam());
+    // specifies matrix A appears left or right in
+    // the matrix multiplication
+    char side = std::get<1>(GetParam());
+    // specifies upper or lower triangular part of A is used
+    char uploa = std::get<2>(GetParam());
+    // denotes whether matrix a is n,c,t,h
+    char transa = std::get<3>(GetParam());
+    // denotes whether matrix a in unit or non-unit diagonal
+    char diaga = std::get<4>(GetParam());
+    // matrix size m
+    gtint_t m  = std::get<5>(GetParam());
+    // matrix size n
+    gtint_t n  = std::get<6>(GetParam());
+    // specifies alpha value
+    T alpha = std::get<7>(GetParam());
+    // lda, ldb, ldc increments.
+    // If increments are zero, then the array size matches the matrix size.
+    // If increments are nonnegative, the array size is bigger than the matrix size.
+    gtint_t lda_inc = std::get<8>(GetParam());
+
+    gtint_t ldb_inc = lda_inc;
+
+    dtrsmGeneric( storage, side, uploa, transa, diaga, m, n,
+                  alpha, lda_inc, ldb_inc );
+}
+
+TEST_P( dtrsmGeneric2, API )
+{
+    using T = double;
+    //----------------------------------------------------------
+    // Initialize values from the parameters passed through
+    // test suite instantiation (INSTANTIATE_TEST_SUITE_P).
+    //----------------------------------------------------------
+    // matrix storage format(row major, column major)
+    char storage = std::get<0>(GetParam());
+    // specifies matrix A appears left or right in
+    // the matrix multiplication
+    char side = std::get<1>(GetParam());
+    // specifies upper or lower triangular part of A is used
+    char uploa = std::get<2>(GetParam());
+    // denotes whether matrix a is n,c,t,h
+    char transa = std::get<3>(GetParam());
+    // denotes whether matrix a in unit or non-unit diagonal
+    char diaga = std::get<4>(GetParam());
+    // matrix size m
+    gtint_t m  = std::get<5>(GetParam());
+    // matrix size n
+    gtint_t n  = std::get<6>(GetParam());
+    // specifies alpha value
+    T alpha = std::get<7>(GetParam());
+    // lda, ldb, ldc increments.
+    // If increments are zero, then the array size matches the matrix size.
+    // If increments are nonnegative, the array size is bigger than the matrix size.
+    gtint_t lda_inc = std::get<8>(GetParam());
+    gtint_t ldb_inc = std::get<9>(GetParam());
+
+    dtrsmGeneric( storage, side, uploa, transa, diaga, m, n,
+                  alpha, lda_inc, ldb_inc );
+}
+
 /**
  * @brief Test DTRSM native path, which starts from size 1500 for BLAS api
  *        and starts from size 0 for BLIS api.
  */
 INSTANTIATE_TEST_SUITE_P(
         Native,
-        dtrsmGeneric,
+        dtrsmGeneric1,
         ::testing::Combine(
             ::testing::Values('c'
 #ifndef TEST_BLAS_LIKE
@@ -139,15 +196,14 @@ INSTANTIATE_TEST_SUITE_P(
             ),                                                               // storage format
             ::testing::Values('l','r'),                                      // side  l:left, r:right
             ::testing::Values('u','l'),                                      // uplo  u:upper, l:lower
-            ::testing::Values('n','t'),                                      // transa
+            ::testing::Values('n','c','t'),                                  // transa
             ::testing::Values('n','u'),                                      // diaga , n=nonunit u=unit
             ::testing::Values(1, 2, 112, 1551),                              // m
             ::testing::Values(1, 2, 154, 1676),                              // n
-            ::testing::Values(-2.4),                                         // alpha
-            ::testing::Values(gtint_t(5)),                                   // increment to the leading dim of a
-            ::testing::Values(gtint_t(3))                                    // increment to the leading dim of b
+            ::testing::Values(0.0, 1.0, -1.0, 3.1),                          // alpha
+            ::testing::Values(gtint_t(0),gtint_t(3))                         // increment to the leading dim of a and b
         ),
-        ::trsmGenericPrint<double>()
+        ::trsmGeneric1Print<double>()
     );
 
 /**
@@ -157,20 +213,19 @@ INSTANTIATE_TEST_SUITE_P(
  */
 INSTANTIATE_TEST_SUITE_P(
         Small_AVX2_fringe,
-        dtrsmGeneric,
+        dtrsmGeneric1,
         ::testing::Combine(
             ::testing::Values('c'),                                          // storage format
             ::testing::Values('l','r'),                                      // side  l:left, r:right
             ::testing::Values('u','l'),                                      // uplo  u:upper, l:lower
-            ::testing::Values('n','t'),                                      // transa
+            ::testing::Values('n','c','t'),                                  // transa
             ::testing::Values('n','u'),                                      // diaga , n=nonunit u=unit
-            ::testing::Range(gtint_t(1), gtint_t(9), 2),                     // m
-            ::testing::Range(gtint_t(1), gtint_t(13), 3),                    // n
-            ::testing::Values(-2.4),                                         // alpha
-            ::testing::Values(gtint_t(5)),                                   // increment to the leading dim of a
-            ::testing::Values(gtint_t(3))                                    // increment to the leading dim of b
+            ::testing::Range(gtint_t(1), gtint_t(9), 1),                     // m
+            ::testing::Range(gtint_t(1), gtint_t(13), 1),                    // n
+            ::testing::Values(0.0, 1.0, -1.0, 3.1),                          // alpha
+            ::testing::Values(gtint_t(0),gtint_t(3))                         // increment to the leading dim of a and b
         ),
-        ::trsmGenericPrint<double>()
+        ::trsmGeneric1Print<double>()
     );
 
 /**
@@ -179,20 +234,19 @@ INSTANTIATE_TEST_SUITE_P(
  */
 INSTANTIATE_TEST_SUITE_P(
         Small_AVX2,
-        dtrsmGeneric,
+        dtrsmGeneric1,
         ::testing::Combine(
             ::testing::Values('c'),                                          // storage format
             ::testing::Values('l','r'),                                      // side  l:left, r:right
             ::testing::Values('u','l'),                                      // uplo  u:upper, l:lower
-            ::testing::Values('n','t'),                                      // transa
+            ::testing::Values('n','c','t'),                                  // transa
             ::testing::Values('n','u'),                                      // diaga , n=nonunit u=unit
-            ::testing::Values(17, 110, 51, 1499),                           // m
-            ::testing::Values(17, 48 , 51, 1499),                           // n
-            ::testing::Values(-2.4),                                         // alpha
-            ::testing::Values(gtint_t(5)),                                   // increment to the leading dim of a
-            ::testing::Values(gtint_t(3))                                    // increment to the leading dim of b
+            ::testing::Values(17, 110, 51, 1499),                            // m
+            ::testing::Values(17, 48 , 51, 1499),                            // n
+            ::testing::Values(0.0, 1.0, -1.0, 3.1),                          // alpha
+            ::testing::Values(gtint_t(0),gtint_t(3))                         // increment to the leading dim of a and b
         ),
-        ::trsmGenericPrint<double>()
+        ::trsmGeneric1Print<double>()
     );
 
 /**
@@ -203,20 +257,19 @@ INSTANTIATE_TEST_SUITE_P(
  */
 INSTANTIATE_TEST_SUITE_P(
         Small_AVX512_fringe,
-        dtrsmGeneric,
+        dtrsmGeneric1,
         ::testing::Combine(
             ::testing::Values('c'),                                          // storage format
             ::testing::Values('l','r'),                                      // side  l:left, r:right
             ::testing::Values('u','l'),                                      // uplo  u:upper, l:lower
-            ::testing::Values('n','t'),                                      // transa
+            ::testing::Values('n','c','t'),                                  // transa
             ::testing::Values('n','u'),                                      // diaga , n=nonunit u=unit
-            ::testing::Range(gtint_t(51), gtint_t(62), 3),                   // m
-            ::testing::Range(gtint_t(51), gtint_t(60), 2),                   // n
-            ::testing::Values(-2.4),                                         // alpha
-            ::testing::Values(gtint_t(5)),                                   // increment to the leading dim of a
-            ::testing::Values(gtint_t(3))                                    // increment to the leading dim of b
+            ::testing::Range(gtint_t(51), gtint_t(62), 1),                   // m
+            ::testing::Range(gtint_t(51), gtint_t(60), 1),                   // n
+            ::testing::Values(0.0, 1.0, -1.0, 3.1),                          // alpha
+            ::testing::Values(gtint_t(0),gtint_t(3))                         // increment to the leading dim of a and b
         ),
-        ::trsmGenericPrint<double>()
+        ::trsmGeneric1Print<double>()
     );
 
 /**
@@ -225,44 +278,17 @@ INSTANTIATE_TEST_SUITE_P(
  */
 INSTANTIATE_TEST_SUITE_P(
         Small_AVX512,
-        dtrsmGeneric,
+        dtrsmGeneric1,
         ::testing::Combine(
             ::testing::Values('c'),                                          // storage format
             ::testing::Values('l','r'),                                      // side  l:left, r:right
             ::testing::Values('u','l'),                                      // uplo  u:upper, l:lower
-            ::testing::Values('n','t'),                                      // transa
+            ::testing::Values('n','c','t'),                                  // transa
             ::testing::Values('n','u'),                                      // diaga , n=nonunit u=unit
             ::testing::Values(51, 410, 1499),                                // n
             ::testing::Values(51, 531, 1499),                                // m
-            ::testing::Values(-2.4),                                         // alpha
-            ::testing::Values(gtint_t(5)),                                   // increment to the leading dim of a
-            ::testing::Values(gtint_t(3))                                    // increment to the leading dim of b
+            ::testing::Values(0.0, 1.0, -1.0, 3.1),                          // alpha
+            ::testing::Values(gtint_t(0),gtint_t(3))                         // increment to the leading dim of a and b
         ),
-        ::trsmGenericPrint<double>()
-    );
-
-/**
- * @brief Test DTRSM with different values of alpha
- *      code paths covered:
- *          TRSV              -> 1
- *          TRSM_AVX2_small   -> 2
- *          TRSM_AVX512_small -> 300
- *          TRSM_NATIVE       -> 1500
- */
-INSTANTIATE_TEST_SUITE_P(
-        Alpha,
-        dtrsmGeneric,
-        ::testing::Combine(
-            ::testing::Values('c'),                                          // storage format
-            ::testing::Values('l','r'),                                      // side  l:left, r:right
-            ::testing::Values('u','l'),                                      // uplo  u:upper, l:lower
-            ::testing::Values('n','t'),                                      // transa
-            ::testing::Values('n','u'),                                      // diaga , n=nonunit u=unit
-            ::testing::Values(1, 2, 300, 1500),                              // n
-            ::testing::Values(1, 2, 300, 1500),                              // m
-            ::testing::Values(-2.4, 0.0, 1.0, 3.1),                          // alpha
-            ::testing::Values(gtint_t(0), gtint_t(5)),                       // increment to the leading dim of a
-            ::testing::Values(gtint_t(0), gtint_t(3))                        // increment to the leading dim of b
-        ),
-        ::trsmGenericPrint<double>()
+        ::trsmGeneric1Print<double>()
     );

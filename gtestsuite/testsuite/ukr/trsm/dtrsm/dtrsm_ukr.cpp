@@ -66,7 +66,6 @@ class dtrsmGenericSmall :
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(dtrsmGenericNat);
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(dtrsmGenericSmall);
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(strsmGeneric);
 
 TEST_P( dtrsmGenericNat, native_kernel)
 {

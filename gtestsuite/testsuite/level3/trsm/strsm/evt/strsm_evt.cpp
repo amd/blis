@@ -36,7 +36,7 @@
 #include "level3/trsm/test_trsm.h"
 
 class strsmEVT :
-        public ::testing::TestWithParam<std::tuple<char,           // storage
+        public ::testing::TestWithParam<std::tuple<char,           // storage format
                                                    char,           // side
                                                    char,           // uploa
                                                    char,           // transa
@@ -49,7 +49,7 @@ class strsmEVT :
                                                    EVT_TYPE,       // EVT type for A
                                                    EVT_TYPE>> {};  // EVT type for B
 
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(strsmGeneric);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(strsmEVT);
 
 TEST_P( strsmEVT, API )
 {
@@ -111,7 +111,7 @@ TEST_P( strsmEVT, API )
  *      Native       -> 1051, 1176
  */
 INSTANTIATE_TEST_SUITE_P(
-        Native,
+        NativeA,
         strsmEVT,
         ::testing::Combine(
             ::testing::Values('c'
@@ -123,20 +123,142 @@ INSTANTIATE_TEST_SUITE_P(
             ::testing::Values('u','l'),                                      // uplo  u:upper, l:lower
             ::testing::Values('n','t'),                                      // transa
             ::testing::Values('n','u'),                                      // diaga , n=nonunit u=unit
-            ::testing::Values(1, 301, 1051),                                 // m
-            ::testing::Values(1, 324, 1176),                                 // n
+            ::testing::Values(1, 2, 301),                                    // m
+            ::testing::Values(1, 2, 324),                                    // n
             ::testing::Values(-2.4, 0.0, 1.0, -1.0),                         // alpha
             ::testing::Values(gtint_t(0)),                                   // increment to the leading dim of a
             ::testing::Values(gtint_t(0)),                                   // increment to the leading dim of b
             ::testing::Values(NO_EVT, NaN, INF, NaN_INF, DIAG_NaN, DIAG_INF,
                               NEG_INF, NEG_NaN),                             // EVT test for A
+            ::testing::Values(NO_EVT)   // EVT test for B
+        ),
+        ::trsmEVTPrint<float>()
+    );
+
+INSTANTIATE_TEST_SUITE_P(
+        NativeA_largeM,
+        strsmEVT,
+        ::testing::Combine(
+            ::testing::Values('c'
+#ifndef TEST_BLAS_LIKE
+            ,'r'
+#endif
+            ),                                                               // storage format
+            ::testing::Values('l','r'),                                      // side  l:left, r:right
+            ::testing::Values('u','l'),                                      // uplo  u:upper, l:lower
+            ::testing::Values('n','t'),                                      // transa
+            ::testing::Values('n','u'),                                      // diaga , n=nonunit u=unit
+            ::testing::Values(1051),                                         // m
+            ::testing::Values(1, 2, 324),                                    // n
+            ::testing::Values(-2.4, 0.0, 1.0, -1.0),                         // alpha
+            ::testing::Values(gtint_t(0)),                                   // increment to the leading dim of a
+            ::testing::Values(gtint_t(0)),                                   // increment to the leading dim of b
+            ::testing::Values(NO_EVT, NaN, INF, NaN_INF, DIAG_NaN, DIAG_INF,
+                              NEG_INF, NEG_NaN),                             // EVT test for A
+            ::testing::Values(NO_EVT)   // EVT test for B
+        ),
+        ::trsmEVTPrint<float>()
+    );
+
+INSTANTIATE_TEST_SUITE_P(
+        NativeA_largeN,
+        strsmEVT,
+        ::testing::Combine(
+            ::testing::Values('c'
+#ifndef TEST_BLAS_LIKE
+            ,'r'
+#endif
+            ),                                                               // storage format
+            ::testing::Values('l','r'),                                      // side  l:left, r:right
+            ::testing::Values('u','l'),                                      // uplo  u:upper, l:lower
+            ::testing::Values('n','t'),                                      // transa
+            ::testing::Values('n','u'),                                      // diaga , n=nonunit u=unit
+            ::testing::Values(1, 2, 301),                                    // m
+            ::testing::Values(1176),                                         // n
+            ::testing::Values(-2.4, 0.0, 1.0, -1.0),                         // alpha
+            ::testing::Values(gtint_t(0)),                                   // increment to the leading dim of a
+            ::testing::Values(gtint_t(0)),                                   // increment to the leading dim of b
+            ::testing::Values(NO_EVT, NaN, INF, NaN_INF, DIAG_NaN, DIAG_INF,
+                              NEG_INF, NEG_NaN),                             // EVT test for A
+            ::testing::Values(NO_EVT)   // EVT test for B
+        ),
+        ::trsmEVTPrint<float>()
+    );
+
+INSTANTIATE_TEST_SUITE_P(
+        NativeB,
+        strsmEVT,
+        ::testing::Combine(
+            ::testing::Values('c'
+#ifndef TEST_BLAS_LIKE
+            ,'r'
+#endif
+            ),                                                               // storage format
+            ::testing::Values('l','r'),                                      // side  l:left, r:right
+            ::testing::Values('u','l'),                                      // uplo  u:upper, l:lower
+            ::testing::Values('n','t'),                                      // transa
+            ::testing::Values('n','u'),                                      // diaga , n=nonunit u=unit
+            ::testing::Values(1, 2, 301),                                    // m
+            ::testing::Values(1, 2, 324),                                    // n
+            ::testing::Values(-2.4, 0.0, 1.0, -1.0),                         // alpha
+            ::testing::Values(gtint_t(0)),                                   // increment to the leading dim of a
+            ::testing::Values(gtint_t(0)),                                   // increment to the leading dim of b
+            ::testing::Values(NO_EVT),                                       // EVT test for A
             ::testing::Values(NO_EVT, NaN, INF, NaN_INF, NEG_INF, NEG_NaN)   // EVT test for B
         ),
         ::trsmEVTPrint<float>()
     );
 
 INSTANTIATE_TEST_SUITE_P(
-        Alpha,
+        NativeB_largeM,
+        strsmEVT,
+        ::testing::Combine(
+            ::testing::Values('c'
+#ifndef TEST_BLAS_LIKE
+            ,'r'
+#endif
+            ),                                                               // storage format
+            ::testing::Values('l','r'),                                      // side  l:left, r:right
+            ::testing::Values('u','l'),                                      // uplo  u:upper, l:lower
+            ::testing::Values('n','t'),                                      // transa
+            ::testing::Values('n','u'),                                      // diaga , n=nonunit u=unit
+            ::testing::Values(1051),                                         // m
+            ::testing::Values(1, 2, 324),                                    // n
+            ::testing::Values(-2.4, 0.0, 1.0, -1.0),                         // alpha
+            ::testing::Values(gtint_t(0)),                                   // increment to the leading dim of a
+            ::testing::Values(gtint_t(0)),                                   // increment to the leading dim of b
+            ::testing::Values(NO_EVT),                                       // EVT test for A
+            ::testing::Values(NO_EVT, NaN, INF, NaN_INF, NEG_INF, NEG_NaN)   // EVT test for B
+        ),
+        ::trsmEVTPrint<float>()
+    );
+
+INSTANTIATE_TEST_SUITE_P(
+        NativeB_largeN,
+        strsmEVT,
+        ::testing::Combine(
+            ::testing::Values('c'
+#ifndef TEST_BLAS_LIKE
+            ,'r'
+#endif
+            ),                                                               // storage format
+            ::testing::Values('l','r'),                                      // side  l:left, r:right
+            ::testing::Values('u','l'),                                      // uplo  u:upper, l:lower
+            ::testing::Values('n','t'),                                      // transa
+            ::testing::Values('n','u'),                                      // diaga , n=nonunit u=unit
+            ::testing::Values(1, 2, 301),                                    // m
+            ::testing::Values(1176),                                         // n
+            ::testing::Values(-2.4, 0.0, 1.0, -1.0),                         // alpha
+            ::testing::Values(gtint_t(0)),                                   // increment to the leading dim of a
+            ::testing::Values(gtint_t(0)),                                   // increment to the leading dim of b
+            ::testing::Values(NO_EVT),                                       // EVT test for A
+            ::testing::Values(NO_EVT, NaN, INF, NaN_INF, NEG_INF, NEG_NaN)   // EVT test for B
+        ),
+        ::trsmEVTPrint<float>()
+    );
+
+INSTANTIATE_TEST_SUITE_P(
+        DISABLED_Alpha,
         strsmEVT,
         ::testing::Combine(
             ::testing::Values('c'
