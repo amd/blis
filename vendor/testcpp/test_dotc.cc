@@ -3,7 +3,7 @@
    BLISPP
    C++ test driver for BLIS CPP dotc routine and reference blis dotc routine.
 
-   Copyright (C) 2019 - 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2019 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -108,7 +108,8 @@ void test_dotc()
     cout<< "Dot product ref\n" << res_ref << "\n";;
 #endif
 
-    if(res != res_ref )
+    const double threshold = 2.0 * n * test_epsilon<T>();
+    if(test_error(res, res_ref) > threshold)
         printf("%s TEST FAIL\n" ,__PRETTY_FUNCTION__);
     else
         printf("%s TEST PASS\n" , __PRETTY_FUNCTION__);

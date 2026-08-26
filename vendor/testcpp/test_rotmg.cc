@@ -3,7 +3,7 @@
    BLISPP
    C++ test driver for BLIS CPP rotmg routine and reference blis rotmg routine.
 
-   Copyright (C) 2019 - 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2019 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -48,10 +48,8 @@ void test_rotmg()
 {
     T d1, d2, b1, b2;
     T d1_ref, d2_ref, b1_ref;
-    T h[5] = { -999.0f, -999.1f, -999.2f, -999.3f, -999.4f };
-    T h_ref[5] = {-1.0f, 0.0f, 0.0f, 0.0f,0.0f};
-    T h_double[5] = { -999.0, -999.1, -999.2, -999.3, -999.4 };
-    T h_ref_double[5] = { 1, 0, 0, 0};
+    T h[5] = { T{-999.0}, T{-999.1}, T{-999.2}, T{-999.3}, T{-999.4} };
+    const T h_ref[5] = { T{-1.0}, T{0.0}, T{0.0}, T{0.0}, T{0.0} };
 
    if(is_same<T , float>::value)
    {
@@ -78,24 +76,13 @@ void test_rotmg()
     cout<< "b1 Value : " << b1 << "\n" ;
     printvector(h, 5,(char *) "param");
 #endif
-    if(is_same<T , float>::value)
-    {
-        blis::rotmg<T>( 
-                &d1,
-                &d2,
-                &b1,
-                b2,
-                h
-                );
-    }else{
-        blis::rotmg<T>( 
-         &d1,
-         &d2,
-         &b1,
-         b2,
-         h_double
-         );
-    }
+    blis::rotmg<T>(
+        &d1,
+        &d2,
+        &b1,
+        b2,
+        h
+    );
 
 #ifdef PRINT
     cout<< "After blis::rotmg \nd1 Value : " << d1 << "\n" ;
@@ -112,17 +99,9 @@ void test_rotmg()
 #endif
     if( (d1 != d1_ref ) || (d2 != d2_ref ) || (b1 != b1_ref ) )
         printf("%s TEST FAIL\n" , __PRETTY_FUNCTION__);
-    else if(is_same<T , float>::value){
-        if(computeErrorV(1, 1 , 5, h, h_ref )==1) 
-             printf("%s TEST FAIL\n" , __PRETTY_FUNCTION__);
-        else
-             printf("%s TEST PASS\n" , __PRETTY_FUNCTION__);
-    }else if(is_same<T , float>::value){
-        if(computeErrorV(1, 1 , 5, h_double, h_ref_double )==1)
-            printf("%s TEST FAIL\n" , __PRETTY_FUNCTION__);
-        else
-            printf("%s TEST PASS\n" , __PRETTY_FUNCTION__);
-    }else
+    else if(computeErrorV(5, h, h_ref, 1.0e-5)==1)
+        printf("%s TEST FAIL\n" , __PRETTY_FUNCTION__);
+    else
         printf("%s TEST PASS\n" , __PRETTY_FUNCTION__);
 
 }

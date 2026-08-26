@@ -3,7 +3,7 @@
    BLISPP
    C++ test driver for BLIS CPP rotm routine and reference blis rotm routine.
 
-   Copyright (C) 2019 - 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2019 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -62,14 +62,38 @@ void test_rotm()
     {
       X[0] = { -0.034f };
       Y[0] = { -0.56f };
-      X_ref[0] = { -3.956017e+04f };
-      Y_ref[0] = { -1.657054e+04f };
     }else{
        X[0] = { 0.84   };
        Y[0] = { -0.711  };
-       X_ref[0] = { -1.046158725429e+03 };
-       Y_ref[0] = { -0.829776862405 };
    }
+
+        const T* parameters = is_same<T, float>::value ? P : P_double;
+        const T flag = parameters[0];
+        T h11 = T{1};
+        T h12 = T{0};
+        T h21 = T{0};
+        T h22 = T{1};
+        if (flag < T{0} && flag != T{-2})
+        {
+            h11 = parameters[1];
+            h21 = parameters[2];
+            h12 = parameters[3];
+            h22 = parameters[4];
+        }
+        else if (flag == T{0})
+        {
+            h12 = parameters[3];
+            h21 = parameters[2];
+        }
+        else if (flag == T{1})
+        {
+            h11 = parameters[1];
+            h12 = T{1};
+            h21 = T{-1};
+            h22 = parameters[4];
+        }
+        X_ref[0] = h11 * X[0] + h12 * Y[0];
+        Y_ref[0] = h21 * X[0] + h22 * Y[0];
 
 #ifdef PRINT
     printvector(X, n, (char *)"Before blis::rot\nVector X");
@@ -88,8 +112,9 @@ void test_rotm()
     printvector(Y, n, (char *)"Vector Y");
 #endif
 
-    if((computeErrorV(incx, incx , n, X, X_ref )==1) 
-       || (computeErrorV(incy, incy , n, Y, Y_ref )==1))
+    const double threshold = 3.0 * test_epsilon<T>();
+     if((computeErrorV(n, X, X_ref, threshold)==1)
+         || (computeErrorV(n, Y, Y_ref, threshold)==1))
         printf("%s TEST FAIL\n" , __PRETTY_FUNCTION__);
     else
         printf("%s TEST PASS\n" , __PRETTY_FUNCTION__);

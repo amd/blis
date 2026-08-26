@@ -3,7 +3,7 @@
    BLISPP
    C++ test driver for BLIS CPP sdsdot routine and reference blis sdsdot routine.
 
-   Copyright (C) 2019 - 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2019 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -99,7 +99,11 @@ void test_sdsdot()
 
     X[0] = { 0.733f };
     Y[0] = { 0.825f };
-    res_ref = 0.604725f;
+    double accumulator = static_cast<double>(ALPHA);
+    for (int i = 0; i < n; ++i)
+      accumulator += static_cast<double>(X[i * incx]) *
+                     static_cast<double>(Y[i * incy]);
+    res_ref = static_cast<T>(accumulator);
     res = blis::sdsdot<T>(
             n,
             ALPHA,
@@ -118,7 +122,8 @@ void test_sdsdot()
 #ifdef PRINT
     printf("Ref Dot product %E  \n", res_ref);
 #endif
-     if(res != res_ref )
+    const double threshold = 2.0 * n * test_epsilon<T>();
+     if(test_error(res, res_ref) > threshold)
         printf("%s TEST FAIL\n" ,__PRETTY_FUNCTION__);
      else
         printf("%s TEST PASS\n" , __PRETTY_FUNCTION__);

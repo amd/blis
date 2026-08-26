@@ -3,7 +3,7 @@
    BLISPP
    C++ test driver for BLIS CPP nrm2 routine and reference blis nrm2 routine.
 
-   Copyright (C) 2019 - 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2019 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -40,9 +40,6 @@ using namespace blis;
 using namespace std;
 //#define PRINT
 #define N 2
-#define ALPHA 0.5
-
-#define TOLERANCE          0.0000001
 /*
  * Test application assumes matrices to be column major, non-transposed
  */
@@ -51,7 +48,8 @@ void test_nrm2()
 {
 
     T X[N];
-    T nrm2, nrm2_ref;
+    T nrm2;
+    long double nrm2_ref;
     int n;
     int incx;
 
@@ -62,14 +60,20 @@ void test_nrm2()
     {
         X[0] =  0.14f;
         X[1] =  -0.632f;
-        nrm2_ref = 0.647320631527f;
     }
     else if(is_same<T , double>::value)
     {
         X[0] =  0.696;
         X[1] =  -0.804;
-        nrm2_ref = 1.06340584915;
     }
+
+    long double sum = 0.0L;
+    for (int i = 0; i < n; ++i)
+    {
+        const long double value = static_cast<long double>(X[i]);
+        sum += value * value;
+    }
+    nrm2_ref = std::sqrt(sum);
 
 #ifdef PRINT
     printvector(X, n,(char *) "Vector X after blis::nrm2");
@@ -84,7 +88,8 @@ void test_nrm2()
     printf("Ref Norm of a Vector %E  \n", nrm2_ref);
 #endif
 
-    if (fabs(nrm2 - nrm2_ref) > TOLERANCE) 
+    const double threshold = std::sqrt(n) * test_epsilon<T>();
+    if (test_error(nrm2, static_cast<T>(nrm2_ref)) > threshold)
         printf("%s TEST FAIL\n" , __PRETTY_FUNCTION__);
     else
         printf("%s TEST PASS\n" , __PRETTY_FUNCTION__);

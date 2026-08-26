@@ -3,7 +3,7 @@
    BLISPP
    C++ test driver for BLIS CPP gemm routine and reference blis gemm routine.
 
-   Copyright (C) 2019 - 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2019 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -57,7 +57,9 @@ void test_spr(  )
 
    T A[] = { 0.819, 0.175, -0.809 };
    T X[] = { -0.645, -0.222 };
-   T A_ref[] = { 0.769716, 0.03181, -1.225025 };  
+   T A_ref[] = { 0.819, 0.175, -0.809 };
+
+   reference_spr(n, alpha, X, incX, A_ref);
     
     
 #ifdef PRINT
@@ -79,7 +81,8 @@ void test_spr(  )
      printmatrix(A_ref, n, n, n,(char *)"A_ref blis:spr \n");
 #endif
 
-     if(computeErrorM(1, 1, n, n, A, A_ref )==1)
+   const double threshold = 3.0 * test_epsilon<T>();
+   if(computeErrorV(n * (n + 1) / 2, A, A_ref, threshold)==1)
              printf("%s TEST FAIL\n" ,__PRETTY_FUNCTION__);
      else
              printf("%s TEST PASS\n" , __PRETTY_FUNCTION__); 
