@@ -920,7 +920,11 @@ void cgemv_blis_impl
     rs_a = 1;
     cs_a = *lda;
 
-    if( m_y == 1 )
+    // The dot-based shortcut preserves Netlib's operation order only for
+    // transpose cases. No-transpose must form alpha*x before multiplying by A.
+    // Non-finite alpha is handled by the unf_var1/var2 GEMV dispatch below.
+    if ( ( m_y == 1 ) && bli_does_trans( blis_transa ) &&
+         isfinite( alpha->real ) && isfinite( alpha->imag ) )
     {
         conj_t conja = bli_extract_conj(blis_transa);
         scomplex rho;
@@ -953,14 +957,17 @@ void cgemv_blis_impl
             );
         }
 
-        scomplex yval = *y0;
-        if(!bli_ceq0(*beta))
+        scomplex yval;
+        if ( bli_ceq0(*beta) )
         {
-            bli_cscals( *beta, yval );
+            // BLAS GEMV does not require initialized y when beta is zero,
+            // so do not read y here.
+            bli_csetsc( 0.0, 0.0, &yval);
         }
         else
         {
-            bli_csetsc( 0.0, 0.0, &yval);
+            yval = *y0;
+            if ( !bli_ceq1(*beta) ) bli_cscals( *beta, yval );
         }
         if(!bli_ceq0(*alpha))
         {
@@ -1071,6 +1078,10 @@ static bool bli_zgemv_small_trans
        dcomplex*  y, inc_t incy
      )
 {
+    // The dotxf kernels multiply y by both components of beta. Use the
+    // identity-aware T kernel when beta is exactly 1+0i (including -0i).
+    if ( bli_zeq1( *beta ) ) return false;
+
     zdotxf_ker_ft dotxf_ker;
     dim_t         fuse_factor;
 
@@ -1267,7 +1278,11 @@ void zgemv_blis_impl
     rs_a = 1;
     cs_a = *lda;
 
-    if( m_y == 1 )
+    // The dot-based shortcut preserves Netlib's operation order only for
+    // transpose cases. No-transpose must form alpha*x before multiplying by A.
+    // Non-finite alpha is handled by the unf_var1/var2 GEMV dispatch below.
+    if ( ( m_y == 1 ) && bli_does_trans( blis_transa ) &&
+         isfinite( alpha->real ) && isfinite( alpha->imag ) )
     {
         conj_t conja = bli_extract_conj(blis_transa);
         dcomplex rho;
@@ -1300,14 +1315,17 @@ void zgemv_blis_impl
             );
         }
 
-        dcomplex yval = *y0;
-        if(!bli_zeq0(*beta))
+        dcomplex yval;
+        if ( bli_zeq0(*beta) )
         {
-            bli_zscals( *beta, yval );
+            // BLAS GEMV does not require initialized y when beta is zero,
+            // so do not read y here.
+            bli_zsetsc( 0.0, 0.0, &yval);
         }
         else
         {
-            bli_zsetsc( 0.0, 0.0, &yval);
+            yval = *y0;
+            if ( !bli_zeq1(*beta) ) bli_zscals( *beta, yval );
         }
         if(!bli_zeq0(*alpha))
         {

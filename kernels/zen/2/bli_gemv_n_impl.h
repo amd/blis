@@ -512,10 +512,23 @@ GENT_GEMV_FPTR(dcomplex, z);
  *                    EPR, incy, rs_a, cs_a, abuf.
  */
 #define Z_GEMV_N_Y_LOOP(ch_s, ch, NR, k1)                                                                                   \
-    yv[0     ] = beta_is_zero ? PASTECH(SIMD_SETZERO_P_, ch_s)()                                                           \
-                              : PASTECH(SIMD_MUL_P_, ch_s)(beta_rv, PASTECH(SIMD_LOADU_P_, ch_s)(PASTECH(GEMV_CAST_, ch_s)(ybuf + ((k1) - 1) * (EPR)))); \
-    yv[0 + yregs] = beta_is_zero ? PASTECH(SIMD_SETZERO_P_, ch_s)()                                                        \
-                                 : PASTECH(SIMD_MUL_P_, ch_s)(beta_iv, PASTECH(SIMD_LOADU_P_, ch_s)(PASTECH(GEMV_CAST_, ch_s)(ybuf + ((k1) - 1) * (EPR)))); \
+    if ( beta_is_one )                                                                                                      \
+    {                                                                                                                       \
+        yv[0] = PASTECH(SIMD_LOADU_P_, ch_s)(PASTECH(GEMV_CAST_, ch_s)(ybuf + ((k1) - 1) * (EPR)));                        \
+        yv[0 + yregs] = PASTECH(SIMD_SETZERO_P_, ch_s)();                                                                  \
+    }                                                                                                                       \
+    else if ( beta_is_zero )                                                                                                \
+    {                                                                                                                       \
+        yv[0] = PASTECH(SIMD_SETZERO_P_, ch_s)();                                                                          \
+        yv[0 + yregs] = PASTECH(SIMD_SETZERO_P_, ch_s)();                                                                  \
+    }                                                                                                                       \
+    else                                                                                                                    \
+    {                                                                                                                       \
+        yv[0] = PASTECH(SIMD_MUL_P_, ch_s)(                                                                                 \
+            beta_rv, PASTECH(SIMD_LOADU_P_, ch_s)(PASTECH(GEMV_CAST_, ch_s)(ybuf + ((k1) - 1) * (EPR))));                  \
+        yv[0 + yregs] = PASTECH(SIMD_MUL_P_, ch_s)(                                                                         \
+            beta_iv, PASTECH(SIMD_LOADU_P_, ch_s)(PASTECH(GEMV_CAST_, ch_s)(ybuf + ((k1) - 1) * (EPR))));                  \
+    }                                                                                                                       \
     PP_ILOOP(NR, Z_GEMV_N_A_LOOP, ch_s, NR, k1)                                                                             \
     yv[0 + yregs] = PASTECH(SIMD_PERMUTE_P_, ch_s)(yv[0 + yregs], PASTECH(PERM_MASK_, ch));                                \
     yv[0] = PASTECH(SIMD_FMADDSUB_P_, ch_s)(PASTECH(SIMD_SET1_P_, ch_s)(1.0), yv[0], yv[0 + yregs]);                      \
@@ -561,10 +574,23 @@ GENT_GEMV_FPTR(dcomplex, z);
  */
 #define Z_GEMV_N_FRINGE_0(ch_s, ch, NR, yfull) /* empty */
 #define Z_GEMV_N_FRINGE_1(ch_s, ch, NR, yfull)                                                                             \
-    yv[0] = beta_is_zero ? PASTECH(SIMD_SETZERO_P_, ch_s)()                                                                \
-                         : PASTECH(SIMD_MUL_P_, ch_s)(beta_rv, SIMD_MASKZ_LOADU_P_##ch_s((1 << (MR_left * 2)) - 1, PASTECH(GEMV_CAST_, ch_s)(ybuf + (yfull) * (EPR)))); \
-    yv[0 + yregs] = beta_is_zero ? PASTECH(SIMD_SETZERO_P_, ch_s)()                                                        \
-                                 : PASTECH(SIMD_MUL_P_, ch_s)(beta_iv, SIMD_MASKZ_LOADU_P_##ch_s((1 << (MR_left * 2)) - 1, PASTECH(GEMV_CAST_, ch_s)(ybuf + (yfull) * (EPR)))); \
+    if ( beta_is_one )                                                                                                      \
+    {                                                                                                                       \
+        yv[0] = SIMD_MASKZ_LOADU_P_##ch_s((1 << (MR_left * 2)) - 1, PASTECH(GEMV_CAST_, ch_s)(ybuf + (yfull) * (EPR)));     \
+        yv[0 + yregs] = PASTECH(SIMD_SETZERO_P_, ch_s)();                                                                  \
+    }                                                                                                                       \
+    else if ( beta_is_zero )                                                                                                \
+    {                                                                                                                       \
+        yv[0] = PASTECH(SIMD_SETZERO_P_, ch_s)();                                                                          \
+        yv[0 + yregs] = PASTECH(SIMD_SETZERO_P_, ch_s)();                                                                  \
+    }                                                                                                                       \
+    else                                                                                                                    \
+    {                                                                                                                       \
+        yv[0] = PASTECH(SIMD_MUL_P_, ch_s)(                                                                                 \
+            beta_rv, SIMD_MASKZ_LOADU_P_##ch_s((1 << (MR_left * 2)) - 1, PASTECH(GEMV_CAST_, ch_s)(ybuf + (yfull) * (EPR)))); \
+        yv[0 + yregs] = PASTECH(SIMD_MUL_P_, ch_s)(                                                                         \
+            beta_iv, SIMD_MASKZ_LOADU_P_##ch_s((1 << (MR_left * 2)) - 1, PASTECH(GEMV_CAST_, ch_s)(ybuf + (yfull) * (EPR)))); \
+    }                                                                                                                       \
     PP_ILOOP(NR, Z_GEMV_N_A_FRINGE_LOOP, ch_s, NR, yfull)                                                                   \
     yv[0 + yregs] = PASTECH(SIMD_PERMUTE_P_, ch_s)(yv[0 + yregs], PASTECH(PERM_MASK_, ch));                                \
     yv[0] = PASTECH(SIMD_FMADDSUB_P_, ch_s)(PASTECH(SIMD_SET1_P_, ch_s)(1.0), yv[0], yv[0 + yregs]);                      \
@@ -745,6 +771,7 @@ void GENTFUNC_GEMVNS(ctype, ch, MR, NR)                                         
     PASTECH(SIMD_VEC_, ch_s) yv[1*2];     /* [0]: real acc,  [1]: imag acc (complex FMADDSUB)*/  \
     PASTECH(SIMD_VEC_, ch_s) av[1];        /* A tile scratch register                       */   \
     bool beta_is_zero = PASTEMAC(ch, eq0)( *beta );                                              \
+    bool beta_is_one  = PASTEMAC(ch, eq1)( *beta );                                              \
     PASTECH(SIMD_VEC_, ch_s) beta_rv = PASTECH(SIMD_SET1_P_, ch_s)((*beta).real); /* broadcast beta.re */ \
     PASTECH(SIMD_VEC_, ch_s) beta_iv = PASTECH(SIMD_SET1_P_, ch_s)((*beta).imag); /* broadcast beta.im */ \
     ctype temp;                            /* scalar temp for complex horizontal sums         */ \
@@ -778,6 +805,7 @@ void GENTFUNC_GEMVNS(ctype, ch, MR, NR)                                         
         /* After the first column strip y already has the correct beta scaling applied.
          * Subsequent strips must accumulate (not overwrite), so beta becomes 1+0i. */           \
         beta_is_zero = false;                                                                    \
+        beta_is_one = true;                                                                      \
         beta_rv = PASTECH(SIMD_SET1_P_, ch_s)(1.0);                                              \
         beta_iv = PASTECH(SIMD_SETZERO_P_, ch_s)();                                              \
     }                                                                                            \

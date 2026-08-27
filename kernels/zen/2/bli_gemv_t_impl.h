@@ -348,6 +348,11 @@
             ybuf->real = (temp.real * alpha->real) - (temp.imag * alpha->imag);                  \
             ybuf->imag = (temp.real * alpha->imag) + (temp.imag * alpha->real);                  \
         }                                                                                        \
+        else if ( PASTEMAC( ch, eq1 )( *beta ) )                                                 \
+        {                                                                                        \
+            ybuf->real += (temp.real * alpha->real) - (temp.imag * alpha->imag);                 \
+            ybuf->imag += (temp.real * alpha->imag) + (temp.imag * alpha->real);                 \
+        }                                                                                        \
         else                                                                                     \
         {                                                                                        \
             y_local = *ybuf;                                                                     \
