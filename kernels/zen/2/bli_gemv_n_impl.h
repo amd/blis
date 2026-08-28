@@ -90,6 +90,16 @@
   #define GEMV_BLK_SUFFIX_N(ch, MR, NR)  PASTEMAC4(ch, gemv_n_block_, MR, _, NR)
 #endif
 
+// Architecture/type-specific compiler hint for the full-row loop. Shims may
+// override one datatype while leaving the other real kernel unchanged.
+#ifndef GEMV_N_MLOOP_HINT_s
+  #define GEMV_N_MLOOP_HINT_s
+#endif
+#ifndef GEMV_N_MLOOP_HINT_d
+  #define GEMV_N_MLOOP_HINT_d
+#endif
+#define GEMV_N_MLOOP_HINT(ch) PASTECH(GEMV_N_MLOOP_HINT_, ch)
+
 /* GENTFUNC_GEMVNS: expands to the N-direction micro-kernel function name. */
 #define GENTFUNC_GEMVNS(ctype, ch, MR, NR)  GEMV_BLK_SUFFIX_N(ch, MR, NR)
 
@@ -849,6 +859,14 @@ void GENTFUNC_GEMVNS(ctype, ch, MR, NR)                                         
                                                                                                 \
         /* Full MR-row tiles: each iteration processes MR rows (PP_LOOP inside Y_LOOP
          * further unrolls MR/EPR row-registers at compile time). */                            \
+        /* GEMV_N_MLOOP_HINT macro exapands to _Pragma("clang loop unroll(disable)").
+         * The compiler is instructed to keep the loop as a loop rather than transforming it
+         * into multiple copies of the loop body.
+         * compiler unrolled loop is causing
+         *  - increased code size and instruction count.
+         *  - leading to suboptimal use of registers.
+         *  - store/restore of registers to stack for each unrolled loop body.  */              \
+        GEMV_N_MLOOP_HINT(ch)                                                                   \
         for (dim_t j = 0; j < mloop_full; ++j)                                                  \
         {                                                                                       \
             PP_LOOP(PP_DIV(MR, EPR_OF(ch)), S_GEMV_N_Y_LOOP, ch, NR, 0)                         \
