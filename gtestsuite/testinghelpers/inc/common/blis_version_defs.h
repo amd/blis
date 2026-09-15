@@ -38,10 +38,6 @@
    each release based on the previous plus new kernels added.
 */
 #ifdef AOCL_DEV
-    #define AOCL_60
-#endif
-
-#ifdef AOCL_60
     #define AOCL_53
 #endif
 
