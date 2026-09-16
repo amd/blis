@@ -237,6 +237,8 @@
 #define ASM_VXOR_d        VXORPD
 #define ASM_VMOVUP_s      VMOVUPS
 #define ASM_VMOVUP_d      VMOVUPD
+#define ASM_VMULP_s       VMULPS
+#define ASM_VMULP_d       VMULPD
 #define ASM_VFMADD231P_s  VFMADD231PS
 #define ASM_VFMADD231P_d  VFMADD231PD
 
