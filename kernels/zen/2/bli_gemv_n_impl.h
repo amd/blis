@@ -635,6 +635,160 @@ GENT_GEMV_FPTR(dcomplex, z);
     av[((l1) - 1)] = PASTECH(SIMD_LOADU_P_, ch)(abuf + ((k1) - 1)*(EPR)*rs_a + ((l1) - 1)*cs_a);                           \
     yv[((k1) - 1)] = PASTECH(SIMD_FMADD_P_, ch)(av[((l1) - 1)], xv[((l1) - 1)], yv[((k1) - 1)]);
 
+
+/*
+ * HAS_ASM_OF(ch, MR, NR): 1 if an assembly body exists for this kernel's type
+ * and shape, 0 otherwise. The enable token is derived from the kernel's own
+ * (ch, MR, NR) and spelled ASM_<ch>_<MR>x<NR>, with the lowercase real-type
+ * character that CH_S_<ch> yields (s->s, d->d, c->s, z->d), so a shape opts in
+ * by defining it at the instantiation site (kernels/zen4/2/bli_gemv_n_zen4_int.c):
+ *
+ * PP_IF needs COND to be a bare 0 or 1, so an undefined token must not reach
+ * it. ASM_PROBE_1 maps a token defined as 1 onto the two-element list "~, 1";
+ * anything else (undefined, empty, or 0) stays one element, and ASM_SECOND_
+ * then selects 1 or the 0 default. Every shape without an explicit opt-in
+ * therefore takes the C path, with no per-shape 0 table to maintain.
+ *
+ * The two ## stages each need their operands expanded first, and a ## operand
+ * is never expanded on its own, so each stage is preceded by one plain
+ * forwarding macro: HAS_ASM_OF_IMPL_ resolves PASTECH(CH_S_, ch) to the type
+ * character (and any macro MR / NR to their numbers) before ASM_PROBE_FLAG_
+ * pastes the enable token, and ASM_PROBE_EXP_ resolves that token to its value
+ * before ASM_PROBE_CAT_ pastes the probe onto it.
+ */
+
+#define ASM_PROBE_1                  ~, 1
+#define ASM_PROBE_CAT_(FLAG)         ASM_PROBE_##FLAG
+#define ASM_PROBE_EXP_(FLAG)         ASM_PROBE_CAT_(FLAG)
+#define ASM_PROBE_FLAG_(CH, MR, NR)  ASM_PROBE_EXP_(ASM_##CH##_##MR##x##NR)
+#define ASM_SECOND_(_1, _2, ...)     _2
+#define ASM_TO_BOOL_(...)            ASM_SECOND_(__VA_ARGS__, 0, 0)
+#define HAS_ASM_OF_IMPL_(CH, MR, NR) ASM_TO_BOOL_(ASM_PROBE_FLAG_(CH, MR, NR))
+#define HAS_ASM_OF(ch, MR, NR)       HAS_ASM_OF_IMPL_(PASTECH(CH_S_, ch), MR, NR)
+
+/* Fixed x-vector registers for up to eight A streams. */
+#define S_GEMV_N_X_REG_1 ZMM(8)
+#define S_GEMV_N_X_REG_2 ZMM(9)
+#define S_GEMV_N_X_REG_3 ZMM(10)
+#define S_GEMV_N_X_REG_4 ZMM(11)
+#define S_GEMV_N_X_REG_5 ZMM(12)
+#define S_GEMV_N_X_REG_6 ZMM(13)
+#define S_GEMV_N_X_REG_7 ZMM(14)
+#define S_GEMV_N_X_REG_8 ZMM(15)
+#define S_GEMV_N_X_REG(l1) PASTECH(S_GEMV_N_X_REG_, l1)
+
+/*
+ * Keep one advancing A pointer plus seven invariant column offsets. This
+ * matches the compact address-generation pattern emitted by AOCC for the June
+ * kernel: one pointer update per row tile instead of eight. The offset setup is
+ * outside the hot loop and uses only LEAs after loading cs_a in bytes.
+ */
+#define S_GEMV_N_A_OFFSET_SETUP_1(ch) MOV(R8, VAR(a_base))
+#define S_GEMV_N_A_OFFSET_SETUP_2(ch) MOV(R9, VAR(a_col_step))
+#define S_GEMV_N_A_OFFSET_SETUP_3(ch) LEA(R10, MEM(R9, R9, 1))
+#define S_GEMV_N_A_OFFSET_SETUP_4(ch) LEA(R11, MEM(R9, R10, 1))
+#define S_GEMV_N_A_OFFSET_SETUP_5(ch) LEA(R12, MEM(R10, R10, 1))
+#define S_GEMV_N_A_OFFSET_SETUP_6(ch) LEA(R13, MEM(R9, R12, 1))
+#define S_GEMV_N_A_OFFSET_SETUP_7(ch) LEA(R14, MEM(R10, R12, 1))
+#define S_GEMV_N_A_OFFSET_SETUP_8(ch) LEA(R15, MEM(R11, R12, 1))
+#define S_GEMV_N_A_OFFSET_SETUP(ch, _u1, _u2, l1) \
+    PASTECH(S_GEMV_N_A_OFFSET_SETUP_, l1)(ch)
+
+#define S_GEMV_N_A_MEM_1(k1) MEM(R8, ((k1) - 1) * 64)
+#define S_GEMV_N_A_MEM_2(k1) MEM(R8, R9,  1, ((k1) - 1) * 64)
+#define S_GEMV_N_A_MEM_3(k1) MEM(R8, R10, 1, ((k1) - 1) * 64)
+#define S_GEMV_N_A_MEM_4(k1) MEM(R8, R11, 1, ((k1) - 1) * 64)
+#define S_GEMV_N_A_MEM_5(k1) MEM(R8, R12, 1, ((k1) - 1) * 64)
+#define S_GEMV_N_A_MEM_6(k1) MEM(R8, R13, 1, ((k1) - 1) * 64)
+#define S_GEMV_N_A_MEM_7(k1) MEM(R8, R14, 1, ((k1) - 1) * 64)
+#define S_GEMV_N_A_MEM_8(k1) MEM(R8, R15, 1, ((k1) - 1) * 64)
+#define S_GEMV_N_A_MEM(l1, k1) PASTECH(S_GEMV_N_A_MEM_, l1)(k1)
+
+/* Load one pre-scaled x vector into its fixed SIMD register. */
+#define S_GEMV_N_X_LOAD_ASM(ch, _u1, _u2, l1)                                                                              \
+    PASTECH(ASM_VMOVUP_, ch)(S_GEMV_N_X_REG(l1), MEM(VAR(xv_ptr), ((l1) - 1) * 64))
+
+/* Zero one y accumulator for beta == 0 case. */
+#define S_GEMV_N_Y_ZERO_ASM(ch, _u1, _u2, k1)                                                                              \
+    PASTECH(ASM_VXOR_, ch)(ZMM(k1), ZMM(k1), ZMM(k1))
+
+/* Load and beta-scale one y accumulator. */
+#define S_GEMV_N_Y_LOAD_MUL_ASM(ch, _u1, _u2, k1)                                                                           \
+    PASTECH(ASM_VMOVUP_, ch)(ZMM(k1), MEM(RAX, ((k1) - 1) * 64))                                                           \
+    PASTECH(ASM_VMULP_, ch)(ZMM(k1), VAR(beta), ZMM(k1))
+
+/* Accumulate one row register from one fixed A stream. */
+#define S_GEMV_N_A_LOOP_ASM(ch, l1, _u2, k1)                                                                                \
+    PASTECH(ASM_VFMADD231P_, ch)(ZMM(k1), S_GEMV_N_X_REG(l1), S_GEMV_N_A_MEM(l1, k1))
+
+/* Expand the row-register FMAs for one A column. */
+#define S_GEMV_N_A_COLUMN_ASM(ch, ROWS, _u2, l1)                                                                            \
+    PP_ILOOP(ROWS, S_GEMV_N_A_LOOP_ASM, ch, l1, 0)
+
+/* Store one completed y accumulator using the shared BLIS instruction macro. */
+#define S_GEMV_N_Y_STORE_ASM(ch, _u1, _u2, k1)                                                                              \
+    PASTECH(ASM_VMOVUP_, ch)(MEM(RAX, ((k1) - 1) * 64), ZMM(k1))
+
+/* Execute COUNT full-MR row tiles with one A base and invariant offsets. */
+#define S_GEMV_N_ASM_ITER(INIT, ROWS, ch, NR)                                                                               \
+    BEGIN_ASM()                                                                                                             \
+    MOV(RAX, VAR(yp))                                                                                                       \
+    MOV(RBX, VAR(count))                                                                                                    \
+    MOV(RCX, VAR(a_step))                                                                                                   \
+    MOV(RDX, VAR(y_step))                                                                                                   \
+    PP_LOOP(NR, S_GEMV_N_A_OFFSET_SETUP, ch, 0, 0)                                                                         \
+    PP_LOOP(NR, S_GEMV_N_X_LOAD_ASM, ch, 0, 0)                                                                             \
+    TEST(RBX, RBX)                                                                                                          \
+    JZ(MEND)                                                                                                                \
+    ALIGN64                                                                                                                 \
+    LABEL(MLOOP_START)                                                                                                      \
+        PP_LOOP(ROWS, INIT, ch, 0, 0)                                                                                      \
+        PP_LOOP(NR, S_GEMV_N_A_COLUMN_ASM, ch, ROWS, 0)                                                                   \
+        PP_LOOP(ROWS, S_GEMV_N_Y_STORE_ASM, ch, 0, 0)                                                                     \
+        ADD(R8, RCX)                                                                                                        \
+        ADD(RAX, RDX)                                                                                                       \
+        DEC(RBX)                                                                                                            \
+        JNZ(MLOOP_START)                                                                                                    \
+    LABEL(MEND)                                                                                                             \
+    END_ASM(                                                                                                                \
+        :                                                                                                                   \
+        : [yp] "m"(yp), [count] "m"(count), [a_step] "m"(a_step), [y_step] "m"(y_step),                                 \
+          [a_base] "m"(abuf), [a_col_step] "m"(a_col_step), [xv_ptr] "r"(xv), [beta] "v"(betav)                           \
+        : "rax", "rbx", "rcx", "rdx", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15",                 \
+          "zmm1", "zmm2", "zmm3", "zmm4", "zmm5", "zmm8", "zmm9", "zmm10", "zmm11",                                    \
+          "zmm12", "zmm13", "zmm14", "zmm15", "cc", "memory"                                                            \
+    )
+
+/* Use C code path if optimized assembly is not available for given dt, MR and NR. */
+#define S_GEMV_N_MLOOP_0(ch, NR, MR)                                                                                        \
+    GEMV_N_MLOOP_HINT(ch)                                                                                                   \
+    for (dim_t j = 0; j < mloop_full; ++j)                                                                                  \
+    {                                                                                                                       \
+        PP_LOOP(PP_DIV(MR, EPR_OF(ch)), S_GEMV_N_Y_LOOP, ch, NR, 0)                                                        \
+        ybuf += MR * incy;                                                                                                  \
+        abuf += MR * rs_a;                                                                                                  \
+    }
+
+/* Use the parameterized asm loop for opted-in double-precision unit-stride full-MR tiles.
+ * The current opt-ins are d 16x8 and d 32x8; all other shapes fall through to the C loop below. */
+#define S_GEMV_N_MLOOP_1(ch, NR, MR)                                                                                        \
+    if (sizeof(*abuf) == sizeof(double) && rs_a == 1 && incy == 1)                                                        \
+    {                                                                                                                       \
+        typeof(ybuf) yp = ybuf;                                                                                             \
+        const int64_t count = (int64_t)mloop_full;                                                                          \
+        const int64_t a_step = (MR) * (int64_t)sizeof(*abuf);                                                               \
+        const int64_t a_col_step = cs_a * (int64_t)sizeof(*abuf);                                                           \
+        const int64_t y_step = (MR) * (int64_t)sizeof(*ybuf);                                                               \
+        if (beta_is_zero) S_GEMV_N_ASM_ITER(S_GEMV_N_Y_ZERO_ASM, PP_DIV(MR, EPR_OF(ch)), ch, NR)                            \
+        else              S_GEMV_N_ASM_ITER(S_GEMV_N_Y_LOAD_MUL_ASM, PP_DIV(MR, EPR_OF(ch)), ch, NR)                        \
+        abuf += mloop_full * MR * rs_a;                                                                                     \
+        ybuf += mloop_full * MR * incy;                                                                                     \
+    }                                                                                                                       \
+    else                                                                                                                    \
+    {                                                                                                                       \
+        S_GEMV_N_MLOOP_0(ch, NR, MR)                                                                                        \
+    }
+
 /*
  * S_GEMV_N_Y_LOOP — full MR-row tile update for real types, row-register k1 (1-based).
  *
@@ -866,13 +1020,7 @@ void GENTFUNC_GEMVNS(ctype, ch, MR, NR)                                         
          *  - increased code size and instruction count.
          *  - leading to suboptimal use of registers.
          *  - store/restore of registers to stack for each unrolled loop body.  */              \
-        GEMV_N_MLOOP_HINT(ch)                                                                   \
-        for (dim_t j = 0; j < mloop_full; ++j)                                                  \
-        {                                                                                       \
-            PP_LOOP(PP_DIV(MR, EPR_OF(ch)), S_GEMV_N_Y_LOOP, ch, NR, 0)                         \
-            ybuf += MR * incy;                                                                  \
-            abuf += MR * rs_a;                                                                  \
-        }                                                                                       \
+        PP_IF(HAS_ASM_OF(ch, MR, NR), S_GEMV_N_MLOOP_, ch, NR, MR)                              \
         /* EPR-row sub-tiles: handles (m%MR)/EPR full registers when MR < EPR or as spill. */   \
         for (dim_t j = 0; j < mloop_epr; ++j)                                                   \
         {                                                                                       \

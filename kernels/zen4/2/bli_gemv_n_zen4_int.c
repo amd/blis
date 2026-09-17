@@ -57,6 +57,10 @@
 #endif
 
 #include "../../zen/2/bli_pp_common.h"
+// Enable the compact assembly row loop only for these AVX-512 instantiations.
+#include "bli_x86_asm_macros.h"
+#define ASM_d_16x8 1
+#define ASM_d_32x8 1
 
 #ifdef BLIS_ENABLE_OPENMP
 #include <omp.h>
@@ -455,6 +459,14 @@ static dgemv_ker dgemv_n_ker_fp_32_8[8][8] = {
 };
 GENT_GEMV_CALLER(double, d, 32, 8, n)
 
+// Likewise the 16/15-row microkernels; bli_gemv_n_impl.h gives d 16x8 a
+// compact assembly row loop with one advancing A base and fixed column offsets.
+static dgemv_ker dgemv_n_ker_fp_16_8[4][8] = {
+    FOR_EACH(GEN_ARRAY_ROW_N, double, d, 8, 16, 8)
+    FOR_EACH(GEN_ARRAY_ROW_N, double, d, 8, 7, 15)
+};
+GENT_GEMV_CALLER(double, d, 16, 8, n)
+
 // PASTECH4(GENERATE_,d,_KERNELS_,40,_NM) == GENERATE_d_KERNELS_40_NM
 // expands to: M micro-kernel family bli_dgemv_m_block_*_avx512 + table bli_dgemv_m_ker_fp_40_8
 PASTECH4(GENERATE_,d,_KERNELS_,40,_NM)(double, d, 40, 8)
@@ -508,16 +520,44 @@ void bli_dgemv_n_zen4_int_st
        double* y, inc_t incy, cntx_t* cntx
      )
 {
+    const dim_t matrix_bytes =
+        (dim_t)( m * n ) * (dim_t)sizeof( double );
+
+    const bool unit_ay =
+        (transa == BLIS_NO_TRANSPOSE) && (rs_a == 1) && (incy == 1);
+
+    // A column-strided x usually comes from the same column-major allocation
+    // as A. The shorter tile limits loop and fringe work while x is streamed.
+    const bool use_16x8 =
+        unit_ay && (cs_a > 1) && (incx == cs_a) && (n >= 8);
+
+    // For roughly balanced matrices with contiguous x, four independent
+    // accumulator chains hide FMA latency while avoiding wide streaming cases
+    // where the regular caller remains competitive.
+    const bool use_32x8 =
+        unit_ay &&
+        (incx == 1) &&
+        (n >= 8) &&
+        (matrix_bytes >= GEMV_N_CTRL_THRESH_BYTES) &&
+        (m >= (n / 2)) &&
+        (n >= (m / 2));
+
     const bool use_narrow_m =
-        transa == BLIS_NO_TRANSPOSE &&
-        ( rs_a == 1 || cs_a == 1 ) &&
-        incx == 1 && incy == 1 &&
-        m <= 160 && n >= 8 && n <= 160;
+        (transa == BLIS_NO_TRANSPOSE) &&
+        ((rs_a == 1) || (cs_a == 1)) &&
+        (incx == 1) && (incy == 1) &&
+        (m <= 160) && (n >= 8) && (n <= 160);
 
     if ( use_narrow_m )
         bli_dgemv_m_zen4_int_32x1( transa, conjx, m, n, alpha, a, rs_a, cs_a,
                                    x, incx, beta, y, incy, cntx );
-    else if ( (dim_t)( m * n ) * (dim_t)sizeof( double ) < GEMV_N_CTRL_THRESH_BYTES )
+    else if ( use_16x8 )
+        bli_dgemv_n_zen4_int_16x8( transa, conjx, m, n, alpha, a, rs_a, cs_a,
+                                   x, incx, beta, y, incy, cntx );
+    else if ( use_32x8 )
+        bli_dgemv_n_zen4_int_32x8( transa, conjx, m, n, alpha, a, rs_a, cs_a,
+                                   x, incx, beta, y, incy, cntx );
+    else if ( matrix_bytes < GEMV_N_CTRL_THRESH_BYTES )
         bli_dgemv_m_zen4_int_40x8( transa, conjx, m, n, alpha, a, rs_a, cs_a,
                                    x, incx, beta, y, incy, cntx );
     else

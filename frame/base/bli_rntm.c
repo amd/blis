@@ -3965,38 +3965,7 @@ BLIS_INLINE void aocl_dgemv_dynamic
         case BLIS_ARCH_ZEN6:
         case BLIS_ARCH_ZEN5:
         case BLIS_ARCH_ZEN4:
-			if ( is_squarish )
-			{
-				if      ( size >= 4000000 && size < 66090713 ) *nt_ideal = 64;
-				else if ( size >= 1800000 && size <  4000000 ) *nt_ideal = 32;
-				else if ( n_elem <= 32 )
-				{
-					if      ( m_elem <  768 ) *nt_ideal = 1;
-					else if ( m_elem < 1200 ) *nt_ideal = 2;
-					else                      *nt_ideal = 8;
-				}
-				else if ( n_elem <= 64 && m_elem >= 512 )
-				{
-					if      ( m_elem < 1536 ) *nt_ideal = 4;
-					else                      *nt_ideal = 8;
-				}
-				else if ( n_elem <= 200 )
-				{
-					if      ( m_elem <= 160 ) *nt_ideal = 1;
-					else if ( m_elem <= 192 ) *nt_ideal = 4;
-					else if ( size <  200000 ) *nt_ideal = 8;
-					else if ( size <  400000 ) *nt_ideal = 16;
-					else                       *nt_ideal = 8;
-				}
-				else if ( size <     200108 && n_elem < 300 ) *nt_ideal = 2;
-				else if ( size <     235073 && n_elem < 400 ) *nt_ideal = 4;
-				else if ( size <    1794596 && n_elem < 1000 ) *nt_ideal = 8;
-				else if ( size <    3728210 ) *nt_ideal = 16;
-				else if ( size <   33274204 ) *nt_ideal = 32;
-				else if ( size <   66090713 ) *nt_ideal = 64;
-				else                       *nt_ideal = -1;
-			}
-			else if ( n_elem <= 32 )
+			if ( n_elem <= 32 )
 			{
 				if      ( m_elem <  768 ) *nt_ideal = 1;
 				else if ( m_elem < 1200 ) *nt_ideal = 2;
@@ -4013,14 +3982,24 @@ BLIS_INLINE void aocl_dgemv_dynamic
 				else if ( m_elem <= 192 ) *nt_ideal = 4;
 				else if ( size <  200000 ) *nt_ideal = 8;
 				else if ( size <  400000 ) *nt_ideal = 16;
+// Narrow matrices are intentionally capped at eight threads. On average, larger
+// narrow matrices perform better with eight threads; 16 or more threads are not
+// consistently better for these sizes.
 				else                       *nt_ideal = 8;
 			}
 			else if ( size <     200108 && n_elem < 300 ) *nt_ideal = 2;
 			else if ( size <     235073 && n_elem < 400 ) *nt_ideal = 4;
 			else if ( size <    1794596 && n_elem < 1000 ) *nt_ideal = 8;
-			else if ( size <    3728210 ) *nt_ideal = 16;
-			else if ( size <   33274204 ) *nt_ideal = 32;
-			else if ( size <   66090713 ) *nt_ideal = 64;
+			// For squarish matrices, Zen6 uses 32 threads through 66090712;
+			// Zen4/5 switch from 32 to 64 threads at 4000000.
+			else if ( size <    3728210 )
+				*nt_ideal = ( is_squarish && size >= 1800000 ) ? 32 : 16;
+			else if ( size <    4000000 )
+				*nt_ideal = 32;
+			else if ( size <   33274204 )
+				*nt_ideal = ( is_squarish && arch_id != BLIS_ARCH_ZEN6 ) ? 64 : 32;
+			else if ( size <   66090713 )
+				*nt_ideal = ( is_squarish && arch_id == BLIS_ARCH_ZEN6 ) ? 32 : 64;
 			else                       *nt_ideal = -1;
             break;
         default:
