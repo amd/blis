@@ -135,15 +135,15 @@ err_t bli_l3_sup_thread_decorator
 	thrcomm_t* restrict gl_comm = bli_thrcomm_create( rntm, n_threads );
 
 
-	// LOCK 2 guard (sup path): when only one thread is requested, run the
-	// operation inline WITHOUT entering an OpenMP parallel region at all.
-	// A plain `omp parallel ... if(n_threads>1)` clause does NOT help here:
-	// GCC still emits an unconditional GOMP_parallel() call, and libgomp's
-	// global per-region bookkeeping serializes highly-concurrent single-
-	// threaded gemm callers (each foreign application thread issuing its own
-	// 1-thread gemm). Skipping the GOMP_parallel() call entirely removes that
-	// serialization (measured ~34x aggregate throughput at 48 concurrent
-	// single-threaded DGEMM callers on a 192-core EPYC).
+	// Sup path: same single-threaded fast path as the conventional decorator.
+	// When only one thread is requested, run the operation inline WITHOUT
+	// entering an OpenMP parallel region at all. A plain
+	// `omp parallel ... if(n_threads>1)` clause does NOT suffice: GCC still
+	// emits an unconditional GOMP_parallel() call, and it is entering the
+	// region at all that causes the harm -- with OMP_PROC_BIND enabled,
+	// libgomp rebinds every independent team master onto place 0, collapsing
+	// concurrent single-threaded callers onto a single core. See the extended
+	// comment in bli_l3_decor_openmp.c for the mechanism and measurements.
 	if ( n_threads == 1 )
 	{
 		bli_l3_sup_decor_body( 0, func, alpha, a, b, beta, c,

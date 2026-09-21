@@ -182,13 +182,29 @@ void bli_l3_thread_decorator
 	thrcomm_t* restrict gl_comm = bli_thrcomm_create( rntm, n_threads );
 
 
-	// LOCK 2 guard: when only one thread is requested, run the operation
-	// inline WITHOUT entering an OpenMP parallel region at all. A plain
-	// `omp parallel ... if(n_threads>1)` clause does NOT help: GCC still emits
-	// an unconditional GOMP_parallel() call, and libgomp's global per-region
-	// bookkeeping serializes highly-concurrent single-threaded gemm callers
-	// (each foreign application thread issuing its own 1-thread gemm).
-	// Skipping the GOMP_parallel() call entirely removes that serialization.
+	// In normal (non-PRINT_THRINFO) builds, when only one thread is requested,
+	// run the operation inline WITHOUT entering an OpenMP parallel region at all.
+	// A plain `omp parallel ... if(n_threads>1)` clause does NOT suffice: GCC
+	// still emits an unconditional GOMP_parallel() call, and it is entering the
+	// region at all -- not the region's thread count -- that causes the harm.
+	//
+	// With OMP_PROC_BIND enabled, libgomp assigns a team's threads to "places"
+	// and enforces the assignment with sched_setaffinity(). A thread that is
+	// not already inside another team gets a fresh place partition starting at
+	// place 0. So when an application spawns its own threads (raw pthreads,
+	// not OpenMP) and each issues its own 1-thread gemm, every caller is an
+	// independent team master, every one claims place 0, and libgomp rebinds
+	// them all onto the same core -- overriding whatever affinity the
+	// application had set, and persisting after the region exits.
+	//
+	// Skipping GOMP_parallel() means that place-assignment never runs, so each
+	// caller keeps its core. Measured with 48 concurrent pinned single-
+	// threaded DGEMM callers (512^3) on a 192-core EPYC: 118 GFLOPS on 1 core
+	// -> 3390 GFLOPS on 43 cores. Neutral when OMP_PROC_BIND is unset (3586 vs
+	// 3587 GFLOPS), so the gain is conditional on binding but costs nothing
+	// either way. An OpenMP application is not affected in the first place:
+	// its threads are already team members holding distinct places, which a
+	// nested region inherits.
 	#ifdef PRINT_THRINFO
 	_Pragma( "omp parallel num_threads(n_threads)" )
 	{
