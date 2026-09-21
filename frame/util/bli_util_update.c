@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2020 - 2022, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2020 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -65,31 +65,31 @@ void PASTEMAC(ch, varname) \
 	{ \
 		for(diag = start, m= start-m_off; diag < end; diag++, m++) \
 			for(n = 0; n <= diag-n_off; n++) \
-				c[m*rs_c + n] += ct[m*rs_ct + n]; \
+				c[m*rs_c + n*cs_c] += ct[m*rs_ct + n*cs_ct]; \
 \
 		for(; m < m_cur; m++) \
 			for(n = 0; n < n_cur; n++) \
-				c[m*rs_c + n] += ct[m*rs_ct + n]; \
+				c[m*rs_c + n*cs_c] += ct[m*rs_ct + n*cs_ct]; \
 	} \
 	else if( beta_val == 0.0 )\
 	{ \
 		for(diag = start, m= start-m_off; diag < end; diag++, m++) \
 			for(n = 0; n <= diag-n_off; n++) \
-				c[m*rs_c + n] = ct[m*rs_ct + n]; \
+				c[m*rs_c + n*cs_c] = ct[m*rs_ct + n*cs_ct]; \
 \
 		for(; m < m_cur; m++) \
 			for(n = 0; n < n_cur; n++) \
-				c[m*rs_c + n] = ct[m*rs_ct + n]; \
+				c[m*rs_c + n*cs_c] = ct[m*rs_ct + n*cs_ct]; \
 	} \
 	else \
 	{ \
 		for(diag = start, m= start-m_off; diag < end; diag++, m++) \
 			for(n = 0; n <= diag-n_off; n++) \
-				c[m*rs_c + n] = c[m * rs_c + n] * beta_val + ct[m*rs_ct + n]; \
+				c[m*rs_c + n*cs_c] = c[m * rs_c + n*cs_c] * beta_val + ct[m*rs_ct + n*cs_ct]; \
 \
 		for(; m < m_cur; m++) \
 			for(n = 0; n < n_cur; n++) \
-				c[m*rs_c + n] = c[m * rs_c + n] * beta_val + ct[m*rs_ct + n]; \
+				c[m*rs_c + n*cs_c] = c[m * rs_c + n*cs_c] * beta_val + ct[m*rs_ct + n*cs_ct]; \
 	} \
 \
 	return; \
@@ -123,31 +123,31 @@ void PASTEMAC(ch, varname) \
 	{ \
 		for(m = 0; m < start-m_off; m++) \
 			for(n = 0; n < n_cur; n++) \
-				c[m*rs_c + n] += ct[m*rs_ct + n]; \
+				c[m*rs_c + n*cs_c] += ct[m*rs_ct + n*cs_ct]; \
 \
 		for(diag = start, m= start-m_off; diag < end; diag++, m++) \
 			for(n = diag-n_off; n < n_cur; n++) \
-				c[m*rs_c + n] += ct[m*rs_ct + n]; \
+				c[m*rs_c + n*cs_c] += ct[m*rs_ct + n*cs_ct]; \
 	} \
 	else if ( beta_val == 0.0 )\
 	{ \
 		for(m = 0; m < start-m_off; m++) \
 			for(n = 0; n < n_cur; n++) \
-				c[m*rs_c + n] = ct[m*rs_ct + n]; \
+				c[m*rs_c + n*cs_c] = ct[m*rs_ct + n*cs_ct]; \
 \
 		for(diag = start, m= start-m_off; diag < end; diag++, m++) \
 			for(n = diag-n_off; n < n_cur; n++) \
-				c[m*rs_c + n] = ct[m*rs_ct + n]; \
+				c[m*rs_c + n*cs_c] = ct[m*rs_ct + n*cs_ct]; \
 	} \
 	else \
 	{ \
 		for(m = 0; m < start-m_off; m++) \
 			for(n = 0; n < n_cur; n++) \
-				c[m*rs_c + n] = c[m * rs_c + n] * beta_val + ct[m*rs_ct + n]; \
+				c[m*rs_c + n*cs_c] = c[m * rs_c + n*cs_c] * beta_val + ct[m*rs_ct + n*cs_ct]; \
 \
 	for(diag = start, m= start-m_off; diag < end; diag++, m++) \
 		for(n = diag-n_off; n < n_cur; n++) \
-			c[m*rs_c + n] = c[m * rs_c + n] * beta_val + ct[m*rs_ct + n]; \
+			c[m*rs_c + n*cs_c] = c[m * rs_c + n*cs_c] * beta_val + ct[m*rs_ct + n*cs_ct]; \
 	} \
 \
 	return; \
@@ -182,25 +182,25 @@ void PASTEMAC(ch, varname) \
 		for(diag = start, m= start-m_off; diag < end; diag++, m++) \
 			for(n = 0; n <= diag-n_off; n++) \
 			{ \
-				c_ri = c[m * rs_c + n]; \
-				c[m*rs_c + n].real = c[m * rs_c + n].real * beta_val.real \
-									- c[m * rs_c + n].imag * beta_val.imag \
-									+ ct[m*rs_ct + n].real; \
-				c[m*rs_c + n].imag = c_ri.real * beta_val.imag \
-									+ c[m * rs_c + n].imag * beta_val.real \
-									+ ct[m*rs_ct + n].imag; \
+				c_ri = c[m * rs_c + n*cs_c]; \
+				c[m*rs_c + n*cs_c].real = c[m * rs_c + n*cs_c].real * beta_val.real \
+									- c[m * rs_c + n*cs_c].imag * beta_val.imag \
+									+ ct[m*rs_ct + n*cs_ct].real; \
+				c[m*rs_c + n*cs_c].imag = c_ri.real * beta_val.imag \
+									+ c[m * rs_c + n*cs_c].imag * beta_val.real \
+									+ ct[m*rs_ct + n*cs_ct].imag; \
 			} \
 \
 		for(; m < m_cur; m++) \
 				for(n = 0; n < n_cur; n++) \
 				{ \
-					c_ri = c[m * rs_c + n]; \
-					c[m*rs_c + n].real = c[m * rs_c + n].real * beta_val.real \
-										- c[m * rs_c + n].imag * beta_val.imag \
-										+ ct[m*rs_ct + n].real; \
-					c[m*rs_c + n].imag = c_ri.real * beta_val.imag \
-										+ c[m * rs_c + n].imag * beta_val.real \
-										+ ct[m*rs_ct + n].imag; \
+					c_ri = c[m * rs_c + n*cs_c]; \
+					c[m*rs_c + n*cs_c].real = c[m * rs_c + n*cs_c].real * beta_val.real \
+										- c[m * rs_c + n*cs_c].imag * beta_val.imag \
+										+ ct[m*rs_ct + n*cs_ct].real; \
+					c[m*rs_c + n*cs_c].imag = c_ri.real * beta_val.imag \
+										+ c[m * rs_c + n*cs_c].imag * beta_val.real \
+										+ ct[m*rs_ct + n*cs_ct].imag; \
 				} \
 	} \
 	else \
@@ -208,15 +208,15 @@ void PASTEMAC(ch, varname) \
 		for(diag = start, m= start-m_off; diag < end; diag++, m++) \
 			for(n = 0; n <= diag-n_off; n++) \
 			{ \
-				c[m*rs_c + n].real = ct[m*rs_ct + n].real; \
-				c[m*rs_c + n].imag = ct[m*rs_ct + n].imag; \
+				c[m*rs_c + n*cs_c].real = ct[m*rs_ct + n*cs_ct].real; \
+				c[m*rs_c + n*cs_c].imag = ct[m*rs_ct + n*cs_ct].imag; \
 			} \
 \
 		for(; m < m_cur; m++) \
 			for(n = 0; n < n_cur; n++) \
 			{ \
-				c[m*rs_c + n].real = ct[m*rs_ct + n].real; \
-				c[m*rs_c + n].imag = ct[m*rs_ct + n].imag; \
+				c[m*rs_c + n*cs_c].real = ct[m*rs_ct + n*cs_ct].real; \
+				c[m*rs_c + n*cs_c].imag = ct[m*rs_ct + n*cs_ct].imag; \
 			} \
 	} \
 \
@@ -252,25 +252,25 @@ void PASTEMAC(ch, varname) \
 		for(m = 0; m < start-m_off; m++) \
 			for(n = 0; n < n_cur; n++) \
 			{ \
-				c_ri = c[m * rs_c + n]; \
-				c[m*rs_c + n].real = c[m * rs_c + n].real * beta_val.real \
-									- c[m * rs_c + n].imag * beta_val.imag \
-									+ ct[m*rs_ct + n].real; \
-				c[m*rs_c + n].imag = c_ri.real * beta_val.imag \
-									+ c[m * rs_c + n].imag * beta_val.real \
-									+ ct[m*rs_ct + n].imag; \
+				c_ri = c[m * rs_c + n*cs_c]; \
+				c[m*rs_c + n*cs_c].real = c[m * rs_c + n*cs_c].real * beta_val.real \
+									- c[m * rs_c + n*cs_c].imag * beta_val.imag \
+									+ ct[m*rs_ct + n*cs_ct].real; \
+				c[m*rs_c + n*cs_c].imag = c_ri.real * beta_val.imag \
+									+ c[m * rs_c + n*cs_c].imag * beta_val.real \
+									+ ct[m*rs_ct + n*cs_ct].imag; \
 			} \
 \
 		for(diag = start, m= start-m_off; diag < end; diag++, m++) \
 			for(n = diag-n_off; n < n_cur; n++) \
 			{ \
-				c_ri = c[m * rs_c + n]; \
-				c[m*rs_c + n].real = c[m * rs_c + n].real * beta_val.real \
-									- c[m * rs_c + n].imag * beta_val.imag \
-									+ ct[m*rs_ct + n].real; \
-				c[m*rs_c + n].imag = c_ri.real * beta_val.imag \
-									+ c[m * rs_c + n].imag * beta_val.real \
-									+ ct[m*rs_ct + n].imag; \
+				c_ri = c[m * rs_c + n*cs_c]; \
+				c[m*rs_c + n*cs_c].real = c[m * rs_c + n*cs_c].real * beta_val.real \
+									- c[m * rs_c + n*cs_c].imag * beta_val.imag \
+									+ ct[m*rs_ct + n*cs_ct].real; \
+				c[m*rs_c + n*cs_c].imag = c_ri.real * beta_val.imag \
+									+ c[m * rs_c + n*cs_c].imag * beta_val.real \
+									+ ct[m*rs_ct + n*cs_ct].imag; \
 			} \
 	} \
 	else \
@@ -278,15 +278,15 @@ void PASTEMAC(ch, varname) \
 		for(m = 0; m < start-m_off; m++) \
 			for(n = 0; n < n_cur; n++) \
 			{ \
-				c[m*rs_c + n].real = ct[m*rs_ct + n].real; \
-				c[m*rs_c + n].imag = ct[m*rs_ct + n].imag; \
+				c[m*rs_c + n*cs_c].real = ct[m*rs_ct + n*cs_ct].real; \
+				c[m*rs_c + n*cs_c].imag = ct[m*rs_ct + n*cs_ct].imag; \
 			} \
 \
 		for(diag = start, m= start-m_off; diag < end; diag++, m++) \
 			for(n = diag-n_off; n < n_cur; n++) \
 			{ \
-				c[m*rs_c + n].real = ct[m*rs_ct + n].real; \
-				c[m*rs_c + n].imag = ct[m*rs_ct + n].imag; \
+				c[m*rs_c + n*cs_c].real = ct[m*rs_ct + n*cs_ct].real; \
+				c[m*rs_c + n*cs_c].imag = ct[m*rs_ct + n*cs_ct].imag; \
 			} \
 	} \
 \

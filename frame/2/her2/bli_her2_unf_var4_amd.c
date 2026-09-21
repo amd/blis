@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2022 - 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2022 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -321,8 +321,8 @@ void bli_dher2_unf_var4
 			x2       = x + (i+1) * incx;
 			psi1     = y + (i  ) * incy;
 			y2       = y + (i+1) * incy;
-			gamma11  = c + (i  ) + (i  )*cs_ct;
-			c21      = c + (i+1) + (i  )*cs_ct;
+			gamma11  = c + (i  )*rs_ct + (i  )*cs_ct;
+			c21      = c + (i+1)*rs_ct + (i  )*cs_ct;
 
 			/* Compute scalars for vector subproblems. */
 			PASTEMAC(d,scal2s)( alpha0, *psi1, alpha0_psi1 );
