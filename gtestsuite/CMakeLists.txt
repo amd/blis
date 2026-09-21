@@ -368,6 +368,7 @@ if(ENABLE_THREADING STREQUAL "openmp")
             RUN_OUTPUT_VARIABLE TEST_BLIS_VERSION
             COMPILE_OUTPUT_VARIABLE COMP_VAR_VERSION
     )
+    message(STATUS "Testing BLIS with OpenMP threading. Version detected: ${TEST_BLIS_VERSION}")
 else()
     try_run(RUNRESULT COMPILERESULT "${CMAKE_BINARY_DIR}/temp" SOURCES ${CMAKE_SOURCE_DIR}/cmake/get_version.cpp
             COMPILE_DEFINITIONS -I${BLIS_PATH}/include/ -I${BLIS_PATH}/include/blis
@@ -391,6 +392,15 @@ else()
     if(NOT (${FAILED_AT_RUNTIME} STREQUAL "-1"))
        message(FATAL_ERROR "Running get_version.cpp failed with the following error " ${TEST_BLIS_VERSION})
     endif()
+    # Drop any leading noise (e.g. loader warnings like "libomp.so: no version
+    # information available") so parsing starts at the BLIS version banner.
+    string(FIND "${TEST_BLIS_VERSION}" "AOCL-BLAS" BLIS_BANNER_POS)
+    if(BLIS_BANNER_POS GREATER_EQUAL 0)
+        string(SUBSTRING "${TEST_BLIS_VERSION}" ${BLIS_BANNER_POS} -1 TEST_BLIS_VERSION)
+    else()
+        message(FATAL_ERROR "Could not find 'AOCL-BLAS' banner in version output: ${TEST_BLIS_VERSION}")
+    endif()
+    string(STRIP "${TEST_BLIS_VERSION}" TEST_BLIS_VERSION)
     message(STATUS "Testing BLIS with version ${TEST_BLIS_VERSION}")
     string(REPLACE " " ";" TEST_BLIS_VERSION ${TEST_BLIS_VERSION})
     # After this TEST_BLIS_VERSION looks like 5.1.1
@@ -443,15 +453,18 @@ if(BLIS_LINKING_TYPE STREQUAL "static")
     endif()
     # Remove all empty items from the list.
     list(REMOVE_ITEM UKR_CONFIG "")
-    # We iterate through the list returned from the snippet above.
+    # The run output may be prefixed with loader warnings, so rebuild the defines from only the
+    # recognized ISA tokens instead of trusting every list item verbatim.
     # For example, UKR_CONFIG = AVX2FMA3 for zen3
     # or UKR_CONFIG = AVX2FMA3;AVX512;AVX512VNNI;AVX512BF16 for zen4
-    # Depending on the values of this list we define corresponding macros
-    # -DGTEST_AVX2FMA3 on zen3
-    # or -DGTEST_AVX2FMA3;-DGTEST_AVX512;-DGTEST_AVX512VNNI;-DGTEST_AVX512BF16 on zen4
-    # Those macros are passed when compiling the tests in testsuite/CMakeLists.txt.
-    foreach(ukrconf ${UKR_CONFIG})
-        list(APPEND UKR_DEFINES "-DGTEST_${ukrconf}")
+    # producing -DGTEST_AVX2FMA3 ... -DGTEST_AVX512BF16, passed when compiling
+    # the tests in testsuite/CMakeLists.txt.
+    foreach(ukrconf AVX2FMA3 AVX512 AVX512VNNI AVX512BF16)
+        # Match the token only on ISA-name boundaries so AVX512 does not match
+        # inside AVX512VNNI/AVX512BF16.
+        if("${UKR_CONFIG}" MATCHES "(^|[^A-Z0-9])${ukrconf}([^A-Z0-9]|$)")
+            list(APPEND UKR_DEFINES "-DGTEST_${ukrconf}")
+        endif()
     endforeach()
     message(STATUS "Since BLIS GTestSuite is used to check the static version of blis, all kernel tests are enabled.")
 else()
