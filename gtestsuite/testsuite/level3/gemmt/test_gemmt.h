@@ -352,3 +352,640 @@ public:
         return str_name;
     }
 };
+
+// Two options for instantiate block, one to set lda_inc = ldb_inc = ldc_inc to
+// reduce Cartesian product, and one to allow all to be varied independently.
+class zgemmtGeneric1 :
+        public ::testing::TestWithParam<std::tuple<char,         // storage
+                                                   char,         // uplo
+                                                   char,         // transa
+                                                   char,         // transb
+                                                   gtint_t,      // n
+                                                   gtint_t,      // k
+                                                   dcomplex,     // alpha
+                                                   dcomplex,     // beta
+                                                   gtint_t,      // inc to the lda, ldb and ldc
+                                                   bool>> {};    // is memory test
+
+class zgemmtGeneric3 :
+        public ::testing::TestWithParam<std::tuple<char,         // storage
+                                                   char,         // uplo
+                                                   char,         // transa
+                                                   char,         // transb
+                                                   gtint_t,      // n
+                                                   gtint_t,      // k
+                                                   dcomplex,     // alpha
+                                                   dcomplex,     // beta
+                                                   gtint_t,      // lda_inc
+                                                   gtint_t,      // ldb_inc
+                                                   gtint_t,      // ldc_inc
+                                                   bool>> {};    // is memory test
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(zgemmtGeneric1);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(zgemmtGeneric3);
+
+using TZ = dcomplex;
+void zgemmtGeneric( char storage, char uplo, char transa, char transb, gtint_t n, gtint_t k,
+                    TZ alpha, TZ beta, gtint_t lda_inc, gtint_t ldb_inc, gtint_t ldc_inc,
+                    bool is_mem_test )
+{
+    // Set the threshold for the errors:
+    // Check gtestsuite gemmt.h or netlib source code for reminder of the
+    // functionality from which we estimate operation count per element
+    // of output, and hence the multiplier for epsilon.
+    // No adjustment applied yet for complex data.
+    double thresh;
+    if (n == 0)
+        thresh = 0.0;
+    else if ((alpha == testinghelpers::ZERO<TZ>() || k == 0) &&
+             (beta == testinghelpers::ZERO<TZ>() || beta == testinghelpers::ONE<TZ>()))
+        thresh = 0.0;
+    else
+    {
+#ifdef BLIS_INT_ELEMENT_TYPE
+        double adj = 1.0;
+#else
+        double adj = 1.05;
+#endif
+        thresh = adj*(3*k+1)*testinghelpers::getEpsilon<TZ>();
+    }
+
+    //----------------------------------------------------------
+    //     Call test body using these parameters
+    //----------------------------------------------------------
+
+#ifdef OPENMP_NESTED_1diff
+    #pragma omp parallel default(shared)
+    {
+	vary_num_threads();
+        //std::cout << "Inside 1diff parallel regions\n";
+        test_gemmt<TZ>( storage, uplo, transa, transb, n, k, lda_inc, ldb_inc, ldc_inc, alpha, beta, thresh, is_mem_test );
+    }
+#elif OPENMP_NESTED_2
+    #pragma omp parallel default(shared)
+    {
+    #pragma omp parallel default(shared)
+    {
+        //std::cout << "Inside 2 parallel regions\n";
+        test_gemmt<TZ>( storage, uplo, transa, transb, n, k, lda_inc, ldb_inc, ldc_inc, alpha, beta, thresh, is_mem_test );
+    }
+    }
+#elif OPENMP_NESTED_1
+    #pragma omp parallel default(shared)
+    {
+        //std::cout << "Inside 1 parallel region\n";
+        test_gemmt<TZ>( storage, uplo, transa, transb, n, k, lda_inc, ldb_inc, ldc_inc, alpha, beta, thresh, is_mem_test );
+    }
+#else
+        //std::cout << "Not inside parallel region\n";
+        test_gemmt<TZ>( storage, uplo, transa, transb, n, k, lda_inc, ldb_inc, ldc_inc, alpha, beta, thresh, is_mem_test );
+#endif
+}
+
+TEST_P( zgemmtGeneric1, API )
+{
+    using T = dcomplex;
+    //----------------------------------------------------------
+    // Initialize values from the parameters passed through
+    // test suite instantiation (INSTANTIATE_TEST_SUITE_P).
+    //----------------------------------------------------------
+    // matrix storage format(row major, column major)
+    char storage = std::get<0>(GetParam());
+    // specifies if the upper or lower triangular part of C is used
+    char uplo = std::get<1>(GetParam());
+    // denotes whether matrix a is n,c,t,h
+    char transa = std::get<2>(GetParam());
+    // denotes whether matrix b is n,c,t,h
+    char transb = std::get<3>(GetParam());
+    // matrix size n
+    gtint_t n  = std::get<4>(GetParam());
+    // matrix size k
+    gtint_t k  = std::get<5>(GetParam());
+    // specifies alpha value
+    T alpha = std::get<6>(GetParam());
+    // specifies beta value
+    T beta = std::get<7>(GetParam());
+    // lda, ldb, ldc increments.
+    // If increments are zero, then the array size matches the matrix size.
+    // If increments are nonnegative, the array size is bigger than the matrix size.
+    gtint_t lda_inc = std::get<8>(GetParam());
+    bool is_mem_test = std::get<9>(GetParam());
+
+    gtint_t ldb_inc = lda_inc;
+    gtint_t ldc_inc = lda_inc;
+
+    zgemmtGeneric( storage, uplo, transa, transb, n, k,
+                   alpha, beta, lda_inc, ldb_inc, ldc_inc, is_mem_test );
+}
+
+TEST_P( zgemmtGeneric3, API )
+{
+    using T = dcomplex;
+    //----------------------------------------------------------
+    // Initialize values from the parameters passed through
+    // test suite instantiation (INSTANTIATE_TEST_SUITE_P).
+    //----------------------------------------------------------
+    // matrix storage format(row major, column major)
+    char storage = std::get<0>(GetParam());
+    // specifies if the upper or lower triangular part of C is used
+    char uplo = std::get<1>(GetParam());
+    // denotes whether matrix a is n,c,t,h
+    char transa = std::get<2>(GetParam());
+    // denotes whether matrix b is n,c,t,h
+    char transb = std::get<3>(GetParam());
+    // matrix size n
+    gtint_t n  = std::get<4>(GetParam());
+    // matrix size k
+    gtint_t k  = std::get<5>(GetParam());
+    // specifies alpha value
+    T alpha = std::get<6>(GetParam());
+    // specifies beta value
+    T beta = std::get<7>(GetParam());
+    // lda, ldb, ldc increments.
+    // If increments are zero, then the array size matches the matrix size.
+    // If increments are nonnegative, the array size is bigger than the matrix size.
+    gtint_t lda_inc = std::get<8>(GetParam());
+    gtint_t ldb_inc = std::get<9>(GetParam());
+    gtint_t ldc_inc = std::get<10>(GetParam());
+    bool is_mem_test = std::get<11>(GetParam());
+
+    zgemmtGeneric( storage, uplo, transa, transb, n, k,
+                   alpha, beta, lda_inc, ldb_inc, ldc_inc, is_mem_test );
+}
+
+// Two options for instantiate block, one to set lda_inc = ldb_inc = ldc_inc to
+// reduce Cartesian product, and one to allow all to be varied independently.
+class dgemmtGeneric1 :
+        public ::testing::TestWithParam<std::tuple<char,         // storage
+                                                   char,         // uplo
+                                                   char,         // transa
+                                                   char,         // transb
+                                                   gtint_t,      // n
+                                                   gtint_t,      // k
+                                                   double,       // alpha
+                                                   double,       // beta
+                                                   gtint_t,      // inc to the lda, ldb and ldc
+                                                   bool>> {};    // is memory test
+
+class dgemmtGeneric3 :
+        public ::testing::TestWithParam<std::tuple<char,         // storage
+                                                   char,         // uplo
+                                                   char,         // transa
+                                                   char,         // transb
+                                                   gtint_t,      // n
+                                                   gtint_t,      // k
+                                                   double,       // alpha
+                                                   double,       // beta
+                                                   gtint_t,      // lda_inc
+                                                   gtint_t,      // ldb_inc
+                                                   gtint_t,      // ldc_inc
+                                                   bool>> {};    // is memory test
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(dgemmtGeneric1);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(dgemmtGeneric3);
+
+using TD = double;
+void dgemmtGeneric( char storage, char uplo, char transa, char transb, gtint_t n, gtint_t k,
+                    TD alpha, TD beta, gtint_t lda_inc, gtint_t ldb_inc, gtint_t ldc_inc,
+                    bool is_mem_test )
+{
+    // Set the threshold for the errors:
+    // Check gtestsuite gemmt.h or netlib source code for reminder of the
+    // functionality from which we estimate operation count per element
+    // of output, and hence the multiplier for epsilon.
+    double thresh;
+    if (n == 0)
+        thresh = 0.0;
+    else if ((alpha == testinghelpers::ZERO<TD>() || k == 0) &&
+             (beta == testinghelpers::ZERO<TD>() || beta == testinghelpers::ONE<TD>()))
+        thresh = 0.0;
+    else
+    {
+        // Threshold adjustment
+#ifdef BLIS_INT_ELEMENT_TYPE
+        double adj = 4.1;
+#else
+        double adj = 4.0;
+#endif
+        thresh = adj*(3*k+1)*testinghelpers::getEpsilon<TD>();
+    }
+    //----------------------------------------------------------
+    //     Call test body using these parameters
+    //----------------------------------------------------------
+
+#ifdef OPENMP_NESTED_1diff
+    #pragma omp parallel default(shared)
+    {
+	vary_num_threads();
+        //std::cout << "Inside 1diff parallel regions\n";
+        test_gemmt<TD>( storage, uplo, transa, transb, n, k, lda_inc, ldb_inc, ldc_inc, alpha, beta, thresh, is_mem_test );
+    }
+#elif OPENMP_NESTED_2
+    #pragma omp parallel default(shared)
+    {
+    #pragma omp parallel default(shared)
+    {
+        //std::cout << "Inside 2 parallel regions\n";
+        test_gemmt<TD>( storage, uplo, transa, transb, n, k, lda_inc, ldb_inc, ldc_inc, alpha, beta, thresh, is_mem_test );
+    }
+    }
+#elif OPENMP_NESTED_1
+    #pragma omp parallel default(shared)
+    {
+        //std::cout << "Inside 1 parallel region\n";
+        test_gemmt<TD>( storage, uplo, transa, transb, n, k, lda_inc, ldb_inc, ldc_inc, alpha, beta, thresh, is_mem_test );
+    }
+#else
+        //std::cout << "Not inside parallel region\n";
+        test_gemmt<TD>( storage, uplo, transa, transb, n, k, lda_inc, ldb_inc, ldc_inc, alpha, beta, thresh, is_mem_test );
+#endif
+}
+
+TEST_P( dgemmtGeneric1, API )
+{
+    using T = double;
+    //----------------------------------------------------------
+    // Initialize values from the parameters passed through
+    // test suite instantiation (INSTANTIATE_TEST_SUITE_P).
+    //----------------------------------------------------------
+    // matrix storage format(row major, column major)
+    char storage = std::get<0>(GetParam());
+    // specifies if the upper or lower triangular part of C is used
+    char uplo = std::get<1>(GetParam());
+    // denotes whether matrix a is n,c,t,h
+    char transa = std::get<2>(GetParam());
+    // denotes whether matrix b is n,c,t,h
+    char transb = std::get<3>(GetParam());
+    // matrix size n
+    gtint_t n  = std::get<4>(GetParam());
+    // matrix size k
+    gtint_t k  = std::get<5>(GetParam());
+    // specifies alpha value
+    T alpha = std::get<6>(GetParam());
+    // specifies beta value
+    T beta = std::get<7>(GetParam());
+    // lda, ldb, ldc increments.
+    // If increments are zero, then the array size matches the matrix size.
+    // If increments are nonnegative, the array size is bigger than the matrix size.
+    gtint_t lda_inc = std::get<8>(GetParam());
+    bool is_mem_test = std::get<9>(GetParam());
+
+    gtint_t ldb_inc = lda_inc;
+    gtint_t ldc_inc = lda_inc;
+
+    dgemmtGeneric( storage, uplo, transa, transb, n, k,
+                   alpha, beta, lda_inc, ldb_inc, ldc_inc, is_mem_test );
+}
+
+TEST_P( dgemmtGeneric3, API )
+{
+    using T = double;
+    //----------------------------------------------------------
+    // Initialize values from the parameters passed through
+    // test suite instantiation (INSTANTIATE_TEST_SUITE_P).
+    //----------------------------------------------------------
+    // matrix storage format(row major, column major)
+    char storage = std::get<0>(GetParam());
+    // specifies if the upper or lower triangular part of C is used
+    char uplo = std::get<1>(GetParam());
+    // denotes whether matrix a is n,c,t,h
+    char transa = std::get<2>(GetParam());
+    // denotes whether matrix b is n,c,t,h
+    char transb = std::get<3>(GetParam());
+    // matrix size n
+    gtint_t n  = std::get<4>(GetParam());
+    // matrix size k
+    gtint_t k  = std::get<5>(GetParam());
+    // specifies alpha value
+    T alpha = std::get<6>(GetParam());
+    // specifies beta value
+    T beta = std::get<7>(GetParam());
+    // lda, ldb, ldc increments.
+    // If increments are zero, then the array size matches the matrix size.
+    // If increments are nonnegative, the array size is bigger than the matrix size.
+    gtint_t lda_inc = std::get<8>(GetParam());
+    gtint_t ldb_inc = std::get<9>(GetParam());
+    gtint_t ldc_inc = std::get<10>(GetParam());
+    bool is_mem_test = std::get<11>(GetParam());
+
+    dgemmtGeneric( storage, uplo, transa, transb, n, k,
+                   alpha, beta, lda_inc, ldb_inc, ldc_inc, is_mem_test );
+}
+
+// Two options for instantiate block, one to set lda_inc = ldb_inc = ldc_inc to
+// reduce Cartesian product, and one to allow all to be varied independently.
+class cgemmtGeneric1 :
+        public ::testing::TestWithParam<std::tuple<char,         // storage
+                                                   char,         // uplo
+                                                   char,         // transa
+                                                   char,         // transb
+                                                   gtint_t,      // n
+                                                   gtint_t,      // k
+                                                   scomplex,     // alpha
+                                                   scomplex,     // beta
+                                                   gtint_t,      // inc to the lda, ldb and ldc
+                                                   bool>> {};    // is memory test
+
+class cgemmtGeneric3 :
+        public ::testing::TestWithParam<std::tuple<char,         // storage
+                                                   char,         // uplo
+                                                   char,         // transa
+                                                   char,         // transb
+                                                   gtint_t,      // n
+                                                   gtint_t,      // k
+                                                   scomplex,     // alpha
+                                                   scomplex,     // beta
+                                                   gtint_t,      // lda_inc
+                                                   gtint_t,      // ldb_inc
+                                                   gtint_t,      // ldc_inc
+                                                   bool>> {};    // is memory test
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(cgemmtGeneric1);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(cgemmtGeneric3);
+
+using TC = scomplex;
+void cgemmtGeneric( char storage, char uplo, char transa, char transb, gtint_t n, gtint_t k,
+                    TC alpha, TC beta, gtint_t lda_inc, gtint_t ldb_inc, gtint_t ldc_inc,
+                    bool is_mem_test )
+{
+    // Set the threshold for the errors:
+    // Check gtestsuite gemmt.h or netlib source code for reminder of the
+    // functionality from which we estimate operation count per element
+    // of output, and hence the multiplier for epsilon.
+    double thresh;
+    if (n == 0)
+        thresh = 0.0;
+    else if ((alpha == testinghelpers::ZERO<TC>() || k == 0) &&
+             (beta == testinghelpers::ZERO<TC>() || beta == testinghelpers::ONE<TC>()))
+        thresh = 0.0;
+    else
+    {
+        // Threshold adjustment
+#ifdef BLIS_INT_ELEMENT_TYPE
+        double adj = 1.0;
+#else
+        double adj = 1.2;
+#endif
+        thresh = adj*(3*k+1)*testinghelpers::getEpsilon<TC>();
+    }
+    //----------------------------------------------------------
+    //     Call test body using these parameters
+    //----------------------------------------------------------
+
+#ifdef OPENMP_NESTED_1diff
+    #pragma omp parallel default(shared)
+    {
+	vary_num_threads();
+        //std::cout << "Inside 1diff parallel regions\n";
+        test_gemmt<TC>( storage, uplo, transa, transb, n, k, lda_inc, ldb_inc, ldc_inc, alpha, beta, thresh, is_mem_test );
+    }
+#elif OPENMP_NESTED_2
+    #pragma omp parallel default(shared)
+    {
+    #pragma omp parallel default(shared)
+    {
+        //std::cout << "Inside 2 parallel regions\n";
+        test_gemmt<TC>( storage, uplo, transa, transb, n, k, lda_inc, ldb_inc, ldc_inc, alpha, beta, thresh, is_mem_test );
+    }
+    }
+#elif OPENMP_NESTED_1
+    #pragma omp parallel default(shared)
+    {
+        //std::cout << "Inside 1 parallel region\n";
+        test_gemmt<TC>( storage, uplo, transa, transb, n, k, lda_inc, ldb_inc, ldc_inc, alpha, beta, thresh, is_mem_test );
+    }
+#else
+        //std::cout << "Not inside parallel region\n";
+        test_gemmt<TC>( storage, uplo, transa, transb, n, k, lda_inc, ldb_inc, ldc_inc, alpha, beta, thresh, is_mem_test );
+#endif
+}
+
+TEST_P( cgemmtGeneric1, API )
+{
+    using T = scomplex;
+    //----------------------------------------------------------
+    // Initialize values from the parameters passed through
+    // test suite instantiation (INSTANTIATE_TEST_SUITE_P).
+    //----------------------------------------------------------
+    // matrix storage format(row major, column major)
+    char storage = std::get<0>(GetParam());
+    // specifies if the upper or lower triangular part of C is used
+    char uplo = std::get<1>(GetParam());
+    // denotes whether matrix a is n,c,t,h
+    char transa = std::get<2>(GetParam());
+    // denotes whether matrix b is n,c,t,h
+    char transb = std::get<3>(GetParam());
+    // matrix size n
+    gtint_t n  = std::get<4>(GetParam());
+    // matrix size k
+    gtint_t k  = std::get<5>(GetParam());
+    // specifies alpha value
+    T alpha = std::get<6>(GetParam());
+    // specifies beta value
+    T beta = std::get<7>(GetParam());
+    // lda, ldb, ldc increments.
+    // If increments are zero, then the array size matches the matrix size.
+    // If increments are nonnegative, the array size is bigger than the matrix size.
+    gtint_t lda_inc = std::get<8>(GetParam());
+    bool is_mem_test = std::get<9>(GetParam());
+
+    gtint_t ldb_inc = lda_inc;
+    gtint_t ldc_inc = lda_inc;
+
+    cgemmtGeneric( storage, uplo, transa, transb, n, k,
+                   alpha, beta, lda_inc, ldb_inc, ldc_inc, is_mem_test );
+}
+
+TEST_P( cgemmtGeneric3, API )
+{
+    using T = scomplex;
+    //----------------------------------------------------------
+    // Initialize values from the parameters passed through
+    // test suite instantiation (INSTANTIATE_TEST_SUITE_P).
+    //----------------------------------------------------------
+    // matrix storage format(row major, column major)
+    char storage = std::get<0>(GetParam());
+    // specifies if the upper or lower triangular part of C is used
+    char uplo = std::get<1>(GetParam());
+    // denotes whether matrix a is n,c,t,h
+    char transa = std::get<2>(GetParam());
+    // denotes whether matrix b is n,c,t,h
+    char transb = std::get<3>(GetParam());
+    // matrix size n
+    gtint_t n  = std::get<4>(GetParam());
+    // matrix size k
+    gtint_t k  = std::get<5>(GetParam());
+    // specifies alpha value
+    T alpha = std::get<6>(GetParam());
+    // specifies beta value
+    T beta = std::get<7>(GetParam());
+    // lda, ldb, ldc increments.
+    // If increments are zero, then the array size matches the matrix size.
+    // If increments are nonnegative, the array size is bigger than the matrix size.
+    gtint_t lda_inc = std::get<8>(GetParam());
+    gtint_t ldb_inc = std::get<9>(GetParam());
+    gtint_t ldc_inc = std::get<10>(GetParam());
+    bool is_mem_test = std::get<11>(GetParam());
+
+    cgemmtGeneric( storage, uplo, transa, transb, n, k,
+                   alpha, beta, lda_inc, ldb_inc, ldc_inc, is_mem_test );
+}
+
+// Two options for instantiate block, one to set lda_inc = ldb_inc = ldc_inc to
+// reduce Cartesian product, and one to allow all to be varied independently.
+class sgemmtGeneric1 :
+        public ::testing::TestWithParam<std::tuple<char,         // storage
+                                                   char,         // uplo
+                                                   char,         // transa
+                                                   char,         // transb
+                                                   gtint_t,      // n
+                                                   gtint_t,      // k
+                                                   float,        // alpha
+                                                   float,        // beta
+                                                   gtint_t,      // inc to the lda, ldb and ldc
+                                                   bool>> {};    // is memory test
+
+class sgemmtGeneric3 :
+        public ::testing::TestWithParam<std::tuple<char,         // storage
+                                                   char,         // uplo
+                                                   char,         // transa
+                                                   char,         // transb
+                                                   gtint_t,      // n
+                                                   gtint_t,      // k
+                                                   float,        // alpha
+                                                   float,        // beta
+                                                   gtint_t,      // lda_inc
+                                                   gtint_t,      // ldb_inc
+                                                   gtint_t,      // ldc_inc
+                                                   bool>> {};    // is memory test
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(sgemmtGeneric1);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(sgemmtGeneric3);
+
+using TS = float;
+void sgemmtGeneric( char storage, char uplo, char transa, char transb, gtint_t n, gtint_t k,
+                    TS alpha, TS beta, gtint_t lda_inc, gtint_t ldb_inc, gtint_t ldc_inc,
+                    bool is_mem_test )
+{
+    // Set the threshold for the errors:
+    // Check gtestsuite gemmt.h or netlib source code for reminder of the
+    // functionality from which we estimate operation count per element
+    // of output, and hence the multiplier for epsilon.
+    double thresh;
+    if (n == 0)
+        thresh = 0.0;
+    else if ((alpha == testinghelpers::ZERO<TS>() || k == 0) &&
+             (beta == testinghelpers::ZERO<TS>() || beta == testinghelpers::ONE<TS>()))
+        thresh = 0.0;
+    else
+    {
+        // Threshold adjustment
+#ifdef BLIS_INT_ELEMENT_TYPE
+        double adj = 1.0;
+#else
+        double adj = 1.5;
+#endif
+        thresh = adj*(3*k+1)*testinghelpers::getEpsilon<TS>();
+    }
+    //----------------------------------------------------------
+    //     Call test body using these parameters
+    //----------------------------------------------------------
+
+#ifdef OPENMP_NESTED_1diff
+    #pragma omp parallel default(shared)
+    {
+	vary_num_threads();
+        //std::cout << "Inside 1diff parallel regions\n";
+        test_gemmt<TS>( storage, uplo, transa, transb, n, k, lda_inc, ldb_inc, ldc_inc, alpha, beta, thresh, is_mem_test );
+    }
+#elif OPENMP_NESTED_2
+    #pragma omp parallel default(shared)
+    {
+    #pragma omp parallel default(shared)
+    {
+        //std::cout << "Inside 2 parallel regions\n";
+        test_gemmt<TS>( storage, uplo, transa, transb, n, k, lda_inc, ldb_inc, ldc_inc, alpha, beta, thresh, is_mem_test );
+    }
+    }
+#elif OPENMP_NESTED_1
+    #pragma omp parallel default(shared)
+    {
+        //std::cout << "Inside 1 parallel region\n";
+        test_gemmt<TS>( storage, uplo, transa, transb, n, k, lda_inc, ldb_inc, ldc_inc, alpha, beta, thresh, is_mem_test );
+    }
+#else
+        //std::cout << "Not inside parallel region\n";
+        test_gemmt<TS>( storage, uplo, transa, transb, n, k, lda_inc, ldb_inc, ldc_inc, alpha, beta, thresh, is_mem_test );
+#endif
+}
+
+TEST_P( sgemmtGeneric1, API )
+{
+    using T = float;
+    //----------------------------------------------------------
+    // Initialize values from the parameters passed through
+    // test suite instantiation (INSTANTIATE_TEST_SUITE_P).
+    //----------------------------------------------------------
+    // matrix storage format(row major, column major)
+    char storage = std::get<0>(GetParam());
+    // specifies if the upper or lower triangular part of C is used
+    char uplo = std::get<1>(GetParam());
+    // denotes whether matrix a is n,c,t,h
+    char transa = std::get<2>(GetParam());
+    // denotes whether matrix b is n,c,t,h
+    char transb = std::get<3>(GetParam());
+    // matrix size n
+    gtint_t n  = std::get<4>(GetParam());
+    // matrix size k
+    gtint_t k  = std::get<5>(GetParam());
+    // specifies alpha value
+    T alpha = std::get<6>(GetParam());
+    // specifies beta value
+    T beta = std::get<7>(GetParam());
+    // lda, ldb, ldc increments.
+    // If increments are zero, then the array size matches the matrix size.
+    // If increments are nonnegative, the array size is bigger than the matrix size.
+    gtint_t lda_inc = std::get<8>(GetParam());
+    bool is_mem_test = std::get<9>(GetParam());
+
+    gtint_t ldb_inc = lda_inc;
+    gtint_t ldc_inc = lda_inc;
+
+    sgemmtGeneric( storage, uplo, transa, transb, n, k,
+                   alpha, beta, lda_inc, ldb_inc, ldc_inc, is_mem_test );
+}
+
+TEST_P( sgemmtGeneric3, API )
+{
+    using T = float;
+    //----------------------------------------------------------
+    // Initialize values from the parameters passed through
+    // test suite instantiation (INSTANTIATE_TEST_SUITE_P).
+    //----------------------------------------------------------
+    // matrix storage format(row major, column major)
+    char storage = std::get<0>(GetParam());
+    // specifies if the upper or lower triangular part of C is used
+    char uplo = std::get<1>(GetParam());
+    // denotes whether matrix a is n,c,t,h
+    char transa = std::get<2>(GetParam());
+    // denotes whether matrix b is n,c,t,h
+    char transb = std::get<3>(GetParam());
+    // matrix size n
+    gtint_t n  = std::get<4>(GetParam());
+    // matrix size k
+    gtint_t k  = std::get<5>(GetParam());
+    // specifies alpha value
+    T alpha = std::get<6>(GetParam());
+    // specifies beta value
+    T beta = std::get<7>(GetParam());
+    // lda, ldb, ldc increments.
+    // If increments are zero, then the array size matches the matrix size.
+    // If increments are nonnegative, the array size is bigger than the matrix size.
+    gtint_t lda_inc = std::get<8>(GetParam());
+    gtint_t ldb_inc = std::get<9>(GetParam());
+    gtint_t ldc_inc = std::get<10>(GetParam());
+    bool is_mem_test = std::get<11>(GetParam());
+
+    sgemmtGeneric( storage, uplo, transa, transb, n, k,
+                   alpha, beta, lda_inc, ldb_inc, ldc_inc, is_mem_test );
+}
