@@ -67,7 +67,7 @@ list(FILTER LOCAL_SOURCE_FILES EXCLUDE REGEX "bla_xerbla_array\.c$")
 # Add corresponding definitions for API that is being exported.
 if(WIN32)
     if(ENABLE_NO_UNDERSCORE_API)
-        set(EXPORT_API_DEFS "-DENABLE_NO_UNDERSCORE_API")
+        set(EXPORT_API_DEFS "-DBLIS_ENABLE_NO_UNDERSCORE_API")
     endif()
     if(ENABLE_UPPERCASE_API)
         list(APPEND EXPORT_API_DEFS "-DBLIS_ENABLE_UPPERCASE_API")
