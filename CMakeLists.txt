@@ -529,8 +529,13 @@ if(ENABLE_THREADING STREQUAL "openmp")
     message("   Using OpenMP for threading.")
     set(ENABLE_OPENMP "yes")
     set(ENABLE_OPENMP_01 1)
-    find_package(OpenMP)
-    if(NOT OPENMP_FOUND)
+    # BLIS only uses the OpenMP_C component (never OpenMP_CXX or OpenMP_Fortran),
+    # so checking all languages enabled by project() is unnecessary and causes
+    # spurious configure failures when OpenMP support isn't detected for CXX or
+    # Fortran, even though neither is actually required. Limit the search to C,
+    # the only component this CMakeLists.txt links against.
+    find_package(OpenMP COMPONENTS C)
+    if(NOT OpenMP_C_FOUND)
       message(FATAL_ERROR "Openmp Not Found")
     endif()
 elseif(ENABLE_THREADING STREQUAL "pthreads")
