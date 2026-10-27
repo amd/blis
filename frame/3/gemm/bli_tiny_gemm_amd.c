@@ -389,8 +389,6 @@ err_t PASTEMAC( ch, tfuncname ) \
     return BLIS_SUCCESS; \
 } \
 
-GENTFUNC(    float, s, gemm_tiny )
-
 /*
  * bli_gemm_tiny_single_threaded:
  *
@@ -479,6 +477,26 @@ static bool bli_gemm_tiny_single_threaded(dim_t M, dim_t N, dim_t K, dim_t MR, d
 
     return (K >= K_thresh) ? false : true;
 }
+
+/*
+ * bli_sgemm_tiny_single_threaded:
+ *
+ * SGEMM-specific wrapper over the shared cost model. The generic SGEMM tiny
+ * path (6x64 SUP kernel) induces an operation transpose - swapping m<->n - for
+ * the RCC/CRC/CCR/CCC layouts (the same set bli_is_sgemm_tiny_zen() swaps), so
+ * the asymmetric MR/NR tile model is fed the dimensions the kernel actually
+ * runs on rather than the nominal m, n.
+ */
+static bool bli_sgemm_tiny_single_threaded( stor3_t stor_id, dim_t m, dim_t n, dim_t k )
+{
+    bool  induced = ( stor_id == BLIS_RCC || stor_id == BLIS_CRC ||
+                      stor_id == BLIS_CCR || stor_id == BLIS_CCC );
+    dim_t eff_m = induced ? n : m;
+    dim_t eff_n = induced ? m : n;
+    return bli_gemm_tiny_single_threaded( eff_m, eff_n, k, 6/*MR*/, 64/*NR*/, 120/*Core's Gflops*/, 15/*Threading_overhead*/, BLIS_FLOAT );
+}
+
+GENTFUNC(    float, s, gemm_tiny )
 
 err_t bli_dgemm_tiny
 (
@@ -632,7 +650,8 @@ err_t bli_zgemm_tiny
             !( bli_does_conj( transa ) && bli_does_conj( transb ) )
           )
         {
-            if(is_mt == FALSE)
+            if( (is_mt == FALSE) ||
+                ( bli_gemm_tiny_single_threaded( m, n, k, 12/*MR*/, 4/*NR*/, 59/*Core's Gflops*/, 15/*Threading_overhead*/, BLIS_DCOMPLEX ) == TRUE ) )
             {
                 /* single threaded execution */
                 return bli_zgemm_tiny_zen4_12x4

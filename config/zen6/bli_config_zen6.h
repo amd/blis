@@ -161,9 +161,18 @@
   ( 0 )
 
 #define THRESH_GEMM_s_TINY_ZEN6_AVX512( stor_id, transa, transb, m, n, k, is_parallel ) \
-  ( !( is_parallel ) &&  \
-   ( ( ( ( (m) + (k) ) *  (n)  + ( (m) * (k) ) ) < 12288 ) || \
-  bli_is_sgemm_tiny_zen( (stor_id) , (transa) , (transb) , (m) , (n) , (k) , (is_parallel), 64, 16, 12288, 262144  ) ) \
+  ( \
+    /* Single-threaded request: size-based eligibility only */ \
+    ( ( !( is_parallel ) ) && \
+      ( ( ( ( (m) + (k) ) *  (n)  + ( (m) * (k) ) ) < 12288 ) || \
+        bli_is_sgemm_tiny_zen( (stor_id) , (transa) , (transb) , (m) , (n) , (k) , (is_parallel), 64, 16, 12288, 262144  ) ) ) \
+    || \
+    /* Multi-threaded request: eligible AND the ST/MT cost model prefers ST */ \
+    /* (same gate d/c/z use; induce-transpose aware dimensions) */ \
+    ( ( is_parallel ) && \
+      ( ( ( ( (m) + (k) ) *  (n)  + ( (m) * (k) ) ) < 12288 ) || \
+        bli_is_sgemm_tiny_zen( (stor_id) , (transa) , (transb) , (m) , (n) , (k) , (is_parallel), 64, 16, 12288, 262144  ) ) && \
+      bli_sgemm_tiny_single_threaded( (stor_id), (m), (n), (k) ) ) \
   )
 
 /* Defining the macro to be used for selecting the kernel at runtime */
