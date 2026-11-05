@@ -280,7 +280,7 @@ err_t bli_dgemm_tiny_zen4_24x8
 	 * @brief
 	 * When BLIS_PACK_BUFFER macro is set to 1, we inquire and use buffer
 	 * allocated from blis memory pool.
-	 * Here the size is given hard-coded, reason behind it is as explain at the defination
+	 * Here the size is given hard-coded, reason behind it is as explain at the definition
 	 * of local static packA_buffer.
 	 * Once the buffer is acquired and after sanity check, it packs A matrix in column stored fashion
 	 * and pass it cv kernel for computation.

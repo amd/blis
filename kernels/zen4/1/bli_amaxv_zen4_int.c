@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2022 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2022 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -165,7 +165,7 @@ void bli_samaxv_zen4_int(
         */
         v16sf_t sign_mask, iter_max_vec[4];
         /*
-          base_max_scalar - To store the absoulte maximum value from elements
+          base_max_scalar - To store the absolute maximum value from elements
                             across all iterations.
           iter_max_scalar - To store the absolute maximum value from elements
                             in the current iteration.
@@ -377,7 +377,7 @@ void bli_samaxv_zen4_int(
             }
         }
 
-        /* Reduction to find the first occurence of absolute maximum */
+        /* Reduction to find the first occurrence of absolute maximum */
         /* Update the pointer based on new 'start' value */
         x0 = x + start;
         /* Search for the index in the final search space */
@@ -471,7 +471,7 @@ BLIS_EXPORT_BLIS void bli_damaxv_zen4_int
         */
         v8df_t sign_mask, iter_max_vec[4];
         /*
-          base_max_scalar - To store the absoulte maximum value from elements
+          base_max_scalar - To store the absolute maximum value from elements
                             across all iterations.
           iter_max_scalar - To store the absolute maximum value from elements
                             in the current iteration.
@@ -680,7 +680,7 @@ BLIS_EXPORT_BLIS void bli_damaxv_zen4_int
             }
         }
 
-        /* Reduction to find the first occurence of absolute maximum */
+        /* Reduction to find the first occurrence of absolute maximum */
         /* Update the pointer based on new 'start' value */
         x0 = x + start;
         /* Search for the index in the final search space */

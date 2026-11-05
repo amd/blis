@@ -6,6 +6,8 @@
  * 
  * Keita Teranishi  5/20/98
  *
+ * Copyright (C) 2026, Advanced Micro Devices, Inc. All rights reserved.
+ *
  */
 #include "cblas.h"
 #include "cblas_f77.h"
@@ -32,7 +34,7 @@ void cblas_ztbmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
    #define F77_lda lda
    #define F77_incX incX
 #endif
-   int n, i=0, tincX; 
+   f77_int n, i=0, tincX;
    double *st=0, *x=(double *)X;
    extern int CBLAS_CallFromC;
    extern int RowMajorStrg;
@@ -126,7 +128,7 @@ void cblas_ztbmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
       else if (Diag == CblasNonUnit) DI = 'N';
       else 
       {
-         cblas_xerbla(4, "cblas_ztbmv","Illegal Uplo setting, %d\n", Uplo);
+         cblas_xerbla(4, "cblas_ztbmv","Illegal Diag setting, %d\n", Diag);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
          return;

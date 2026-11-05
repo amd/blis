@@ -80,7 +80,7 @@ TEST_P( ztrsvEVT, API )
     // Set the threshold for the errors:
     // Check gtestsuite trsv.h or netlib source code for reminder of the
     // functionality from which we estimate operation count per element
-    // of output, and hence the multipler for epsilon.
+    // of output, and hence the multiplier for epsilon.
     double thresh;
     if (n == 0 || alpha == T{0.0})
         thresh = 0.0;

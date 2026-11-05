@@ -268,6 +268,32 @@ INSTANTIATE_TEST_SUITE_P(
 );
 #endif
 
+// T-direction ST caller (small path): bli_dgemv_t_zen_int_4x4
+#ifdef K_bli_dgemv_t_zen_int_4x4
+INSTANTIATE_TEST_SUITE_P(
+    bli_dgemv_t_zen_int_4x4,
+    dgemvGenericKernel,
+    ::testing::Combine(
+        ::testing::Values(bli_dgemv_t_zen_int_4x4),
+        ::testing::Values('c'),                                         // storage format
+        ::testing::Values('t'),                                         // transa
+        ::testing::Values('n'),                                         // conjx
+        ::testing::Values( gtint_t(1), gtint_t(3), gtint_t(4),
+                           gtint_t(7), gtint_t(16), gtint_t(99) ),     // m
+        ::testing::Values( gtint_t(1), gtint_t(3), gtint_t(4),
+                           gtint_t(5), gtint_t(20), gtint_t(99) ),     // n
+        ::testing::Values( double(0.0), double(1.0), double(-1.2) ),   // alpha
+        ::testing::Values( double(0.0), double(1.0), double(-1.0),
+                           double(2.1) ),                              // beta
+        ::testing::Values( gtint_t(1) ),                                // incx
+        ::testing::Values( gtint_t(1), gtint_t(5) ),                    // incy
+        ::testing::Values( gtint_t(0), gtint_t(7) ),                    // lda_inc
+        ::testing::Values( false, true )                                // is_memory_test
+    ),
+    (::gemvUKRPrint<double, dgemv_ker>())
+);
+#endif
+
 #endif // BLIS_KERNELS_ZEN && GTEST_AVX2FMA3
 
 // =============================================================================
@@ -345,6 +371,32 @@ INSTANTIATE_TEST_SUITE_P(
         ::testing::Values( gtint_t(1) ),                               // incy
         ::testing::Values( gtint_t(0), gtint_t(7) ),                   // lda_inc
         ::testing::Values( false, true )                               // is_memory_test
+    ),
+    (::gemvUKRPrint<double, dgemv_ker>())
+);
+#endif
+
+// T-direction ST caller (tiny/small path): bli_dgemv_t_zen4_int_8x8
+#ifdef K_bli_dgemv_t_zen4_int_8x8
+INSTANTIATE_TEST_SUITE_P(
+    bli_dgemv_t_zen4_int_8x8,
+    dgemvGenericKernel,
+    ::testing::Combine(
+        ::testing::Values(bli_dgemv_t_zen4_int_8x8),
+        ::testing::Values('c'),                                         // storage format
+        ::testing::Values('t'),                                         // transa
+        ::testing::Values('n'),                                         // conjx
+        ::testing::Values( gtint_t(1), gtint_t(7), gtint_t(8),
+                           gtint_t(15), gtint_t(32), gtint_t(99) ),    // m
+        ::testing::Values( gtint_t(1), gtint_t(7), gtint_t(8),
+                           gtint_t(9), gtint_t(20), gtint_t(99) ),     // n
+        ::testing::Values( double(0.0), double(1.0), double(-1.2) ),   // alpha
+        ::testing::Values( double(0.0), double(1.0), double(-1.0),
+                           double(2.1) ),                              // beta
+        ::testing::Values( gtint_t(1) ),                                // incx
+        ::testing::Values( gtint_t(1), gtint_t(5) ),                    // incy
+        ::testing::Values( gtint_t(0), gtint_t(7) ),                    // lda_inc
+        ::testing::Values( false, true )                                // is_memory_test
     ),
     (::gemvUKRPrint<double, dgemv_ker>())
 );

@@ -3,7 +3,7 @@
    BLISPP
    C++ test driver for BLIS CPP trsm routine and reference blis trsm routine.
 
-   Copyright (C) 2019 - 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2019 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -136,7 +136,8 @@ void test_trsm(  )
 #ifdef PRINT
     printmatrix(B_ref, ldb_ref ,m,n, (char *)"B ref output");
 #endif
-    if(computeErrorM(ldb, ldb_ref, m, n, B, B_ref )==1)
+    const double threshold = 3.0 * m * test_epsilon<T>();
+    if(computeErrorM(ldb, ldb_ref, m, n, B, B_ref, threshold)==1)
 	    printf("%s TEST FAIL\n" , __PRETTY_FUNCTION__);
     else
 	    printf("%s TEST PASS\n" , __PRETTY_FUNCTION__);

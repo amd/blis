@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2024 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -359,7 +359,7 @@ do { \
 	__m256i odd1_256 = _mm512_extracti64x4_epi64( odd_out, 0x0 ); \
 	__m256i odd2_256 = _mm512_extracti64x4_epi64( odd_out, 0x1 ); \
  \
-	/* Shift the elemts in odd register by 4 to the left. */ \
+	/* Shift the elements in odd register by 4 to the left. */ \
 	odd1_256 = _mm512_cvtepi16_epi8( \
 		_mm512_slli_epi16( _mm512_cvtepu8_epi16( odd1_256 ), 0x4 ) ); \
 	odd2_256 = _mm512_cvtepi16_epi8( \
@@ -390,7 +390,7 @@ do { \
 	output = _mm256_maskz_and_epi32( _cvtu32_mask8( 0xFF ), \
 					output, clear_hi_bits ); \
  \
-	/* Shift the elemts in odd register by 4 to the left. */ \
+	/* Shift the elements in odd register by 4 to the left. */ \
 	odd_out = _mm512_cvtepi16_epi8( \
 	_mm512_slli_epi16( _mm512_cvtepu8_epi16( odd_out ), 0x4 ) ); \
  \
@@ -414,7 +414,7 @@ do { \
 	output = _mm_maskz_and_epi32( _cvtu32_mask8( 0xFF ), \
 					output, clear_hi_bits ); \
  \
-	/* Shift the elemts in odd register by 4 to the left. */ \
+	/* Shift the elements in odd register by 4 to the left. */ \
 	__mmask16 sel_all_mask = _cvtu32_mask16( 0xFFFF ); \
 	odd_out = _mm256_maskz_cvtepi16_epi8( sel_all_mask, \
 		_mm256_maskz_slli_epi16( sel_all_mask, \

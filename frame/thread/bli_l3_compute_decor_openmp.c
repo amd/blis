@@ -73,7 +73,7 @@ void bli_l3_compute_thread_decorator
     // the rntm below.
     bli_pba_rntm_set_pba( rntm );
 
-    // Allcoate a global communicator for the root thrinfo_t structures.
+    // Allocate a global communicator for the root thrinfo_t structures.
     thrcomm_t* restrict gl_comm = bli_thrcomm_create( rntm, n_threads );
 
     _Pragma( "omp parallel num_threads(n_threads)" )

@@ -2099,7 +2099,7 @@ void bli_zaxpyf_zen_int_5
 
 			/**
 			 * y0v.v & y1v.v holds computation with real part of chi.
-			 * y2v.v & y3v.v holds computaion with imag part of chi.
+			 * y2v.v & y3v.v holds computation with imag part of chi.
 			 * Permute will swap the positions of elements in y2v.v & y3v.v
 			 * as we need to perform: [ R*R + I*I & R*I + I*R].
 			 * Once dcomplex multiplication is done add the result into r0v.v
@@ -2198,7 +2198,7 @@ void bli_zaxpyf_zen_int_5
 			r1v.v = _mm256_add_pd(y1v.v, r1v.v);
 
 			/**
-			 * Final axpy compuation is available in r0v.v
+			 * Final axpy computation is available in r0v.v
 			 * and r1v.v registers.
 			 * Store it back into y vector.
 			 */
@@ -2274,7 +2274,7 @@ void bli_zaxpyf_zen_int_5
 
 			/**
 			 * y0v.v holds computation with real part of chi.
-			 * y2v.v holds computaion with imag part of chi.
+			 * y2v.v holds computation with imag part of chi.
 			 * Permute will swap the positions of elements in y2v.v.
 			 * as we need to perform: [ R*R + I*I & R*I + I*R].
 			 * Once dcomplex multiplication is done add the result into r0v.v
@@ -2334,7 +2334,7 @@ void bli_zaxpyf_zen_int_5
 			r0v.v = _mm256_add_pd(y0v.v, r0v.v);
 
 			/**
-			 * Final axpy compuation is available in r0v.v
+			 * Final axpy computation is available in r0v.v
 			 * Store it back into y vector.
 			 */
 			_mm256_storeu_pd( (double*) (y0 + 0*n_elem_per_reg), r0v.v );

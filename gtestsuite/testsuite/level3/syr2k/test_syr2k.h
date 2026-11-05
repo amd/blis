@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -48,7 +48,11 @@ void test_syr2k( char storage, char uplo, char transa, char transb, gtint_t n,
 {
     // Compute the leading dimensions of a, b, and c.
     gtint_t lda = testinghelpers::get_leading_dimension( storage, transa, n, k, lda_inc );
+#if TEST_BLIS_TYPED
     gtint_t ldb = testinghelpers::get_leading_dimension( storage, transb, n, k, ldb_inc );
+#else
+    gtint_t ldb = testinghelpers::get_leading_dimension( storage, transa, n, k, ldb_inc );
+#endif
     gtint_t ldc = testinghelpers::get_leading_dimension( storage, 'n', n, n, ldc_inc );
 
     //----------------------------------------------------------
@@ -57,7 +61,11 @@ void test_syr2k( char storage, char uplo, char transa, char transb, gtint_t n,
     // Set index to a starting position for this test
     get_pool<T>().set_index(n, k, lda_inc);
     std::vector<T> a = get_pool<T>().get_random_matrix( storage, transa, n, k, lda );
+#if TEST_BLIS_TYPED
     std::vector<T> b = get_pool<T>().get_random_matrix( storage, transb, n, k, ldb );
+#else
+    std::vector<T> b = get_pool<T>().get_random_matrix( storage, transa, n, k, ldb );
+#endif
     std::vector<T> c( testinghelpers::matsize( storage, 'n', n, n, ldc ) );
     if (beta != testinghelpers::ZERO<T>())
         // Since matrix C, stored in c, is symmetric and we only use the upper or lower
@@ -98,7 +106,49 @@ void test_syr2k( char storage, char uplo, char transa, char transb, gtint_t n,
 
 // Test-case logger : Used to print the test-case details based on parameters
 template <typename T>
-class syr2kGenericPrint {
+class syr2kGenericPrint1 {
+public:
+    std::string operator()(
+        testing::TestParamInfo<std::tuple<char, char, char, char, gtint_t, gtint_t, T, T, gtint_t>> str) const {
+        char storage    = std::get<0>(str.param);
+        char uplo       = std::get<1>(str.param);
+        char transa     = std::get<2>(str.param);
+        char transb     = std::get<3>(str.param);
+        gtint_t n       = std::get<4>(str.param);
+        gtint_t k       = std::get<5>(str.param);
+        T alpha  = std::get<6>(str.param);
+        T beta   = std::get<7>(str.param);
+        gtint_t lda_inc = std::get<8>(str.param);
+
+        gtint_t ldb_inc = lda_inc;
+        gtint_t ldc_inc = lda_inc;
+
+        std::string str_name = API_PRINT;
+        str_name += "_stor_" + std::string(&storage, 1);
+        str_name += "_uplo_" + std::string(&uplo, 1);
+        str_name += "_transa_" + std::string(&transa, 1);
+        str_name += "_transb_" + std::string(&transb, 1);
+        str_name += "_n_" + std::to_string(n);
+        str_name += "_k_" + std::to_string(k);
+        str_name += "_alpha_" + testinghelpers::get_value_string(alpha);
+        str_name += "_beta_" + testinghelpers::get_value_string(beta);
+        gtint_t lda = testinghelpers::get_leading_dimension( storage, transa, n, k, lda_inc );
+#if TEST_BLIS_TYPED
+        gtint_t ldb = testinghelpers::get_leading_dimension( storage, transb, n, k, ldb_inc );
+#else
+        gtint_t ldb = testinghelpers::get_leading_dimension( storage, transa, n, k, ldb_inc );
+#endif
+        gtint_t ldc = testinghelpers::get_leading_dimension( storage, 'n', n, n, ldc_inc );
+        str_name += "_lda_i" + std::to_string(lda_inc) + "_" + std::to_string(lda);
+        str_name += "_ldb_i" + std::to_string(ldb_inc) + "_" + std::to_string(ldb);
+        str_name += "_ldc_i" + std::to_string(ldc_inc) + "_" + std::to_string(ldc);
+        return str_name;
+    }
+};
+
+// Test-case logger : Used to print the test-case details based on parameters
+template <typename T>
+class syr2kGenericPrint3 {
 public:
     std::string operator()(
         testing::TestParamInfo<std::tuple<char, char, char, char, gtint_t, gtint_t, T, T, gtint_t, gtint_t, gtint_t>> str) const {
@@ -124,7 +174,11 @@ public:
         str_name += "_alpha_" + testinghelpers::get_value_string(alpha);
         str_name += "_beta_" + testinghelpers::get_value_string(beta);
         gtint_t lda = testinghelpers::get_leading_dimension( storage, transa, n, k, lda_inc );
+#if TEST_BLIS_TYPED
         gtint_t ldb = testinghelpers::get_leading_dimension( storage, transb, n, k, ldb_inc );
+#else
+        gtint_t ldb = testinghelpers::get_leading_dimension( storage, transa, n, k, ldb_inc );
+#endif
         gtint_t ldc = testinghelpers::get_leading_dimension( storage, 'n', n, n, ldc_inc );
         str_name += "_lda_i" + std::to_string(lda_inc) + "_" + std::to_string(lda);
         str_name += "_ldb_i" + std::to_string(ldb_inc) + "_" + std::to_string(ldb);

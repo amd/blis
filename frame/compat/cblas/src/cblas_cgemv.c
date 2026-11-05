@@ -6,6 +6,8 @@
  * 
  * Keita Teranishi  5/20/98
  *
+ * Copyright (C) 2020 - 2026, Advanced Micro Devices, Inc. All rights reserved.
+ *
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,10 +36,10 @@ void cblas_cgemv(enum CBLAS_ORDER order,
    #define F77_incY incY
 #endif
 
-   int n=0, i=0;
+   f77_int n=0, i=0;
    const float *xx= (const float *)X;
    float ALPHA[2],BETA[2];
-   int tincY, tincx;
+   f77_int tincY, tincx;
    float *x=(float *)X, *y=(float *)Y, *st=0, *tx=0;
    const float *stx = x;
    extern int CBLAS_CallFromC;
@@ -64,6 +66,7 @@ void cblas_cgemv(enum CBLAS_ORDER order,
       #endif
       F77_cgemv(F77_TA, &F77_M, &F77_N, (scomplex*)alpha, (scomplex*)A, &F77_lda, (scomplex*)X, &F77_incX,
                 (scomplex*)beta, (scomplex*)Y, &F77_incY);
+      AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
    }
    else if (order == CblasRowMajor)
    {
@@ -161,15 +164,15 @@ void cblas_cgemv(enum CBLAS_ORDER order,
             while (y != st);
          }
       }
+      AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
    }
    else
    {
-      AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal Order setting.");
+      AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
       cblas_xerbla(1, "cblas_cgemv", "Illegal Order setting, %d\n", order);
    }
    CBLAS_CallFromC = 0;
    RowMajorStrg = 0;
-   AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
    return;
 }
 #endif

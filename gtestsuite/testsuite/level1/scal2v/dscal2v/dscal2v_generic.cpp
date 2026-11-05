@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -66,7 +66,7 @@ TEST_P( dscal2vGeneric, API )
     // Set the threshold for the errors:
     // Check gtestsuite dotxv.h (no netlib version) for reminder of the
     // functionality from which we estimate operation count per element
-    // of output, and hence the multipler for epsilon.
+    // of output, and hence the multiplier for epsilon.
     double thresh;
     if (n == 0)
         thresh = 0.0;
@@ -124,7 +124,7 @@ INSTANTIATE_TEST_SUITE_P(
 
 // Test when conjugate of x is used as an argument. This option is BLIS-api specific.
 // Only test very few cases as sanity check since conj(x) = x for real types.
-// We can modify the values using implementantion details.
+// We can modify the values using implementation details.
 INSTANTIATE_TEST_SUITE_P(
         Conjalpha,
         dscal2vGeneric,
@@ -140,7 +140,7 @@ INSTANTIATE_TEST_SUITE_P(
 
 // Test for non-unit increments.
 // Only test very few cases as sanity check.
-// We can modify the values using implementantion details.
+// We can modify the values using implementation details.
 INSTANTIATE_TEST_SUITE_P(
         NonUnitIncrements,
         dscal2vGeneric,

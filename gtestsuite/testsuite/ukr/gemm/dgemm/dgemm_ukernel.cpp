@@ -77,7 +77,7 @@ TEST_P( dgemmGenericSUP, sup_kernel)
     // Set the threshold for the errors:
     // Check gtestsuite gemm.h or netlib source code for reminder of the
     // functionality from which we estimate operation count per element
-    // of output, and hence the multipler for epsilon.
+    // of output, and hence the multiplier for epsilon.
     double thresh;
     if (m == 0 || n == 0)
         thresh = 0.0;
@@ -444,7 +444,7 @@ TEST_P( dgemmGenericNat, native_kernel_testing)
     // Set the threshold for the errors:
     // Check gtestsuite gemm.h or netlib source code for reminder of the
     // functionality from which we estimate operation count per element
-    // of output, and hence the multipler for epsilon.
+    // of output, and hence the multiplier for epsilon.
     double thresh;
     if (m == 0 || n == 0)
         thresh = 0.0;
@@ -592,7 +592,7 @@ TEST_P( dgemmGenericK1, k1_kernel_testing)
     // Set the threshold for the errors:
     // Check gtestsuite gemm.h or netlib source code for reminder of the
     // functionality from which we estimate operation count per element
-    // of output, and hence the multipler for epsilon.
+    // of output, and hence the multiplier for epsilon.
     // Threshold adjustment
     double thresh;
     if (m == 0 || n == 0)
@@ -739,7 +739,7 @@ TEST_P( dgemmGenericSmall, gemm_small)
     // Set the threshold for the errors:
     // Check gtestsuite gemm.h or netlib source code for reminder of the
     // functionality from which we estimate operation count per element
-    // of output, and hence the multipler for epsilon.
+    // of output, and hence the multiplier for epsilon.
     // Threshold adjustment./
     double thresh;
     if (m == 0 || n == 0)

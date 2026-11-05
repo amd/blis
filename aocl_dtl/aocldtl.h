@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2020 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2020 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -36,7 +36,7 @@
  * File Name :  aocldtl.h
  *
  * Description : This is main interface file for the end user
- *               It provides defination for all macros to be
+ *               It provides definition for all macros to be
  *               used by user to add debug/trace information.
  *
  *==================================================================*/
@@ -175,7 +175,7 @@ extern bool                   gbIsLoggingEnabled;
 #define AOCL_DTL_START_PERF_TIMER()
 #endif
 
-/* Macro to initialize the prerequisite for debuging */
+/* Macro to initialize the prerequisite for debugging */
 #ifdef AOCL_DTL_INITIALIZE_ENABLE
 #define AOCL_DTL_INITIALIZE() \
     DTL_Initialize();
@@ -202,7 +202,7 @@ void DTL_Uninitialize(void);
 #endif
 
 #if (AOCL_DTL_TRACE_ENABLE || AOCL_DTL_LOG_ENABLE)
-/* Debug trace Function protoypes */
+/* Debug trace Function prototypes */
 void DTL_Trace(
     uint8 ui8LogLevel,
     uint8 ui8LogType,

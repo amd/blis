@@ -3,7 +3,7 @@
    BLISPP
    C++ test driver for BLIS CPP gemm routine and reference blis gemm routine.
 
-   Copyright (C) 2019 - 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2019 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -59,7 +59,9 @@ void test_tbmv(  )
  T A[] = { 0.439f, -0.484f, -0.952f, -0.508f, 0.381f, -0.889f, -0.192f, -0.279f, -0.155f };
  T X[] = { -0.089f, -0.688f, -0.203f };
  int incX = -1;
- T X_ref[] = { -0.24504f, 0.447756f, -0.089117f };
+ T X_ref[] = { -0.089f, -0.688f, -0.203f };
+
+ reference_tbmv(n, k, A, lda, X_ref, incX);
 
 
 #ifdef PRINT
@@ -83,7 +85,8 @@ void test_tbmv(  )
 	printvector(X, n,(char *)"X");
         printvector(X_ref ,n,(char *) "X output");
 #endif
-    if(computeErrorV(incX, incX, n, X, X_ref )==1)
+    const double threshold = 2.0 * n * test_epsilon<T>();
+    if(computeErrorV(n, X, X_ref, threshold)==1)
 	    printf("%s TEST FAIL\n" , __PRETTY_FUNCTION__);
     else
 	    printf("%s TEST PASS\n" , __PRETTY_FUNCTION__);

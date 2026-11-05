@@ -412,7 +412,7 @@ void bli_dtrsm_small_zen4_int_pack
 }
 /*
   Pack diagonal elements of A block (8) into an array
-  a. This helps in utilze cache line efficiently in TRSM operation
+  a. This helps in utilize cache line efficiently in TRSM operation
   b. store ones when input is unit diagonal
 */
 void dtrsm_small_zen4_int_pack_diag_element
@@ -555,7 +555,7 @@ err_t bli_trsm_small_zen4
   }
 
   // Return if inputs are row major as currently
-  // we are supporing col major only
+  // we are supporting col major only
   if ((bli_obj_row_stride(a) != 1) ||
     (bli_obj_row_stride(b) != 1))
   {
@@ -2080,7 +2080,7 @@ err_t bli_dtrsm_small_zen4_int_XAltB_XAuB
   __m256d ymm22, ymm23, ymm24, ymm25, ymm26, ymm27, ymm28, ymm29, ymm30, ymm31;
   __m128d xmm5, xmm0;
 
-  //gcc12 throws a unitialized warning,
+  //gcc12 throws a uninitialized warning,
   //To avoid that these variable are sect to zero.
   ymm0 = _mm256_setzero_pd();
   xmm5 = _mm_setzero_pd();
@@ -4409,7 +4409,7 @@ err_t bli_dtrsm_small_zen4_int_XAutB_XAlB
   __m256d ymm22, ymm23, ymm24, ymm25, ymm26, ymm27, ymm28, ymm29, ymm30, ymm31;
   __m128d xmm5, xmm0;
 
-  //gcc12 throws a unitialized warning,
+  //gcc12 throws a uninitialized warning,
   //To avoid that these variable are set to zero.
   xmm5 = _mm_setzero_pd();
   ymm0 = _mm256_setzero_pd();
@@ -7622,7 +7622,7 @@ err_t bli_dtrsm_small_zen4_int_AutXB_AlXB
   __m128d xmm5;
   xmm5 = _mm_setzero_pd();
 
-  //gcc12 throws a unitialized warning,
+  //gcc12 throws a uninitialized warning,
   //To avoid that these variable are set to zero.
   ymm0 = _mm256_setzero_pd();
   ymm1 = _mm256_setzero_pd();
@@ -7638,7 +7638,7 @@ err_t bli_dtrsm_small_zen4_int_AutXB_AlXB
         a. Load, transpose, Pack A (a10 block), the size of packing 8x6 to 8x (m-8)
            First there will be no GEMM and no packing of a10 because it is only TRSM
         b. Using packed a10 block and b01 block perform GEMM operation
-        c. Use GEMM outputs, perform TRSM operaton using a11, b11 and update B
+        c. Use GEMM outputs, perform TRSM operation using a11, b11 and update B
         d. Repeat b,c for n rows of B in steps of d_nr
     */
   for (i = 0; (i + d_mr - 1) < m; i += d_mr)
@@ -8880,7 +8880,7 @@ err_t bli_dtrsm_small_zen4_int_AutXB_AlXB
     a10 = L + (i * cs_a); // pointer to block of A to be used for GEMM
     // Do transpose for a10 & store in D_A_pack
     double *ptr_a10_dup = D_A_pack;
-    if (3 == m_rem) // Repetative A blocks will be 3*3
+    if (3 == m_rem) // Repetitive A blocks will be 3*3
     {
       dim_t p_lda = 4; // packed leading dimension
       if (transa)
@@ -9112,7 +9112,7 @@ err_t bli_dtrsm_small_zen4_int_AutXB_AlXB
         }
       }
     }
-    else if (2 == m_rem) // Repetative A blocks will be 2*2
+    else if (2 == m_rem) // Repetitive A blocks will be 2*2
     {
       dim_t p_lda = 4; // packed leading dimension
       if (transa)
@@ -9318,7 +9318,7 @@ err_t bli_dtrsm_small_zen4_int_AutXB_AlXB
       m_rem -= 2;
       i += 2;
     }
-    else if (1 == m_rem) // Repetative A blocks will be 1*1
+    else if (1 == m_rem) // Repetitive A blocks will be 1*1
     {
       dim_t p_lda = 4; // packed leading dimension
       if (transa)
@@ -9589,7 +9589,7 @@ err_t bli_dtrsm_small_zen4_int_AltXB_AuXB
   __m256d ymm12, ymm13, ymm14, ymm15, ymm16;
   __m128d xmm5;
 
-  //gcc12 throws a unitialized warning,
+  //gcc12 throws a uninitialized warning,
   //To avoid that these variable are set to zero.
   ymm0 = _mm256_setzero_pd();
   ymm1 = _mm256_setzero_pd();
@@ -9605,7 +9605,7 @@ err_t bli_dtrsm_small_zen4_int_AltXB_AuXB
         a. Load, transpose, Pack A (a10 block), the size of packing 8x8 to 8x (m-d_mr)
            First there will be no GEMM and no packing of a10 because it is only TRSM
         b. Using packed a10 block and b01 block perform GEMM operation
-        c. Use GEMM outputs, perform TRSM operaton using a11, b11 and update B
+        c. Use GEMM outputs, perform TRSM operation using a11, b11 and update B
         d. Repeat b,c for n rows of B in steps of d_nr
   */
 
@@ -9618,15 +9618,15 @@ err_t bli_dtrsm_small_zen4_int_AltXB_AuXB
     /*
       Load, transpose and pack current A block (a10) into packed buffer memory D_A_pack
       a. This a10 block is used in GEMM portion only and this
-        a10 block size will be increasing by d_mr for every next itteration
-        untill it reaches 8x(m-8) which is the maximum GEMM alone block size in A
+        a10 block size will be increasing by d_mr for every next iteration
+        until it reaches 8x(m-8) which is the maximum GEMM alone block size in A
       b. This packed buffer is reused to calculate all n rows of B matrix
     */
     bli_dtrsm_small_zen4_int_pack('L', (m - i - d_mr), transa, a10, bli_obj_col_stride(a) , D_A_pack, p_lda, d_mr);
 
     /*
     Pack 8 diagonal elements of A block into an array
-    a. This helps in utilze cache line efficiently in TRSM operation
+    a. This helps in utilize cache line efficiently in TRSM operation
     b. store ones when input is unit diagonal
     */
     dtrsm_small_zen4_int_pack_diag_element(is_unitdiag, a11, bli_obj_col_stride(a), d11_pack, d_mr);
@@ -9994,7 +9994,7 @@ err_t bli_dtrsm_small_zen4_int_AltXB_AuXB
       n_remainder -= 4;
     }
 
-    if (n_remainder) // implementation fo remaining columns(when 'N' is not a multiple of d_nr)() n = 3
+    if (n_remainder) // implementation of remaining columns(when 'N' is not a multiple of d_nr)() n = 3
     {
       a10 = D_A_pack;
       a11 = L + (i * cs_a) + (i * rs_a);
@@ -10541,7 +10541,7 @@ err_t bli_dtrsm_small_zen4_int_AltXB_AuXB
       n_remainder = n_remainder - 4;
     }
 
-    if (n_remainder) // implementation fo remaining columns(when 'N' is not a multiple of d_nr)() n = 3
+    if (n_remainder) // implementation of remaining columns(when 'N' is not a multiple of d_nr)() n = 3
     {
       a10 = D_A_pack;
       a11 = L + (i * cs_a) + (i * rs_a);
@@ -10702,7 +10702,7 @@ err_t bli_dtrsm_small_zen4_int_AltXB_AuXB
 
     // Do transpose for a10 & store in D_A_pack
     double *ptr_a10_dup = D_A_pack;
-    if (3 == m_remainder) // Repetative A blocks will be 3*3
+    if (3 == m_remainder) // Repetitive A blocks will be 3*3
     {
       dim_t p_lda = 4; // packed leading dimension
       if (transa)
@@ -10933,7 +10933,7 @@ err_t bli_dtrsm_small_zen4_int_AltXB_AuXB
         }
       }
     }
-    else if (2 == m_remainder) // Repetative A blocks will be 2*2
+    else if (2 == m_remainder) // Repetitive A blocks will be 2*2
     {
       dim_t p_lda = 4; // packed leading dimension
       if (transa)
@@ -11136,7 +11136,7 @@ err_t bli_dtrsm_small_zen4_int_AltXB_AuXB
         }
       }
     }
-    else if (1 == m_remainder) // Repetative A blocks will be 1*1
+    else if (1 == m_remainder) // Repetitive A blocks will be 1*1
     {
       dim_t p_lda = 4; // packed leading dimension
       if (transa)

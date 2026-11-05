@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2025 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -247,7 +247,7 @@ void bli_cgemm_zen4_asm_24x4(
      We should shuffle them( even and odd indices )
      SRC: ZMM(15) = ( Ar0*Bi0, Ai0*Bi0, Ar1*Bi0, Ai1*Bi0, ... )
      DST: ZMM(15) = ( Ai0*Bi0, Ar0*Bi0, Ai1*Bi0, Ar1*Bi0, ... )
-     Similary for the other registers
+     Similarly for the other registers
   */
   PERMUTE(15, 16, 17)
   PERMUTE(18, 19, 20)

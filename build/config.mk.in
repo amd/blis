@@ -5,7 +5,7 @@
 #  libraries.
 #
 #  Copyright (C) 2014, The University of Texas at Austin
-#  Copyright (C) 2022 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+#  Copyright (C) 2022 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 #
 #  Redistribution and use in source and binary forms, with or without
 #  modification, are permitted provided that the following conditions are
@@ -137,7 +137,7 @@ PRAGMA_OMP_SIMD   := @pragma_omp_simd@
 # The installation prefix, exec_prefix, libdir, includedir, and shareddir
 # values from configure tell us where to install the libraries, header files,
 # and public makefile fragments. We must first assign each substituted
-# @anchor@ to its own variable. Why? Because the subsitutions may contain
+# @anchor@ to its own variable. Why? Because the substitutions may contain
 # unevaluated variable expressions. For example, '@libdir@' may be replaced
 # with '${exec_prefix}/lib'. By assigning the anchors to variables first, and
 # then assigning them to their final INSTALL_* variables, we allow prefix and
@@ -175,7 +175,7 @@ ARG_MAX_HACK      := @enable_arg_max_hack@
 
 # Whether to build the static and shared libraries.
 # NOTE: The "MK_" prefix, which helps differentiate these variables from
-# their corresonding cpp macros that use the BLIS_ prefix.
+# their corresponding cpp macros that use the BLIS_ prefix.
 MK_ENABLE_STATIC  := @enable_static@
 MK_ENABLE_SHARED  := @enable_shared@
 

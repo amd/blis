@@ -8,7 +8,7 @@
  *
  * Written by Keita Teranishi.  2/11/1998
  *
- * Copyright (C) 2021, Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (C) 2020 - 2026, Advanced Micro Devices, Inc. All rights reserved.
  *
  */
 #include "cblas.h"
@@ -25,7 +25,6 @@ double cblas_ddot( f77_int N, const double *X,
    #define F77_incX incX
    #define F77_incY incY
 #endif
-
    F77_ddot_sub( &F77_N, X, &F77_incX, Y, &F77_incY, &dot);
    AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
    return dot;

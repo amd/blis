@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -576,11 +576,11 @@ static double offsets[8] __attribute__((aligned(64)))
 /*       ZMM(8-10,14-16,20-22,26-28)                      */
 /* Computation of A(real,imag)*B(real,imag):              */
 /*       ZMM(5-7,11-13,17-19,23-25)                       */
-/* Registers used for load and brodcast could be          */
+/* Registers used for load and broadcast could be          */
 /* used for alpha, beta scaling                           */
 /* alphar : ZMM0, alphai : ZMM1                           */
 /* betar  : ZMM2, betai  : ZMM3                           */
-/* Techinques used in kernel                              */
+/* Techniques used in kernel                              */
 /* 1. k loop is sub divided in to 4 loops                 */
 /*    a. iter = k/4-TAIL_NITER-4,  ZMM = A*B              */
 /*    b. iter = 4, ZMM = A*B,                             */

@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2024 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2024 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -170,7 +170,7 @@ void bli_dnorm2fv_zen4_int_unb_var1
                 return;
             }
 
-            // Getting the absoulte values of elements in the vectors
+            // Getting the absolute values of elements in the vectors
             x_vec[0].v = _mm512_abs_pd( x_vec[0].v );
             x_vec[1].v = _mm512_abs_pd( x_vec[1].v );
             x_vec[2].v = _mm512_abs_pd( x_vec[2].v );
@@ -334,7 +334,7 @@ void bli_dnorm2fv_zen4_int_unb_var1
                 return;
             }
 
-            // Getting the absoulte values of elements in the vectors
+            // Getting the absolute values of elements in the vectors
             x_vec[0].v = _mm512_abs_pd( x_vec[0].v );
             x_vec[1].v = _mm512_abs_pd( x_vec[1].v );
 
@@ -457,7 +457,7 @@ void bli_dnorm2fv_zen4_int_unb_var1
                 return;
             }
 
-            // Getting the absoulte values of elements in the vectors
+            // Getting the absolute values of elements in the vectors
             x_vec[0].v = _mm512_abs_pd( x_vec[0].v );
 
             // Setting the masks by comparing with thresh_sml_vec.v
@@ -568,7 +568,7 @@ void bli_dnorm2fv_zen4_int_unb_var1
                 return;
             }
 
-            // Getting the absoulte values of elements in the vectors
+            // Getting the absolute values of elements in the vectors
             x_vec[0].v = _mm512_abs_pd( x_vec[0].v );
 
             // Setting the masks by comparing with thresh_sml_vec.v
@@ -678,7 +678,7 @@ void bli_dnorm2fv_zen4_int_unb_var1
         for( ; i < n; i += 1 )
         {
             abs_chi = bli_fabs( *xt );
-            // Any thread encountering a NAN sets the sum_med accumalator to NAN
+            // Any thread encountering a NAN sets the sum_med accumulator to NAN
             if ( bli_isnan( abs_chi ) )
             {
                 *norm = NAN;

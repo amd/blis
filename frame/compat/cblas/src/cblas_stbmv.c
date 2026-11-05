@@ -5,6 +5,9 @@
  * This program is a C interface to stbmv.
  * Written by Keita Teranishi
  * 3/3/1998
+ *
+ * Copyright (C) 2026, Advanced Micro Devices, Inc. All rights reserved.
+ *
  */
 #include "cblas.h"
 #include "cblas_f77.h"
@@ -103,7 +106,7 @@ void cblas_stbmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
       else if (Diag == CblasNonUnit) DI = 'N';
       else 
       {
-         cblas_xerbla(4, "cblas_stbmv","Illegal Uplo setting, %d\n", Uplo);
+         cblas_xerbla(4, "cblas_stbmv","Illegal Diag setting, %d\n", Diag);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
          return;

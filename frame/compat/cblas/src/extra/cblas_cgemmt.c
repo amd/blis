@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2020 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2020 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -50,6 +50,7 @@ void cblas_cgemmt(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
                   f77_int lda, const void  *B, f77_int ldb,
                   const void *beta, void  *C, f77_int ldc)
 {
+   AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
    char UL, TA, TB;
 #ifdef F77_CHAR
    F77_CHAR F77_UL, F77_TA, F77_TB;
@@ -82,6 +83,7 @@ void cblas_cgemmt(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
       else if ( Uplo == CblasLower ) UL='L';
       else
       {
+         AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal Uplo setting.");
          cblas_xerbla(2, "cblas_cgemmt","Illegal Uplo setting, %d\n", Uplo);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
@@ -93,6 +95,7 @@ void cblas_cgemmt(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
       else if ( TransA == CblasNoTrans )   TA='N';
       else
       {
+         AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal TransA setting.");
          cblas_xerbla(3, "cblas_cgemmt","Illegal TransA setting, %d\n", TransA);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
@@ -104,6 +107,7 @@ void cblas_cgemmt(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
       else if ( TransB == CblasNoTrans )   TB='N';
       else
       {
+         AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal TransB setting.");
          cblas_xerbla(4, "cblas_cgemmt","Illegal TransB setting, %d\n", TransB);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
@@ -118,6 +122,7 @@ void cblas_cgemmt(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
 
       F77_cgemmt(F77_UL, F77_TA, F77_TB, &F77_M, &F77_K, (scomplex*)alpha, (scomplex*)A,
        &F77_lda, (scomplex*)B, &F77_ldb, (scomplex*)beta, (scomplex*)C, &F77_ldc);
+      AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
    } else if (Order == CblasRowMajor)
    {
       RowMajorStrg = 1;
@@ -128,6 +133,7 @@ void cblas_cgemmt(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
       else if ( Uplo == CblasLower ) UL='U';
       else
       {
+         AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal Uplo setting.");
          cblas_xerbla(2, "cblas_cgemmt","Illegal Uplo setting, %d\n", Uplo);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
@@ -139,6 +145,7 @@ void cblas_cgemmt(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
       else if ( TransA == CblasNoTrans )   TB='N';
       else
       {
+         AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal TransA setting.");
          cblas_xerbla(3, "cblas_cgemmt","Illegal TransA setting, %d\n", TransA);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
@@ -149,6 +156,7 @@ void cblas_cgemmt(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
       else if ( TransB == CblasNoTrans )   TA='N';
       else
       {
+         AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal TransB setting.");
          cblas_xerbla(4, "cblas_cgemmt","Illegal TransB setting, %d\n", TransB);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
@@ -162,8 +170,13 @@ void cblas_cgemmt(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
 
       F77_cgemmt(F77_UL, F77_TA, F77_TB, &F77_M, &F77_K, (scomplex*)alpha, (scomplex*)B,
                   &F77_ldb, (scomplex*)A, &F77_lda, (scomplex*)beta, (scomplex*)C, &F77_ldc);
+      AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
    }
-   else  cblas_xerbla(1, "cblas_cgemmt", "Illegal Order setting, %d\n", Order);
+   else
+   {
+      AOCL_DTL_TRACE_EXIT_ERR(AOCL_DTL_LEVEL_TRACE_1, "Illegal order setting.");
+      cblas_xerbla(1, "cblas_cgemmt", "Illegal Order setting, %d\n", Order);
+   }
    CBLAS_CallFromC = 0;
    RowMajorStrg = 0;
    return;

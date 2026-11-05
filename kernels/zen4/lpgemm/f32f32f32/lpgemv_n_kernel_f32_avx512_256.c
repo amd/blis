@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-  Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
+  Copyright (C) 2024 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -615,7 +615,7 @@ POST_OPS_DOWNSCALE_1x32F:
             if ( ( *( char* )post_ops_list_temp->op_args2 == 'r' ) ||
                 ( *( char* )post_ops_list_temp->op_args2 == 'R' ) )
             {
-                // Scale/zp len cannot be > 1, since orignal n = 1.
+                // Scale/zp len cannot be > 1, since original n = 1.
                 F32_SCL_MULRND_AVX2(ymm30, selector1, zero_point0);
                 F32_SCL_MULRND_AVX2(ymm31, selector2, zero_point1);
             }

@@ -2080,7 +2080,7 @@
     TRANSPOSE_4x4(6, 12, 18, 24)                                              \
     TRANSPOSE_4x4(8, 14, 20, 26)                                              \
     /* */                                                                     \
-    /*  The layout post transposition and accumalation is as follows: */      \
+    /*  The layout post transposition and accumulation is as follows: */      \
     /*  ZMM6 */                                                               \
     /*  ZMM12 */                                                              \
     /*  ZMM18 */                                                              \
@@ -2253,7 +2253,7 @@
     TRANSPOSE_4x4(6, 12, 18, 24)                                              \
     TRANSPOSE_4x4(8, 14, 20, 26)                                              \
     /* */                                                                     \
-    /*  The layout post transposition and accumalation is as follows: */      \
+    /*  The layout post transposition and accumulation is as follows: */      \
     /*  ZMM6 */                                                               \
     /*  ZMM12 */                                                              \
     /*  ZMM18 */                                                              \
@@ -2427,7 +2427,7 @@
     TRANSPOSE_4x4(6, 12, 18, 24)                                              \
     TRANSPOSE_4x4(8, 14, 20, 26)                                              \
     /* */                                                                     \
-    /*  The layout post transposition and accumalation is as follows: */      \
+    /*  The layout post transposition and accumulation is as follows: */      \
     /*  ZMM6 */                                                               \
     /*  ZMM12 */                                                              \
     /*  ZMM18 */                                                              \
@@ -2603,7 +2603,7 @@
     TRANSPOSE_4x4(6, 12, 18, 24)                                              \
     TRANSPOSE_4x4(8, 14, 20, 26)                                              \
     /* */                                                                     \
-    /*  The layout post transposition and accumalation is as follows: */      \
+    /*  The layout post transposition and accumulation is as follows: */      \
     /*  ZMM6 */                                                               \
     /*  ZMM12 */                                                              \
     /*  ZMM18 */                                                              \
@@ -3816,7 +3816,7 @@
     /* */                                                                     \
     TRANSPOSE_4x4(6, 12, 18, 24)                                              \
     /* */                                                                     \
-    /*  The layout post transposition and accumalation is as follows: */      \
+    /*  The layout post transposition and accumulation is as follows: */      \
     /*  ZMM6 */                                                               \
     /*  ZMM12 */                                                              \
     /*  ZMM18 */                                                              \
@@ -3968,7 +3968,7 @@
     /* */                                                                     \
     TRANSPOSE_4x4(6, 12, 18, 24)                                              \
     /* */                                                                     \
-    /*  The layout post transposition and accumalation is as follows: */      \
+    /*  The layout post transposition and accumulation is as follows: */      \
     /*  ZMM6 */                                                               \
     /*  ZMM12 */                                                              \
     /*  ZMM18 */                                                              \
@@ -4120,7 +4120,7 @@
     /* */                                                                     \
     TRANSPOSE_4x4(6, 12, 18, 24)                                              \
     /* */                                                                     \
-    /*  The layout post transposition and accumalation is as follows: */      \
+    /*  The layout post transposition and accumulation is as follows: */      \
     /*  ZMM6 */                                                               \
     /*  ZMM12 */                                                              \
     /*  ZMM18 */                                                              \
@@ -4274,7 +4274,7 @@
     /* */                                                                     \
     TRANSPOSE_4x4(6, 12, 18, 24)                                              \
     /* */                                                                     \
-    /*  The layout post transposition and accumalation is as follows: */      \
+    /*  The layout post transposition and accumulation is as follows: */      \
     /*  ZMM6 */                                                               \
     /*  ZMM12 */                                                              \
     /*  ZMM18 */                                                              \

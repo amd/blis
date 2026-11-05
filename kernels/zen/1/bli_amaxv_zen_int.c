@@ -193,7 +193,7 @@ void bli_samaxv_zen_int
 			/* If the absolute value of the current element exceeds that of
 			   the previous largest, save it and its index. If NaN is
 			   encountered, then treat it the same as if it were a valid
-			   value that was smaller than any previously seen. The comparision
+			   value that was smaller than any previously seen. The comparison
 			   operation does this, since with NaN it always fails. This
 			   behavior mimics that of LAPACK's i?amax(). */
 			if ( abs_chi1_max < abs_chi1 )
@@ -236,8 +236,8 @@ void bli_samaxv_zen_int
 			The logic for this kernels can be broken down into two
 			phases :
 			- Finding the absolute maximum value and the search space
-			  for its first occurence.
-			- Finding the index of the first occurence of absolute maximum
+			  for its first occurrence.
+			- Finding the index of the first occurrence of absolute maximum
 			  value.
 		*/
 		for (; (i + 63) < n; i += 64)
@@ -475,12 +475,12 @@ void bli_samaxv_zen_int
 			temp_ptr += incx;
 		}
 
-		// Setting the variables for finding the first occurence
+		// Setting the variables for finding the first occurrence
 		// of abs max value(max search space length is 64)
 		temp_ptr = x + window_start;
 		i_max_l = window_start;
 
-		// Searching for the first occurence of the element
+		// Searching for the first occurrence of the element
 		while( i_max_l < window_end )
 		{
 			float value = fabsf(*temp_ptr);
@@ -538,14 +538,14 @@ void bli_samaxv_zen_int
 	Functionality
 	--------------
 
-	This function finds the first occurence of the absolute largest element in a double
+	This function finds the first occurrence of the absolute largest element in a double
 	array and the range (start and end index) in which that element can be found.
 
 	Function signature
 	-------------------
 
 	This function takes a void pointer as input (internally casted to a double pointer)
-	which points to an array of type double, the correspending array's stride and length.
+	which points to an array of type double, the corresponding array's stride and length.
 	It uses the function parameters to return the output.
 
 	* 'x' - Void pointer pointing to an array of type double
@@ -955,7 +955,7 @@ BLIS_INLINE void bli_vec_absmax_double
 	-------------------
 
 	This function takes a void pointer as input (internally casted to a double pointer)
-	which points to an array of type double, the correspending array's stride and length.
+	which points to an array of type double, the corresponding array's stride and length.
 	It uses the function parameters to return the output.
 
 	* 'x' - Void pointer pointing to an array of type double
@@ -1122,7 +1122,7 @@ BLIS_INLINE void bli_vec_search_double
 	Function Signature
 	-------------------
 
-	This function takes a double pointer as input, the correspending vector's stride
+	This function takes a double pointer as input, the corresponding vector's stride
 	and length. It uses the function parameters to return the output.
 
 	* 'x' - Double pointer pointing to an array
@@ -1171,7 +1171,7 @@ BLIS_EXPORT_BLIS void bli_damaxv_zen_int
 	dim_t search_len;
 
 	/*
-		This function find the first occurence of the absolute largest element in a double
+		This function finds the first occurrence of the absolute largest element in a double
 		array and the range (start and end index) in which that element can be found.
 	*/
 	bli_vec_absmax_double

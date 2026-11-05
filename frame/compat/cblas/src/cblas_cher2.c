@@ -6,6 +6,8 @@
  * 
  * Keita Teranishi  3/23/98
  *
+ * Copyright (C) 2026, Advanced Micro Devices, Inc. All rights reserved.
+ *
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,7 +32,7 @@ void cblas_cher2(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
    #define F77_incX incX
    #define F77_incY incY
 #endif
-   int n, i, j, tincx, tincy;
+   f77_int n, i, j, tincx, tincy;
    float *x=(float *)X, *xx=(float *)X, *y=(float *)Y, 
          *yy=(float *)Y, *tx, *ty, *stx, *sty;
 

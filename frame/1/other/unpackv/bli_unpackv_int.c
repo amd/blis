@@ -5,6 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
+   Copyright (C) 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -176,7 +177,7 @@ void bli_unpackv_init_cast( obj_t*  p,
 	//  (3) the view offset of c is reset to (0,0), and
 	//  (4) object c's main buffer is set to a new memory region acquired
 	//      from the memory manager, or extracted from p if a mem entry is
-	//      already available. (After acquring a mem entry from the memory
+	//      already available. (After acquiring a mem entry from the memory
 	//      manager, it is cached within p for quick access later on.)
 
 	num_t dt_targ_a    = bli_obj_target_dt( a );

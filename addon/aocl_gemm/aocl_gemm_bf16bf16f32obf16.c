@@ -182,7 +182,7 @@ AOCL_GEMM_MATMUL(bfloat16,bfloat16,bfloat16,float,bf16bf16f32obf16)
 
 	// From 5-loop function point of view,
 	// B matrix needs to be packed in a certain format in order to be loaded
-	// and used in bf16 instrution. As such the mtag_b always needs to be either
+	// and used in bf16 instruction. As such the mtag_b always needs to be either
 	// packed or reordered. B matrix as it is (unpacked) cannot be used, and
 	// the mtag_b is set to packed to enable runtime packing.
 	if ( ( is_row_major == TRUE ) && ( mtag_b == UNPACKED ) )
@@ -231,7 +231,7 @@ AOCL_GEMM_MATMUL(bfloat16,bfloat16,bfloat16,float,bf16bf16f32obf16)
 	lpgemm_cntx_t* lcntx_g = lpgemm_get_global_cntx_obj( BF16BF16F32OF32 );
 #if (defined(BLIS_KERNELS_ZEN4) && (!defined(LPGEMM_BF16_JIT)))
 	/* While AOCL_ENABLE_INSTRUCTIONS=AVX2 is enabled in machines that supports BF16/VNNI
-	*  with only the ISA check the exeution could enter tiny path and result in seg fault
+	*  with only the ISA check the execution could enter tiny path and result in seg fault
 	*  as the tiny path for BF16->FP32 is not available. Hence the arch_id also has to be
 	*  verified here.
 	*/

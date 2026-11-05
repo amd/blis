@@ -92,7 +92,44 @@ void test_trmm( char storage, char side, char uploa, char transa, char diaga,
 
 // Test-case logger : Used to print the test-case details based on parameters
 template <typename T>
-class trmmGenericPrint {
+class trmmGenericPrint1 {
+public:
+    std::string operator()(
+        testing::TestParamInfo<std::tuple<char, char, char, char, char, gtint_t, gtint_t, T, gtint_t>> str) const {
+        char storage    = std::get<0>(str.param);
+        char side       = std::get<1>(str.param);
+        char uploa      = std::get<2>(str.param);
+        char transa     = std::get<3>(str.param);
+        char diaga      = std::get<4>(str.param);
+        gtint_t m       = std::get<5>(str.param);
+        gtint_t n       = std::get<6>(str.param);
+        T alpha  = std::get<7>(str.param);
+        gtint_t lda_inc = std::get<8>(str.param);
+
+        gtint_t ldb_inc = lda_inc;
+
+        std::string str_name = API_PRINT;
+        str_name += "_stor_" + std::string(&storage, 1);
+        str_name += "_side_" + std::string(&side, 1);
+        str_name += "_uploa_" + std::string(&uploa, 1);
+        str_name += "_transa_" + std::string(&transa, 1);
+        str_name += "_diaga_" + std::string(&diaga, 1);
+        str_name += "_m_" + std::to_string(m);
+        str_name += "_n_" + std::to_string(n);
+        str_name += "_alpha_" + testinghelpers::get_value_string(alpha);
+        gtint_t mn;
+        testinghelpers::set_dim_with_side( side, m, n, &mn );
+        gtint_t lda = testinghelpers::get_leading_dimension( storage, transa, mn, mn, lda_inc );
+        gtint_t ldb = testinghelpers::get_leading_dimension( storage, 'n', m, n, ldb_inc );
+        str_name += "_lda_i" + std::to_string(lda_inc) + "_" + std::to_string(lda);
+        str_name += "_ldb_i" + std::to_string(ldb_inc) + "_" + std::to_string(ldb);
+        return str_name;
+    }
+};
+
+// Test-case logger : Used to print the test-case details based on parameters
+template <typename T>
+class trmmGenericPrint2 {
 public:
     std::string operator()(
         testing::TestParamInfo<std::tuple<char, char, char, char, char, gtint_t, gtint_t, T, gtint_t, gtint_t>> str) const {

@@ -50,7 +50,7 @@
     Function Signature
     -------------------
 
-    This function takes three float pointer as input, the correspending vector's stride
+    This function takes three float pointer as input, the corresponding vector's stride
     and length. It uses the function parameters to return the output.
 
     * 'conjx' - Info about conjugation of x (This variable is not used in the kernel)
@@ -335,7 +335,7 @@ void bli_saxpyv_zen4_int
     Function Signature
     -------------------
 
-    This function takes three float pointer as input, the correspending vector's stride
+    This function takes three float pointer as input, the corresponding vector's stride
     and length. It uses the function parameters to return the output.
 
     * 'conjx' - Info about conjugation of x (This variable is not used in the kernel)
@@ -587,7 +587,7 @@ BLIS_EXPORT_BLIS void bli_daxpyv_zen4_int
     Function Signature
     -------------------
 
-    This function takes three float pointer as input, the correspending vector's stride
+    This function takes three float pointer as input, the corresponding vector's stride
     and length. It uses the function parameters to return the output.
 
     * 'conjx' - Info about conjugation of x (This variable is not used in the kernel)

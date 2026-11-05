@@ -73,7 +73,7 @@ void test_tbsv(
     std::vector<T> a = get_pool<T, 0, 1>().get_random_matrix( 'c', 'n', k+1, n, lda );
     std::vector<T> x = get_pool<T, 1, 3>().get_random_vector(n, incx);
 
-    // Make A matix diagonally dominant to make sure that algorithm doesn't diverge
+    // Make A matrix diagonally dominant to make sure that algorithm doesn't diverge
     // This makes sure that the tbsv problem is solvable
     // Upper and Lower are swapped when using row storage
 

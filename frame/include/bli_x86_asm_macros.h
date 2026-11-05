@@ -1182,12 +1182,14 @@
 // Conversions
 
 #define CVTSI2SD(_0, _1) INSTR_(cvtsi2sd, _0, _1)
+#define CVTSI2SS(_0, _1) INSTR_(cvtsi2ss, _0, _1)
 #define CVTSS2SD(_0, _1) INSTR_(cvtss2sd, _0, _1)
 #define CVTSD2SS(_0, _1) INSTR_(cvtsd2ss, _0, _1)
 #define CVTPS2PD(_0, _1) INSTR_(cvtps2pd, _0, _1)
 #define CVTPD2PS(_0, _1) INSTR_(cvtpd2ps, _0, _1)
 
 #define cvtsi2sd(_0, _1) CVTSI2SD(_0, _1)
+#define cvtsi2ss(_0, _1) CVTSI2SS(_0, _1)
 #define cvtss2sd(_0, _1) CVTSS2SD(_0, _1)
 #define cvtsd2ss(_0, _1) CVTSD2SS(_0, _1)
 #define cvtps2pd(_0, _1) CVTPS2PD(_0, _1)

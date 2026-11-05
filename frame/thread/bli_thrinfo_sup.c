@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018 - 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2018 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -272,7 +272,7 @@ thrinfo_t* bli_thrinfo_sup_create_for_cntl
 	}
 	else
 	{
-		// No communicator is reqiured in cases where neither packa nor
+		// No communicator is required in cases where neither packa nor
 		// packb is enabled.
 		thread_chl = bli_thrinfo_create
 		(

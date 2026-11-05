@@ -4,7 +4,7 @@
 #  An object-based framework for developing high-performance BLAS-like
 #  libraries.
 #
-#  Copyright (C) 2023 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+#  Copyright (C) 2023 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 #
 #  Redistribution and use in source and binary forms, with or without
 #  modification, are permitted provided that the following conditions are
@@ -254,12 +254,12 @@ def read_registry_file(filename):
     # through the 'config_registry' file, this time creating the actual
     # config and kernel registry data structures.
     pass_config_kernel_registries(filename, 1)
-    # Now we must go back through the config_registry and subsitute any
+    # Now we must go back through the config_registry and substitute any
     # configuration families with their constituents' members. Each time
     # one of these substitutions occurs, we set a flag that causes us to
-    # make one more pass. (Subsituting a singleton definition does not
+    # make one more pass. (Substituting a singleton definition does not
     # prompt additional iterations.) This process stops when a full pass
-    # does not result in any subsitution.
+    # does not result in any substitution.
 
     iterate_again = 1
     while iterate_again == 1:

@@ -607,7 +607,7 @@ cntx_t* bli_gks_query_ind_cntx
 	// its address early.
 	if ( ind == BLIS_NAT ) return gks_id_nat;
 
-	// This function assumes that the architecture idenified by id has
+	// This function assumes that the architecture identified by id has
 	// already been registered with the gks (which guarantees that
 	// gks[ id ] is non-NULL and gks[ id ][ BLIS_NAT ] is also non-NULL
 	// and refers to a context initialized with valid data).

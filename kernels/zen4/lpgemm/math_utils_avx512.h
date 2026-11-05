@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -49,7 +49,7 @@
 #define inf 1.0/0.0
 #define sign_bit_mask -2147483648
 
-//Trignometric EXP, TANH and ERF functions for AVX512
+//Trigonometric EXP, TANH and ERF functions for AVX512
 
 #define POLY_EVAL_6_AVX512(r, r2, z) \
     r2 = _mm512_mul_ps (r, r); \

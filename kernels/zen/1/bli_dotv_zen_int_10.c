@@ -608,10 +608,10 @@ void bli_cdotv_zen_int_5
             y0 += 2 * n_elem_per_reg;
         }
 
-        /*Accumalte real values in to rhov[0]*/
+        /*Accumulate real values in to rhov[0]*/
         rhov[0].v += rhov[1].v;
 
-        /*Accumalte imaginary values in to rhov[5]*/
+        /*Accumulate imaginary values in to rhov[5]*/
         rhov[5].v += rhov[6].v;
 
         for ( ; (i + 3) < n; i += 4 )

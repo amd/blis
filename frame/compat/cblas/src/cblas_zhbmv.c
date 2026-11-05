@@ -6,6 +6,8 @@
  * 
  * Keita Teranishi  5/18/98
  *
+ * Copyright (C) 2026, Advanced Micro Devices, Inc. All rights reserved.
+ *
  */
 #include "cblas.h"
 #include "cblas_f77.h"
@@ -32,10 +34,10 @@ void cblas_zhbmv(enum CBLAS_ORDER order,
    #define F77_incX incX
    #define F77_incY incY
 #endif
-   int n, i=0;
+   f77_int n, i=0;
    const double *xx= (double *)X, *alp= (double *)alpha, *bet = (double *)beta;
    double ALPHA[2],BETA[2];
-   int tincY, tincx;
+   f77_int tincY, tincx;
    double *x=(double *)X, *y=(double *)Y, *st=0, *tx;
    extern int CBLAS_CallFromC;
    extern int RowMajorStrg;

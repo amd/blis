@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2016 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2016 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -364,7 +364,7 @@ void bli_ddotv_zen4_int
             // vector register.
             //for example if n-i=3 case bitmask is prepared as following.
             //1 is shifted by n-i(3), mask becomes 0b1000.
-            //substracting 1 from it makes mask 0b111 which states that
+            //subtracting 1 from it makes mask 0b111 which states that
             //3 elements from memory are to be loaded into vector register.
             __mmask8 mask = (1 << (n-i)) - 1;
             rhov[1] = _mm512_setzero_pd();

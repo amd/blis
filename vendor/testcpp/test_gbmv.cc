@@ -3,7 +3,7 @@
    BLISPP
    C++ test driver for BLIS CPP gemm routine and reference blis gemm routine.
 
-   Copyright (C) 2019 - 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2019 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -31,6 +31,7 @@
 
 */
 
+#include <algorithm>
 #include <complex>
 #include <iostream>
 #include "blis.hh"
@@ -43,6 +44,32 @@ using namespace std;
 #define BETA -1.0
 #define M 3
 #define N 4
+
+inline int logical_index(int i, int n, int increment)
+{
+  return increment < 0 ? (n - 1 - i) * (-increment) : i * increment;
+}
+
+template< typename T >
+void ref_gbmv(int m, int n, int kl, int ku, T alpha, const T* A, int lda,
+        const T* X, int incX, T beta, T* Y, int incY)
+{
+  T result[M];
+  for (int i = 0; i < m; ++i)
+  {
+    T dot = T{};
+    const int first_j = std::max(0, i - kl);
+    const int last_j = std::min(n - 1, i + ku);
+    for (int j = first_j; j <= last_j; ++j)
+      dot += A[(ku + i - j) + j * lda] * X[logical_index(j, n, incX)];
+
+    const int y_index = logical_index(i, m, incY);
+    result[y_index] = alpha * dot + beta * Y[y_index];
+  }
+
+  for (int i = 0; i < m; ++i)
+    Y[i] = result[i];
+}
 
 template< typename T >
 void test_gbmv(  ) 
@@ -58,11 +85,13 @@ void test_gbmv(  )
    int incX = -1;
    T Y[] = { 0.874f, 0.322f, -0.477f };
    int incY = -1;
-   T Y_ref[] = { -0.656261f, 0.19575f, 0.055905f }; 
+  T Y_ref[] = { 0.874f, 0.322f, -0.477f };
     alpha = ALPHA;
     beta = BETA;
     m = M;
     n = N;
+
+    ref_gbmv(m, n, KL, KU, alpha, A, lda, X, incX, beta, Y_ref, incY);
 
 
 #ifdef PRINT
@@ -90,7 +119,10 @@ void test_gbmv(  )
 
 #endif
 
-    if(computeErrorV(incY,incY, m, Y, Y_ref )==1)
+    const double threshold = test_threshold<T>(3.0 * n + 1.0,
+                          1.0, 1.0, 2.1, 2.1,
+                          1.0, 1.0, 1.0, 1.0);
+    if(computeErrorV(m, Y, Y_ref, threshold)==1)
 	    printf("%s TEST FAIL\n" , __PRETTY_FUNCTION__ );
     else
 	    printf("%s TEST PASS\n" , __PRETTY_FUNCTION__ );

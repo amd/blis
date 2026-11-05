@@ -5,6 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
+   Copyright (C) 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -53,7 +54,7 @@ her_t*            her_cntl_ge_lcol_urow = NULL;
 void bli_her_cntl_init()
 {
 	// Create control trees for the lowest-level kernels. These trees induce
-	// operations on (persumably) relatively small block-subvector problems.
+	// operations on (presumably) relatively small block-subvector problems.
 	her_cntl_bs_ke_lrow_ucol
 	=
 	bli_her_cntl_obj_create( BLIS_UNBLOCKED,
