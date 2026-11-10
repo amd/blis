@@ -1436,13 +1436,6 @@ if(THREADING_MODEL STREQUAL "openmp")
  list(APPEND LDFLAGS_STRING "${OpenMP_C_FLAGS}")
 endif()
 string(JOIN " " LDFLAGS_STRING ${LDFLAGS_STRING})
-if(NOT WIN32)
-    configure_file(
-        ${PROJECT_SOURCE_DIR}/build/cmake/${PC_IN_FILE}
-        ${CMAKE_BINARY_DIR}/${PC_OUT_FILE}
-        @ONLY
-    )
-endif()
 
 if(BUILD_SHARED_LIBS)
     # Build shared library with proper target name
@@ -1452,7 +1445,7 @@ if(BUILD_SHARED_LIBS)
                         SOVERSION ${SO_VERSION_MAJOR}
                         OUTPUT_NAME ${LIBBLIS_SHARED}
                     )
-
+    set(LIBBLIS "${LIBBLIS_SHARED}")
 endif()
 if(BUILD_STATIC_LIBS OR NOT BUILD_SHARED_LIBS)
     # Build static library with proper target name.
@@ -1460,8 +1453,14 @@ if(BUILD_STATIC_LIBS OR NOT BUILD_SHARED_LIBS)
     set_target_properties(blis_static PROPERTIES
                         OUTPUT_NAME ${LIBBLIS_STATIC}
                     )
-
+    set(LIBBLIS "${LIBBLIS_STATIC}")
 endif()
+
+configure_file(
+    ${PROJECT_SOURCE_DIR}/build/cmake/${PC_IN_FILE}
+    ${CMAKE_BINARY_DIR}/${PC_OUT_FILE}
+    @ONLY
+)
 
 # AOCL Build-It-Yourself unified build: contribute BLIS' object files to the
 # single libaocl. OBJECT_LIBRARIES is a list of $<TARGET_OBJECTS:...> genexes.
