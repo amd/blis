@@ -1568,10 +1568,6 @@ endforeach()
 if(BUILD_SHARED_LIBS AND TARGET blis_shared)
     install(TARGETS blis_shared
         EXPORT blisTargets
-        LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-        RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-        INCLUDES DESTINATION ${CMAKE_INSTALL_PREFIX}/include
     )
     if (MSVC)
         install(FILES
@@ -1585,16 +1581,12 @@ endif()
 if((BUILD_STATIC_LIBS OR NOT BUILD_SHARED_LIBS) AND TARGET blis_static)
     install(TARGETS blis_static
         EXPORT blisTargets
-        LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-        RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-        INCLUDES DESTINATION ${CMAKE_INSTALL_PREFIX}/include
     )
 endif()
 
 # Install headers
 install(FILES ${BLIS_PUBLIC_HEADERS}
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/include
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
 # Install package-config file.
