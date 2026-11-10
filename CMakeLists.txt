@@ -1244,8 +1244,8 @@ if(NOT WIN32)
 endif()
 
 # --- #pragma omp simd flags (used for reference kernels only) ---
-if(PRAGMA_OMP_SIMD)
-    if(WIN32)
+if(ENABLE_PRAGMA_OMP_SIMD_01)
+    if (MSVC AND CMAKE_C_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
         set(COMPSIMDFLAGS /openmp:experimental)
     else()
         set(COMPSIMDFLAGS -fopenmp-simd)
