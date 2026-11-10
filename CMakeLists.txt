@@ -1395,10 +1395,18 @@ endif()
 if(WIN32)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS)
     add_definitions(-D_CRT_SECURE_NO_DEPRECATE)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /Oi")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MP${CMake_MSVC_PARALLEL}")
+    if (MSVC AND CMAKE_C_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /Oi")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MP${CMake_MSVC_PARALLEL}")
+    endif()
     set(INTR_GENERAL_LINK_FLAGS "${INTR_GENERAL_LINK_FLAGS} /RELEGE")
     add_definitions(-DEXPMODULE)
+endif()
+
+# Enable size optimizations for MSVC.
+if (MSVC AND CMAKE_C_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC" AND NOT CMAKE_BUILD_TYPE MATCHES "Debug")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /Gy /Gw")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /OPT:ICF,REF,LBR")
 endif()
 
 # Set up the library name.
