@@ -86,10 +86,6 @@ else()
 endif()
 
 # Setting path to OpenMP runtime.
-if(WIN32)
-   set(OpenMP_libomp_LIBRARY "C:/Program Files/LLVM/lib/libomp.lib" CACHE STRING "openmp library path")
-endif()
-
 # Use OPENMP_NESTED to set whether to call BLIS function within OpenMP nested parallel region(s).
 # Value indicates number of OpenMP parallel regions in the gtest application, with 1 and 2
 # implemented, otherwise don't use any OpenMP parallel region in gtestsuite (default).
