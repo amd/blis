@@ -1186,7 +1186,9 @@ if(NOT WIN32)
 endif()
 
 # Macro to remove/replace absolute path within library
-list(APPEND BUILD_SYMFLAGS "-fmacro-prefix-map=${PROJECT_SOURCE_DIR}/=")
+if (NOT MSVC)
+    list(APPEND BUILD_SYMFLAGS "-fmacro-prefix-map=${PROJECT_SOURCE_DIR}/=")
+endif()
 
 set(SECURITY_LINK_FLAGS)
 if(SECURITY_FLAGS_ENABLED)
