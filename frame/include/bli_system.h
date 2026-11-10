@@ -105,6 +105,7 @@
   // Include Windows header file.
   #define WIN32_LEAN_AND_MEAN
   #define VC_EXTRALEAN
+  #define NOMINMAX
   #include <windows.h>
 
   #ifdef BLIS_IS_BUILDING_LIBRARY
