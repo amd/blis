@@ -1575,10 +1575,8 @@ install(FILES ${BLIS_PUBLIC_HEADERS}
     DESTINATION ${CMAKE_INSTALL_PREFIX}/include
 )
 
-if(NOT WIN32)
-    # Install package-config file.
-    install(FILES ${CMAKE_BINARY_DIR}/${PC_OUT_FILE} DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/pkgconfig)
-endif()
+# Install package-config file.
+install(FILES ${CMAKE_BINARY_DIR}/${PC_OUT_FILE} DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 
 # Set libblis to the shared or static libblis depending on the option setting.
 if(TEST_WITH_SHARED AND TARGET blis_shared)
