@@ -1573,6 +1573,13 @@ if(BUILD_SHARED_LIBS AND TARGET blis_shared)
         RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
         INCLUDES DESTINATION ${CMAKE_INSTALL_PREFIX}/include
     )
+    if (MSVC)
+        install(FILES
+            "$<TARGET_PDB_FILE:blis_shared>"
+            DESTINATION "${CMAKE_INSTALL_BINDIR}"
+            OPTIONAL
+        )
+    endif()
 endif()
 
 if((BUILD_STATIC_LIBS OR NOT BUILD_SHARED_LIBS) AND TARGET blis_static)
