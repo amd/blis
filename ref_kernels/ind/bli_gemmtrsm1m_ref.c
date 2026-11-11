@@ -5,6 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
+   Copyright (C) 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -105,7 +106,7 @@ void PASTEMAC3(ch,opname,arch,suf) \
 	   non-zero imaginary components should be applied during
 	   packing, and so the only alphas we should see here are
 	   those exclusively in the real domain, either because the
-	   value originally had no imaginary compoent (e.g. 4.0) or
+	   value originally had no imaginary component (e.g. 4.0) or
 	   because a 1.0 was sent in as a placeholder since the alpha
 	   was applied during packing. */ \
 	if ( 0 ) \

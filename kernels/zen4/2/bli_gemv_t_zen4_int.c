@@ -44,7 +44,10 @@
 #ifdef BLIS_ENABLE_OPENMP
 #include <omp.h>
     #define SHOULD_CALL_ST_s (size < 22000)
-    #define SHOULD_CALL_ST_d (size < 11000)
+    #define SHOULD_CALL_ST_d \
+        ( size < 26520 || \
+          ( rs_a == 1 && cs_a > m && incx == 1 && incy == 1 && \
+            n <= 128 && size <= 150000 ) )
     #define SHOULD_CALL_ST_c (size < 15000)
     #define SHOULD_CALL_ST_z (size < 8000 )
 #endif
@@ -55,3 +58,8 @@ GENERATE_KERNEL(float,    s, 48, 8)   // float:    MR=48, NR=8
 GENERATE_KERNEL(double,   d, 32, 8)   // double:   MR=32, NR=8
 GENERATE_KERNEL(scomplex, c, 40, 8)   // scomplex: MR=40, NR=8
 GENERATE_KERNEL(dcomplex, z, 20, 8)   // dcomplex: MR=20, NR=8
+
+// Generate the AVX-512 8x8 transpose DGEMV kernel and single-threaded caller
+// used by the small-matrix path.
+PASTECH4(GENERATE_, d, _KERNELS_, 8, _T)(double, d, 8, 8);
+GENT_GEMV_CALLER(double, d, 8, 8);

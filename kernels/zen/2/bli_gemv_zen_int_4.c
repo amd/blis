@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2022 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2022 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -166,7 +166,7 @@ void bli_zgemv_zen_int_4x4
             // (Ar*Xi Ai*Xi Ar*Xi Ai*Xi) => (Ai*Xi Ar*Xi Ai*Xi Ar*Xi)
             ymm15 = _mm256_permute_pd(ymm15, 5);
 
-            /*AddSub to get the 2 proper complex multipled value*/
+            /*AddSub to get the 2 proper complex multiplied value*/
             /* Ar*Xi - Ai*Xi, Ai*Xi + Ar*Xi, Ar*Xi - Ai*Xi, Ai*Xi + Ar*Xi*/
             ymm12 = _mm256_addsub_pd(ymm14, ymm15);
 
@@ -211,7 +211,7 @@ void bli_zgemv_zen_int_4x4
             /*Permute the imag acc register to addsub to real accu results */
             // (Ar*Xi Ai*Xi Ar*Xi Ai*Xi) => (Ai*Xi Ar*Xi Ai*Xi Ar*Xi)
             ymm15 = _mm256_permute_pd(ymm15, 5);
-            /*AddSub to get the 2 proper complex multipled value*/
+            /*AddSub to get the 2 proper complex multiplied value*/
             /* Ar*Xi - Ai*Xi, Ai*Xi + Ar*Xi, Ar*Xi - Ai*Xi, Ai*Xi + Ar*Xi*/
             ymm13 = _mm256_addsub_pd(ymm14, ymm15);
 
@@ -388,7 +388,7 @@ void bli_cgemv_zen_int_4x4
             // (Ar*Xi Ai*Xi Ar*Xi Ai*Xi Ar*Xi Ai*Xi Ar*Xi Ai*Xi)
             // => (Ai*Xi Ar*Xi Ai*Xi Ar*Xi Ai*Xi Ar*Xi Ai*Xi Ar*Xi)
             ymm15 = _mm256_permute_ps(ymm15, 0xB1);
-            /*AddSub to get the 2 proper complex multipled value*/
+            /*AddSub to get the 2 proper complex multiplied value*/
             /* Ar*Xi - Ai*Xi, Ai*Xi + Ar*Xi, Ar*Xi - Ai*Xi, Ai*Xi + Ar*Xi,
               Ar*Xi - Ai*Xi, Ai*Xi + Ar*Xi, Ar*Xi - Ai*Xi, Ai*Xi + Ar*Xi*/
             ymm12 = _mm256_addsub_ps(ymm14, ymm15);
@@ -434,7 +434,7 @@ void bli_cgemv_zen_int_4x4
             /*Permute the imag acc register to addsub to real accu results */
             // (Ar*Xi Ai*Xi Ar*Xi Ai*Xi) => (Ai*Xi Ar*Xi Ai*Xi Ar*Xi)
             ymm15 = _mm256_permute_ps(ymm15, 0xB1);
-            /*AddSub to get the 2 proper complex multipled value*/
+            /*AddSub to get the 2 proper complex multiplied value*/
             /* Ar*Xi - Ai*Xi, Ai*Xi + Ar*Xi, Ar*Xi - Ai*Xi, Ai*Xi + Ar*Xi*/
             ymm13 = _mm256_addsub_ps(ymm14, ymm15);
 

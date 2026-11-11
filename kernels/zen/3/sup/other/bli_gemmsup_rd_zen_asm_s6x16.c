@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2020 - 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2020 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -234,7 +234,7 @@ void bli_sgemmsup_rd_zen_asm_2x16
                                        // NOTE: We must use ymm registers here bc
                                        // using the xmm registers would zero out the
                                        // high bits of the destination registers,
-                                       // which would destory intermediate results.
+                                       // which would destroy intermediate results.
     vmovss(mem(rax       ), xmm0)
     vmovss(mem(rax, r8, 1), xmm1)
     add(imm(1*4), rax)                 // a += 1*cs_b = 1*8;
@@ -486,7 +486,7 @@ void bli_sgemmsup_rd_zen_asm_1x16
                                        // NOTE: We must use ymm registers here bc
                                        // using the xmm registers would zero out the
                                        // high bits of the destination registers,
-                                       // which would destory intermediate results.
+                                       // which would destroy intermediate results.
     vmovss(mem(rax       ), xmm0)
     add(imm(1*4), rax)                 // a += 1*cs_b = 1*8;
     vmovss(mem(rbx        ), xmm3)
@@ -760,7 +760,7 @@ void bli_sgemmsup_rd_zen_asm_2x8
                                        // NOTE: We must use ymm registers here bc
                                        // using the xmm registers would zero out the
                                        // high bits of the destination registers,
-                                       // which would destory intermediate results.
+                                       // which would destroy intermediate results.
     vmovss(mem(rax       ), xmm0)
     vmovss(mem(rax, r8, 1), xmm1)
     add(imm(1*4), rax)                 // a += 1*cs_b = 1*8;
@@ -1015,7 +1015,7 @@ void bli_sgemmsup_rd_zen_asm_1x8
                                        // NOTE: We must use ymm registers here bc
                                        // using the xmm registers would zero out the
                                        // high bits of the destination registers,
-                                       // which would destory intermediate results.
+                                       // which would destroy intermediate results.
     vmovss(mem(rax       ), xmm0)
     add(imm(1*4), rax)                 // a += 1*cs_b = 1*8;
     vmovss(mem(rbx        ), xmm3)
@@ -1268,7 +1268,7 @@ void bli_sgemmsup_rd_zen_asm_2x4
                                        // NOTE: We must use ymm registers here bc
                                        // using the xmm registers would zero out the
                                        // high bits of the destination registers,
-                                       // which would destory intermediate results.
+                                       // which would destroy intermediate results.
     vmovss(mem(rax       ), xmm0)
     vmovss(mem(rax, r8, 1), xmm1)
     add(imm(1*4), rax)                 // a += 1*cs_b = 1*8;
@@ -1500,7 +1500,7 @@ void bli_sgemmsup_rd_zen_asm_1x4
                                        // NOTE: We must use ymm registers here bc
                                        // using the xmm registers would zero out the
                                        // high bits of the destination registers,
-                                       // which would destory intermediate results.
+                                       // which would destroy intermediate results.
     vmovss(mem(rax       ), xmm0)
     add(imm(1*4), rax)                 // a += 1*cs_b = 1*8;
     vmovss(mem(rbx        ), xmm3)
@@ -1716,7 +1716,7 @@ void bli_sgemmsup_rd_zen_asm_2x2
                                        // NOTE: We must use ymm registers here bc
                                        // using the xmm registers would zero out the
                                        // high bits of the destination registers,
-                                       // which would destory intermediate results.
+                                       // which would destroy intermediate results.
     vmovss(mem(rbx        ), xmm0)
     vmovss(mem(rbx, r11, 1), xmm1)
     add(imm(1*4), rbx)                 // b += 1*rs_b = 1*8;
@@ -1918,7 +1918,7 @@ void bli_sgemmsup_rd_zen_asm_1x2
                                        // NOTE: We must use ymm registers here bc
                                        // using the xmm registers would zero out the
                                        // high bits of the destination registers,
-                                       // which would destory intermediate results.
+                                       // which would destroy intermediate results.
     vmovss(mem(rbx        ), xmm0)
     vmovss(mem(rbx, r11, 1), xmm1)
     add(imm(1*4), rbx)                 // b += 1*rs_b = 1*8;
@@ -2216,7 +2216,7 @@ void bli_sgemmsup_rd_zen_asm_6x2
                                        // NOTE: We must use ymm registers here bc
                                        // using the xmm registers would zero out the
                                        // high bits of the destination registers,
-                                       // which would destory intermediate results.
+                                       // which would destroy intermediate results.
     vmovss(mem(rbx        ), xmm0)
     vmovss(mem(rbx, r11, 1), xmm1)
     add(imm(1*4), rbx)                 // b += 1*rs_b = 1*8;
@@ -2572,7 +2572,7 @@ void bli_sgemmsup_rd_zen_asm_3x2
                                        // NOTE: We must use ymm registers here bc
                                        // using the xmm registers would zero out the
                                        // high bits of the destination registers,
-                                       // which would destory intermediate results.
+                                       // which would destroy intermediate results.
     vmovss(mem(rbx        ), xmm0)
     vmovss(mem(rbx, r11, 1), xmm1)
     add(imm(1*4), rbx)                 // b += 1*rs_b = 1*8;

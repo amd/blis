@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -48,6 +48,7 @@ BLIS_EXPORT_BLAS void cblas_sgemm_pack( enum  CBLAS_ORDER      Order,
                                         const float*  src, const f77_int ld,
                                               float*  dest )
 {
+    AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
     char TR;
     char ID;
 
@@ -83,6 +84,7 @@ BLIS_EXPORT_BLAS void cblas_sgemm_pack( enum  CBLAS_ORDER      Order,
         else if ( Trans == CblasConjTrans ) TR = 'T';
         else
         {
+            AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
             cblas_xerbla(3, "cblas_sgemm_pack","Illegal Trans setting, %d\n", Trans);
             CBLAS_CallFromC = 0;
             RowMajorStrg = 0;
@@ -93,6 +95,7 @@ BLIS_EXPORT_BLAS void cblas_sgemm_pack( enum  CBLAS_ORDER      Order,
         else if ( Identifier == CblasBMatrix ) ID = 'B';
         else
         {
+            AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
             cblas_xerbla(3, "cblas_sgemm_pack","Illegal Identifier setting, %d\n", Identifier);
             CBLAS_CallFromC = 0;
             RowMajorStrg = 0;
@@ -111,6 +114,7 @@ BLIS_EXPORT_BLAS void cblas_sgemm_pack( enum  CBLAS_ORDER      Order,
                         &alpha,
                         src, &F77_ld,
                         dest );
+        AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
     }
     else if ( Order == CblasRowMajor )      // CblasRowMajor
     {
@@ -120,6 +124,7 @@ BLIS_EXPORT_BLAS void cblas_sgemm_pack( enum  CBLAS_ORDER      Order,
         else if ( Trans == CblasConjTrans ) TR = 'N';
         else
         {
+            AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
             cblas_xerbla(3, "cblas_sgemm_pack","Invalid Trans setting, %d\n", Trans);
             CBLAS_CallFromC = 0;
             RowMajorStrg = 0;
@@ -130,6 +135,7 @@ BLIS_EXPORT_BLAS void cblas_sgemm_pack( enum  CBLAS_ORDER      Order,
         else if ( Identifier == CblasBMatrix ) ID = 'B';
         else
         {
+            AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
             cblas_xerbla(3, "cblas_sgemm_pack","Illegal Identifier setting, %d\n", Identifier);
             CBLAS_CallFromC = 0;
             RowMajorStrg = 0;
@@ -148,8 +154,13 @@ BLIS_EXPORT_BLAS void cblas_sgemm_pack( enum  CBLAS_ORDER      Order,
                          &alpha,
                          src, &F77_ld,
                          dest );
+        AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
     }
-    else cblas_xerbla(1, "cblas_sgemm_pack", "Invalid Order setting, %d\n", Order);
+    else
+    {
+        AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
+        cblas_xerbla(1, "cblas_sgemm_pack", "Invalid Order setting, %d\n", Order);
+    }
     CBLAS_CallFromC = 0;
     RowMajorStrg = 0;
     return;

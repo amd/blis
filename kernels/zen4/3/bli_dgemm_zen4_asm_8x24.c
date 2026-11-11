@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2024 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2024 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -80,8 +80,8 @@
 /*
  * Two different subiters(SUBITER_0 and SUBITER_1) are used
  * so that latency of mov can be hidden
- * SUBITER_0 laods B into ZMM0-2
- * SUBITER_0 laods B into ZMM3-5
+ * SUBITER_0 loads B into ZMM0-2
+ * SUBITER_0 loads B into ZMM3-5
  * SUBITER_0 and SUBITER_1 called alternatively
  *
  * ----------------------------------------------------------------
@@ -205,21 +205,21 @@
     KXNORW(K(1), K(0), K(0)) /*set mask register to zero*/ \
     KXNORW(K(2), K(0), K(0)) /*set mask register to zero*/ \
     KXNORW(K(3), K(0), K(0)) /*set mask register to zero*/ \
-    VGATHERQPD(ZMM(0) MASK_K(1), MEM(RCX,ZMM(2),1)) /*load C(0:7) from current row of C*/\
+    VGATHERQPD(ZMM(0) MASK_K(1), MEM(RCX,ZMM(3),1)) /*load C(0:7) from current row of C*/\
     /*scale by beta*/ \
     VFMADD231PD(ZMM(R1), ZMM(0), ZMM(1)) /*zmmR1 += zmm0(C(0:7)*zmm1(beta)*/\
-    VGATHERQPD(ZMM(0) MASK_K(2), MEM(RCX,ZMM(3),1)) /*load C(8:15)*/        \
+    VGATHERQPD(ZMM(0) MASK_K(2), MEM(RCX,ZMM(4),1)) /*load C(8:15)*/        \
     VFMADD231PD(ZMM(R2), ZMM(0), ZMM(1)) /*zmmR3 += zmm0(C(8:15)*zmm1(beta)*/\
-    VGATHERQPD(ZMM(0) MASK_K(3), MEM(RCX,ZMM(4),1)) /*load C(16:23)*/       \
+    VGATHERQPD(ZMM(0) MASK_K(3), MEM(RCX,ZMM(5),1)) /*load C(16:23)*/       \
     VFMADD231PD(ZMM(R3), ZMM(0), ZMM(1)) /*zmmR3 += zmm0(C(16:23)*zmm1(beta)*/\
     /*mask registers are reset to 1 after gather/scatter instruction*/ \
     KXNORW(K(1), K(0), K(0)) /*set mask registers to zero*/\
     KXNORW(K(2), K(0), K(0)) \
     KXNORW(K(3), K(0), K(0)) \
     /*store c*/ \
-    VSCATTERQPD(MEM(RCX,ZMM(2),1) MASK_K(1), ZMM(R1)) /*store C(0:7)*/   \
-    VSCATTERQPD(MEM(RCX,ZMM(3),1) MASK_K(2), ZMM(R2)) /*store C(7:15)*/  \
-    VSCATTERQPD(MEM(RCX,ZMM(4),1) MASK_K(3), ZMM(R3)) /*store C(16:23)*/ \
+    VSCATTERQPD(MEM(RCX,ZMM(3),1) MASK_K(1), ZMM(R1)) /*store C(0:7)*/   \
+    VSCATTERQPD(MEM(RCX,ZMM(4),1) MASK_K(2), ZMM(R2)) /*store C(7:15)*/  \
+    VSCATTERQPD(MEM(RCX,ZMM(5),1) MASK_K(3), ZMM(R3)) /*store C(16:23)*/ \
     LEA(RCX, MEM(RCX,R10,1))
 
 // Update C when C is general stored and beta = 0
@@ -228,9 +228,9 @@
     KXNORW(K(1), K(0), K(0)) \
     KXNORW(K(2), K(0), K(0)) \
     KXNORW(K(3), K(0), K(0)) \
-    VSCATTERQPD(MEM(RCX,ZMM(2),1) MASK_K(1), ZMM(R1)) \
-    VSCATTERQPD(MEM(RCX,ZMM(3),1) MASK_K(2), ZMM(R2)) \
-    VSCATTERQPD(MEM(RCX,ZMM(4),1) MASK_K(3), ZMM(R3))  \
+    VSCATTERQPD(MEM(RCX,ZMM(3),1) MASK_K(1), ZMM(R1)) \
+    VSCATTERQPD(MEM(RCX,ZMM(4),1) MASK_K(2), ZMM(R2)) \
+    VSCATTERQPD(MEM(RCX,ZMM(5),1) MASK_K(3), ZMM(R3))  \
     LEA(RCX, MEM(RCX,R10,1))
 
 // 8x8 in register transpose, used for column stored C
@@ -522,7 +522,7 @@ void bli_dgemm_zen4_asm_8x24(
     LEA(RDX, MEM(R10, R10, 4)) // (RDX)rs_c*5 -> rs_c + rs_c*4
     LEA(R14, MEM(R10, R13, 2)) // (R14)rs_c*7 -> rs_c + rs_c*3*2
 
-    VXORPD(ZMM(2), ZMM(2), ZMM(2)) // set zmm2 to 0, used for comparision with beta
+    VXORPD(ZMM(2), ZMM(2), ZMM(2)) // set zmm2 to 0, used for comparison with beta
 #ifdef ENABLE_COL_GEN_STORE
     MOV(R12, VAR(cs_c)) // load cs_c
     CMP(R10, IMM(8))
@@ -543,8 +543,7 @@ void bli_dgemm_zen4_asm_8x24(
     VCOMISD(XMM(1), XMM(2)) // if beta == 0
     JZ(BETA_ZERO) // jump to BETA_ZERO if beta == 0
 
-    VCOMISD(XMM(1), XMM(3))
-    CMP(RBX, IMM(1)) // if beta == 1
+    VCOMISD(XMM(1), XMM(3)) // if beta == 1
     JNZ(BETA_NZ_N1)// jump to BETA_NZ_N1 if beta != 1
 
     // no jumps for beta = 1
@@ -855,7 +854,7 @@ void bli_dgemm_zen4_asm_8x24(
             // beta != 0
 
             /*
-            * // registers pre tranpose
+            * // registers pre transpose
             *  _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
             * |    zmm8      |      zmm9      |     zmm10     |
             * |    zmm11     |      zmm12     |     zmm13     |
@@ -945,9 +944,9 @@ void bli_dgemm_zen4_asm_8x24(
         MOV(R13, VAR(offsetPtr))               // load pointer to the array containing
                                                // offsets for scatter/gather
         VPBROADCASTQ(ZMM(0), R12)              // broadcast cs_c to zmm0
-        VPMULLQ(ZMM(2), ZMM(0), MEM(R13))      // scale offsets array with cs_c
-        VPMULLQ(ZMM(3), ZMM(0), MEM(R13, 8*8))
-        VPMULLQ(ZMM(4), ZMM(0), MEM(R13,16*8))
+        VPMULLQ(ZMM(3), ZMM(0), MEM(R13))      // scale offsets array with cs_c
+        VPMULLQ(ZMM(4), ZMM(0), MEM(R13, 8*8))
+        VPMULLQ(ZMM(5), ZMM(0), MEM(R13,16*8))
         VBROADCASTSD(ZMM(1), MEM(RBX)) // broadcast beta to zmm1
 
         VCOMISD(XMM(1), XMM(2))
@@ -1322,9 +1321,9 @@ void bli_dgemm_zen4_asm_8x24_macro_kernel_fringe
     if ( m_left )
     {
         // loop along N dimension
-        // initial m_main rows of 'C' are aready computed,
+        // initial m_main rows of 'C' are already computed,
         // to compute remaining m_left rows, pointer 'C'
-        // matrix shoule be moved forward by m_main rows,
+        // matrix should be moved forward by m_main rows,
         // and pointer 'A' should point to  (m_main / MR)th
         // micropanel.
         // To move 'A' pointer to (m_main / MR)th micropanel.
@@ -1373,9 +1372,9 @@ void bli_dgemm_zen4_asm_8x24_macro_kernel_fringe
     if ( (n % 24) )
     {
         // loop along M dimension
-        // initial n_main rows of 'C' are aready computed,
+        // initial n_main rows of 'C' are already computed,
         // to compute remaining n_left rows, pointer 'C'
-        // matrix shoule be moved forward by n_main columns,
+        // matrix should be moved forward by n_main columns,
         // and pointer 'B' should point to  (n_main / NR)th
         // micropanel.
         // To move 'B' pointer to (n_main / NR)th micropanel.
@@ -1406,7 +1405,7 @@ void bli_dgemm_zen4_asm_8x24_macro_kernel_fringe
                 NULL,
                 NULL
             );
-            // remaning compute along M dimension = m - i
+            // remaining compute along M dimension = m - i
             dim_t m_curr = m - i;
             // if M remainder compute > 8, then only MR is
             // is solved in current iteration.

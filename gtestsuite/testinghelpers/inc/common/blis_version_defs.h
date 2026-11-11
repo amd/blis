@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2024 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2024 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -38,6 +38,10 @@
    each release based on the previous plus new kernels added.
 */
 #ifdef AOCL_DEV
+    #define AOCL_60
+#endif
+
+#ifdef AOCL_60
     #define AOCL_53
 #endif
 
@@ -74,6 +78,7 @@
     #define K_bli_daxpyf_zen4_int bli_daxpyf_zen4_int
     #define K_bli_ddotxf_zen4_int bli_ddotxf_zen4_int
     #define K_bli_dgemm_zen4_asm_8x24 bli_dgemm_zen4_asm_8x24
+    #define K_bli_sgemm_zen5_asm_8x48 bli_sgemm_zen5_asm_8x48
     #define K_bli_ztrsm_small_zen_int_pack bli_ztrsm_small_zen_int_pack
     #define K_bli_ctrsm_small_zen_int_pack bli_ctrsm_small_zen_int_pack
     #define K_bli_strsm_small_zen_int_pack bli_strsm_small_zen_int_pack
@@ -136,6 +141,7 @@
     #define K_bli_dgemv_t_zen_int bli_dgemv_t_zen_int
     #define K_bli_dgemv_t_zen_int_16x4 bli_dgemv_t_zen_int_16x4
     #define K_bli_dgemv_t_zen_int_16x4_mt bli_dgemv_t_zen_int_16x4_mt
+    #define K_bli_dgemv_t_zen_int_4x4 bli_dgemv_t_zen_int_4x4
     #define K_bli_dgemv_n_zen_int bli_dgemv_n_zen_int
     #define K_bli_dgemv_n_zen_int_20x4 bli_dgemv_n_zen_int_20x4
     #define K_bli_dgemv_n_zen_int_20x4_mt bli_dgemv_n_zen_int_20x4_mt
@@ -165,6 +171,7 @@
     #define K_bli_dgemv_t_zen4_int bli_dgemv_t_zen4_int
     #define K_bli_dgemv_t_zen4_int_32x8 bli_dgemv_t_zen4_int_32x8
     #define K_bli_dgemv_t_zen4_int_32x8_mt bli_dgemv_t_zen4_int_32x8_mt
+    #define K_bli_dgemv_t_zen4_int_8x8 bli_dgemv_t_zen4_int_8x8
     #define K_bli_dgemv_n_zen4_int bli_dgemv_n_zen4_int
     #define K_bli_dgemv_n_zen4_int_40x8 bli_dgemv_n_zen4_int_40x8
     #define K_bli_dgemv_n_zen4_int_40x8_mt bli_dgemv_n_zen4_int_40x8_mt
@@ -224,6 +231,9 @@
     #endif
     #ifndef K_bli_dgemv_t_zen_int_16x4_mt
       #define K_bli_dgemv_t_zen_int_16x4_mt bli_dgemv_t_zen_int_16x4_mt
+    #endif
+    #ifndef K_bli_dgemv_t_zen_int_4x4
+      #define K_bli_dgemv_t_zen_int_4x4 bli_dgemv_t_zen_int_4x4
     #endif
     #ifndef K_bli_dgemv_n_zen_int
       #define K_bli_dgemv_n_zen_int bli_dgemv_n_zen_int
@@ -311,6 +321,9 @@
     #endif
     #ifndef K_bli_dgemv_t_zen4_int_32x8_mt
       #define K_bli_dgemv_t_zen4_int_32x8_mt bli_dgemv_t_zen4_int_32x8_mt
+    #endif
+    #ifndef K_bli_dgemv_t_zen4_int_8x8
+      #define K_bli_dgemv_t_zen4_int_8x8 bli_dgemv_t_zen4_int_8x8
     #endif
     #ifndef K_bli_dgemv_n_zen4_int
       #define K_bli_dgemv_n_zen4_int bli_dgemv_n_zen4_int
@@ -424,6 +437,9 @@
     #endif
     #ifndef K_bli_dgemm_zen4_asm_8x24
       #define K_bli_dgemm_zen4_asm_8x24 bli_dgemm_avx512_asm_8x24
+    #endif
+    #ifndef K_bli_sgemm_zen5_asm_8x48
+      #define K_bli_sgemm_zen5_asm_8x48 bli_sgemm_avx512_asm_8x48
     #endif
     #ifndef K_bli_dnorm2fv_zen4_int_unb_var1
       #define K_bli_dnorm2fv_zen4_int_unb_var1 bli_dnorm2fv_unb_var1_avx512
@@ -552,6 +568,9 @@
     #ifndef K_bli_dgemm_zen4_asm_8x24
       #define K_bli_dgemm_zen4_asm_8x24 bli_dgemm_zen4_asm_8x24
     #endif
+     #ifndef K_bli_sgemm_zen5_asm_8x48
+      #define K_bli_sgemm_zen5_asm_8x48 bli_sgemm_zen5_asm_8x48
+    #endif
     #define K_bli_dgemmsup_rd_haswell_asm_6x8m 1
     #define K_bli_dgemmsup_rd_haswell_asm_6x8n 1
     #define K_bli_dgemmsup_rv_haswell_asm_6x8m 1
@@ -603,7 +622,6 @@
     #endif
     #define K_bli_scopyv_zen_int 1
     #define K_bli_sgemm_haswell_asm_6x16 1
-    #define K_bli_sgemm_skx_asm_32x12_l2 1
     #define K_bli_sgemmsup_rd_zen_asm_6x16m 1
     #define K_bli_sgemmsup_rd_zen_asm_6x16n 1
     #ifndef K_bli_sgemmsup_rd_zen4_asm_6x64m

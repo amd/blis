@@ -5,6 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
+   Copyright (C) 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -55,7 +56,7 @@ gemv_t*           gemv_cntl_ge_axpy = NULL;
 void bli_gemv_cntl_init()
 {
 	// Create control trees for the lowest-level kernels. These trees induce
-	// operations on (persumably) relatively small block-subvector problems.
+	// operations on (presumably) relatively small block-subvector problems.
 	gemv_cntl_bs_ke_dot
 	=
 	bli_gemv_cntl_obj_create( BLIS_UNB_FUSED,

@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -39,7 +39,7 @@
 // ID = One of the AOCL_OPERATION_TYPE enum.
 // FUNC_PTR = Kernel associated with the AOCL_OPERATION_TYPE.
 // It is to be noted that the main macros are defined for combinations
-// of ISA types, and in case a kernel is not implemented for a particualr
+// of ISA types, and in case a kernel is not implemented for a particular
 // ISA combination, the reference kernel should be set as FUNC_PTR.
 // TODO: Add reference kernels for BF16/VNNI kernels for ISA combinations
 // that is not supported.

@@ -3,7 +3,7 @@
    BLISPP
    C++ test driver for BLIS CPP herk routine and reference blis herk routine.
 
-   Copyright (C) 2019 - 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2019 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -133,7 +133,10 @@ void test_herk(  )
 #ifdef PRINT
     printmatrix(C_ref, ldc_ref ,n,n, (char *)"C ref output");
 #endif
-    if(computeErrorM(ldc, ldc_ref, n, n, C, C_ref )==1)
+    const double threshold = test_threshold<T>(3.0 * k + 1.0,
+                          1.0, 1.0, 4.0, 4.1,
+                          1.0, 1.0, 1.0, 1.0);
+    if(computeErrorM(ldc, ldc_ref, n, n, C, C_ref, threshold)==1)
 	    printf("%s TEST FAIL\n" ,__PRETTY_FUNCTION__);
     else
 	    printf("%s TEST PASS\n" , __PRETTY_FUNCTION__);

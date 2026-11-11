@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -68,7 +68,7 @@
 
 #define ERF_UBOUND    3.9192059040069580078125f
 
-//Trignometric EXP, TANH and ERF functions for AVX2
+//Trigonometric EXP, TANH and ERF functions for AVX2
 
 #define POLY_EVAL_6_AVX2(r, r2, z) \
     r2 = _mm256_mul_ps (r, r); \
@@ -135,7 +135,7 @@ q; \
     y = _mm256_or_ps(erf_sign, y); \
 } \
 
-//Trignometric EXP, TANH and ERF functions for SSE
+//Trigonometric EXP, TANH and ERF functions for SSE
 
 #define POLY_EVAL_6_SSE(r, r2, z) \
     r2 = _mm_mul_ps (r, r); \

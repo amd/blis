@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2023 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -49,6 +49,7 @@ BLIS_EXPORT_BLAS void cblas_sgemm_compute( enum CBLAS_ORDER Order,
                                            float beta,
                                                  float*  C, f77_int ldc)
 {
+    AOCL_DTL_TRACE_ENTRY(AOCL_DTL_LEVEL_TRACE_1);
     char TA, TB;
 #ifdef F77_CHAR
     F77_CHAR F77_TA, F77_TB;
@@ -81,6 +82,7 @@ BLIS_EXPORT_BLAS void cblas_sgemm_compute( enum CBLAS_ORDER Order,
         else if ( TransA == CblasPacked )    TA='P';
         else
         {
+            AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
             cblas_xerbla(2, "cblas_sgemm_compute",
                             "Illegal TransA setting, %d\n", TransA);
             CBLAS_CallFromC = 0;
@@ -94,6 +96,7 @@ BLIS_EXPORT_BLAS void cblas_sgemm_compute( enum CBLAS_ORDER Order,
         else if ( TransB == CblasPacked )    TB='P';
         else
         {
+            AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
             cblas_xerbla(3, "cblas_sgemm_compute",
                             "Illegal TransB setting, %d\n", TransB);
             CBLAS_CallFromC = 0;
@@ -112,6 +115,7 @@ BLIS_EXPORT_BLAS void cblas_sgemm_compute( enum CBLAS_ORDER Order,
 
         F77_sgemm_compute( F77_TA, F77_TB, &F77_M, &F77_N, &F77_K, A, &rs_a, &F77_lda,
                            B, &rs_b, &F77_ldb, &beta, C, &rs_c, &F77_ldc);
+        AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
    }
    else if ( Order == CblasRowMajor )       // CblasRowMajor
    {
@@ -125,6 +129,7 @@ BLIS_EXPORT_BLAS void cblas_sgemm_compute( enum CBLAS_ORDER Order,
         else if ( TransA == CblasConjTrans ) TA='N';
         else
         {
+            AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
             cblas_xerbla(2, "cblas_sgemm_compute",
                             "Illegal TransA setting, %d\n", TransA);
             CBLAS_CallFromC = 0;
@@ -140,6 +145,7 @@ BLIS_EXPORT_BLAS void cblas_sgemm_compute( enum CBLAS_ORDER Order,
         else if ( TransB == CblasConjTrans ) TB='N';
         else
         {
+            AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
             cblas_xerbla(2, "cblas_sgemm_compute",
                             "Illegal TransB setting, %d\n", TransB);
             CBLAS_CallFromC = 0;
@@ -157,15 +163,16 @@ BLIS_EXPORT_BLAS void cblas_sgemm_compute( enum CBLAS_ORDER Order,
 
         F77_sgemm_compute( F77_TA, F77_TB, &F77_M, &F77_N, &F77_K, A, &rs_a, &F77_lda,
                            B, &rs_b, &F77_ldb, &beta, C, &F77_ldc, &cs_c);
+        AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
     } 
     else
     {
+        AOCL_DTL_TRACE_EXIT( AOCL_DTL_LEVEL_TRACE_1 );
         cblas_xerbla(1, "cblas_sgemm_compute",
                         "Illegal Order setting, %d\n", Order);
-        CBLAS_CallFromC = 0;
-        RowMajorStrg = 0;
-        return;
     }
+    CBLAS_CallFromC = 0;
+    RowMajorStrg = 0;
     return;
 }
 #endif

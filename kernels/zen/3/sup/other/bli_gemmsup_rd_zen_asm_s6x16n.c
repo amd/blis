@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2020 - 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2020 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -437,7 +437,7 @@ void bli_sgemmsup_rd_zen_asm_6x16n
                                        // NOTE: We must use ymm registers here bc
                                        // using the xmm registers would zero out the
                                        // high bits of the destination registers,
-                                       // which would destory intermediate results.
+                                       // which would destroy intermediate results.
 
     vmovss(mem(rax       ), xmm0)
     vmovss(mem(rax, r8, 1), xmm1)
@@ -909,7 +909,7 @@ void bli_sgemmsup_rd_zen_asm_3x16n
                                        // NOTE: We must use ymm registers here bc
                                        // using the xmm registers would zero out the
                                        // high bits of the destination registers,
-                                       // which would destory intermediate results.
+                                       // which would destroy intermediate results.
 
     vmovss(mem(rax       ), xmm0)
     vmovss(mem(rax, r8, 1), xmm1)
@@ -1346,7 +1346,7 @@ void bli_sgemmsup_rd_zen_asm_2x16n
                                        // NOTE: We must use ymm registers here bc
                                        // using the xmm registers would zero out the
                                        // high bits of the destination registers,
-                                       // which would destory intermediate results.
+                                       // which would destroy intermediate results.
 
     vmovss(mem(rax       ), xmm0)
     vmovss(mem(rax, r8, 1), xmm1)
@@ -1728,7 +1728,7 @@ void bli_sgemmsup_rd_zen_asm_1x16n
                                        // NOTE: We must use ymm registers here bc
                                        // using the xmm registers would zero out the
                                        // high bits of the destination registers,
-                                       // which would destory intermediate results.
+                                       // which would destroy intermediate results.
 
     vmovss(mem(rax       ), xmm0)
     add(imm(1*4), rax)                 // a += 1*cs_b = 1*8;

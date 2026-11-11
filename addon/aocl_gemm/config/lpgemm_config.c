@@ -76,7 +76,7 @@ static void* global_jit_kernels[ LPGEMM_BF16_MR ]
 #define JIT_KERNEL_SIZE ( 14 * BLIS_PAGE_SIZE )
 
 #ifdef DUMP_JIT_CODE
-//Funtion to Dump JIT generated kernel
+//Function to Dump JIT generated kernel
 void dump_jit_code(const void *code, int code_size, const char *code_name, int m, int n) {
     if (code) {
         static int counter = 0;
@@ -245,7 +245,7 @@ static void _lpgemm_cntx_init_func_map()
 			}
 
 #endif
-		// If arch is updated at runtime, it is expeceted to be honoured.
+		// If arch is updated at runtime, it is expected to be honoured.
 		if ( global_lpgemm_enable_arch == BLIS_ARCH_ZEN3 )
 		{
 			LPGEMM_KERN_FUNC_UPD_MAP_AVX512_VNNI_BF16_TO_AVX2;

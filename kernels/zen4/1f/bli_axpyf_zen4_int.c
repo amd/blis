@@ -2712,13 +2712,13 @@ void bli_daxpyf_zen4_int_2
         double  yc = *y;
         double  chi_s[2];
 
-        // The elements in the vector are multipled with alpha and the result is stored in an array
+        // The elements in the vector are multiplied with alpha and the result is stored in an array
         chi_s[0]  = *(x + 0 * incx) * *alpha;
         chi_s[1]  = *(x + 1 * incx) * *alpha;
 
 
         // A loop is used to iterate over the matrix row-by-row.
-        // The elements in each row are multipled with each value in the array
+        // The elements in each row are multiplied with each value in the array
         for ( i = 0; (i + 0) < m ; ++i )
         {
             yc = *y;
@@ -2869,7 +2869,7 @@ void bli_daxpyf_zen4_int_4
         double  yc = *y;
         double  chi_s[4];
 
-        // The elements in the vector are multipled with alpha and the result is stored in an array
+        // The elements in the vector are multiplied with alpha and the result is stored in an array
         chi_s[0]  = *(x + 0 * incx) * *alpha;
         chi_s[1]  = *(x + 1 * incx) * *alpha;
         chi_s[2]  = *(x + 2 * incx) * *alpha;
@@ -2877,7 +2877,7 @@ void bli_daxpyf_zen4_int_4
 
 
         // A loop is used to iterate over the matrix row-by-row.
-        // The elements in each row are multipled with each value in the array
+        // The elements in each row are multiplied with each value in the array
         for ( i = 0; (i + 0) < m ; ++i )
         {
             yc = *y;
@@ -3016,7 +3016,7 @@ void bli_daxpyf_zen4_int_8
 
             // fused-multiplication-add is used to multiple 8 elements in each column of the matrix
             // with one element in the vector and store the results in multiple __m512 variables.
-            // Use of multiple __m512 variables reduces operand dependancy between the instructions.
+            // Use of multiple __m512 variables reduces operand dependency between the instructions.
             yv[0] = _mm512_fmadd_pd( av[0], chi[0], yv[7] );
             yv[1] = _mm512_fmadd_pd( av[1], chi[1], yv[7] );
             yv[2] = _mm512_fmadd_pd( av[2], chi[2], yv[7] );
@@ -3102,7 +3102,7 @@ void bli_daxpyf_zen4_int_8
         double       yc = *y;
         double       chi_s[8];
 
-        // The elements in the vector are multipled with alpha and the result is stored in an array
+        // The elements in the vector are multiplied with alpha and the result is stored in an array
         chi_s[0] = *(x + 0 * incx) * *alpha;
         chi_s[1] = *(x + 1 * incx) * *alpha;
         chi_s[2] = *(x + 2 * incx) * *alpha;
@@ -3113,7 +3113,7 @@ void bli_daxpyf_zen4_int_8
         chi_s[7] = *(x + 7 * incx) * *alpha;
 
         // A loop is used to iterate over the matrix row-by-row.
-        // The elements in each row are multipled with each value in the array
+        // The elements in each row are multiplied with each value in the array
         for ( i = 0; (i + 0) < m ; i++ )
         {
             yc = *y;
@@ -3343,7 +3343,7 @@ void bli_daxpyf_zen4_int_12
         double  yc = *y;
         double  chi_s[12];
 
-        // The elements in the vector are multipled with alpha and the result is stored in an array
+        // The elements in the vector are multiplied with alpha and the result is stored in an array
         chi_s[0]  = *(x + 0 * incx) * *alpha;
         chi_s[1]  = *(x + 1 * incx) * *alpha;
         chi_s[2]  = *(x + 2 * incx) * *alpha;
@@ -3361,7 +3361,7 @@ void bli_daxpyf_zen4_int_12
 
 
         // A loop is used to iterate over the matrix row-by-row.
-        // The elements in each row are multipled with each value in the array
+        // The elements in each row are multiplied with each value in the array
         for ( i = 0; (i + 0) < m ; ++i )
         {
             yc = *y;

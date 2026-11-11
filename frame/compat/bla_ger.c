@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2020 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2020 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -34,6 +34,8 @@
 */
 
 #include "blis.h"
+
+#define BLIS_ZGER_SMALL_MAX_DIM 48
 
 
 //
@@ -90,6 +92,30 @@ void PASTEF772S(ch,blasname,chc) \
 	/* Set the row and column strides of A. */ \
 	rs_a = 1; \
 	cs_a = *lda; \
+\
+	if ( m0 > 0 && n0 > 0 && !PASTEMAC(ch,eq0)( *alpha ) && \
+	     PASTEMAC(ch,type) == BLIS_DCOMPLEX && \
+	     m0 <= BLIS_ZGER_SMALL_MAX_DIM && n0 <= BLIS_ZGER_SMALL_MAX_DIM ) \
+	{ \
+		cntx_t* cntx = bli_gks_query_cntx(); \
+		bli_zger_unb_var2 \
+		( \
+		  BLIS_NO_CONJUGATE, \
+		  blis_conjy, \
+		  m0, \
+		  n0, \
+		  (dcomplex*)alpha, \
+		  (dcomplex*)x0, incx0, \
+		  (dcomplex*)y0, incy0, \
+		  (dcomplex*)a, rs_a, cs_a, \
+		  cntx \
+		); \
+\
+		AOCL_DTL_LOG_GER_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(ch), *m, *n); \
+		AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1) \
+		bli_finalize_auto(); \
+		return; \
+	} \
 \
 	/* Call BLIS interface. */ \
 	PASTEMAC2(ch,blisname,BLIS_TAPI_EX_SUF) \

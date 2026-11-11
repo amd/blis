@@ -46,9 +46,9 @@
  *   MT wrapper:    bli_<ch>gemv_t_<arch>_<MR>x<NR>_mt
  *   entry-point:   bli_<ch>gemv_t_<arch>
  *
- * For the real (s/d) T-kernel body (GENTFUNC_TGEMV_s):
- *   ARCH_SIMD_BITS=512 → inline AVX-512 assembly (bli_x86_asm_macros.h required)
- *   ARCH_SIMD_BITS=256 → pure C intrinsics
+ * Real T-kernel selection:
+ *   ARCH_SIMD_BITS=512 → inline assembly for float, C intrinsics for double
+ *   ARCH_SIMD_BITS=256 → C intrinsics for float and double
  */
 
 #ifndef BLI_GEMV_T_IMPL_H
@@ -348,6 +348,11 @@
             ybuf->real = (temp.real * alpha->real) - (temp.imag * alpha->imag);                  \
             ybuf->imag = (temp.real * alpha->imag) + (temp.imag * alpha->real);                  \
         }                                                                                        \
+        else if ( PASTEMAC( ch, eq1 )( *beta ) )                                                 \
+        {                                                                                        \
+            ybuf->real += (temp.real * alpha->real) - (temp.imag * alpha->imag);                 \
+            ybuf->imag += (temp.real * alpha->imag) + (temp.imag * alpha->real);                 \
+        }                                                                                        \
         else                                                                                     \
         {                                                                                        \
             y_local = *ybuf;                                                                     \
@@ -450,6 +455,90 @@
 #define S_GEMV_T_UPDATE_DISPATCH_1(ch, ctype, NR, _unused3)                                      \
     PP_LOOP(NR, S_GEMV_T_UPDATE, ch, NR, ctype)
 
+/*
+ * S_GEMV_T_UPDATE_VEC_BETA0 / _BETAX, S_GEMV_T_UPDATE_BETA0 / _BETAX:
+ *
+ * beta-specialized copies of S_GEMV_T_UPDATE_VEC / S_GEMV_T_UPDATE, with the
+ * `if (eq0(*beta))` runtime check removed -- each macro hard-codes one side
+ * of that branch. These exist so the AVX-512 GENTFUNC_TGEMV_s below can
+ * check beta (and incy) ONCE, outside the n/NR outer loop, and then run a
+ * loop body that never re-checks beta/incy per iteration, instead of the
+ * original S_GEMV_T_UPDATE_VEC/S_GEMV_T_UPDATE (still used, unmodified, by
+ * the AVX2 branch of this same macro further below), which re-check beta
+ * every outer iteration.
+ *
+ * The generic path below horizontally reduces each accumulator after the asm
+ * block. It is written to be type-generic (parameterized on `ch`), but today
+ * only the float (`s`) AVX-512 ASM path (GENTFUNC_TGEMV_s) actually calls it;
+ * GENTFUNC_TGEMV_d is aliased to GENTFUNC_TGEMV_REAL_INTR, which never
+ * invokes these macros. The `d` instantiations below are currently unused.
+ */
+#define S_GEMV_T_UPDATE_VEC_BETA0_GENERIC(ch, ctype, kk)                                          \
+    {                                                                                             \
+        ctype yreduce[EPR_OF(ch)];                                                                \
+        PP_ILOOP(EPR_OF(ch), S_GEMV_T_UPDATE_REDUCE, ch, ((kk) - 1) * EPR_OF(ch), 0)              \
+        PASTECH(SIMD_VEC_, ch) yred_v  = PASTECH(SIMD_LOADU_P_,  ch)(yreduce);                    \
+        PASTECH(SIMD_VEC_, ch) alpha_v = PASTECH(SIMD_SET1_P_,   ch)(*alpha);                     \
+        PASTECH(SIMD_VEC_, ch) ycur_v  = PASTECH(SIMD_MUL_P_, ch)(yred_v, alpha_v);               \
+        PASTECH(SIMD_STOREU_P_, ch)(ybuf, ycur_v);                                                \
+        ybuf += EPR_OF(ch) * incy;                                                                \
+    }
+
+#define S_GEMV_T_UPDATE_VEC_BETAX_GENERIC(ch, ctype, kk)                                          \
+    {                                                                                             \
+        ctype yreduce[EPR_OF(ch)];                                                                \
+        PP_ILOOP(EPR_OF(ch), S_GEMV_T_UPDATE_REDUCE, ch, ((kk) - 1) * EPR_OF(ch), 0)              \
+        PASTECH(SIMD_VEC_, ch) yred_v  = PASTECH(SIMD_LOADU_P_,  ch)(yreduce);                    \
+        PASTECH(SIMD_VEC_, ch) alpha_v = PASTECH(SIMD_SET1_P_,   ch)(*alpha);                     \
+        PASTECH(SIMD_VEC_, ch) beta_v  = PASTECH(SIMD_SET1_P_,   ch)(*beta);                      \
+        PASTECH(SIMD_VEC_, ch) ycur_v  = PASTECH(SIMD_LOADU_P_,  ch)(ybuf);                       \
+        ycur_v = PASTECH(SIMD_MUL_P_,   ch)(ycur_v, beta_v);                                      \
+        ycur_v = PASTECH(SIMD_FMADD_P_, ch)(yred_v, alpha_v, ycur_v);                             \
+        PASTECH(SIMD_STOREU_P_, ch)(ybuf, ycur_v);                                                \
+        ybuf += EPR_OF(ch) * incy;                                                                \
+    }
+
+/* Float and double use the generic reduce-based path above. Complex types
+ * never reach these macros (they use Z_GEMV_T_UPDATE instead). */
+#define S_GEMV_T_UPDATE_VEC_BETA0_s(ctype, kk)  S_GEMV_T_UPDATE_VEC_BETA0_GENERIC(s, ctype, kk)
+#define S_GEMV_T_UPDATE_VEC_BETAX_s(ctype, kk)  S_GEMV_T_UPDATE_VEC_BETAX_GENERIC(s, ctype, kk)
+#define S_GEMV_T_UPDATE_VEC_BETA0_d(ctype, kk)  S_GEMV_T_UPDATE_VEC_BETA0_GENERIC(d, ctype, kk)
+#define S_GEMV_T_UPDATE_VEC_BETAX_d(ctype, kk)  S_GEMV_T_UPDATE_VEC_BETAX_GENERIC(d, ctype, kk)
+
+#define S_GEMV_T_UPDATE_VEC_BETA0(ch, ctype, _unused2, kk)  PASTECH(S_GEMV_T_UPDATE_VEC_BETA0_, ch)(ctype, kk)
+#define S_GEMV_T_UPDATE_VEC_BETAX(ch, ctype, _unused2, kk)  PASTECH(S_GEMV_T_UPDATE_VEC_BETAX_, ch)(ctype, kk)
+
+#define S_GEMV_T_UPDATE_BETA0(ch, NR, ctype, ii)                                                  \
+    {                                                                                             \
+        ctype yred_s = PASTECH(SIMD_REDUCE_ADD_P_, ch)(yv[((ii) - 1)]) * (*alpha);                \
+        (*ybuf) = yred_s;                                                                         \
+        ybuf += incy;                                                                             \
+    }
+
+#define S_GEMV_T_UPDATE_BETAX(ch, NR, ctype, ii)                                                  \
+    {                                                                                             \
+        ctype yred_s = PASTECH(SIMD_REDUCE_ADD_P_, ch)(yv[((ii) - 1)]) * (*alpha);                \
+        (*ybuf) = ((*ybuf) * (*beta)) + yred_s;                                                   \
+        ybuf += incy;                                                                             \
+    }
+
+/*
+ * S_GEMV_T_UPDATE_DISPATCH_VEC_BETA0/BETAX _0/_1: compile-time fringe
+ * dispatch (via IS_FRINGE_OF, same as the original DISPATCH_0/1) between the
+ * two beta-specialized update paths above. Used by the AVX-512
+ * GENTFUNC_TGEMV_s inside its incy==1 loop copies; the incy!=1 loop copies
+ * call PP_LOOP(NR, S_GEMV_T_UPDATE_BETA0/BETAX, ...) directly since the
+ * scalar path never had a vectorized/incy branch to begin with.
+ */
+#define S_GEMV_T_UPDATE_DISPATCH_VEC_BETA0_0(ch, ctype, NR, _unused3)                            \
+    PP_LOOP(PP_DIV(NR, EPR_OF(ch)), S_GEMV_T_UPDATE_VEC_BETA0, ch, ctype, 0)
+#define S_GEMV_T_UPDATE_DISPATCH_VEC_BETA0_1(ch, ctype, NR, _unused3)                            \
+    PP_LOOP(NR, S_GEMV_T_UPDATE_BETA0, ch, NR, ctype)
+#define S_GEMV_T_UPDATE_DISPATCH_VEC_BETAX_0(ch, ctype, NR, _unused3)                            \
+    PP_LOOP(PP_DIV(NR, EPR_OF(ch)), S_GEMV_T_UPDATE_VEC_BETAX, ch, ctype, 0)
+#define S_GEMV_T_UPDATE_DISPATCH_VEC_BETAX_1(ch, ctype, NR, _unused3)                            \
+    PP_LOOP(NR, S_GEMV_T_UPDATE_BETAX, ch, NR, ctype)
+
 // #endregion
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -498,14 +587,36 @@
 #define S_GEMV_T_SPILL_YV(ch, _u1, _u2, ii)                                                      \
     PASTECH(ASM_VMOVUP_, ch)(MEM(RSI, ((ii) - 1) * 64), ZMM(ii))
 
-/* S_GEMV_T_YV_CLOBBERS — ZMM register clobber list for the inline ASM block.
- * ZMM(0) is the x-broadcast scratch; ZMM(1)..ZMM(31) are the NR accumulators + spares.
- * All must be declared so the compiler knows the ASM modifies them. */
+/* S_GEMV_T_YV_CLOBBERS (legacy, unused) — full zmm1..zmm31 clobber list.
+ * Superseded by S_GEMV_T_YV_CLOBBERS_N(NR) below, which only clobbers the
+ * registers actually written by the ASM block for a given NR, instead of
+ * unconditionally clobbering all 31 ZMM registers regardless of NR. Kept
+ * here only for reference/history; no longer referenced by S_GEMV_T_ASM_ITER. */
 #define S_GEMV_T_YV_CLOBBERS \
     "zmm1",  "zmm2",  "zmm3",  "zmm4",  "zmm5",  "zmm6",  "zmm7",  "zmm8",                      \
     "zmm9",  "zmm10", "zmm11", "zmm12", "zmm13", "zmm14", "zmm15", "zmm16",                     \
     "zmm17", "zmm18", "zmm19", "zmm20", "zmm21", "zmm22", "zmm23", "zmm24",                     \
     "zmm25", "zmm26", "zmm27", "zmm28", "zmm29", "zmm30", "zmm31",
+
+/*
+ * S_GEMV_T_YV_CLOBBER_ONE / S_GEMV_T_YV_CLOBBERS_N(NR) — precisely-sized
+ * ZMM clobber list.
+ *
+ * ZMM(ii) is a direct 1:1 alias for physical register zmm<ii> (see
+ * `#define ZMM(x) REGISTER_(Zmm##x)` in bli_x86_asm_macros.h). The ASM
+ * block only ever writes ZMM(0) (x-broadcast, clobbered separately) and
+ * ZMM(1)..ZMM(NR) (the NR accumulators, via S_GEMV_T_Y_ZERO/A_LOOP/
+ * SPILL_YV, all driven by PP_LOOP(NR, ...)). zmm(NR+1)..zmm31 are never
+ * touched, so unconditionally clobbering all of them (old
+ * S_GEMV_T_YV_CLOBBERS above) needlessly tells the compiler those
+ * registers are dirtied too, for every kernel regardless of its actual NR
+ * -- preventing it from keeping outer-loop state (loop counters, pointer
+ * increments, etc.) live in any of those registers across the ASM block.
+ * Generating the list per-NR (NR is a compile-time macro parameter here)
+ * clobbers exactly zmm1..zmmNR and nothing more.
+ */
+#define S_GEMV_T_YV_CLOBBER_ONE(ch, _u1, _u2, ii) "zmm" STRINGIFY_(ii),
+#define S_GEMV_T_YV_CLOBBERS_N(ch, NR) PP_LOOP(NR, S_GEMV_T_YV_CLOBBER_ONE, ch, 0, 0)
 
 /*
  * S_GEMV_T_A_LOOP (AVX-512) — one FMA step: accumulate one row of A into yv[ii-1].
@@ -571,39 +682,17 @@
     PASTECH(ASM_VMOVUP_, ch)(ZMM(0) MASK_KZ(1), MEM(RBX))                                        \
     PP_ILOOP(NR, S_GEMV_T_A_FRINGE_LOOP, ch, 0, 0)
 
-/* GENTFUNC_TGEMV_s: real T-kernel, AVX-512 inline assembly path. */
-#define GENTFUNC_TGEMV_s(ctype, ch, ch_s, MR, NR)                                                   \
-void GENTFUNC_GEMVTS(ctype, ch, MR, NR)                                                             \
-     (                                                                                              \
-       trans_t transa, conj_t conjx, dim_t m, dim_t n, ctype * alpha,                               \
-       ctype * a, inc_t cs_a, inc_t rs_a, ctype * x, inc_t incx, ctype * beta,                      \
-       ctype * y, inc_t incy, cntx_t * cntx                                                         \
-     )                                                                                              \
-{                                                                                                   \
-    const dim_t ELEM_SIZE = sizeof(ctype);                                                          \
-    const dim_t EPR = PASTECH(ELEM_PER_REG_, ch_s);                                                 \
-    ctype *restrict abuf = a;                                                                       \
-    ctype *restrict xbuf = x;                                                                       \
-    ctype *restrict ybuf = y;                                                                       \
-                                                                                                    \
-    /* The asm block reads these with 64-bit MOV/TEST, so they must be 64-bit    \
-       even when dim_t is 32-bit (BLIS_INT_TYPE_SIZE=32). */                     \
-    const int64_t mloop_full = m / MR;                                                              \
-    const int64_t mloop_epr  = (m % MR) / EPR;                                                      \
-    const int64_t MR_left    = m % EPR;                                                             \
-                                                                                                    \
-    const int64_t rs_a_bytes     = (int64_t)rs_a * ELEM_SIZE;                                       \
-    const int64_t cs_a_epr_bytes = (int64_t)cs_a * EPR * ELEM_SIZE;                                 \
-    const int64_t epr_bytes      = (int64_t)EPR  * ELEM_SIZE;                                       \
-                                                                                                    \
-    PASTECH(SIMD_VEC_, ch) yv[NR];                                                                  \
-                                                                                                    \
-    for (dim_t i = 0; i < (n / NR); ++i)                                                            \
-    {                                                                                               \
-        ybuf = y + (NR * i * incy);                                                                 \
-        xbuf = x;                                                                                   \
-        abuf = a + (NR * i * rs_a);                                                                 \
-                                                                                                    \
+/*
+ * S_GEMV_T_ASM_ITER: one m/MR-tiled outer-loop iteration's worth of ASM
+ * (zero accumulators, main/epr/fringe FMA passes, spill yv[]). Factored out
+ * so GENTFUNC_TGEMV_s (AVX-512) can invoke it identically from all 4
+ * beta/incy loop variants below without hand-duplicating the ASM text.
+ * Each expansion is a separate extended-asm statement, so the LABEL() names
+ * (MLOOP_START, etc.) are safe to reuse across invocations -- they're
+ * suffixed with GCC's per-statement-unique "%=" (see LABEL_ in
+ * bli_x86_asm_macros.h), not emitted as fixed, colliding symbol names.
+ */
+#define S_GEMV_T_ASM_ITER(ch, MR, NR)                                                               \
         BEGIN_ASM()                                                                                 \
         MOV(RAX, VAR(abuf))                                                                         \
         MOV(RBX, VAR(xbuf))                                                                         \
@@ -657,36 +746,113 @@ void GENTFUNC_GEMVTS(ctype, ch, MR, NR)                                         
               "r9", "r10", "r11", "r12",                                                            \
               "k1",                                                                                 \
               "zmm0",                                                                               \
-              S_GEMV_T_YV_CLOBBERS                                                                  \
+              S_GEMV_T_YV_CLOBBERS_N(ch, NR)                                                        \
               "memory"                                                                              \
-        )                                                                                           \
+        )
+
+/*
+ * GENTFUNC_TGEMV_s (AVX-512): beta==0 and incy==1 are now checked ONCE,
+ * outside the n/NR outer loop, instead of once per outer iteration. This
+ * requires 4 copies of the outer loop (one per {beta==0,beta!=0} x
+ * {incy==1,incy!=1} combination); each copy runs the same ASM iteration
+ * (S_GEMV_T_ASM_ITER, unaffected by beta/incy) followed by the
+ * beta-specialized update path appropriate for that copy, with no runtime
+ * beta/incy branch left inside the loop.
+ */
+#define GENTFUNC_TGEMV_s(ctype, ch, ch_s, MR, NR)                                                   \
+void GENTFUNC_GEMVTS(ctype, ch, MR, NR)                                                             \
+     (                                                                                              \
+       trans_t transa, conj_t conjx, dim_t m, dim_t n, ctype * alpha,                               \
+       ctype * a, inc_t cs_a, inc_t rs_a, ctype * x, inc_t incx, ctype * beta,                      \
+       ctype * y, inc_t incy, cntx_t * cntx                                                         \
+     )                                                                                              \
+{                                                                                                   \
+    const dim_t ELEM_SIZE = sizeof(ctype);                                                          \
+    const dim_t EPR = PASTECH(ELEM_PER_REG_, ch_s);                                                 \
+    ctype *restrict abuf = a;                                                                       \
+    ctype *restrict xbuf = x;                                                                       \
+    ctype *restrict ybuf = y;                                                                       \
                                                                                                     \
-        PP_IF(IS_FRINGE_OF(NR, ch), S_GEMV_T_UPDATE_DISPATCH_, ch, ctype, NR, 0)                    \
+    /* The asm block reads these with 64-bit MOV/TEST, so they must be 64-bit    */                 \
+    /* even when dim_t is 32-bit (BLIS_INT_TYPE_SIZE=32). */                                        \
+    const int64_t mloop_full = m / MR;                                                              \
+    const int64_t mloop_epr  = (m % MR) / EPR;                                                      \
+    const int64_t MR_left    = m % EPR;                                                             \
+                                                                                                    \
+    const int64_t rs_a_bytes     = (int64_t)rs_a * ELEM_SIZE;                                       \
+    const int64_t cs_a_epr_bytes = (int64_t)cs_a * EPR * ELEM_SIZE;                                 \
+    const int64_t epr_bytes      = (int64_t)EPR  * ELEM_SIZE;                                       \
+                                                                                                    \
+    PASTECH(SIMD_VEC_, ch) yv[NR];                                                                  \
+                                                                                                    \
+    if ( PASTEMAC(ch, eq0)( *beta ) )                                                               \
+    {                                                                                               \
+        if ( incy == 1 )                                                                            \
+        {                                                                                           \
+            for (dim_t i = 0; i < (n / NR); ++i)                                                    \
+            {                                                                                       \
+                ybuf = y + (NR * i * incy);                                                         \
+                xbuf = x;                                                                           \
+                abuf = a + (NR * i * rs_a);                                                         \
+                S_GEMV_T_ASM_ITER(ch, MR, NR)                                                       \
+                PP_IF(IS_FRINGE_OF(NR, ch), S_GEMV_T_UPDATE_DISPATCH_VEC_BETA0_, ch, ctype, NR, 0)  \
+            }                                                                                       \
+        }                                                                                           \
+        else                                                                                        \
+        {                                                                                           \
+            for (dim_t i = 0; i < (n / NR); ++i)                                                    \
+            {                                                                                       \
+                ybuf = y + (NR * i * incy);                                                         \
+                xbuf = x;                                                                           \
+                abuf = a + (NR * i * rs_a);                                                         \
+                S_GEMV_T_ASM_ITER(ch, MR, NR)                                                       \
+                PP_LOOP(NR, S_GEMV_T_UPDATE_BETA0, ch, NR, ctype)                                   \
+            }                                                                                       \
+        }                                                                                           \
+    }                                                                                               \
+    else                                                                                            \
+    {                                                                                               \
+        if ( incy == 1 )                                                                            \
+        {                                                                                           \
+            for (dim_t i = 0; i < (n / NR); ++i)                                                    \
+            {                                                                                       \
+                ybuf = y + (NR * i * incy);                                                         \
+                xbuf = x;                                                                           \
+                abuf = a + (NR * i * rs_a);                                                         \
+                S_GEMV_T_ASM_ITER(ch, MR, NR)                                                       \
+                PP_IF(IS_FRINGE_OF(NR, ch), S_GEMV_T_UPDATE_DISPATCH_VEC_BETAX_, ch, ctype, NR, 0)  \
+            }                                                                                       \
+        }                                                                                           \
+        else                                                                                        \
+        {                                                                                           \
+            for (dim_t i = 0; i < (n / NR); ++i)                                                    \
+            {                                                                                       \
+                ybuf = y + (NR * i * incy);                                                         \
+                xbuf = x;                                                                           \
+                abuf = a + (NR * i * rs_a);                                                         \
+                S_GEMV_T_ASM_ITER(ch, MR, NR)                                                       \
+                PP_LOOP(NR, S_GEMV_T_UPDATE_BETAX, ch, NR, ctype)                                   \
+            }                                                                                       \
+        }                                                                                           \
     }                                                                                               \
 } /* End of GENTFUNC_TGEMV_s (AVX-512) */
 
-#elif ARCH_SIMD_BITS == 256
+#endif
 
-/* AVX2 (zen): pure C intrinsics — no k-registers or ZMM.
- *
- * Unlike the AVX-512 path, we cannot hold all NR accumulator registers
- * simultaneously in named registers across a loop body.  Instead:
- *   - yv[] is a C array of YMM-wide SIMD vectors.
+#if ARCH_SIMD_BITS == 256 || ARCH_SIMD_BITS == 512
+
+/* Compiler-intrinsic implementation for real types.
+ *   - yv[] is a C array of SIMD vectors.
  *   - avbuf advances by EPR*cs_a each inner iteration (pointer arithmetic).
- *   - Fringe uses an integer mask (number of valid lanes, not a bitmask) since
- *     AVX2 masked loads take a lane-count argument, not a k-register.
+ *   - Fringe loads use the ISA abstraction's bitmask interface.
  */
 
-/*
- * S_GEMV_T_Y_ZERO (AVX2) — zero one yv accumulator slot.
- *   yv[ii-1] = 0   (YMM zero)
- * Called by PP_LOOP(NR, S_GEMV_T_Y_ZERO, ...) before the inner loop.
- */
-#define S_GEMV_T_Y_ZERO(ch, _u1, _u2, ii)                                                        \
+/* Intrinsic helper names remain distinct because AVX-512 assembly macros coexist here. */
+#define S_GEMV_T_Y_ZERO_INTR(ch, _u1, _u2, ii)                                                   \
     yv[(ii) - 1] = PASTECH(SIMD_SETZERO_P_, ch)();
 
 /*
- * S_GEMV_T_A_LOOP_INTR (AVX2) — one FMA step for column ii (1-based), real types.
+ * S_GEMV_T_A_LOOP_INTR — one FMA step for column ii (1-based), real types.
  *
  *   yv[ii-1] += A[current_row_block, col_ii] * xv0
  *
@@ -700,7 +866,7 @@ void GENTFUNC_GEMVTS(ctype, ch, MR, NR)                                         
         xv0, yv[(ii) - 1]);
 
 /*
- * S_GEMV_T_A_FRINGE_LOOP_INTR (AVX2) — masked FMA step for column ii on the
+ * S_GEMV_T_A_FRINGE_LOOP_INTR — masked FMA step for column ii on the
  * fringe row block (real types). Mirrors the AVX-512 S_GEMV_T_A_FRINGE_LOOP path,
  * which uses MASK_K(1) for both the X load and the A FMA. Without masking the
  * A load, the compiler folds (loadu, fma) into vfmadd231p* with a memory
@@ -713,7 +879,7 @@ void GENTFUNC_GEMVTS(ctype, ch, MR, NR)                                         
         xv0, yv[(ii) - 1]);
 
 /*
- * S_GEMV_T_X_LOOP_INTR (AVX2) — process one EPR-wide block of x rows, real types.
+ * S_GEMV_T_X_LOOP_INTR — process one EPR-wide block of x rows, real types.
  *
  *   xv0   = x[xbuf .. xbuf+EPR-1]    (load EPR x-elements)
  *   xbuf += EPR                       (advance x pointer)
@@ -721,8 +887,8 @@ void GENTFUNC_GEMVTS(ctype, ch, MR, NR)                                         
  *     yv[ii-1] += A[row_block, col_ii] * xv0
  *   avbuf += EPR * cs_a               (advance A pointer to next row block)
  *
- * Differs from AVX-512 in that xv0 is a local YMM variable (not a ZMM register alias),
- * and avbuf is advanced via pointer arithmetic rather than a dedicated ADD instruction.
+ * xv0 is a local SIMD variable, and avbuf is advanced via pointer arithmetic
+ * rather than a dedicated ADD instruction.
  * Called by PP_LOOP(MR/EPR, S_GEMV_T_X_LOOP_INTR, ...) for full tiles,
  * or directly in the mloop_epr loop for partial-MR residual blocks.
  */
@@ -734,24 +900,13 @@ void GENTFUNC_GEMVTS(ctype, ch, MR, NR)                                         
         avbuf += EPR * cs_a;                                                                     \
     }
 
-/*
- * S_GEMV_T_FRINGE_0/1 (AVX2) — fringe x-row handler for real types.
- *
- * _FRINGE_0: no-op — MR divides m exactly, nothing left over.
- * _FRINGE_1: handles the last MR_left elements of x (< EPR).
- *   xv0 = masked load of MR_left elements from xbuf (mask is a bitmask of MR_left low bits).
- *   PP_ILOOP(NR, S_GEMV_T_A_LOOP_INTR, ...) — partial FMA for all NR columns.
- *   Note: avbuf is NOT advanced after the fringe since it is the last block.
- */
-#define S_GEMV_T_FRINGE_0(ch, _u1, NR, xfull) /* empty */
-#define S_GEMV_T_FRINGE_1(ch, _u1, NR, xfull)                                                    \
+#define S_GEMV_T_FRINGE_INTR_1(ch, _u1, NR, xfull)                                               \
     {                                                                                            \
         PASTECH(SIMD_VEC_, ch) xv0 = SIMD_MASKZ_LOADU_P_##ch((1 << MR_left) - 1, xbuf);          \
         PP_ILOOP(NR, S_GEMV_T_A_FRINGE_LOOP_INTR, ch, 0, 0)                                      \
     }
 
-/* GENTFUNC_TGEMV_s: real T-kernel, AVX2 pure intrinsics path. rs_a and cs_a are swapped for transpose*/
-#define GENTFUNC_TGEMV_s(ctype, ch, ch_s, MR, NR)                                                   \
+#define GENTFUNC_TGEMV_REAL_INTR(ctype, ch, ch_s, MR, NR)                                           \
 void GENTFUNC_GEMVTS(ctype, ch, MR, NR)                                                             \
      (                                                                                              \
        trans_t transa, conj_t conjx, dim_t m, dim_t n, ctype * alpha,                               \
@@ -776,7 +931,7 @@ void GENTFUNC_GEMVTS(ctype, ch, MR, NR)                                         
         xbuf  = x;                                                                                  \
         avbuf = a + (NR * i * rs_a);                                                                \
                                                                                                     \
-        PP_LOOP(NR, S_GEMV_T_Y_ZERO, ch, 0, 0)                                                      \
+        PP_LOOP(NR, S_GEMV_T_Y_ZERO_INTR, ch, 0, 0)                                                 \
                                                                                                     \
         for (dim_t j = 0; j < mloop_full; ++j)                                                      \
         {                                                                                           \
@@ -790,12 +945,12 @@ void GENTFUNC_GEMVTS(ctype, ch, MR, NR)                                         
                                                                                                     \
         if (MR_left > 0)                                                                            \
         {                                                                                           \
-            S_GEMV_T_FRINGE_1(ch, 0, NR, 0)                                                         \
+            S_GEMV_T_FRINGE_INTR_1(ch, 0, NR, 0)                                                    \
         }                                                                                           \
                                                                                                     \
         PP_IF(IS_FRINGE_OF(NR, ch), S_GEMV_T_UPDATE_DISPATCH_, ch, ctype, NR, 0)                    \
     }                                                                                               \
-} /* End of GENTFUNC_TGEMV_s (AVX2) */
+} /* End of GENTFUNC_TGEMV_REAL_INTR */
 
 #else
 #error "ARCH_SIMD_BITS must be 256 (AVX2) or 512 (AVX-512)"
@@ -876,8 +1031,11 @@ void GENTFUNC_GEMVTS(ctype, ch, MR, NR)                                         
 
 /* scomplex uses the same implementation as dcomplex. */
 #define GENTFUNC_TGEMV_c(ctype, ch, ch_s, MR, NR)  GENTFUNC_TGEMV_z(ctype, ch, ch_s, MR, NR)
-/* double uses the same real implementation as float. */
-#define GENTFUNC_TGEMV_d(ctype, ch, ch_s, MR, NR)  GENTFUNC_TGEMV_s(ctype, ch, ch_s, MR, NR)
+#if ARCH_SIMD_BITS == 256
+#define GENTFUNC_TGEMV_s(ctype, ch, ch_s, MR, NR)  GENTFUNC_TGEMV_REAL_INTR(ctype, ch, ch_s, MR, NR)
+#endif
+/* Double uses compiler intrinsics on both ISAs. */
+#define GENTFUNC_TGEMV_d(ctype, ch, ch_s, MR, NR)  GENTFUNC_TGEMV_REAL_INTR(ctype, ch, ch_s, MR, NR)
 
 // #endregion Complex and double T-kernel aliases
 
@@ -1009,6 +1167,14 @@ void GEMV_T_FNAME_MT(ch, MR, NR)                                                
         n,                                                                                   \
         &nt                                                                                  \
     );                                                                                       \
+                                                                                             \
+    if ( nt == 1 )                                                                           \
+    {                                                                                        \
+        GEMV_T_FNAME(ch, MR, NR)                                                             \
+        ( transa, conjx, m, n, alpha, a, rs_a, cs_a, x, incx, beta, y, incy, cntx );         \
+        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_4)                                          \
+        return;                                                                              \
+    }                                                                                        \
                                                                                              \
     _Pragma("omp parallel num_threads(nt)")                                                  \
     {                                                                                        \

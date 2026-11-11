@@ -83,6 +83,29 @@ bool bli_cntx_gemmsup_thresh_is_met_zen4( obj_t* a, obj_t* b, obj_t* c, cntx_t* 
 			m = bli_obj_length( c );
 			n = bli_obj_width( c );
 		}
+		// Tuning for conjugate ZGEMM inputs: take the SUP path only within a
+		// small-ZGEMM size envelope; larger conjugate shapes use the native path.
+		// The guards compare per-operand element counts (m*k, k*n, m*n) and the
+		// total m*n*k product against tuned size limits.
+		if ( ( bli_obj_has_conj( a ) == TRUE ) || ( bli_obj_has_conj( b ) == TRUE ) )
+		{
+			// Stay on SUP only when an operand is tiny AND the total volume is
+			// small; otherwise the native packed path wins.
+			const double conj_sup_operand_elems_max = 600.0;
+			const double conj_sup_mnk_max           = 20000.0;
+			const double a_elems = ( double )m * ( double )k; // elements in A
+			const double b_elems = ( double )k * ( double )n; // elements in B
+			const double c_elems = ( double )m * ( double )n; // elements in C
+			const double mnk     = ( double )m * ( double )n * ( double )k;
+			if ( ( ( a_elems < conj_sup_operand_elems_max ) ||
+			       ( b_elems < conj_sup_operand_elems_max ) ||
+			       ( c_elems < conj_sup_operand_elems_max ) ) &&
+			     ( mnk < conj_sup_mnk_max ) )
+			{
+				return TRUE;
+			}
+			return FALSE;
+		}
 		// For skinny sizes where m and/or n is small
         // The threshold for m is a single value, but for n, it is
         // also based on the packing size of A, since the kernels are
@@ -182,7 +205,7 @@ void bli_dynamic_blkszs_zen4( dim_t n_threads, cntx_t* cntx, num_t dt )
 
 	blksz_t blkszs[ BLIS_NUM_BLKSZS ];
 	dim_t mc, kc, nc;
-	model_t model = bli_init_model_query_id();
+	model_t model = bli_model_query_id_internal();
 
 	// determine ideal blocksize
 	if ( model == BLIS_MODEL_GENOA)
@@ -207,8 +230,8 @@ void bli_dynamic_blkszs_zen4( dim_t n_threads, cntx_t* cntx, num_t dt )
 			mc = 144, kc = 512, nc = 2016;
 		}
 	}
-	
-	// set blocksizes
+
+	// set blocksizes (s, c and z values are not used from this copy of cntx)
 	bli_blksz_init_easy( &blkszs[ BLIS_MC ],   512,  mc,   144,    60 );
 	bli_blksz_init_easy( &blkszs[ BLIS_KC ],   480,  kc,   256,   512 );
 	bli_blksz_init_easy( &blkszs[ BLIS_NC ],  6144,  nc,  4080,  2004 );

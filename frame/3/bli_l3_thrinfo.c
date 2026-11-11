@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2018 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -213,7 +213,7 @@ void bli_l3_thrinfo_print_gemm_paths
 	// Initialize the n_ways and n_threads fields of each thrinfo_t "level"
 	// to -1. More than likely, these will all be overwritten with meaningful
 	// values, but in case some thrinfo_t trees are not fully built (see
-	// next commnet), these will be the placeholder values.
+	// next comment), these will be the placeholder values.
 	dim_t jc_way = -1, pc_way = -1, pb_way = -1, ic_way = -1,
 	                   pa_way = -1, jr_way = -1, ir_way = -1;
 
@@ -391,7 +391,7 @@ void bli_l3_thrinfo_print_trsm_paths
 	// Initialize the n_ways and n_threads fields of each thrinfo_t "level"
 	// to -1. More than likely, these will all be overwritten with meaningful
 	// values, but in case some thrinfo_t trees are not fully built (see
-	// next commnet), these will be the placeholder values.
+	// next comment), these will be the placeholder values.
 	dim_t jc_way = -1, pc_way  = -1, pb_way  = -1, ic_way  = -1,
 	                   pa_way  = -1, jr_way  = -1, ir_way  = -1,
 	                   pa_way0 = -1, jr_way0 = -1, ir_way0 = -1;

@@ -64,7 +64,33 @@ bin/*
 *.pdb
 *.exe
 
-.vscode
+# Visual Studio and VS Code files
+.vs
+.vscode*
+
+# AI coding agent files
+.aider*
+.amazonq/
+.claude*
+.cline*
+.codeium/
+.codex*
+.continue*
+.copilot*
+.github/copilot-instructions.md
+.github/copilot/
+.cursor*
+.gemini*
+.kilocode/
+.mcp.json
+.openhands/
+.roo*
+.trae/
+.windsurf*
+AGENTS.md
+CLAUDE.local.md
+CLAUDE.md
+GEMINI.md
 
 # Gtestsuite build files
 gtestsuite/build/*

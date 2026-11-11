@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2024 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2024 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -588,7 +588,7 @@ void bli_dgemmsup_cv_zen4_asm_8x8m_upper_mle8
     size 24x24, therefore three 24x8 kernels are added to
     make sure that entire 24x24 block gets covered.
 
-    Diagram for Lower traingular 24x24 block
+    Diagram for Lower triangular 24x24 block
 
      lower_0   lower_1  lower_2
      ________ ________ ________
@@ -622,7 +622,7 @@ void bli_dgemmsup_cv_zen4_asm_8x8m_upper_mle8
 */
 
 /*
-    24x8 Lower traingular kernel, which computes the
+    24x8 Lower triangular kernel, which computes the
     first 24x8 micro panel of the 24x24 repeating block
 
     Region marked by '*' is computed by this kernel
@@ -631,7 +631,7 @@ void bli_dgemmsup_cv_zen4_asm_8x8m_upper_mle8
     |*-------|          <
     |**------|          |
     |***-----|          |
-    |****----|  intial 8x8 triangular panel
+    |****----|  initial 8x8 triangular panel
     |*****---|          |
     |******--|          |
     |*******-|          >
@@ -669,10 +669,10 @@ void bli_dgemmsup_cv_zen4_asm_24x8m_lower_0
         cntx_t*    restrict cntx
       )
 {
-    dim_t m_diag; // m for traingular kernel
+    dim_t m_diag; // m for triangular kernel
     dim_t m_full; // m for full GEMM kernel
     // if m <= 8 then only diagonal region needs to be
-    // computed, therefor set m_full to 0.
+    // computed, therefore set m_full to 0.
     if (m <= 8)
     {
         // if m <= 8, m_diag = 8 , m_full = 0
@@ -680,7 +680,7 @@ void bli_dgemmsup_cv_zen4_asm_24x8m_lower_0
         m_full = 0;
     }
     // if m > 8, then full diagonal(m=8) needs to be computed
-    // and remaning m (m - 8) will be computed by DGEMM SUP kernel.
+    // and remaining m (m - 8) will be computed by DGEMM SUP kernel.
     else
     {
         m_diag = 8;
@@ -707,7 +707,7 @@ void bli_dgemmsup_cv_zen4_asm_24x8m_lower_0
         cntx
     );
 
-    // call full GEMM kernel for remaning parts of matrix
+    // call full GEMM kernel for remaining parts of matrix
     bli_dgemmsup_cv_zen4_asm_24x8m
     (
         conja,
@@ -726,7 +726,7 @@ void bli_dgemmsup_cv_zen4_asm_24x8m_lower_0
 }
 
 /*
-    24x8 Lower traingular kernel, which computes the
+    24x8 Lower triangular kernel, which computes the
     second 24x8 micro panel of the 24x24 repeating block
 
     Region marked by '*' is computed by this kernel
@@ -735,7 +735,7 @@ void bli_dgemmsup_cv_zen4_asm_24x8m_lower_0
     |--------|          <
     |--------|          |
     |--------|          |
-    |--------|  intial empty 8x8 panel
+    |--------|  initial empty 8x8 panel
     |--------|          |
     |--------|          |
     |--------|          >
@@ -774,8 +774,8 @@ void bli_dgemmsup_cv_zen4_asm_24x8m_lower_1
         cntx_t*    restrict cntx
       )
 {
-    dim_t m_diag; // m for traingular kernel
-    dim_t m_full; // m for full GEMM kenrel
+    dim_t m_diag; // m for triangular kernel
+    dim_t m_full; // m for full GEMM kernel
     
     // if m is less than 8, then only empty region is computed
     // therefore set m_diag and m_full to 0.
@@ -785,7 +785,7 @@ void bli_dgemmsup_cv_zen4_asm_24x8m_lower_1
         m_full = 0;
     }
     // if m_diag is less than 16, then only empty region and triangular
-    // region needs to be computed, therefor set m_full to 0.
+    // region needs to be computed, therefore set m_full to 0.
     else if ( m <= 16)
     {
         m_diag = m - 8;
@@ -817,7 +817,7 @@ void bli_dgemmsup_cv_zen4_asm_24x8m_lower_1
         cntx
     );
 
-    // call full GEMM kernel for remaning parts of matrix
+    // call full GEMM kernel for remaining parts of matrix
     bli_dgemmsup_cv_zen4_asm_24x8m
     (
         conja,
@@ -836,7 +836,7 @@ void bli_dgemmsup_cv_zen4_asm_24x8m_lower_1
 }
 
 /*
-    24x8 Lower traingular kernel, which computes the
+    24x8 Lower triangular kernel, which computes the
     third 24x8 micro panel of the 24x24 repeating block
 
     Region marked by '*' is computed by this kernel
@@ -850,7 +850,7 @@ void bli_dgemmsup_cv_zen4_asm_24x8m_lower_1
     |--------|          |
     |--------|          |
     |--------|          |
-    |--------|  intial empty 16x8 panel
+    |--------|  initial empty 16x8 panel
     |--------|          |
     |--------|          |
     |--------|          |
@@ -884,7 +884,7 @@ void bli_dgemmsup_cv_zen4_asm_24x8m_lower_2
         cntx_t*    restrict cntx
       )
 {
-    dim_t m_diag; // m for traingular kernel
+    dim_t m_diag; // m for triangular kernel
     dim_t m_full; // m for full GEMM kernel
 
     // if m <= 16, only empty region needs to be computed.
@@ -927,7 +927,7 @@ void bli_dgemmsup_cv_zen4_asm_24x8m_lower_2
         cntx
     );
 
-    // call full GEMM kernel for remaning parts of matrix
+    // call full GEMM kernel for remaining parts of matrix
     bli_dgemmsup_cv_zen4_asm_24x8m
     (
         conja,
@@ -950,7 +950,7 @@ void bli_dgemmsup_cv_zen4_asm_24x8m_lower_2
     size 24x24, therefore three 24x8 kernels are added to
     make sure that entire 24x24 block gets covered.
 
-    Diagram for Upper traingular 24x24 block
+    Diagram for Upper triangular 24x24 block
 
      upper_0   upper_1  upper_2
      ________ ________ ________
@@ -985,7 +985,7 @@ void bli_dgemmsup_cv_zen4_asm_24x8m_lower_2
 */
 
 /*
-    24x8 Upper traingular kernel, which computes the
+    24x8 Upper triangular kernel, which computes the
     first 24x8 micro panel of the 24x24 repeating block
 
     Region marked by '*' is computed by this kernel
@@ -994,7 +994,7 @@ void bli_dgemmsup_cv_zen4_asm_24x8m_lower_2
     |********|          <
     |-*******|          |
     |--******|          |
-    |---*****| intial 8x8 triangular block
+    |---*****| initial 8x8 triangular block
     |----****|          |
     |-----***|          |
     |------**|          |
@@ -1034,8 +1034,8 @@ void bli_dgemmsup_cv_zen4_asm_24x8m_upper_0
         cntx_t*    restrict cntx
       )
 {
-    dim_t m_diag; // m for traingular kernel
-    dim_t m_full; // m for full GEMM kenrel
+    dim_t m_diag; // m for triangular kernel
+    dim_t m_full; // m for full GEMM kernel
     
     // if m <= 8, then only diagonal region exists
     // therefore m_full = 0
@@ -1052,7 +1052,7 @@ void bli_dgemmsup_cv_zen4_asm_24x8m_upper_0
         m_diag = 8;
         m_full = 0;
     }
-    // if m > 24, then compute inital 24 rows with existing
+    // if m > 24, then compute initial 24 rows with existing
     // logic and use DGEMM SUP kernel for remainder.
     else
     {
@@ -1060,7 +1060,7 @@ void bli_dgemmsup_cv_zen4_asm_24x8m_upper_0
         m_full = m - 24; // m - (16(empty) + 8(diagonal))
     }
 
-    // call full GEMM kernel for intial part of matrix
+    // call full GEMM kernel for initial part of matrix
     bli_dgemmsup_cv_zen4_asm_24x8m
     (
         conja,
@@ -1099,7 +1099,7 @@ void bli_dgemmsup_cv_zen4_asm_24x8m_upper_0
 }
 
 /*
-    24x8 Upper traingular kernel, which computes the
+    24x8 Upper triangular kernel, which computes the
     second 24x8 micro panel of the 24x24 repeating block
 
     Region marked by '*' is computed by this kernel
@@ -1166,7 +1166,7 @@ void bli_dgemmsup_cv_zen4_asm_24x8m_upper_1
         m_full = m - 16;
     }
 
-    // call full GEMM kernel for intial part of matrix
+    // call full GEMM kernel for initial part of matrix
     bli_dgemmsup_cv_zen4_asm_24x8m
     (
         conja,
@@ -1205,7 +1205,7 @@ void bli_dgemmsup_cv_zen4_asm_24x8m_upper_1
 }
 
 /*
-    24x8 Upper traingular kernel, which computes the
+    24x8 Upper triangular kernel, which computes the
     second 24x8 micro panel of the 24x24 repeating block
 
     Region marked by '*' is computed by this kernel
@@ -1266,7 +1266,7 @@ void bli_dgemmsup_cv_zen4_asm_24x8m_upper_2
         m_full = m - 8;
     }
 
-    // call full GEMM kernel for intial part of matrix
+    // call full GEMM kernel for initial part of matrix
     bli_dgemmsup_cv_zen4_asm_24x8m
     (
         conja,

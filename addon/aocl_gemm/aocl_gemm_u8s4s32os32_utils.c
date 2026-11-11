@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2024 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -48,7 +48,7 @@ AOCL_GEMM_GET_REORDER_BUF_SIZE(u8s4s32os32)
 
 	if ( ( order != 'r' ) && ( order != 'R' ) )
 	{
-		return 0; //Only row major suppored for int4 reordering.
+		return 0; //Only row major supported for int4 reordering.
 	}
 
 	// Check if avx512_vnni ISA is supported, lpgemm matmul only works with it.
@@ -127,7 +127,7 @@ AOCL_GEMM_REORDER(int8_t,u8s4s32os32)
 	{
 		bli_print_msg(" Only row major int4 matrix reordering supported.",
 						__FILE__, __LINE__ );
-		return; //Only row major suppored for int4 reordering.
+		return; //Only row major supported for int4 reordering.
 	}
 
 	inc_t rs_b = ldb;

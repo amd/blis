@@ -5,6 +5,7 @@
 #  libraries.
 #
 #  Copyright (C) 2014, The University of Texas at Austin
+#  Copyright (C) 2026, Advanced Micro Devices, Inc. All rights reserved.
 #
 #  Redistribution and use in source and binary forms, with or without
 #  modification, are permitted provided that the following conditions are
@@ -253,7 +254,7 @@ gen_mkfiles()
 	this_frag_dir=$2
 	
 	
-	# Append a relevant suffix to the makefile variable name, if necesary
+	# Append a relevant suffix to the makefile variable name, if necessary
 	# NOTE: This step is disabled because special directories are presently
 	# ignored when generating makefile variable names.
 	#all_add_src_var_name "$cur_dir"
@@ -286,7 +287,7 @@ gen_mkfiles()
 	done
 	
 	
-	# Remove a relevant suffix from the makefile variable name, if necesary
+	# Remove a relevant suffix from the makefile variable name, if necessary
 	# NOTE: This step is disabled because special directories are presently
 	# ignored when generating makefile variable names.
 	#all_del_src_var_name "$cur_dir"
@@ -396,7 +397,7 @@ main()
 	mkfile_fragment_local_src_files_anchor="_mkfile_fragment_local_src_files_"
 	mkfile_fragment_src_var_name_anchor="_mkfile_fragment_src_var_name_"
 	
-	# The name of the script, stripped of any preceeding path.
+	# The name of the script, stripped of any preceding path.
 	script_name=${0##*/}
 	
 	# The prefix for all makefile variables.

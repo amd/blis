@@ -96,7 +96,40 @@ void test_herk( char storage, char uplo, char transa, gtint_t n, gtint_t k,
 
 // Test-case logger : Used to print the test-case details based on parameters
 template <typename T, typename RT = typename testinghelpers::type_info<T>::real_type>
-class herkGenericPrint {
+class herkGenericPrint1 {
+public:
+    std::string operator()(
+        testing::TestParamInfo<std::tuple<char, char, char, gtint_t, gtint_t, RT, RT, gtint_t>> str) const {
+        char storage    = std::get<0>(str.param);
+        char uplo       = std::get<1>(str.param);
+        char transa     = std::get<2>(str.param);
+        gtint_t n       = std::get<3>(str.param);
+        gtint_t k       = std::get<4>(str.param);
+        RT alpha  = std::get<5>(str.param);
+        RT beta   = std::get<6>(str.param);
+        gtint_t lda_inc = std::get<7>(str.param);
+
+        gtint_t ldc_inc = lda_inc;
+
+        std::string str_name = API_PRINT;
+        str_name += "_stor_" + std::string(&storage, 1);
+        str_name += "_uplo_" + std::string(&uplo, 1);
+        str_name += "_transa_" + std::string(&transa, 1);
+        str_name += "_n_" + std::to_string(n);
+        str_name += "_k_" + std::to_string(k);
+        str_name += "_alpha_" + testinghelpers::get_value_string(alpha);
+        str_name += "_beta_" + testinghelpers::get_value_string(beta);
+        gtint_t lda = testinghelpers::get_leading_dimension( storage, transa, n, k, lda_inc );
+        gtint_t ldc = testinghelpers::get_leading_dimension( storage, 'n', n, n, ldc_inc );
+        str_name += "_lda_i" + std::to_string(lda_inc) + "_" + std::to_string(lda);
+        str_name += "_ldc_i" + std::to_string(ldc_inc) + "_" + std::to_string(ldc);
+        return str_name;
+    }
+};
+
+// Test-case logger : Used to print the test-case details based on parameters
+template <typename T, typename RT = typename testinghelpers::type_info<T>::real_type>
+class herkGenericPrint2 {
 public:
     std::string operator()(
         testing::TestParamInfo<std::tuple<char, char, char, gtint_t, gtint_t, RT, RT, gtint_t, gtint_t>> str) const {

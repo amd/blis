@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2024 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2024 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -119,7 +119,7 @@
     /*reg_a    = [a1c+b1d, b1c-a1d, a2c+b2d, b2c-a2d, ....]*/  \
     reg_a      = _mm512_div_pd(reg_a, t_reg[1]);               \
 
-// Zero the registors used for gemm accumulation
+// Zero the registers used for gemm accumulation
 #define ZERO_REGISTERS() \
     c_reg[0] = _mm512_setzero_pd(); \
     c_reg[1] = _mm512_setzero_pd(); \
@@ -140,12 +140,12 @@
 */
 #define INIT() \
     __m512d t_reg[6]; /*temporary registers*/                \
-    __m512d c_reg[8]; /*registors to hold GEMM accumulation*/\
-    __m512d b_reg[4]; /*registors to hold B matrix*/         \
+    __m512d c_reg[8]; /*registers to hold GEMM accumulation*/\
+    __m512d b_reg[4]; /*registers to hold B matrix*/         \
     t_reg[5] = _mm512_set1_pd( 1.0 ); /*(constant) used for fmaddsub*/\
     \
     double g_double[3]; \
-    __mmask8 mask_m; /*registor to hold mask for laod/store*/\
+    __mmask8 mask_m; /*register to hold mask for load/store*/\
     \
     dim_t m = bli_obj_length( b );        \
     dim_t n = bli_obj_width( b );         \
@@ -170,7 +170,7 @@
 *  K is always a multiple of 4
 *  N is compile time constant.
 *  M <= 4 and N <= 4.
-*  Output is stored in registor c_reg[0] to c_reg[N-1]
+*  Output is stored in register c_reg[0] to c_reg[N-1]
 */
 #define GEMM_MxN( a01_, b10_, rs_a_, cs_a_, cs_b_, k_iter_, M_, N_ ) \
     \
@@ -280,7 +280,7 @@
     } \
 
 /*
-*  Stores output from registors(c_reg) to memory(B)
+*  Stores output from registers(c_reg) to memory(B)
 *  n is a compile time constant.
 */
 #define STORE_RIGHT_C( n ) \
@@ -462,9 +462,9 @@ err_t bli_ztrsm_small_zen4_int_XAltB_XAuB
         *      clang/aocc generate inefficient code when
         *      all M and N are handled in one function.
         *      (AOCC tries to make sure that each of the gemm call is
-        *      using independent set of registors, which causes many
+        *      using independent set of registers, which causes many
         *      read/writes in stack.)
-        *      So part of code is moved to a seperate function.
+        *      So part of code is moved to a separate function.
         */
         runn_n_rem
         (
@@ -612,7 +612,7 @@ err_t bli_ztrsm_small_zen4_int_XAutB_XAlB
 /*
 *  Perform a 4x4 Transpose
 *  Data is read from c_reg[0] to c[4]
-*  and stored back to same registors after transpose
+*  and stored back to same registers after transpose
 */
 #define TRANSPOSE4x4() \
     t_reg[0] = _mm512_shuffle_f64x2(c_reg[0], c_reg[1], 0b10001000); \

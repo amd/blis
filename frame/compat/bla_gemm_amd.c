@@ -542,7 +542,31 @@ void dgemm_blis_impl
     to an uninitialized void pointer i.e. ((void *)0)*/
     if (n0 == 1)
     {
-        if (bli_is_notrans(blis_transa))
+        bool tiny_gemv_handled = FALSE;
+
+#ifdef BLIS_ENABLE_TINY_MATRIX
+        if ((m0 < 8) && (k0 < 8) && (bli_cpuid_is_avx2fma3_supported() != FALSE))
+        {
+            const dim_t gemv_m = bli_is_notrans(blis_transa) ? m0 : k0;
+            const dim_t gemv_n = bli_is_notrans(blis_transa) ? k0 : m0;
+
+            bli_dgemv_zen_ref
+            (
+                blis_transa,
+                gemv_m, gemv_n,
+                (double*)alpha,
+                (double*)a, rs_a, cs_a,
+                (double*)b, bli_is_notrans(blis_transb) ? rs_b : cs_b,
+                (double*)beta,
+                c, rs_c,
+                ((void*)0)
+            );
+
+            tiny_gemv_handled = TRUE;
+        }
+#endif
+
+        if (!tiny_gemv_handled && bli_is_notrans(blis_transa))
         {
             bli_dgemv_unf_var2
             (
@@ -557,7 +581,7 @@ void dgemm_blis_impl
                 ((void*)0)
             );
         }
-        else
+        else if (!tiny_gemv_handled)
         {
             bli_dgemv_unf_var1
             (
@@ -729,7 +753,7 @@ void dgemm_blis_impl
     /**
      *Early check for tiny sizes.
      *if inputs are in range of tiny gemm kernel,
-     *we avoid creating and initalizing objects and directly
+     *we avoid creating and initializing objects and directly
      *operate on memory buffers.
      *Function return failure in case of input matrix sizes are
      *beyond threshold(larger inputs).
@@ -1228,7 +1252,7 @@ void zgemm_blis_impl
         else if ( arch_id == BLIS_ARCH_ZEN6 || arch_id == BLIS_ARCH_ZEN5 )
         {
             // Redirecting to AVX-2 kernel if the dimensions are < 30
-            // ( i.e, small or tiny sizes ), or if the load directon( m0 ) < 10
+            // ( i.e, small or tiny sizes ), or if the load direction( m0 ) < 10
             if( ( m0 < 30 && n0 < 30 ) || m0 < 10 )
             {
                 k1_status = bli_zgemm_zen_int_4x4_k1_nn

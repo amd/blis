@@ -350,10 +350,10 @@ void dgemv_blis_impl
 
     /**
      * DGEMV Tiny Path
-     * If the matrix dimensions are within 8x8 then calculate the result
-     * using DGEMV Reference kernel.
+     * If the matrix dimensions are smaller than 8x8 (i.e. m0 < 8 && n0 < 8)
+     * then calculate the result using the DGEMV Reference kernel.
      */
-    if ( (m0 < 8 && n0 < 8) )
+    if ((m0 < 8) && (n0 < 8))
     {
         bli_dgemv_zen_ref
         (
@@ -376,6 +376,76 @@ void dgemv_blis_impl
     }
 
 #endif // End of BLIS_ENABLE_TINY_MATRIX
+
+    if ((m0 < 160) && (n0 < 160) && (incx0 == 1) && bli_does_trans( blis_transa ))
+    {
+#ifdef BLIS_KERNELS_ZEN4
+        if (bli_arch_isa_tier( bli_arch_query_id_internal() ) == BLIS_ISA_TIER_AVX512)
+        {
+            bli_dgemv_t_zen4_int_8x8
+            (
+                blis_transa,
+                BLIS_NO_CONJUGATE,
+                m0,
+                n0,
+                (double*)alpha,
+                (double*)a, rs_a, cs_a,
+                x0, incx0,
+                (double*)beta,
+                y0, incy0,
+                NULL
+            );
+        }
+        else
+#endif // BLIS_KERNELS_ZEN4
+        {
+            bli_dgemv_t_zen_int_4x4
+            (
+                blis_transa,
+                BLIS_NO_CONJUGATE,
+                m0,
+                n0,
+                (double*)alpha,
+                (double*)a, rs_a, cs_a,
+                x0, incx0,
+                (double*)beta,
+                y0, incy0,
+                NULL
+            );
+        }
+
+        AOCL_DTL_LOG_GEMV_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(d), *m, *n);
+        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+        /* Finalize BLIS. */
+        // Call to bli_finalize_auto() is not needed here
+        return;
+    }
+
+#if defined(BLIS_KERNELS_ZEN4)
+    if ( blis_transa == BLIS_NO_TRANSPOSE &&
+         m0 <= 160 && n0 >= 8 && n0 <= 160 &&
+         incx0 == 1 && incy0 == 1 &&
+         bli_arch_isa_tier( bli_arch_query_id_internal() ) == BLIS_ISA_TIER_AVX512 )
+    {
+        bli_dgemv_m_zen4_int_32x1
+        (
+          blis_transa,
+          BLIS_NO_CONJUGATE,
+          m0,
+          n0,
+          (double*)alpha,
+          (double*)a, rs_a, cs_a,
+          x0, incx0,
+          (double*)beta,
+          y0, incy0,
+          NULL
+        );
+
+        AOCL_DTL_LOG_GEMV_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(d), *m, *n);
+        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+        return;
+    }
+#endif
 
     /* Call variants based on transpose value. */
     if((bli_does_notrans(blis_transa) && bli_is_col_stored( rs_a, cs_a )) 
@@ -614,6 +684,37 @@ void sgemv_blis_impl
         return;
     }
 
+#ifdef BLIS_ENABLE_TINY_MATRIX
+
+    /**
+     * SGEMV Tiny Path
+     * If the matrix dimensions are smaller than 8x8 (i.e. m0 < 8 && n0 < 8)
+     * then calculate the result using the SGEMV Reference kernel.
+     */
+    if ((m0 < 8) && (n0 < 8))
+    {
+        bli_sgemv_zen_ref
+        (
+          blis_transa,
+          m0,
+          n0,
+          (float*)alpha,
+          (float*)a, rs_a, cs_a,
+          x0, incx0,
+          (float*)beta,
+          y0, incy0,
+          NULL
+        );
+
+        AOCL_DTL_LOG_GEMV_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(s), *m, *n);
+        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
+        /* Finalize BLIS. */
+        // Call to bli_finalize_auto() is not needed here
+        return;
+    }
+
+#endif // End of BLIS_ENABLE_TINY_MATRIX
+
     /* Call variants based on transpose value. */
     if(bli_does_notrans(blis_transa))
     {
@@ -819,7 +920,11 @@ void cgemv_blis_impl
     rs_a = 1;
     cs_a = *lda;
 
-    if( m_y == 1 )
+    // The dot-based shortcut preserves Netlib's operation order only for
+    // transpose cases. No-transpose must form alpha*x before multiplying by A.
+    // Non-finite alpha is handled by the unf_var1/var2 GEMV dispatch below.
+    if ( ( m_y == 1 ) && bli_does_trans( blis_transa ) &&
+         isfinite( alpha->real ) && isfinite( alpha->imag ) )
     {
         conj_t conja = bli_extract_conj(blis_transa);
         scomplex rho;
@@ -852,14 +957,17 @@ void cgemv_blis_impl
             );
         }
 
-        scomplex yval = *y0;
-        if(!bli_ceq0(*beta))
+        scomplex yval;
+        if ( bli_ceq0(*beta) )
         {
-            bli_cscals( *beta, yval );
+            // BLAS GEMV does not require initialized y when beta is zero,
+            // so do not read y here.
+            bli_csetsc( 0.0, 0.0, &yval);
         }
         else
         {
-            bli_csetsc( 0.0, 0.0, &yval);
+            yval = *y0;
+            if ( !bli_ceq1(*beta) ) bli_cscals( *beta, yval );
         }
         if(!bli_ceq0(*alpha))
         {
@@ -955,6 +1063,72 @@ void cgemv_
                         x, incx, beta, y, incy );
 }
 #endif
+
+#define BLIS_ZGEMV_SMALL_TRANS_MAX_DIM 48
+
+static bool bli_zgemv_small_trans
+     (
+       trans_t    transa,
+       dim_t      m,
+       dim_t      n,
+       dcomplex*  alpha,
+       dcomplex*  a, inc_t lda,
+       dcomplex*  x, inc_t incx,
+       dcomplex*  beta,
+       dcomplex*  y, inc_t incy
+     )
+{
+    // The dotxf kernels multiply y by both components of beta. Use the
+    // identity-aware T kernel when beta is exactly 1+0i (including -0i).
+    if ( bli_zeq1( *beta ) ) return false;
+
+    zdotxf_ker_ft dotxf_ker;
+    dim_t         fuse_factor;
+
+    switch ( bli_arch_query_id_internal() )
+    {
+#if defined(BLIS_KERNELS_ZEN4)
+        case BLIS_ARCH_ZEN6:
+        case BLIS_ARCH_ZEN5:
+        case BLIS_ARCH_ZEN4:
+            dotxf_ker   = bli_zdotxf_zen4_int_8;
+            fuse_factor = 8;
+            break;
+#endif
+        case BLIS_ARCH_ZEN3:
+        case BLIS_ARCH_ZEN2:
+        case BLIS_ARCH_ZEN:
+            dotxf_ker   = bli_zdotxf_zen_int_6;
+            fuse_factor = 6;
+            break;
+        default:
+            return false;
+    }
+
+    const conj_t conja = bli_extract_conj( transa );
+
+    for ( dim_t j = 0; j < n; j += fuse_factor )
+    {
+        const dim_t width = bli_determine_blocksize_dim_f( j, n, fuse_factor );
+
+        dotxf_ker
+        (
+          conja,
+          BLIS_NO_CONJUGATE,
+          m,
+          width,
+          alpha,
+          a + j * lda, 1, lda,
+          x, incx,
+          beta,
+          y + j * incy, incy,
+          NULL
+        );
+    }
+
+    return true;
+}
+
 void zgemv_blis_impl
      (
        const f77_char* transa,
@@ -1104,7 +1278,11 @@ void zgemv_blis_impl
     rs_a = 1;
     cs_a = *lda;
 
-    if( m_y == 1 )
+    // The dot-based shortcut preserves Netlib's operation order only for
+    // transpose cases. No-transpose must form alpha*x before multiplying by A.
+    // Non-finite alpha is handled by the unf_var1/var2 GEMV dispatch below.
+    if ( ( m_y == 1 ) && bli_does_trans( blis_transa ) &&
+         isfinite( alpha->real ) && isfinite( alpha->imag ) )
     {
         conj_t conja = bli_extract_conj(blis_transa);
         dcomplex rho;
@@ -1137,14 +1315,17 @@ void zgemv_blis_impl
             );
         }
 
-        dcomplex yval = *y0;
-        if(!bli_zeq0(*beta))
+        dcomplex yval;
+        if ( bli_zeq0(*beta) )
         {
-            bli_zscals( *beta, yval );
+            // BLAS GEMV does not require initialized y when beta is zero,
+            // so do not read y here.
+            bli_zsetsc( 0.0, 0.0, &yval);
         }
         else
         {
-            bli_zsetsc( 0.0, 0.0, &yval);
+            yval = *y0;
+            if ( !bli_zeq1(*beta) ) bli_zscals( *beta, yval );
         }
         if(!bli_zeq0(*alpha))
         {
@@ -1157,6 +1338,27 @@ void zgemv_blis_impl
         AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
         /* Finalize BLIS. */
         // Call to bli_finalize_auto() is not needed here
+        return;
+    }
+
+    if ( bli_does_trans( blis_transa ) &&
+         m0 <= BLIS_ZGEMV_SMALL_TRANS_MAX_DIM &&
+         n0 <= BLIS_ZGEMV_SMALL_TRANS_MAX_DIM &&
+         incx0 == 1 && incy0 == 1 &&
+         bli_zgemv_small_trans
+         (
+           blis_transa,
+           m0,
+           n0,
+           (dcomplex*)alpha,
+           (dcomplex*)a, *lda,
+           x0, incx0,
+           (dcomplex*)beta,
+           y0, incy0
+         ) )
+    {
+        AOCL_DTL_LOG_GEMV_STATS(AOCL_DTL_LEVEL_TRACE_1, *MKSTR(z), *m, *n);
+        AOCL_DTL_TRACE_EXIT(AOCL_DTL_LEVEL_TRACE_1);
         return;
     }
 

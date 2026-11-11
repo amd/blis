@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2018 - 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2018 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -56,7 +56,7 @@ void bli_array_init
 	// Allocate the array buffer.
 	void* restrict buf = bli_malloc_intl( array_size, &r_val );
 
-	// Initialize the array elements to zero. THIS IS IMPORANT because
+	// Initialize the array elements to zero. THIS IS IMPORTANT because
 	// consumer threads will use the NULL-ness of the array elements to
 	// determine if the corresponding block (data structure) needs to be
 	// created/allocated and initialized.

@@ -5,6 +5,7 @@
 #  libraries.
 #
 #  Copyright (C) 2014, The University of Texas at Austin
+#  Copyright (C) 2026, Advanced Micro Devices, Inc. All rights reserved.
 #
 #  Redistribution and use in source and binary forms, with or without
 #  modification, are permitted provided that the following conditions are
@@ -391,13 +392,13 @@ replace_pass()
 
 main()
 {
-	# The name of the script, stripped of any preceeding path.
+	# The name of the script, stripped of any preceding path.
 	script_name=${0##*/}
 
 	# The script name to use in informational output. Defaults to ${script_name}.
 	output_name=${script_name}
 
-	# Whether or not we should strip C-style comments from the outout. (Default
+	# Whether or not we should strip C-style comments from the output. (Default
 	# is to not strip C-style comments.)
 	strip_comments=""
 

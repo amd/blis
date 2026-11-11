@@ -117,18 +117,18 @@
     GET_FMA(__VA_ARGS__,  \
     FMA_12Z, FMA_8Z, FMA_4Z)(__VA_ARGS__) \
 
-// Macro for accumalation in case of 3 loads(12x? cases)
+// Macro for accumulation in case of 3 loads(12x? cases)
 #define ACC_COL_12Z(R1, I1, R2, I2, R3, I3)  \
     VFMADDSUB231PD(ZMM(R1), ZMM(29), ZMM(I1))  \
     VFMADDSUB231PD(ZMM(R2), ZMM(29), ZMM(I2))  \
     VFMADDSUB231PD(ZMM(R3), ZMM(29), ZMM(I3))  \
 
-// Macro for accumalation in case of 2 loads(8x? cases)
+// Macro for accumulation in case of 2 loads(8x? cases)
 #define ACC_COL_8Z(R1, I1, R2, I2)  \
     VFMADDSUB231PD(ZMM(R1), ZMM(29), ZMM(I1))  \
     VFMADDSUB231PD(ZMM(R2), ZMM(29), ZMM(I2))  \
 
-// Macro for accumalation in case of 1 load(4x? cases)
+// Macro for accumulation in case of 1 load(4x? cases)
 #define ACC_COL_4Z(R1, I1)  \
     VFMADDSUB231PD(ZMM(R1), ZMM(29), ZMM(I1))  \
 
@@ -3003,7 +3003,7 @@
     TRANSPOSE_4x4(6, 12, 18, 24)                                              \
     TRANSPOSE_4x4(8, 14, 20, 26)                                              \
     /* */                                                                     \
-    /*  The layout post transposition and accumalation is as follows: */      \
+    /*  The layout post transposition and accumulation is as follows: */      \
     /*  ZMM6 */                                                               \
     /*  ZMM12 */                                                              \
     /*  ZMM18 */                                                              \
@@ -3183,7 +3183,7 @@
     TRANSPOSE_4x4(6, 12, 18, 24)                                              \
     TRANSPOSE_4x4(8, 14, 20, 26)                                              \
     /* */                                                                     \
-    /*  The layout post transposition and accumalation is as follows: */      \
+    /*  The layout post transposition and accumulation is as follows: */      \
     /*  ZMM6 */                                                               \
     /*  ZMM12 */                                                              \
     /*  ZMM18 */                                                              \
@@ -3363,7 +3363,7 @@
     TRANSPOSE_4x4(6, 12, 18, 24)                                              \
     TRANSPOSE_4x4(8, 14, 20, 26)                                              \
     /* */                                                                     \
-    /*  The layout post transposition and accumalation is as follows: */      \
+    /*  The layout post transposition and accumulation is as follows: */      \
     /*  ZMM6 */                                                               \
     /*  ZMM12 */                                                              \
     /*  ZMM18 */                                                              \
@@ -3545,7 +3545,7 @@
     TRANSPOSE_4x4(6, 12, 18, 24)                                              \
     TRANSPOSE_4x4(8, 14, 20, 26)                                              \
     /* */                                                                     \
-    /*  The layout post transposition and accumalation is as follows: */      \
+    /*  The layout post transposition and accumulation is as follows: */      \
     /*  ZMM6 */                                                               \
     /*  ZMM12 */                                                              \
     /*  ZMM18 */                                                              \
@@ -4813,7 +4813,7 @@
     /* */                                                                     \
     TRANSPOSE_4x4(6, 12, 18, 24)                                              \
     /* */                                                                     \
-    /*  The layout post transposition and accumalation is as follows: */      \
+    /*  The layout post transposition and accumulation is as follows: */      \
     /*  ZMM6 */                                                               \
     /*  ZMM12 */                                                              \
     /*  ZMM18 */                                                              \
@@ -4972,7 +4972,7 @@
     /* */                                                                     \
     TRANSPOSE_4x4(6, 12, 18, 24)                                              \
     /* */                                                                     \
-    /*  The layout post transposition and accumalation is as follows: */      \
+    /*  The layout post transposition and accumulation is as follows: */      \
     /*  ZMM6 */                                                               \
     /*  ZMM12 */                                                              \
     /*  ZMM18 */                                                              \
@@ -5131,7 +5131,7 @@
     /* */                                                                     \
     TRANSPOSE_4x4(6, 12, 18, 24)                                              \
     /* */                                                                     \
-    /*  The layout post transposition and accumalation is as follows: */      \
+    /*  The layout post transposition and accumulation is as follows: */      \
     /*  ZMM6 */                                                               \
     /*  ZMM12 */                                                              \
     /*  ZMM18 */                                                              \
@@ -5292,7 +5292,7 @@
     /* */                                                                     \
     TRANSPOSE_4x4(6, 12, 18, 24)                                              \
     /* */                                                                     \
-    /*  The layout post transposition and accumalation is as follows: */      \
+    /*  The layout post transposition and accumulation is as follows: */      \
     /*  ZMM6 */                                                               \
     /*  ZMM12 */                                                              \
     /*  ZMM18 */                                                              \
@@ -7663,7 +7663,7 @@ void bli_zgemmsup_cv_zen4_asm_12x4m
             2. Adding with registers containing alpha*A*B
 
             ZMM(5), ZMM(7), ... , ZMM(27) are used for implementing the first step.
-            Final result of the GEMM operation is accumalated over ZMM(6), ZMM(8), ... , ZMM(28).
+            Final result of the GEMM operation is accumulated over ZMM(6), ZMM(8), ... , ZMM(28).
             */
             LABEL(.BETA_SCALE)
             // Checking for storage scheme of C
@@ -7746,7 +7746,7 @@ void bli_zgemmsup_cv_zen4_asm_12x4m
             TRANSPOSE_4x4(8, 14, 20, 26)
             TRANSPOSE_4x4(10, 16, 22, 28)
             /*
-            The layout post transposition and accumalation is as follows:
+            The layout post transposition and accumulation is as follows:
             ZMM6
             ZMM12
             ZMM18
@@ -7829,7 +7829,7 @@ void bli_zgemmsup_cv_zen4_asm_12x4m
             MOV(RDX, RBX)     // RBX = addr of B for the KCxNR block
             MOV(R12, RCX)     // RCX = addr of C for the MRxNR block
 
-            // Check for m_left and based on m_left value we jump to repsective case.
+            // Check for m_left and based on m_left value we jump to respective case.
             // m_left value handles as follows.
             // if m_left is 9, 10 or 11, it is computed by code block ZGEMM_12MASKx4 using masked load/store
             // if m_left is 8, it is computed by code block ZGEMM_8x4 using two zmm vector registers
@@ -8101,7 +8101,7 @@ void bli_zgemmsup_cv_zen4_asm_12x4m
             2. Adding with registers containing alpha*A*B
 
             ZMM(5), ZMM(7), ... , ZMM(27) are used for implementing the first step.
-            Final result of the GEMM operation is accumalated over ZMM(6), ZMM(8), ... , ZMM(28).
+            Final result of the GEMM operation is accumulated over ZMM(6), ZMM(8), ... , ZMM(28).
             */
             LABEL(.BETA_SCALE)
             // Checking for storage scheme of C
@@ -8184,7 +8184,7 @@ void bli_zgemmsup_cv_zen4_asm_12x4m
             TRANSPOSE_4x4(8, 14, 20, 26)
             TRANSPOSE_4x4(10, 16, 22, 28)
             /*
-            The layout post transposition and accumalation is as follows:
+            The layout post transposition and accumulation is as follows:
             ZMM6
             ZMM12
             ZMM18
@@ -8267,7 +8267,7 @@ void bli_zgemmsup_cv_zen4_asm_12x4m
             MOV(RDX, RBX)     // RBX = addr of B for the KCxNR block
             MOV(R12, RCX)     // RCX = addr of C for the MRxNR block
 
-            // Check for m_left and based on m_left value we jump to repsective case.
+            // Check for m_left and based on m_left value we jump to respective case.
             // m_left value handles as follows.
             // if m_left is 9, 10 or 11, it is computed by code block ZGEMM_12MASKx4 using masked load/store
             // if m_left is 8, it is computed by code block ZGEMM_8x4 using two zmm vector registers
@@ -8538,7 +8538,7 @@ void bli_zgemmsup_cv_zen4_asm_12x4m
             2. Adding with registers containing alpha*A*B
 
             ZMM(5), ZMM(7), ... , ZMM(27) are used for implementing the first step.
-            Final result of the GEMM operation is accumalated over ZMM(6), ZMM(8), ... , ZMM(28).
+            Final result of the GEMM operation is accumulated over ZMM(6), ZMM(8), ... , ZMM(28).
             */
             LABEL(.BETA_SCALE)
             // Checking for storage scheme of C
@@ -8621,7 +8621,7 @@ void bli_zgemmsup_cv_zen4_asm_12x4m
             TRANSPOSE_4x4(8, 14, 20, 26)
             TRANSPOSE_4x4(10, 16, 22, 28)
             /*
-            The layout post transposition and accumalation is as follows:
+            The layout post transposition and accumulation is as follows:
             ZMM6
             ZMM12
             ZMM18
@@ -8704,7 +8704,7 @@ void bli_zgemmsup_cv_zen4_asm_12x4m
             MOV(RDX, RBX)     // RBX = addr of B for the KCxNR block
             MOV(R12, RCX)     // RCX = addr of C for the MRxNR block
 
-            // Check for m_left and based on m_left value we jump to repsective case.
+            // Check for m_left and based on m_left value we jump to respective case.
             // m_left value handles as follows.
             // if m_left is 9, 10 or 11, it is computed by code block ZGEMM_12MASKx4 using masked load/store
             // if m_left is 8, it is computed by code block ZGEMM_8x4 using two zmm vector registers
@@ -8972,7 +8972,7 @@ void bli_zgemmsup_cv_zen4_asm_12x4m
             2. Adding with registers containing alpha*A*B
 
             ZMM(5), ZMM(7), ... , ZMM(27) are used for implementing the first step.
-            Final result of the GEMM operation is accumalated over ZMM(6), ZMM(8), ... , ZMM(28).
+            Final result of the GEMM operation is accumulated over ZMM(6), ZMM(8), ... , ZMM(28).
             */
             LABEL(.BETA_SCALE)
             // Checking for storage scheme of C
@@ -9055,7 +9055,7 @@ void bli_zgemmsup_cv_zen4_asm_12x4m
             TRANSPOSE_4x4(8, 14, 20, 26)
             TRANSPOSE_4x4(10, 16, 22, 28)
             /*
-            The layout post transposition and accumalation is as follows:
+            The layout post transposition and accumulation is as follows:
             ZMM6
             ZMM12
             ZMM18
@@ -9138,7 +9138,7 @@ void bli_zgemmsup_cv_zen4_asm_12x4m
             MOV(RDX, RBX)     // RBX = addr of B for the KCxNR block
             MOV(R12, RCX)     // RCX = addr of C for the MRxNR block
 
-            // Check for m_left and based on m_left value we jump to repsective case.
+            // Check for m_left and based on m_left value we jump to respective case.
             // m_left value handles as follows.
             // if m_left is 9, 10 or 11, it is computed by code block ZGEMM_12MASKx4 using masked load/store
             // if m_left is 8, it is computed by code block ZGEMM_8x4 using two zmm vector registers
@@ -9304,7 +9304,7 @@ void bli_zgemmsup_cv_zen4_asm_12x3m
     uint64_t m_left = m0 % MR;
 
     /*
-      The mask bits below are set for ensuring ?x3 compatability
+      The mask bits below are set for ensuring ?x3 compatibility
       while transposing, and loading/storing C in case of row-storage(k(3) opmask register).
       Mask is of length 8-bits, sinze a ZMM register holds 8 double precision elements.
     */
@@ -9532,7 +9532,7 @@ void bli_zgemmsup_cv_zen4_asm_12x3m
         TRANSPOSE_4x4(8, 14, 20, 26)
         TRANSPOSE_4x4(10, 16, 22, 28)
         /*
-        The layout post transposition and accumalation is as follows:
+        The layout post transposition and accumulation is as follows:
         ZMM6
         ZMM12
         ZMM18
@@ -9615,7 +9615,7 @@ void bli_zgemmsup_cv_zen4_asm_12x3m
         MOV(RDX, RBX)     // RBX = addr of B for the KCxNR block
         MOV(R12, RCX)     // RCX = addr of C for the MRxNR block
 
-        // Check for m_left and based on m_left value we jump to repsective case.
+        // Check for m_left and based on m_left value we jump to respective case.
         // m_left value handles as follows.
         // if m_left is 9, 10 or 11, it is computed by code block ZGEMM_12MASKx3 using masked load/store
         // if m_left is 8, it is computed by code block ZGEMM_8x3 using two zmm vector registers
@@ -9900,7 +9900,7 @@ void bli_zgemmsup_cv_zen4_asm_12x3m
         TRANSPOSE_4x4(8, 14, 20, 26)
         TRANSPOSE_4x4(10, 16, 22, 28)
         /*
-        The layout post transposition and accumalation is as follows:
+        The layout post transposition and accumulation is as follows:
         ZMM6
         ZMM12
         ZMM18
@@ -9983,7 +9983,7 @@ void bli_zgemmsup_cv_zen4_asm_12x3m
         MOV(RDX, RBX)     // RBX = addr of B for the KCxNR block
         MOV(R12, RCX)     // RCX = addr of C for the MRxNR block
 
-        // Check for m_left and based on m_left value we jump to repsective case.
+        // Check for m_left and based on m_left value we jump to respective case.
         // m_left value handles as follows.
         // if m_left is 9, 10 or 11, it is computed by code block ZGEMM_12MASKx3 using masked load/store
         // if m_left is 8, it is computed by code block ZGEMM_8x3 using two zmm vector registers
@@ -10267,7 +10267,7 @@ void bli_zgemmsup_cv_zen4_asm_12x3m
         TRANSPOSE_4x4(8, 14, 20, 26)
         TRANSPOSE_4x4(10, 16, 22, 28)
         /*
-        The layout post transposition and accumalation is as follows:
+        The layout post transposition and accumulation is as follows:
         ZMM6
         ZMM12
         ZMM18
@@ -10350,7 +10350,7 @@ void bli_zgemmsup_cv_zen4_asm_12x3m
         MOV(RDX, RBX)     // RBX = addr of B for the KCxNR block
         MOV(R12, RCX)     // RCX = addr of C for the MRxNR block
 
-        // Check for m_left and based on m_left value we jump to repsective case.
+        // Check for m_left and based on m_left value we jump to respective case.
         // m_left value handles as follows.
         // if m_left is 9, 10 or 11, it is computed by code block ZGEMM_12MASKx3 using masked load/store
         // if m_left is 8, it is computed by code block ZGEMM_8x3 using two zmm vector registers
@@ -10630,7 +10630,7 @@ void bli_zgemmsup_cv_zen4_asm_12x3m
         TRANSPOSE_4x4(8, 14, 20, 26)
         TRANSPOSE_4x4(10, 16, 22, 28)
         /*
-        The layout post transposition and accumalation is as follows:
+        The layout post transposition and accumulation is as follows:
         ZMM6
         ZMM12
         ZMM18
@@ -10713,7 +10713,7 @@ void bli_zgemmsup_cv_zen4_asm_12x3m
         MOV(RDX, RBX)     // RBX = addr of B for the KCxNR block
         MOV(R12, RCX)     // RCX = addr of C for the MRxNR block
 
-        // Check for m_left and based on m_left value we jump to repsective case.
+        // Check for m_left and based on m_left value we jump to respective case.
         // m_left value handles as follows.
         // if m_left is 9, 10 or 11, it is computed by code block ZGEMM_12MASKx3 using masked load/store
         // if m_left is 8, it is computed by code block ZGEMM_8x3 using two zmm vector registers
@@ -10841,7 +10841,7 @@ void bli_zgemmsup_cv_zen4_asm_12x2m
     uint64_t m_left = m0 % MR;
 
     /*
-      The mask bits below are set for ensuring ?x2 compatability
+      The mask bits below are set for ensuring ?x2 compatibility
       while transposing, and loading/storing C in case of row-storage(k(3) opmask register).
       Mask is of length 8-bits, sinze a ZMM register holds 8 double precision elements.
     */
@@ -11055,7 +11055,7 @@ void bli_zgemmsup_cv_zen4_asm_12x2m
         TRANSPOSE_4x4(8, 14, 20, 26)
         TRANSPOSE_4x4(10, 16, 22, 28)
         /*
-        The layout post transposition and accumalation is as follows:
+        The layout post transposition and accumulation is as follows:
         ZMM6
         ZMM12
         ZMM18
@@ -11138,7 +11138,7 @@ void bli_zgemmsup_cv_zen4_asm_12x2m
         MOV(RDX, RBX)     // RBX = addr of B for the KCxNR block
         MOV(R12, RCX)     // RCX = addr of C for the MRxNR block
 
-        // Check for m_left and based on m_left value we jump to repsective case.
+        // Check for m_left and based on m_left value we jump to respective case.
         // m_left value handles as follows.
         // if m_left is 9, 10 or 11, it is computed by code block ZGEMM_12MASKx2 using masked load/store
         // if m_left is 8, it is computed by code block ZGEMM_8x2 using two zmm vector registers
@@ -11406,7 +11406,7 @@ void bli_zgemmsup_cv_zen4_asm_12x2m
         TRANSPOSE_4x4(8, 14, 20, 26)
         TRANSPOSE_4x4(10, 16, 22, 28)
         /*
-        The layout post transposition and accumalation is as follows:
+        The layout post transposition and accumulation is as follows:
         ZMM6
         ZMM12
         ZMM18
@@ -11489,7 +11489,7 @@ void bli_zgemmsup_cv_zen4_asm_12x2m
         MOV(RDX, RBX)     // RBX = addr of B for the KCxNR block
         MOV(R12, RCX)     // RCX = addr of C for the MRxNR block
 
-        // Check for m_left and based on m_left value we jump to repsective case.
+        // Check for m_left and based on m_left value we jump to respective case.
         // m_left value handles as follows.
         // if m_left is 9, 10 or 11, it is computed by code block ZGEMM_12MASKx2 using masked load/store
         // if m_left is 8, it is computed by code block ZGEMM_8x2 using two zmm vector registers
@@ -11756,7 +11756,7 @@ void bli_zgemmsup_cv_zen4_asm_12x2m
         TRANSPOSE_4x4(8, 14, 20, 26)
         TRANSPOSE_4x4(10, 16, 22, 28)
         /*
-        The layout post transposition and accumalation is as follows:
+        The layout post transposition and accumulation is as follows:
         ZMM6
         ZMM12
         ZMM18
@@ -11839,7 +11839,7 @@ void bli_zgemmsup_cv_zen4_asm_12x2m
         MOV(RDX, RBX)     // RBX = addr of B for the KCxNR block
         MOV(R12, RCX)     // RCX = addr of C for the MRxNR block
 
-        // Check for m_left and based on m_left value we jump to repsective case.
+        // Check for m_left and based on m_left value we jump to respective case.
         // m_left value handles as follows.
         // if m_left is 9, 10 or 11, it is computed by code block ZGEMM_12MASKx2 using masked load/store
         // if m_left is 8, it is computed by code block ZGEMM_8x2 using two zmm vector registers
@@ -12102,7 +12102,7 @@ void bli_zgemmsup_cv_zen4_asm_12x2m
         TRANSPOSE_4x4(8, 14, 20, 26)
         TRANSPOSE_4x4(10, 16, 22, 28)
         /*
-        The layout post transposition and accumalation is as follows:
+        The layout post transposition and accumulation is as follows:
         ZMM6
         ZMM12
         ZMM18
@@ -12185,7 +12185,7 @@ void bli_zgemmsup_cv_zen4_asm_12x2m
         MOV(RDX, RBX)     // RBX = addr of B for the KCxNR block
         MOV(R12, RCX)     // RCX = addr of C for the MRxNR block
 
-        // Check for m_left and based on m_left value we jump to repsective case.
+        // Check for m_left and based on m_left value we jump to respective case.
         // m_left value handles as follows.
         // if m_left is 9, 10 or 11, it is computed by code block ZGEMM_12MASKx2 using masked load/store
         // if m_left is 8, it is computed by code block ZGEMM_8x2 using two zmm vector registers
@@ -12314,7 +12314,7 @@ void bli_zgemmsup_cv_zen4_asm_12x1m
     const double *v = &value;
 
     /*
-      The mask bits below are set for ensuring ?x1 compatability
+      The mask bits below are set for ensuring ?x1 compatibility
       while transposing, and loading/storing C in case of row-storage(k(3) opmask register).
       Mask is of length 8-bits, sinze a ZMM register holds 8 double precision elements.
     */
@@ -12509,7 +12509,7 @@ void bli_zgemmsup_cv_zen4_asm_12x1m
         TRANSPOSE_4x4(8, 14, 20, 26)
         TRANSPOSE_4x4(10, 16, 22, 28)
         /*
-        The layout post transposition and accumalation is as follows:
+        The layout post transposition and accumulation is as follows:
         ZMM6
         ZMM12
         ZMM18
@@ -12592,7 +12592,7 @@ void bli_zgemmsup_cv_zen4_asm_12x1m
         MOV(RDX, RBX)     // RBX = addr of B for the KCxNR block
         MOV(R12, RCX)     // RCX = addr of C for the MRxNR block
 
-        // Check for m_left and based on m_left value we jump to repsective case.
+        // Check for m_left and based on m_left value we jump to respective case.
         // m_left value handles as follows.
         // if m_left is 9, 10 or 11, it is computed by code block ZGEMM_12MASKx1 using masked load/store
         // if m_left is 8, it is computed by code block ZGEMM_8x1 using two zmm vector registers
@@ -12846,7 +12846,7 @@ void bli_zgemmsup_cv_zen4_asm_12x1m
         TRANSPOSE_4x4(8, 14, 20, 26)
         TRANSPOSE_4x4(10, 16, 22, 28)
         /*
-        The layout post transposition and accumalation is as follows:
+        The layout post transposition and accumulation is as follows:
         ZMM6
         ZMM12
         ZMM18
@@ -12929,7 +12929,7 @@ void bli_zgemmsup_cv_zen4_asm_12x1m
         MOV(RDX, RBX)     // RBX = addr of B for the KCxNR block
         MOV(R12, RCX)     // RCX = addr of C for the MRxNR block
 
-        // Check for m_left and based on m_left value we jump to repsective case.
+        // Check for m_left and based on m_left value we jump to respective case.
         // m_left value handles as follows.
         // if m_left is 9, 10 or 11, it is computed by code block ZGEMM_12MASKx1 using masked load/store
         // if m_left is 8, it is computed by code block ZGEMM_8x1 using two zmm vector registers
@@ -13182,7 +13182,7 @@ void bli_zgemmsup_cv_zen4_asm_12x1m
         TRANSPOSE_4x4(8, 14, 20, 26)
         TRANSPOSE_4x4(10, 16, 22, 28)
         /*
-        The layout post transposition and accumalation is as follows:
+        The layout post transposition and accumulation is as follows:
         ZMM6
         ZMM12
         ZMM18
@@ -13265,7 +13265,7 @@ void bli_zgemmsup_cv_zen4_asm_12x1m
         MOV(RDX, RBX)     // RBX = addr of B for the KCxNR block
         MOV(R12, RCX)     // RCX = addr of C for the MRxNR block
 
-        // Check for m_left and based on m_left value we jump to repsective case.
+        // Check for m_left and based on m_left value we jump to respective case.
         // m_left value handles as follows.
         // if m_left is 9, 10 or 11, it is computed by code block ZGEMM_12MASKx1 using masked load/store
         // if m_left is 8, it is computed by code block ZGEMM_8x1 using two zmm vector registers
@@ -13514,7 +13514,7 @@ void bli_zgemmsup_cv_zen4_asm_12x1m
         TRANSPOSE_4x4(8, 14, 20, 26)
         TRANSPOSE_4x4(10, 16, 22, 28)
         /*
-        The layout post transposition and accumalation is as follows:
+        The layout post transposition and accumulation is as follows:
         ZMM6
         ZMM12
         ZMM18
@@ -13597,7 +13597,7 @@ void bli_zgemmsup_cv_zen4_asm_12x1m
         MOV(RDX, RBX)     // RBX = addr of B for the KCxNR block
         MOV(R12, RCX)     // RCX = addr of C for the MRxNR block
 
-        // Check for m_left and based on m_left value we jump to repsective case.
+        // Check for m_left and based on m_left value we jump to respective case.
         // m_left value handles as follows.
         // if m_left is 9, 10 or 11, it is computed by code block ZGEMM_12MASKx1 using masked load/store
         // if m_left is 8, it is computed by code block ZGEMM_8x1 using two zmm vector registers

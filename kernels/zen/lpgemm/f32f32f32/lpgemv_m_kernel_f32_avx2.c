@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-  Copyright (C) 2025, Advanced Micro Devices, Inc. All rights reserved.
+  Copyright (C) 2025 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -233,7 +233,7 @@ void lpgemv_m_one_f32f32f32of32_avx2_LT16
     ymm14 = _mm256_add_ps(ymm15, ymm14);
     ymm12 = _mm256_add_ps(ymm14, ymm12);// 8 outputs
 
-    //Mulitply A*B output with alpha
+    //Multiply A*B output with alpha
     ymm0 =_mm256_set1_ps( alpha );
     ymm8 = _mm256_mul_ps( ymm0, ymm8 );
     ymm12 = _mm256_mul_ps( ymm0, ymm12 );
@@ -838,7 +838,7 @@ LPGEMV_M_EQ1_KERN( float, float, float, f32f32f32of32_avx2 )
     ymm14 = _mm256_add_ps(ymm15, ymm14);
     ymm12 = _mm256_add_ps(ymm14, ymm12);// 8 outputs
 
-    //Mulitply A*B output with alpha
+    //Multiply A*B output with alpha
     ymm0 =_mm256_set1_ps( alpha );
     ymm8 = _mm256_mul_ps( ymm0, ymm8 );
     ymm12 = _mm256_mul_ps( ymm0, ymm12 );

@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2021, The University of Texas at Austin
-   Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2024 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -393,7 +393,7 @@ void PASTEMAC(opname,BLIS_OAPI_EX_SUF) \
 		   If it finds that the problem does not fall within the
 		   thresholds that define "small", or for some other reason
 		   decides not to use the small/unpacked implementation,
-		   the function returns with BLIS_FAILURE, which causes excution
+		   the function returns with BLIS_FAILURE, which causes execution
 		   to proceed forward towards conventional implementation, */ \
 \
 		err_t result = PASTEMAC(opname, sup) ( alpha, a, beta, c, cntx, rntm ); \

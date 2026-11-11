@@ -3,7 +3,7 @@
    BLISPP
    C++ test driver for BLIS CPP gemm routine and reference blis gemm routine.
 
-   Copyright (C) 2019 - 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2019 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -31,6 +31,7 @@
 
 */
 
+#include <algorithm>
 #include <complex>
 #include <iostream>
 #include "blis.hh"
@@ -46,6 +47,25 @@ using namespace std;
  * Test application assumes matrices to be column major, non-transposed
  */
 
+inline int logical_index(int i, int n, int increment)
+{
+  return increment < 0 ? (n - 1 - i) * (-increment) : i * increment;
+}
+
+template< typename T >
+void ref_tbsv(int n, int k, const T* A, int lda, T* X, int incX)
+{
+  for (int i = 0; i < n; ++i)
+  {
+    const int x_index = logical_index(i, n, incX);
+    T value = X[x_index];
+    const int first_j = std::max(0, i - k);
+    for (int j = first_j; j < i; ++j)
+      value -= A[(i - j) + j * lda] * X[logical_index(j, n, incX)];
+    X[x_index] = value / A[i * lda];
+  }
+}
+
 template< typename T >
 void test_tbsv(  ) 
 {
@@ -58,7 +78,9 @@ void test_tbsv(  )
  T A[] = { -0.681f, 0.209f, 0.436f, -0.369f, 0.786f, -0.84f, 0.86f, -0.233f, 0.734f };
  T X[] = { -0.305f, 0.61f, -0.831f };
  int incX = -1;
- T X_ref[] = { 0.524539f, -0.961964f, 1.22026f };
+ T X_ref[] = { -0.305f, 0.61f, -0.831f };
+
+ ref_tbsv(n, k, A, lda, X_ref, incX);
 
 
 #ifdef PRINT
@@ -84,7 +106,10 @@ void test_tbsv(  )
 
 #endif
 
-  if(computeErrorV(1,1, n, X, X_ref )==1)
+  const double threshold = test_threshold<T>(2.0 * n,
+                                              18.0, 7.5, 1.5, 2.0,
+                                              9.0, 1.0, 1.0, 1.0);
+  if(computeErrorV(n, X, X_ref, threshold)==1)
 	    printf("%s TEST FAIL\n" , __PRETTY_FUNCTION__);
     else
 	    printf("%s TEST PASS\n" , __PRETTY_FUNCTION__);  

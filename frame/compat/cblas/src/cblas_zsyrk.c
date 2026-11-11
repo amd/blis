@@ -7,6 +7,8 @@
  * Written by Keita Teranishi
  * 4/8/1998
  *
+ * Copyright (C) 2026, Advanced Micro Devices, Inc. All rights reserved.
+ *
  */
 
 #include "cblas.h"
@@ -78,13 +80,12 @@ void cblas_zsyrk(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
       else if ( Uplo == CblasLower ) UL='U';
       else 
       {
-         cblas_xerbla(3, "cblas_zsyrk", "Illegal Uplo setting, %d\n", Uplo);
+         cblas_xerbla(2, "cblas_zsyrk", "Illegal Uplo setting, %d\n", Uplo);
          CBLAS_CallFromC = 0;
          RowMajorStrg = 0;
          return;
       }
       if( Trans == CblasTrans) TR ='N';
-      else if ( Trans == CblasConjTrans ) TR='N';
       else if ( Trans == CblasNoTrans )   TR='T';
       else 
       {

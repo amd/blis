@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2025 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -357,7 +357,7 @@ void unpackb_nrlt16_bf16_f32_row_major
 
 	/*
 	In case of BF16 re-ordered buffer padding would enable availability of 16 elements
-	even though NR < 16. Hence, masks isn't neeeded for loading. But after the conversion
+	even though NR < 16. Hence, masks isn't needed for loading. But after the conversion
 	to F32 only max of 8 elements could be stored at a time. For ex., if n0_partial_rem = 11
 	after the conversion and permute there would be 8 elements in a_reg[i] and 3 elements in
 	a_reg[i+1]. Hence, there is a need for 2 store masks calculated based on the n0_partial_rem.

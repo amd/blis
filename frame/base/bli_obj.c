@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018 - 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2018 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -499,7 +499,7 @@ void bli_adjust_strides
 		{
 			// Set the column stride to indicate that this is a column vector
 			// stored in column-major order. This is done for legacy reasons,
-			// because we at one time we had to satisify the error checking
+			// because we at one time we had to satisfy the error checking
 			// in the underlying BLAS library, which expects the leading 
 			// dimension to be set to at least m, even if it will never be
 			// used for indexing since it is a vector and thus only has one

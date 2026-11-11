@@ -344,7 +344,7 @@ static err_t bli_gemm_ic_jc_optimum_sup_zen3
 // how the matrices are loaded into cache or which matrix goes to the larger
 // cache. Depending on the matrix dimensions, increasing the ic can result in
 // reduced loads from main memory to L2 cache for A matrix without any impact on
-// B matrix load (since B is streamed into L3, which is larger). Similary
+// B matrix load (since B is streamed into L3, which is larger). Similarly
 // adjusting jc can result in B matrix panels fitting perfectly within the L1
 // cache.This function makes these adjustments on ic,jc.
 static void bli_gemm_cache_heur_adjust_ic_jc_sup_zen3
@@ -365,7 +365,7 @@ static void bli_gemm_cache_heur_adjust_ic_jc_sup_zen3
 	const dim_t n_jc = n / ( *jc );
 	const int64_t cur_work_per_thread = m_ic + n_jc;
 
-	// The next and prev factors are caluclated with respect to the current
+	// The next and prev factors are calculated with respect to the current
 	// factor part of nt. In effect
 	// 1. next ic * prev jc = nt
 	// 2. prev ic * next jc = nt
@@ -412,7 +412,7 @@ static void bli_gemm_cache_heur_adjust_ic_jc_sup_zen3
 		{
 			can_increase_jc = TRUE;
 		}
-		// 2x2 factorization doesnt always give equal sum partition.
+		// 2x2 factorization doesn't always give equal sum partition.
 		else if ( next_jc_work_per_thread < cur_work_per_thread )
 		{
 			can_increase_jc = TRUE;
@@ -448,7 +448,7 @@ static void bli_gemm_cache_heur_adjust_ic_jc_sup_zen3
 		{
 			can_increase_ic = TRUE;
 		}
-		// 2x2 factorization doesnt always give equal sum partition.
+		// 2x2 factorization doesn't always give equal sum partition.
 		else if ( next_ic_work_per_thread <= cur_work_per_thread )
 		{
 			can_increase_ic = TRUE;
@@ -685,7 +685,7 @@ static err_t bli_gemm_ic_jc_optimum_sup_zen4
 // how the matrices are loaded into cache or which matrix goes to the larger
 // cache. Depending on the matrix dimensions, increasing the ic can result in
 // reduced loads from main memory to L2 cache for A matrix without any impact on
-// B matrix load (since B is streamed into L3, which is larger). Similary
+// B matrix load (since B is streamed into L3, which is larger). Similarly
 // adjusting jc can result in B matrix panels fitting perfectly within the L1
 // cache.This function makes these adjustments on ic,jc.
 static void bli_gemm_cache_heur_adjust_ic_jc_sup_zen4
@@ -706,7 +706,7 @@ static void bli_gemm_cache_heur_adjust_ic_jc_sup_zen4
 	const dim_t n_jc = n / ( *jc );
 	const int64_t cur_work_per_thread = m_ic + n_jc;
 
-	// The next and prev factors are caluclated with respect to the current
+	// The next and prev factors are calculated with respect to the current
 	// factor part of nt. In effect
 	// 1. next ic * prev jc = nt
 	// 2. prev ic * next jc = nt
@@ -753,7 +753,7 @@ static void bli_gemm_cache_heur_adjust_ic_jc_sup_zen4
 		{
 			can_increase_jc = TRUE;
 		}
-		// 2x2 factorization doesnt always give equal sum partition.
+		// 2x2 factorization doesn't always give equal sum partition.
 		else if ( next_jc_work_per_thread < cur_work_per_thread )
 		{
 			can_increase_jc = TRUE;
@@ -789,7 +789,7 @@ static void bli_gemm_cache_heur_adjust_ic_jc_sup_zen4
 		{
 			can_increase_ic = TRUE;
 		}
-		// 2x2 factorization doesnt always give equal sum partition.
+		// 2x2 factorization doesn't always give equal sum partition.
 		else if ( next_ic_work_per_thread <= cur_work_per_thread )
 		{
 			can_increase_ic = TRUE;

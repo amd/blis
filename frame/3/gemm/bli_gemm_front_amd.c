@@ -312,12 +312,17 @@ void bli_gemm_front
 	cntx_t* cntx_dynamic = cntx; // pointer to local cntx. Copy is not created here.
 #if defined(BLIS_KERNELS_ZEN4) // dynamic blocksizes are enabled only for AVX512 kernels.
 	cntx_t cntx_copy;
-	dim_t n_threads = bli_rntm_num_threads( rntm );
 
 	// dynamic blocksizes are not enabled for mixed precision
-	if ( bli_obj_dt( &c_local ) == bli_obj_dt( &a_local ) &&
-		 bli_obj_dt( &c_local ) == bli_obj_dt( &b_local ) )
+	// and only enabled for double datatype
+	if ( ( ( bli_obj_dt( &c_local ) == BLIS_DOUBLE ) ||
+	       ( bli_obj_dt( &c_local ) == BLIS_FLOAT ) )  &&
+	     ( bli_obj_dt( &c_local ) == bli_obj_dt( &a_local ) ) &&
+	     ( bli_obj_dt( &c_local ) == bli_obj_dt( &b_local ) )
+           )
 	{
+		dim_t n_threads = bli_rntm_num_threads( rntm );
+
 		switch (bli_arch_query_id_internal() )
 		{
 		case BLIS_ARCH_ZEN6:
@@ -325,7 +330,7 @@ void bli_gemm_front
 			cntx_copy = *cntx; // create a copy of cntx.
 			cntx_dynamic = &cntx_copy; // use local copy of cntx for GEMM
 			// dynamically set blocksizes according to num threads
-			bli_dynamic_blkszs_zen6(n_threads, cntx_dynamic, bli_obj_dt(c));
+			bli_dynamic_blkszs_zen6(bli_obj_length(c), bli_obj_width(c), n_threads, cntx_dynamic, bli_obj_dt(c));
 			break;
 		#endif //BLIS_KERNELS_ZEN6
 
@@ -334,7 +339,7 @@ void bli_gemm_front
 			cntx_copy = *cntx; // create a copy of cntx.
 			cntx_dynamic = &cntx_copy; // use local copy of cntx for GEMM
 			// dynamically set blocksizes according to num threads
-			bli_dynamic_blkszs_zen5(n_threads, cntx_dynamic, bli_obj_dt(c));
+			bli_dynamic_blkszs_zen5(bli_obj_length(c), bli_obj_width(c), n_threads, cntx_dynamic, bli_obj_dt(c));
 			break;
 		#endif //BLIS_KERNELS_ZEN5
 
@@ -372,7 +377,7 @@ void bli_gemm_front
 	// If we created a temporary matrix conformal to C for whatever reason,
 	// we copy/accumulate the result back to C and then release the object.
 	if ( use_ct )
-    {
+	{
 		obj_t beta_local;
 
 		bli_obj_scalar_detach( &c_local, &beta_local );

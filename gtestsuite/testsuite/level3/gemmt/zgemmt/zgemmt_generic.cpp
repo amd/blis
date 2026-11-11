@@ -74,7 +74,7 @@ void zgemmtGeneric( char storage, char uplo, char transa, char transb, gtint_t n
     // Set the threshold for the errors:
     // Check gtestsuite gemmt.h or netlib source code for reminder of the
     // functionality from which we estimate operation count per element
-    // of output, and hence the multipler for epsilon.
+    // of output, and hence the multiplier for epsilon.
     // No adjustment applied yet for complex data.
     double thresh;
     if (n == 0)

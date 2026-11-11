@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2024 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2024 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -66,7 +66,6 @@ class dtrsmGenericSmall :
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(dtrsmGenericNat);
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(dtrsmGenericSmall);
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(strsmGeneric);
 
 TEST_P( dtrsmGenericNat, native_kernel)
 {
@@ -85,7 +84,7 @@ TEST_P( dtrsmGenericNat, native_kernel)
     // Set the threshold for the errors:
     // Check gtestsuite trsm.h or netlib source code for reminder of the
     // functionality from which we estimate operation count per element
-    // of output, and hence the multipler for epsilon.
+    // of output, and hence the multiplier for epsilon.
     double thresh;
     if (m == 0 || n == 0 || alpha == testinghelpers::ZERO<T>())
         thresh = 0.0;
@@ -113,7 +112,7 @@ TEST_P( dtrsmGenericSmall, small_kernel)
     // Set the threshold for the errors:
     // Check gtestsuite trsm.h or netlib source code for reminder of the
     // functionality from which we estimate operation count per element
-    // of output, and hence the multipler for epsilon.
+    // of output, and hence the multiplier for epsilon.
     double thresh;
     if (m == 0 || n == 0 || alpha == testinghelpers::ZERO<T>())
         thresh = 0.0;

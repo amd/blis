@@ -77,7 +77,7 @@ TEST_P( sgemmGenericSUP, functionality_testing)
     // Set the threshold for the errors:
     // Check gtestsuite gemm.h or netlib source code for reminder of the
     // functionality from which we estimate operation count per element
-    // of output, and hence the multipler for epsilon.
+    // of output, and hence the multiplier for epsilon.
     double thresh;
     if (m == 0 || n == 0)
         thresh = 0.0;
@@ -439,7 +439,7 @@ INSTANTIATE_TEST_SUITE_P(
 #endif
 
 // Checking with col storage of C
-// NOTE : Since we are inducing transpose at opertaion level, for code coverage, we
+// NOTE : Since we are inducing transpose at operation level, for code coverage, we
 //        have to interchange m and n instantiations
 #ifdef K_bli_sgemmsup_rd_zen4_asm_6x64m
 INSTANTIATE_TEST_SUITE_P(
@@ -684,7 +684,7 @@ TEST_P( sgemmGenericNat, functionality_testing)
     // Set the threshold for the errors:
     // Check gtestsuite gemm.h or netlib source code for reminder of the
     // functionality from which we estimate operation count per element
-    // of output, and hence the multipler for epsilon.
+    // of output, and hence the multiplier for epsilon.
     double thresh;
     if (m == 0 || n == 0)
         thresh = 0.0;
@@ -787,7 +787,65 @@ INSTANTIATE_TEST_SUITE_P(
 );
 #endif
 
+#endif // defined(BLIS_KERNELS_ZEN4) && defined(GTEST_AVX512)
+
+#if defined(BLIS_KERNELS_ZEN5) && defined(GTEST_AVX512)
+
+#ifdef K_bli_sgemm_zen5_asm_8x48
+INSTANTIATE_TEST_SUITE_P(
+    bli_sgemm_zen5_asm_8x48,
+    sgemmGenericNat,
+    ::testing::Combine(
+        ::testing::Range(gtint_t(1), gtint_t(17), 1),   // values of k
+        ::testing::Values(2.0, 1.0, -1.0),              // alpha value
+        ::testing::Values(1.0, 0.0, -1.0, 2.3),         // beta value
+        ::testing::Values('r', 'c'),                    // storage
+        ::testing::Values(8),                           // values of m
+        ::testing::Values(48),                          // values of n
+        ::testing::Values(K_bli_sgemm_zen5_asm_8x48),
+        ::testing::Values(true, false)                  // memory test
+    ),
+    ::sgemmGenericNatPrint()
+);
 #endif
+
+#ifdef K_bli_sgemm_zen5_asm_8x48
+INSTANTIATE_TEST_SUITE_P(
+    bli_sgemm_zen5_asm_8x48_zero_k_memtest_disabled,
+    sgemmGenericNat,
+    ::testing::Combine(
+        ::testing::Values(gtint_t(0)),                  // values of k
+        ::testing::Values(2.0, 1.0, -1.0),              // alpha value
+        ::testing::Values(1.0, 0.0, -1.0, 2.3),         // beta value
+        ::testing::Values('r', 'c'),                    // storage
+        ::testing::Values(8),                           // values of m
+        ::testing::Values(48),                          // values of n
+        ::testing::Values(K_bli_sgemm_zen5_asm_8x48),
+        ::testing::Values(false)                        // memory test
+    ),
+    ::sgemmGenericNatPrint()
+);
+#endif
+
+#ifdef K_bli_sgemm_zen5_asm_8x48
+INSTANTIATE_TEST_SUITE_P(
+    DISABLED_bli_sgemm_zen5_asm_8x48_zero_k_memtest_enabled,
+    sgemmGenericNat,
+    ::testing::Combine(
+        ::testing::Values(gtint_t(0)),                  // values of k
+        ::testing::Values(2.0, 1.0, -1.0),              // alpha value
+        ::testing::Values(1.0, 0.0, -1.0, 2.3),         // beta value
+        ::testing::Values('r', 'c'),                    // storage
+        ::testing::Values(8),                           // values of m
+        ::testing::Values(48),                          // values of n
+        ::testing::Values(K_bli_sgemm_zen5_asm_8x48),
+        ::testing::Values(true)                         // memory test
+    ),
+    ::sgemmGenericNatPrint()
+);
+#endif
+
+#endif // defined(BLIS_KERNELS_ZEN5) && defined(GTEST_AVX512)
 
 #if defined(BLIS_KERNELS_HASWELL) && defined(GTEST_AVX2FMA3)
 
@@ -928,7 +986,7 @@ TEST_P( sgemmGenericSmallTest, gemm_small)
     // Set the threshold for the errors:
     // Check gtestsuite gemm.h or netlib source code for reminder of the
     // functionality from which we estimate operation count per element
-    // of output, and hence the multipler for epsilon.
+    // of output, and hence the multiplier for epsilon.
     double thresh;
     if (m == 0 || n == 0)
         thresh = 0.0;

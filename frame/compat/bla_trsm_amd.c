@@ -1181,7 +1181,7 @@ void dtrsm_blis_impl
                 // (M^2 * N) < (X * S) / ( S - 1)
                 // Here RHS is constant, which can be found using empirical data
                 // (X * S) / ( S - 1) is found to be around 6.3e6 on Turin
-                // In order the reduce the possiblity of overflow, taking log on
+                // In order the reduce the possibility of overflow, taking log on
                 // both sides gives us
                 // 2log(m) + log(n) < 6.8 for left variant
                 if ( blis_side == BLIS_LEFT )

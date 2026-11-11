@@ -84,7 +84,7 @@ void bli_cpackm_zen4_asm_24xk
     // This is the panel dimension assumed by the packm kernel.
     const dim_t      mnr   = 24;
 
-    // Store the iterations along m dimension in blocks of 8(for both copyting and setting to 0)
+    // Store the iterations along m dimension in blocks of 8(for both copying and setting to 0)
     uint64_t m_iter = cdim0 / 8;
     uint64_t m_left = cdim0 % 8;
 

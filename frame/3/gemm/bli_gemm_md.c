@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2017 - 2023, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2017 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -465,7 +465,7 @@ mddm_t bli_gemm_md_crr
 	//dom_t dom_comp_in = BLIS_REAL;
 
 	// For crr, the computation (ukernel) will be real, and since we will
-	// be updating only the real part of the output matrix C, the exectuion
+	// be updating only the real part of the output matrix C, the execution
 	// domain is also real.
 	doms.comp = BLIS_REAL;
 	doms.exec = BLIS_REAL;
@@ -478,7 +478,7 @@ mddm_t bli_gemm_md_crr
 	//   since we'll be computing A*B to a temporary matrix and accumulating
 	//   that result back to C, and in order for that to work, we need to
 	//   allow that code to continue accessing C as a complex matrix.
-	// - Even if extra memory optimizations are diabled, logically projecting
+	// - Even if extra memory optimizations are disabled, logically projecting
 	//   C as a real matrix can still cause problems if beta is non-unit. In
 	//   that situation, the implementation won't get a chance to scale the
 	//   imaginary components of C by beta, and thus it would compute the

@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2024 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2024 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -750,7 +750,7 @@ err_t bli_zgemm_zen4_int_16x4_k1_nn
             __m512d a_perm, c_vec[4];
             __m512d betaRv, betaIv;
 
-            // Clearing scratch registers for accumalation
+            // Clearing scratch registers for accumulation
             c_vec[0] = _mm512_setzero_pd();
             c_vec[1] = _mm512_setzero_pd();
             c_vec[2] = _mm512_setzero_pd();
@@ -908,7 +908,7 @@ err_t bli_zgemm_zen4_int_16x4_k1_nn
 
         if( m_rem > 0 )
         {
-            // Setting the mask to load/store the reamining elements
+            // Setting the mask to load/store the remaining elements
             // Ex : m_rem = 2 => m_mask = ( 1 << 2 * 2 ) - 1
             //                          = 0b0010000 - 1
             //                          = 0b00001111
@@ -917,7 +917,7 @@ err_t bli_zgemm_zen4_int_16x4_k1_nn
             __m512d a_perm, c_vec[4];
             __m512d betaRv, betaIv;
 
-            // Clearing the scratch registers for accumalation
+            // Clearing the scratch registers for accumulation
             c_vec[0] = _mm512_setzero_pd();
             c_vec[1] = _mm512_setzero_pd();
             c_vec[2] = _mm512_setzero_pd();
@@ -1137,7 +1137,7 @@ err_t bli_zgemm_zen4_int_16x4_k1_nn
             __m512d a_perm[4], c_vec[8];
             __m512d betaRv, betaIv;
 
-            // Clearing the scratch registers for accumalation
+            // Clearing the scratch registers for accumulation
             c_vec[0] = _mm512_setzero_pd();
             c_vec[1] = _mm512_setzero_pd();
             c_vec[2] = _mm512_setzero_pd();
@@ -1436,7 +1436,7 @@ err_t bli_zgemm_zen4_int_16x4_k1_nn
             __m512d a_perm, c_vec[2];
             __m512d betaRv, betaIv;
 
-            // Clearing out sctarch registers for accumalation
+            // Clearing out sctarch registers for accumulation
             c_vec[0] = _mm512_setzero_pd();
             c_vec[1] = _mm512_setzero_pd();
 
@@ -1669,7 +1669,7 @@ err_t bli_zgemm_zen4_int_16x4_k1_nn
             __m512d a_perm[4], c_vec[4];
             __m512d betaRv, betaIv;
 
-            // Clearing scratch registers for accumalation
+            // Clearing scratch registers for accumulation
             c_vec[0] = _mm512_setzero_pd();
             c_vec[1] = _mm512_setzero_pd();
             c_vec[2] = _mm512_setzero_pd();
@@ -1780,7 +1780,7 @@ err_t bli_zgemm_zen4_int_16x4_k1_nn
             __m512d a_perm[2], c_vec[2];
             __m512d betaRv, betaIv;
 
-            // Clearing scratch registers for accumalation
+            // Clearing scratch registers for accumulation
             c_vec[0] = _mm512_setzero_pd();
             c_vec[1] = _mm512_setzero_pd();
 
@@ -1862,7 +1862,7 @@ err_t bli_zgemm_zen4_int_16x4_k1_nn
             __m512d a_perm, c_vec;
             __m512d betaRv, betaIv;
 
-            // Clearing the scratch register for accumalation
+            // Clearing the scratch register for accumulation
             c_vec = _mm512_setzero_pd();
 
             // Loading 4 elements from A

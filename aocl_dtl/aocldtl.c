@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2020 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2020 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -376,7 +376,7 @@ void DTL_Trace(
         if ((ui8LogLevel >= AOCL_DTL_LEVEL_TRACE_1) &&
             (ui8LogLevel <= AOCL_DTL_LEVEL_TRACE_8))
         {
-            /* this loop is for formating the output log file */
+            /* this loop is for formatting the output log file */
             for (i = 0; i < (ui8LogLevel - AOCL_DTL_LEVEL_TRACE_1); i++)
             {
                 /* print tabs in the output file */
@@ -570,7 +570,7 @@ void AOCL_DTL_start_perf_timer(void)
 {
     AOCL_TID current_thread = AOCL_gettid();
 
-    // Automatic duration calulation is currently
+    // Automatic duration calculation is currently
     // supported from main thread only, in other words
     // at BLAS interface.
     if (current_thread != gtidMainThreadID) {
@@ -602,7 +602,7 @@ uint64 AOCL_DTL_get_time_spent(void)
 {
     AOCL_TID current_thread = AOCL_gettid();
 
-    // Automatic duration calulation is currently
+    // Automatic duration calculation is currently
     // supported from main thread only, in other words
     // at BLAS interface.
     if (current_thread != gtidMainThreadID) {
@@ -692,7 +692,7 @@ void __cyg_profile_func_enter(void *pvThisFunc, void *pvCaller)
 /*===================================================================
 *  Function Name           :  __cyg_profile_func_exit
 *  Description             :  This function is automatically invoked
-*                             by compiler before returing from a
+*                             by compiler before returning from a
 *                             function.
 *  Input Parameter(s)      :  pvThisFunc - Address of function to be existed.
 *                             call_site.- Address of the caller

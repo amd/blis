@@ -5,7 +5,7 @@
 #  libraries.
 #
 #  Copyright (C) 2014, The University of Texas at Austin
-#  Copyright (C) 2017 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+#  Copyright (C) 2017 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 #
 #  Redistribution and use in source and binary forms, with or without
 #  modification, are permitted provided that the following conditions are
@@ -167,6 +167,21 @@ CFLAGS         += -I$(TEST_SRC_PATH)
 # Define Number of Repeats
 NRTS := -DN_REPEAT=1000
 
+# Select the benchmark timer. The default keeps the original BLIS OS timer.
+# Usage: make bench_<api>_blis.x TIMER=rdtsc
+#        make bench_<api>_blis.x TIMER=rdtscp
+TIMER ?= os
+
+ifeq ($(TIMER),os)
+TIMER_FLAGS :=
+else ifeq ($(TIMER),rdtsc)
+TIMER_FLAGS := -DBENCH_RDTSC
+else ifeq ($(TIMER),rdtscp)
+TIMER_FLAGS := -DBENCH_RDTSCP
+else
+$(error Unsupported TIMER='$(TIMER)'; use os, rdtsc, or rdtscp)
+endif
+
 #
 # --- Targets/rules ------------------------------------------------------------
 #
@@ -258,17 +273,17 @@ $(TEST_OBJ_PATH)/%.o: $(TEST_SRC_PATH)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 bench_%_openblas.o: bench_%.c
-	$(CC) $(CFLAGS) -DBLAS=\"openblas\" $(NRTS) -c $< -o $@
+	$(CC) $(CFLAGS) -DBLAS=\"openblas\" $(NRTS) $(TIMER_FLAGS) -c $< -o $@
 
 bench_%_atlas.o: bench_%.c
-	$(CC) $(CFLAGS) -DBLAS=\"atlas\" $(NRTS) -c $< -o $@
+	$(CC) $(CFLAGS) -DBLAS=\"atlas\" $(NRTS) $(TIMER_FLAGS) -c $< -o $@
 
 bench_%_mkl.o: bench_%.c
-	$(CC) $(CFLAGS) -DBLAS=\"mkl\" $(NRTS) -c $< -o $@
+	$(CC) $(CFLAGS) -DBLAS=\"mkl\" $(NRTS) $(TIMER_FLAGS) -c $< -o $@
 
 
 bench_%_blis.o: bench_%.c
-	$(CC) $(CFLAGS) -DBLAS=\"aocl\" $(NRTS) -c $< -o $@
+	$(CC) $(CFLAGS) -DBLAS=\"aocl\" $(NRTS) $(TIMER_FLAGS) -c $< -o $@
 
 
 # -- Executable file rules --

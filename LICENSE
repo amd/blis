@@ -1,8 +1,8 @@
-AOCL-BLIS v5.3.2 – LICENSE 
+AOCL-BLIS v6.0.0 – LICENSE 
 
 Copyright (c) Advanced Micro Devices, Inc. 
 
-This distribution of AOCL-BLIS v5.3.2 includes software developed by Advanced Micro Devices, Inc. (“AMD”) and third-party components. 
+This distribution of AOCL-BLIS v6.0.0 includes software developed by Advanced Micro Devices, Inc. (“AMD”) and third-party components. 
 
 ----------------------------------------------------------------------- 
 SECTION 1: AMD CONTRIBUTIONS 
@@ -37,3 +37,4 @@ Compliance with the licenses of such third-party components is required in addit
 SECTION 3: GOVERNING TERMS 
 ----------------------------------------------------------------------- 
 The licenses above apply only to the portions of the software to which they are expressly attributed. For complete license information, including third-party attributions, refer to the accompanying NOTICE file and the individual source code file headers.
+

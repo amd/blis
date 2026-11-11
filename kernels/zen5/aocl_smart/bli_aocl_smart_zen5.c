@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2024 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2024 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -83,6 +83,31 @@ bool bli_cntx_gemmsup_thresh_is_met_zen5( obj_t* a, obj_t* b, obj_t* c, cntx_t* 
 			m = bli_obj_length( c );
 			n = bli_obj_width( c );
 		}
+		// Tuning for conjugate ZGEMM inputs: take the SUP path only within a
+		// small-ZGEMM size envelope; larger conjugate shapes use the native path.
+		// The guards compare per-operand element counts (m*k, k*n, m*n) and the
+		// total m*n*k product against tuned size limits. NOTE: Zen6 also uses this
+		// selector (config/zen6 wires BLIS_GEMM here), so this routing applies to
+		// Zen4, Zen5 and Zen6.
+		if ( ( bli_obj_has_conj( a ) == TRUE ) || ( bli_obj_has_conj( b ) == TRUE ) )
+		{
+			// Stay on SUP only when an operand is tiny AND the total volume is
+			// small; otherwise the native packed path wins.
+			const double conj_sup_operand_elems_max = 500.0;
+			const double conj_sup_mnk_max           = 7500.0;
+			const double a_elems = ( double )m * ( double )k; // elements in A
+			const double b_elems = ( double )k * ( double )n; // elements in B
+			const double c_elems = ( double )m * ( double )n; // elements in C
+			const double mnk     = ( double )m * ( double )n * ( double )k;
+			if ( ( ( a_elems < conj_sup_operand_elems_max ) ||
+			       ( b_elems < conj_sup_operand_elems_max ) ||
+			       ( c_elems < conj_sup_operand_elems_max ) ) &&
+			     ( mnk < conj_sup_mnk_max ) )
+			{
+				return TRUE;
+			}
+			return FALSE;
+		}
 		// For skinny sizes where m and/or n is small
 		// The threshold for m is a single value, but for n, it is
 		// also based on the packing size of A, since the kernels are
@@ -133,21 +158,75 @@ bool bli_cntx_gemmsup_thresh_is_met_zen5( obj_t* a, obj_t* b, obj_t* c, cntx_t* 
 		}
 		return FALSE;
 	}
-	else
-		return bli_cntx_l3_sup_thresh_is_met( a, b, c, cntx );
+	else // dt == BLIS_FLOAT
+	{
+		const stor3_t stor_id = bli_obj_stor3_from_strides( c, a, b );
+
+		const dim_t m = bli_obj_length( c );
+		const dim_t n = bli_obj_width( c ); 
+		const dim_t k = bli_obj_width_after_trans( a );
+		const dim_t n_threads = bli_thread_get_num_threads();
+
+		int64_t min_m_n = bli_min(m, n);
+		int64_t m_n_k = m * n * k;
+
+		if ( stor_id == BLIS_CRC || stor_id == BLIS_RRC)
+		{
+			// These inputs go to the SGEMM RD kernel
+			if ( min_m_n <= 16.28 *  n_threads || (m_n_k / (double)n_threads) < 103802408.0)
+			{
+				// go to SUP
+				return TRUE;
+			}
+		}
+		else
+		{
+			// These inputs go to the SGEMM RV kernel
+			if ( min_m_n <= 4.875 *  n_threads || (m_n_k / (double)n_threads) < 1211034577.0)
+			{
+				// go to SUP
+				return TRUE;
+			}
+		}
+
+		// in all other cases, goto the native code path
+		return FALSE;
+	}
 }
 
 /* This function determines the ideal blocksizes for given datatype
    and num_threads.
 */
-void bli_dynamic_blkszs_zen5( dim_t n_threads, cntx_t* cntx, num_t dt )
+void bli_dynamic_blkszs_zen5( dim_t m, dim_t n, dim_t n_threads, cntx_t* cntx, num_t dt )
 {
-	// dynamic blocksizes enabled only for double datatype.
-	if (dt != BLIS_DOUBLE) return;
+	// dynamic blocksizes enabled only for double and single datatype.
+	if (dt != BLIS_DOUBLE && dt != BLIS_FLOAT) return;
+
+	if (dt == BLIS_FLOAT)
+	{
+		// For floats, KC has to be changed based on the size of C for the following reasons. 
+        // When C is large, a larger KC is better because KC determines how many accesses over
+        // C needs to be performed. A larger KC means that the number of write access over C
+        // is smaller. Moreover a larger KC ensures more reuse of the packed A and B panels. 
+        // But when C is small, we have a different effect, here, since the packed
+        // sizes of A and B are larger, these don’t fit in the caches anymore and we have more 
+        // cache misses because of this. Moreover, the packing of A becomes inefficient since 
+        // we need to pack 8xk (half a cache line) we essentially stream through A and P while
+        // only loading and storing half a cache line (we waste half of this memory bandwidth)
+        // and having KC smaller ensures that A and P both stay in the L1/L2 cache so that the 
+        // next iteration is faster and at least the fetched memory is not wasted by excessive
+        // flushing into higher layers of memory
+		if ( !( n_threads >= 128 && m >= 18000 && n >= 18000 ) )
+		{
+			bli_cntx_set_blksz_def_dt( BLIS_FLOAT, BLIS_KC, 192, cntx );
+			bli_cntx_set_blksz_max_dt( BLIS_FLOAT, BLIS_KC, 192, cntx );
+		}
+		return;
+	}
 
 	blksz_t blkszs[ BLIS_NUM_BLKSZS ];
 	dim_t mc, kc, nc;
-	model_t model = bli_init_model_query_id();
+	model_t model = bli_model_query_id_internal();
 
 	// determine ideal blocksize
 	if ( model == BLIS_MODEL_TURIN_DENSE )
@@ -175,7 +254,7 @@ void bli_dynamic_blkszs_zen5( dim_t n_threads, cntx_t* cntx, num_t dt )
 		}
 	}
 
-	// set blocksizes
+	// set blocksizes (s, c and z values are not used from this copy of cntx)
 	bli_blksz_init_easy( &blkszs[ BLIS_MC ],   192,  mc,    72,    48 );
 	bli_blksz_init_easy( &blkszs[ BLIS_KC ],   512,  kc,   128,    64 );
 	bli_blksz_init_easy( &blkszs[ BLIS_NC ],  8064,  nc,  2040,  1020 );

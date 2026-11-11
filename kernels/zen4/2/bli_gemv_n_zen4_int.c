@@ -48,8 +48,19 @@
 #define ARCH_SIMD_BITS  512
 #define GEMV_ARCH_SUFFIX zen4_int
 #define GEMV_BLK_SUFFIX_N(ch, MR, NR)  PASTEMAC5(ch, gemv_n_block_, MR, _, NR, _avx512)
+// AOCC otherwise unrolls the already-expanded dgemv row loop fourfold, which
+// increases the hot kernel's instruction footprint without exposing more MLP.
+#if defined(__clang__)
+  #define GEMV_N_MLOOP_HINT_d _Pragma("clang loop unroll(disable)")
+#elif defined(__GNUC__)
+  #define GEMV_N_MLOOP_HINT_d _Pragma("GCC unroll 1")
+#endif
 
 #include "../../zen/2/bli_pp_common.h"
+// Enable the compact assembly row loop only for these AVX-512 instantiations.
+#include "bli_x86_asm_macros.h"
+#define ASM_d_16x8 1
+#define ASM_d_32x8 1
 
 #ifdef BLIS_ENABLE_OPENMP
 #include <omp.h>
@@ -441,11 +452,33 @@ GENT_GEMV_CALLER(double, d, 40, 8, n)
 // expands to: bli_dgemv_n_zen4_int_40x8_mt (M-split OpenMP wrapper; empty if !OpenMP)
 MT_KERNEL_SIGNATURE(double, d, 40, 8)
 
+// The 40x8 N generation above instantiates the 32/31-row microkernels reused below.
+static dgemv_ker dgemv_n_ker_fp_32_8[8][8] = {
+    FOR_EACH(GEN_ARRAY_ROW_N, double, d, 8, 32, 8, 16, 24)
+    FOR_EACH(GEN_ARRAY_ROW_N, double, d, 8, 7, 15, 23, 31)
+};
+GENT_GEMV_CALLER(double, d, 32, 8, n)
+
+// Likewise the 16/15-row microkernels; bli_gemv_n_impl.h gives d 16x8 a
+// compact assembly row loop with one advancing A base and fixed column offsets.
+static dgemv_ker dgemv_n_ker_fp_16_8[4][8] = {
+    FOR_EACH(GEN_ARRAY_ROW_N, double, d, 8, 16, 8)
+    FOR_EACH(GEN_ARRAY_ROW_N, double, d, 8, 7, 15)
+};
+GENT_GEMV_CALLER(double, d, 16, 8, n)
+
 // PASTECH4(GENERATE_,d,_KERNELS_,40,_NM) == GENERATE_d_KERNELS_40_NM
 // expands to: M micro-kernel family bli_dgemv_m_block_*_avx512 + table bli_dgemv_m_ker_fp_40_8
 PASTECH4(GENERATE_,d,_KERNELS_,40,_NM)(double, d, 40, 8)
 // expands to: bli_dgemv_m_zen4_int_40x8 (single-thread M-direction tiled caller)
 GENT_GEMV_CALLER(double, d, 40, 8, m)
+
+// The 40x8 NM generation above instantiates the 32/31 NR=1 microkernels reused below.
+static dgemv_ker dgemv_m_ker_fp_32_1[8][1] = {
+    FOR_EACH(GEN_ARRAY_ROW_NM, double, d, 1, 32, 8, 16, 24)
+    FOR_EACH(GEN_ARRAY_ROW_NM, double, d, 1, 7, 15, 23, 31)
+};
+GENT_GEMV_CALLER(double, d, 32, 1, m)
 
 /* float: NR=2 for N-kernel, NR=8 for M-kernel */
 // PASTECH4(GENERATE_,s,_KERNELS_,80,_N) == GENERATE_s_KERNELS_80_N
@@ -487,7 +520,44 @@ void bli_dgemv_n_zen4_int_st
        double* y, inc_t incy, cntx_t* cntx
      )
 {
-    if ( (dim_t)( m * n ) * (dim_t)sizeof( double ) < GEMV_N_CTRL_THRESH_BYTES )
+    const dim_t matrix_bytes =
+        (dim_t)( m * n ) * (dim_t)sizeof( double );
+
+    const bool unit_ay =
+        (transa == BLIS_NO_TRANSPOSE) && (rs_a == 1) && (incy == 1);
+
+    // A column-strided x usually comes from the same column-major allocation
+    // as A. The shorter tile limits loop and fringe work while x is streamed.
+    const bool use_16x8 =
+        unit_ay && (cs_a > 1) && (incx == cs_a) && (n >= 8);
+
+    // For roughly balanced matrices with contiguous x, four independent
+    // accumulator chains hide FMA latency while avoiding wide streaming cases
+    // where the regular caller remains competitive.
+    const bool use_32x8 =
+        unit_ay &&
+        (incx == 1) &&
+        (n >= 8) &&
+        (matrix_bytes >= GEMV_N_CTRL_THRESH_BYTES) &&
+        (m >= (n / 2)) &&
+        (n >= (m / 2));
+
+    const bool use_narrow_m =
+        (transa == BLIS_NO_TRANSPOSE) &&
+        ((rs_a == 1) || (cs_a == 1)) &&
+        (incx == 1) && (incy == 1) &&
+        (m <= 160) && (n >= 8) && (n <= 160);
+
+    if ( use_narrow_m )
+        bli_dgemv_m_zen4_int_32x1( transa, conjx, m, n, alpha, a, rs_a, cs_a,
+                                   x, incx, beta, y, incy, cntx );
+    else if ( use_16x8 )
+        bli_dgemv_n_zen4_int_16x8( transa, conjx, m, n, alpha, a, rs_a, cs_a,
+                                   x, incx, beta, y, incy, cntx );
+    else if ( use_32x8 )
+        bli_dgemv_n_zen4_int_32x8( transa, conjx, m, n, alpha, a, rs_a, cs_a,
+                                   x, incx, beta, y, incy, cntx );
+    else if ( matrix_bytes < GEMV_N_CTRL_THRESH_BYTES )
         bli_dgemv_m_zen4_int_40x8( transa, conjx, m, n, alpha, a, rs_a, cs_a,
                                    x, incx, beta, y, incy, cntx );
     else
@@ -577,8 +647,23 @@ void bli_dgemv_m_zen4_int_40x8_mt_Ndiv
 
     if ( nt == 1 )
     {
-        bli_dgemv_n_zen4_int_st( transa, conjx, m, n, alpha, a, rs_a, cs_a,
-                                 x, incx, beta, y, incy, cntx );
+        // For m = 512 and 1024, 32x8 uses no fringe kernels
+        // and measured performance is better than 40x8 in this region.
+        const bool use_32x8 =
+            ( incx == 1 ) &&
+            ( ( m == 512 ) || ( m == 1024 ) ) &&
+            ( n >= 256 ) && ( n <= m ) && ( ( n % 8 ) == 0 );
+
+        if ( use_32x8 == true )
+        {
+            bli_dgemv_n_zen4_int_32x8( transa, conjx, m, n, alpha, a, rs_a, cs_a,
+                                       x, incx, beta, y, incy, cntx );
+        }
+        else
+        {
+            bli_dgemv_n_zen4_int_st( transa, conjx, m, n, alpha, a, rs_a, cs_a,
+                                     x, incx, beta, y, incy, cntx );
+        }
         return;
     }
 

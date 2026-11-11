@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2020 - 2025, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2020 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -138,7 +138,7 @@ int PASTEF77S(c,tpmv)(const bla_character *uplo, const bla_character *trans, con
 /*           ( 1 + ( n - 1 )*abs( INCX ) ). */
 /*           Before entry, the incremented array X must contain the n */
 /*           element vector x. On exit, X is overwritten with the */
-/*           tranformed vector x. */
+/*           transformed vector x. */
 
 /*  INCX   - INTEGER. */
 /*           On entry, INCX specifies the increment for the elements of */
@@ -654,7 +654,7 @@ int PASTEF77S(d,tpmv)(const bla_character *uplo, const bla_character *trans, con
 /*           ( 1 + ( n - 1 )*abs( INCX ) ). */
 /*           Before entry, the incremented array X must contain the n */
 /*           element vector x. On exit, X is overwritten with the */
-/*           tranformed vector x. */
+/*           transformed vector x. */
 
 /*  INCX   - INTEGER. */
 /*           On entry, INCX specifies the increment for the elements of */
@@ -1021,7 +1021,7 @@ int PASTEF77S(s,tpmv)(const bla_character *uplo, const bla_character *trans, con
 /*           ( 1 + ( n - 1 )*abs( INCX ) ). */
 /*           Before entry, the incremented array X must contain the n */
 /*           element vector x. On exit, X is overwritten with the */
-/*           tranformed vector x. */
+/*           transformed vector x. */
 
 /*  INCX   - INTEGER. */
 /*           On entry, INCX specifies the increment for the elements of */
@@ -1392,7 +1392,7 @@ int PASTEF77S(z,tpmv)(const bla_character *uplo, const bla_character *trans, con
 /*           ( 1 + ( n - 1 )*abs( INCX ) ). */
 /*           Before entry, the incremented array X must contain the n */
 /*           element vector x. On exit, X is overwritten with the */
-/*           tranformed vector x. */
+/*           transformed vector x. */
 
 /*  INCX   - INTEGER. */
 /*           On entry, INCX specifies the increment for the elements of */

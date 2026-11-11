@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
+   Copyright (C) 2024 - 2026, Advanced Micro Devices, Inc. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -75,7 +75,7 @@ static void test_scal2v_ukr( FT ukr, char conjx, gtint_t n, gtint_t incx, gtint_
     testinghelpers::datagenerators::randomgenerators( -10, 10, n, incx, x );
     testinghelpers::datagenerators::randomgenerators( -10, 10, n, incy, y );
 
-    // Copying y to y_ref, for comparision after computation
+    // Copying y to y_ref, for comparison after computation
     memcpy( y_ref, y, size_y );
 
     // Char conjx to BLIS conjx conversion
