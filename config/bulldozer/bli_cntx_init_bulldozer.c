@@ -32,48 +32,83 @@
 
 */
 
-#include "blis.h"
+#include "bios.h"
+#include "common/io/io.h"
 
-void bli_cntx_init_bulldozer( cntx_t* cntx )
+#include <stdlib.h>
+
+static bool hostValueSet(const FFstrbuf* value)
 {
-	blksz_t blkszs[ BLIS_NUM_BLKSZS ];
+    const char* str = value->chars;
+    const size_t length = value->length;
 
-	// Set default kernel blocksizes and functions.
-	bli_cntx_init_bulldozer_ref( cntx );
-
-	// -------------------------------------------------------------------------
-
-	// Update the context with optimized native gemm micro-kernels and
-	// their storage preferences.
-	bli_cntx_set_l3_nat_ukrs
-	(
-	  4,
-	  BLIS_GEMM_UKR, BLIS_FLOAT,    bli_sgemm_bulldozer_asm_8x8_fma4, FALSE,
-	  BLIS_GEMM_UKR, BLIS_DOUBLE,   bli_dgemm_bulldozer_asm_4x6_fma4, FALSE,
-	  BLIS_GEMM_UKR, BLIS_SCOMPLEX, bli_cgemm_bulldozer_asm_8x4_fma4, FALSE,
-	  BLIS_GEMM_UKR, BLIS_DCOMPLEX, bli_zgemm_bulldozer_asm_4x4_fma4, FALSE,
-	  cntx
-	);
-
-	// Initialize level-3 blocksize objects with architecture-specific values.
-	//                                           s      d      c      z
-	bli_blksz_init_easy( &blkszs[ BLIS_MR ],     8,     4,     8,     4 );
-	bli_blksz_init_easy( &blkszs[ BLIS_NR ],     8,     6,     4,     4 );
-	bli_blksz_init_easy( &blkszs[ BLIS_MC ],   128,  1080,    96,    64 );
-	bli_blksz_init_easy( &blkszs[ BLIS_KC ],   384,   120,   256,   192 );
-	bli_blksz_init_easy( &blkszs[ BLIS_NC ],  4096,  8400,  4096,  4096 );
-
-	// Update the context with the current architecture's register and cache
-	// blocksizes (and multiples) for native execution.
-	bli_cntx_set_blkszs
-	(
-	  BLIS_NAT, 5,
-	  BLIS_NC, &blkszs[ BLIS_NC ], BLIS_NR,
-	  BLIS_KC, &blkszs[ BLIS_KC ], BLIS_KR,
-	  BLIS_MC, &blkszs[ BLIS_MC ], BLIS_MR,
-	  BLIS_NR, &blkszs[ BLIS_NR ], BLIS_NR,
-	  BLIS_MR, &blkszs[ BLIS_MR ], BLIS_MR,
-	  cntx
-	);
+    return (length > 0) &&
+           !(
+               ffStrbufStartsWithIgnCaseS(str, length, "To be filled") ||
+               ffStrbufStartsWithIgnCaseS(str, length, "To be set") ||
+               ffStrbufStartsWithIgnCaseS(str, length, "OEM") ||
+               ffStrbufStartsWithIgnCaseS(str, length, "O.E.M.") ||
+               ffStrbufIgnCaseCompS(str, length, "None") == 0 ||
+               ffStrbufIgnCaseCompS(str, length, "System Product") == 0 ||
+               ffStrbufIgnCaseCompS(str, length, "System Product Name") == 0 ||
+               ffStrbufIgnCaseCompS(str, length, "System Product Version") == 0 ||
+               ffStrbufIgnCaseCompS(str, length, "System Name") == 0 ||
+               ffStrbufIgnCaseCompS(str, length, "System Version") == 0 ||
+               ffStrbufIgnCaseCompS(str, length, "Default string") == 0 ||
+               ffStrbufIgnCaseCompS(str, length, "Undefined") == 0 ||
+               ffStrbufIgnCaseCompS(str, length, "Not Specified") == 0 ||
+               ffStrbufIgnCaseCompS(str, length, "Not Applicable") == 0 ||
+               ffStrbufIgnCaseCompS(str, length, "INVALID") == 0 ||
+               ffStrbufIgnCaseCompS(str, length, "Type1ProductConfigId") == 0 ||
+               ffStrbufIgnCaseCompS(str, length, "All Series") == 0
+           );
 }
 
+void ffDetectBios(FFBiosResult* bios)
+{
+    ffStrbufInit(&bios->error);
+    ffStrbufInit(&bios->biosDate);
+    ffStrbufInit(&bios->biosRelease);
+    ffStrbufInit(&bios->biosVendor);
+    ffStrbufInit(&bios->biosVersion);
+
+    ffReadFileBuffer("/sys/devices/virtual/dmi/id/bios_date", &bios->biosDate);
+    if (hostValueSet(&bios->biosDate))
+        return;
+
+    ffReadFileBuffer("/sys/class/dmi/id/bios_date", &bios->biosDate);
+    if (hostValueSet(&bios->biosDate))
+        return;
+
+    ffStrbufClear(&bios->biosDate);
+
+    ffReadFileBuffer("/sys/devices/virtual/dmi/id/bios_release", &bios->biosRelease);
+    if (hostValueSet(&bios->biosRelease))
+        return;
+
+    ffReadFileBuffer("/sys/class/dmi/id/bios_release", &bios->biosRelease);
+    if (hostValueSet(&bios->biosRelease))
+        return;
+
+    ffStrbufClear(&bios->biosRelease);
+
+    ffReadFileBuffer("/sys/devices/virtual/dmi/id/bios_vendor", &bios->biosVendor);
+    if (hostValueSet(&bios->biosVendor))
+        return;
+
+    ffReadFileBuffer("/sys/class/dmi/id/bios_vendor", &bios->biosVendor);
+    if (hostValueSet(&bios->biosVendor))
+        return;
+
+    ffStrbufClear(&bios->biosVendor);
+
+    ffReadFileBuffer("/sys/devices/virtual/dmi/id/bios_version", &bios->biosVersion);
+    if (hostValueSet(&bios->biosVersion))
+        return;
+
+    ffReadFileBuffer("/sys/class/dmi/id/bios_version", &bios->biosVersion);
+    if (hostValueSet(&bios->biosVersion))
+        return;
+
+    ffStrbufClear(&bios->biosVersion);
+}
