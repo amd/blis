@@ -193,10 +193,6 @@ endforeach()
 if(WIN32)
     option(ENABLE_NO_UNDERSCORE_API "Export APIs without underscore." OFF)
     option(ENABLE_UPPERCASE_API "Export APIs with uppercase." OFF)
-    # Setting path to OpenMP runtime.
-    set(OpenMP_libomp_LIBRARY "C:/Program Files/LLVM/lib/libomp.lib" CACHE STRING "openmp library path")
-else(WIN32)
-    set(OpenMP_libomp_LIBRARY "" CACHE STRING "openmp library path")
 endif()
 # Debug & Release flags option setting is only available for Linux. On Windows the default flags are used.
 if(NOT MSVC)
@@ -1190,7 +1186,9 @@ if(NOT WIN32)
 endif()
 
 # Macro to remove/replace absolute path within library
-list(APPEND BUILD_SYMFLAGS "-fmacro-prefix-map=${PROJECT_SOURCE_DIR}/=")
+if (NOT MSVC)
+    list(APPEND BUILD_SYMFLAGS "-fmacro-prefix-map=${PROJECT_SOURCE_DIR}/=")
+endif()
 
 set(SECURITY_LINK_FLAGS)
 if(SECURITY_FLAGS_ENABLED)
@@ -1246,8 +1244,8 @@ if(NOT WIN32)
 endif()
 
 # --- #pragma omp simd flags (used for reference kernels only) ---
-if(PRAGMA_OMP_SIMD)
-    if(WIN32)
+if(ENABLE_PRAGMA_OMP_SIMD_01)
+    if (MSVC AND CMAKE_C_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
         set(COMPSIMDFLAGS /openmp:experimental)
     else()
         set(COMPSIMDFLAGS -fopenmp-simd)
@@ -1392,8 +1390,12 @@ endif()
 if(WIN32)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS)
     add_definitions(-D_CRT_SECURE_NO_DEPRECATE)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /Oi")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MP${CMake_MSVC_PARALLEL}")
+    if (MSVC AND CMAKE_C_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /Oi")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MP${CMake_MSVC_PARALLEL}")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /Gy /Gw")
+        set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /OPT:ICF,REF,LBR")
+    endif()
     set(INTR_GENERAL_LINK_FLAGS "${INTR_GENERAL_LINK_FLAGS} /RELEGE")
     add_definitions(-DEXPMODULE)
 endif()
@@ -1438,13 +1440,6 @@ if(THREADING_MODEL STREQUAL "openmp")
  list(APPEND LDFLAGS_STRING "${OpenMP_C_FLAGS}")
 endif()
 string(JOIN " " LDFLAGS_STRING ${LDFLAGS_STRING})
-if(NOT WIN32)
-    configure_file(
-        ${PROJECT_SOURCE_DIR}/build/cmake/${PC_IN_FILE}
-        ${CMAKE_BINARY_DIR}/${PC_OUT_FILE}
-        @ONLY
-    )
-endif()
 
 if(BUILD_SHARED_LIBS)
     # Build shared library with proper target name
@@ -1454,7 +1449,7 @@ if(BUILD_SHARED_LIBS)
                         SOVERSION ${SO_VERSION_MAJOR}
                         OUTPUT_NAME ${LIBBLIS_SHARED}
                     )
-
+    set(LIBBLIS "${LIBBLIS_SHARED}")
 endif()
 if(BUILD_STATIC_LIBS OR NOT BUILD_SHARED_LIBS)
     # Build static library with proper target name.
@@ -1462,8 +1457,14 @@ if(BUILD_STATIC_LIBS OR NOT BUILD_SHARED_LIBS)
     set_target_properties(blis_static PROPERTIES
                         OUTPUT_NAME ${LIBBLIS_STATIC}
                     )
-
+    set(LIBBLIS "${LIBBLIS_STATIC}")
 endif()
+
+configure_file(
+    ${PROJECT_SOURCE_DIR}/build/cmake/${PC_IN_FILE}
+    ${CMAKE_BINARY_DIR}/${PC_OUT_FILE}
+    @ONLY
+)
 
 # AOCL Build-It-Yourself unified build: contribute BLIS' object files to the
 # single libaocl. OBJECT_LIBRARIES is a list of $<TARGET_OBJECTS:...> genexes.
@@ -1556,32 +1557,28 @@ endforeach()
 if(BUILD_SHARED_LIBS AND TARGET blis_shared)
     install(TARGETS blis_shared
         EXPORT blisTargets
-        LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-        RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-        INCLUDES DESTINATION ${CMAKE_INSTALL_PREFIX}/include
     )
+    if (MSVC)
+        install(FILES
+            "$<TARGET_PDB_FILE:blis_shared>"
+            DESTINATION "${CMAKE_INSTALL_BINDIR}"
+        )
+    endif()
 endif()
 
 if((BUILD_STATIC_LIBS OR NOT BUILD_SHARED_LIBS) AND TARGET blis_static)
     install(TARGETS blis_static
         EXPORT blisTargets
-        LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-        RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-        INCLUDES DESTINATION ${CMAKE_INSTALL_PREFIX}/include
     )
 endif()
 
 # Install headers
 install(FILES ${BLIS_PUBLIC_HEADERS}
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/include
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
-if(NOT WIN32)
-    # Install package-config file.
-    install(FILES ${CMAKE_BINARY_DIR}/${PC_OUT_FILE} DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/pkgconfig)
-endif()
+# Install package-config file.
+install(FILES ${CMAKE_BINARY_DIR}/${PC_OUT_FILE} DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 
 # Set libblis to the shared or static libblis depending on the option setting.
 if(TEST_WITH_SHARED AND TARGET blis_shared)
