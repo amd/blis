@@ -65,7 +65,7 @@ typedef int bli_pthread_barrierattr_t;
 #define BLIS_PTHREAD_COND_INITIALIZER  0
 #define BLIS_PTHREAD_ONCE_INIT         0
 
-#elif defined(_MSC_VER) // !defined(BLIS_DISABLE_SYSTEM)
+#elif defined(_WIN32) // !defined(BLIS_DISABLE_SYSTEM)
 
 // This branch defines a pthread-like API, bli_pthread_*(), and implements it
 // in terms of Windows API calls.
@@ -98,7 +98,7 @@ typedef void bli_pthread_barrierattr_t;
 #define BLIS_PTHREAD_ONCE_INIT         INIT_ONCE_STATIC_INIT
 #define BLIS_PTHREAD_COND_INITIALIZER  CONDITION_VARIABLE_INIT
 
-#else // !defined(BLIS_DISABLE_SYSTEM) && !defined(_MSC_VER)
+#else // !defined(BLIS_DISABLE_SYSTEM) && !defined(_WIN32)
 
 #include <pthread.h>
 
