@@ -1439,9 +1439,6 @@ else()
     set(PC_OUT_FILE "blis-mt.pc")
 endif()
 
-# Set directories for installation of libraries and header files.
-set(LIB_DIR ${CMAKE_INSTALL_PREFIX}/lib)
-set(INCLUDE_DIR ${CMAKE_INSTALL_PREFIX}/include)
 # Set LDFLAGS to be replaced in pc file.
 set(LDFLAGS_STRING ${LDFLAGS})
 # Add OpenMP flags as required.
