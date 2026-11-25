@@ -263,7 +263,11 @@
 
 #ifdef BLIS_OS_WINDOWS
   #ifdef BLIS_IS_BUILDING_LIBRARY
-    #define BLIS_TLS_TYPE __declspec(thread)
+    #ifdef _MSC_VER
+      #define BLIS_TLS_TYPE __declspec(thread)
+    #else // MinGW compilers do not support declspec
+      #define BLIS_TLS_TYPE __thread
+    #endif
   #else
     #define BLIS_TLS_TYPE
   #endif

@@ -46,7 +46,7 @@
 #include <memory.h>
 #include <time.h>
 #include <math.h>
-#ifndef _WIN32
+#if defined(__MINGW32__) || !defined(_WIN32)
 #include <sys/types.h>
 #else
 typedef int pid_t;
